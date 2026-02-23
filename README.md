@@ -1,96 +1,104 @@
 # 🎧 SoundCloud Clone – Frontend Modules
 This document describes the frontend architecture and implementation details for the Modules of our SoundCloud-inspired music streaming platform.
 ---
+## 🚀Frontend Tech Stack
+### Framework
+- **Next.js (App Router)**
+- **TypeScript**
+### Styling
+- **Tailwind CSS**
+### State Management
+- **Zustand**
+### API Communication
+- **Axios**
+- **MSW (Mock Service Worker)**
+### Testing
+- **Jest**
+- **React Testing Library**
+---
+# 📦 Modules & Frontend Implementation
+---
+## 🔐 Module 1: Authentication & User Management
+**Tools Used**
+- Next.js routing (`/login`, `/register`)
+- Axios interceptors (JWT handling)
+- Zustand (`authStore`)
+- Tailwind (form styling)
+- MSW (mock login/register)
 
-# 🚀 Frontend Tech Stack
-- **React + TypeScript** – Component-based UI development with strong static typing
-- **Vite** – Fast development server and optimized production builds
-- **React Router** – Client-side routing and navigation
-- **Axios** – HTTP client for backend API communication
-- **Bootstrap** – Responsive UI styling and layout system
-- **Jest + React Testing Library** – Unit and component testing
-
-# 🔐 Module 1: Authentication & User Management
-- **React + TypeScript** → Authentication components
-- **React Router** → Route protection and redirection
-- **Axios** → API authentication requests
-- **Bootstrap** → Form styling and validation
-- **Jest + RTL** → Test authentication flow
-
-# 👤 Module 2: User Profile & Social Identity
-- **React + TypeScript** → Profile components
-- **React Router** → Dynamic profile routes
-- **Axios** → Fetch/update profile data
-- **Bootstrap** → Responsive layout
-- **Jest + RTL** → Profile UI testing
-
-# 👥 Module 3: Followers & Social Graph
-- **React + TypeScript** → Social components
-- **Axios** → Follow/unfollow requests
-- **React Router** → Social navigation pages
-- **Bootstrap** → User card layouts
-- **Jest + RTL** → Follow state testing
-
-# 🎵 Module 4: Audio Upload & Track Management
-- **React + TypeScript** → Upload & metadata forms
-- **Axios** → Multipart form submission
-- **Bootstrap** → Upload progress UI
-- **React Router** → Navigation after upload
-- **Jest + RTL** → Form validation tests
-
-# ▶️ Module 5: Playback & Streaming Engine
-- **React + TypeScript** → Global audio player component
-- **React State / Context** → Persistent player state
-- **React Router** → Maintain player across routes
-- **Axios** → Fetch streaming data
-- **Bootstrap** → Responsive player layout
-- **Jest + RTL** → Playback logic testing
-
-# ❤️ Module 6: Engagement & Social Interactions
-- **React + TypeScript** → Engagement components
-- **Axios** → Interaction requests
-- **React Router** → Navigation to engagement views
-- **Bootstrap** → Comment & counter styling
-- **Jest + RTL** → UI interaction testing
-
-# 📂 Module 7: Sets & Playlists
-- **React + TypeScript** → Playlist management UI
-- **React Router** → Dynamic playlist routes
-- **Axios** → CRUD requests
-- **Bootstrap** → Drag-and-drop layout styling
-- **Jest + RTL** → Playlist logic testing
-
-# 🔎 Module 8: Feed, Search & Discovery
-- **React + TypeScript** → Feed & search components
-- **React Router** → Search routes
-- **Axios** → Fetch feed & search results
-- **Bootstrap** → Grid layout
-- **Jest + RTL** → Search behavior testing
-
-# 💬 Module 9: Messaging & Track Sharing
-- **React + TypeScript** → Chat components
-- **Axios** → Load conversation history
-- **React Router** → Thread navigation
-- **Bootstrap** → Chat UI styling
-- **Jest + RTL** → Message rendering tests
-
-# 🔔 Module 10: Real-Time Notifications
-- **React + TypeScript** → Notification components
-- **Axios** → Fetch/update notifications
-- **React Router** → Navigate to related content
-- **Bootstrap** → Badge & dropdown styling
-- **Jest + RTL** → Notification state testing
-
-# 🛡 Module 11: Moderation & Admin Dashboard
-- **React + TypeScript** → Admin components
-- **React Router** → Admin-only routes
-- **Axios** → Moderation API calls
-- **Bootstrap** → Dashboard tables
-- **Jest + RTL** → Role-based rendering tests
-
-# 💎 Module 12: Premium Subscription
-- **React + TypeScript** → Subscription components
-- **Axios** → Subscription requests
-- **React Router** → Premium route guards
-- **Bootstrap** → Pricing tables
-- **Jest + RTL** → Subscription UI tests
+# 🔐 Authentication Flow
+1. User logs in
+2. Server returns JWT + Refresh Token
+3. Axios interceptor attaches token automatically
+4. Zustand stores user session
+5. Protected routes validated via middleware
+---
+## 👤 Module 2: User Profile & Social Identity
+**Tools Used**
+- Dynamic routes: `/profile/[id]`
+- Axios (fetch/update profile)
+- Zustand (current user state)
+- Tailwind (profile UI)
+---
+## 👥 Module 3: Followers & Social Graph
+**Tools Used**
+- Axios (follow/unfollow API)
+- Zustand (update follower count)
+- Next.js pages (`/followers`, `/following`)
+---
+## 🎵 Module 4: Audio Upload & Track Management
+**Tools Used**
+- Axios (`multipart/form-data`)
+- Zustand (upload progress state)
+- Tailwind (upload UI)
+- Next.js (`/upload`)
+---
+## ▶️ Module 5: Playback & Streaming Engine
+**Tools Used**
+- Zustand (`playerStore`)
+- HTML5 Audio API
+- Next.js Root Layout (persistent player)
+- Tailwind (responsive sticky player)
+---
+## ❤️ Module 6: Engagement & Social Interactions
+**Tools Used**
+- Axios (likes, reposts, comments)
+- Zustand (optimistic updates)
+- Next.js dynamic routes (`/track/[id]`)
+---
+## 📂 Module 7: Sets & Playlists
+**Tools Used**
+- Axios (playlist CRUD)
+- Zustand (playlist state)
+- Next.js dynamic routes
+---
+## 🔎 Module 8: Feed, Search & Discovery
+**Tools Used**
+- Axios (feed/search endpoints)
+- Zustand (cache results)
+- Next.js (`/feed`, `/search`)
+---
+## 💬 Module 9: Messaging & Track Sharing
+**Tools Used**
+- Axios (messages API)
+- Zustand (`messageStore`)
+- Next.js (`/messages`)
+---
+## 🔔 Module 10: Real-Time Notifications
+**Tools Used**
+- Zustand (`notificationStore`)
+- Axios (mark as read)
+---
+## 🛡 Module 11: Moderation & Admin Dashboard
+**Tools Used**
+- Next.js Route Protection
+- Axios (admin APIs)
+- Zustand (admin stats state)
+- Tailwind (dashboard UI)
+---
+## 💎 Module 12: Premium Subscription
+**Tools Used**
+- Axios (subscription APIs)
+- Zustand (premium status state)
+- Next.js middleware (upload restrictions)
+---
