@@ -20,23 +20,44 @@ import {
   FiMenu,
 } from "react-icons/fi";
 
-interface NavBarProps {
-  children?: React.ReactNode; 
+interface NavItem {
+  label: string;
+  href: string;
+  icon?: React.ComponentType;
+  dividerAfter?: boolean;
 }
-const NavBar: React.FC<NavBarProps> = ({ children }) => {
-  const LEFT_ROUTES = [
+
+interface NavBarProps {
+  children?: React.ReactNode;
+  LEFT_ROUTES?: NavItem[];
+  RIGHT_ROUTES?: NavItem[];
+  PROFILE_MENU?: NavItem[];
+  MORE_MENU?: NavItem[];
+
+  showNotifications?: boolean;
+  showMessages?: boolean;
+
+  notificationsContent?: React.ReactNode;
+  messagesContent?: React.ReactNode;
+
+  showSearch?: boolean;
+  className?: string;
+}
+
+const NavBar: React.FC<NavBarProps> = ({
+  LEFT_ROUTES = [
     { label: "Home", href: "/" },
     { label: "Feed", href: "/feed" },
     { label: "Library", href: "/library" },
-  ];
+  ],
 
-  const RIGHT_ROUTES = [
+  RIGHT_ROUTES = [
     { label: "Try ArtistPro", href: "/pro" },
     { label: "For Artists", href: "/artists" },
     { label: "Upload", href: "/upload" },
-  ];
+  ],
 
-  const PROFILE_MENU = [
+  PROFILE_MENU = [
     { label: "Profile", icon: MdPerson },
     { label: "Likes", icon: ImHeart },
     { label: "Playlists", icon: FiList },
@@ -47,9 +68,9 @@ const NavBar: React.FC<NavBarProps> = ({ children }) => {
     { label: "Tracks", icon: PiWaveformBold },
     { label: "Insights", icon: MdBarChart },
     { label: "Distribute", icon: TbArrowLeftRight },
-  ];
+  ],
 
-  const MORE_MENU = [
+  MORE_MENU = [
     { label: "About us" },
     { label: "Legal" },
     { label: "Copyright", dividerAfter: true },
@@ -66,13 +87,32 @@ const NavBar: React.FC<NavBarProps> = ({ children }) => {
     { label: "Subscription" },
     { label: "Settings" },
     { label: "Sign out" },
-  ];
+  ],
 
+  showSearch = true,
+
+  showNotifications = true,
+  showMessages = true,
+
+  notificationsContent = (
+    <div className="absolute top-10 right-0 bg-neutral-900 text-white rounded-md shadow-md w-56 p-3 border border-neutral-700">
+      <p className="text-sm text-neutral-400">No new notifications</p>
+    </div>
+  ),
+
+  messagesContent = (
+    <div className="absolute top-10 right-0 bg-neutral-900 text-white rounded-md shadow-md w-56 p-3 border border-neutral-700">
+      <p className="text-sm text-neutral-400">No messages</p>
+    </div>
+  ),
+
+  className = "",
+}) => {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
-
-  const menuRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null); // Ref for detecting clicks outside of the menu
 
   useEffect(() => {
+    // Close menus when clicking outside
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setOpenMenu(null);
@@ -89,11 +129,11 @@ const NavBar: React.FC<NavBarProps> = ({ children }) => {
   };
 
   return (
-    <div className="fixed top-0 left-0 w-full z-50 bg-black py-2">
-      <div
-        ref={menuRef}
-        className="max-w-7xl mx-auto flex justify-center items-center gap-8"
-      >
+    <div
+      ref={menuRef}
+      className={`fixed top-0 left-0 w-full z-50 bg-black py-2 ${className}`}
+    >
+      <div className="max-w-7xl mx-auto flex justify-center items-center gap-8">
         {/* LEFT SECTION */}
         <div className="flex items-center gap-4">
           <FaSoundcloud size={48} className="text-white shrink-0" />
@@ -116,19 +156,19 @@ const NavBar: React.FC<NavBarProps> = ({ children }) => {
         </div>
 
         {/* CENTER SECTION */}
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Search"
-            className="bg-neutral-800 text-white text-sm px-4 py-1 rounded-md outline-none
-              focus:ring-2 focus:ring-neutral-600
-              w-32 sm:w-48 md:w-72 lg:w-96"
-          />
-          <FiSearch
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none"
-            size={18}
-          />
-        </div>
+        {showSearch && (
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search"
+              className="bg-neutral-800 text-white text-sm px-4 py-1 rounded-md outline-none w-32 sm:w-48 md:w-72 lg:w-96"
+            />
+            <FiSearch
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none"
+              size={18}
+            />
+          </div>
+        )}
 
         {/* RIGHT SECTION */}
         <div className="flex items-center gap-4">
@@ -158,30 +198,26 @@ const NavBar: React.FC<NavBarProps> = ({ children }) => {
           </button>
 
           {/* NOTIFICATIONS */}
-          <button
-            className="relative cursor-pointer"
-            onClick={() => toggleMenu("notifications")}
-          >
-            <FiBell size={20} className="text-neutral-400 hover:text-white" />
-            {openMenu === "notifications" && (
-              <div className="absolute top-10 right-0 bg-neutral-900 text-white rounded-md shadow-md w-56 p-3 border border-neutral-700">
-                <p className="text-sm text-neutral-400">No new notifications</p>
-              </div>
-            )}
-          </button>
+          {showNotifications && (
+            <button
+              className="relative cursor-pointer"
+              onClick={() => toggleMenu("notifications")}
+            >
+              <FiBell size={20} className="text-neutral-400 hover:text-white" />
+              {openMenu === "notifications" && notificationsContent}
+            </button>
+          )}
 
           {/* MESSAGES */}
-          <button
-            className="relative cursor-pointer"
-            onClick={() => toggleMenu("messages")}
-          >
-            <FiMail size={20} className="text-neutral-400 hover:text-white" />
-            {openMenu === "messages" && (
-              <div className="absolute top-10 right-0 bg-neutral-900 text-white rounded-md shadow-md w-56 p-3 border border-neutral-700">
-                <p className="text-sm text-neutral-400">No messages</p>
-              </div>
-            )}
-          </button>
+          {showMessages && (
+            <button
+              className="relative cursor-pointer"
+              onClick={() => toggleMenu("messages")}
+            >
+              <FiMail size={20} className="text-neutral-400 hover:text-white" />
+              {openMenu === "messages" && messagesContent}
+            </button>
+          )}
 
           {/* MORE MENU */}
           <button
@@ -199,13 +235,14 @@ const NavBar: React.FC<NavBarProps> = ({ children }) => {
 
       {/* MOBILE */}
       {openMenu === "mobile" && (
-        <div className="md:hidden bg-neutral-900 border-t border-neutral-700 p-4">
+        <div className="md:hidden bg-neutral-900 border-t border-neutral-700 p-4 hover:text-white">
           <div className="flex flex-col gap-4">
             {LEFT_ROUTES.map((route) => (
               <NavBarItem
                 key={route.label}
                 label={route.label}
                 href={route.href}
+                onClick={() => setOpenMenu(null)}
               />
             ))}
 
@@ -214,6 +251,7 @@ const NavBar: React.FC<NavBarProps> = ({ children }) => {
                 key={route.label}
                 label={route.label}
                 href={route.href}
+                onClick={() => setOpenMenu(null)}
               />
             ))}
           </div>
