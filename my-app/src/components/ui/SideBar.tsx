@@ -12,7 +12,7 @@ const SideBar: React.FC<SideBarProps> = ({ children }) => {
       <main className="h-full flex-1 overflow-y-auto p-2 bg-amber-950 py-20">{children}</main>
 
       {/* Sidebar */}
-      <div className="hidden md:flex flex-col gap-y-2 bg-black h-full w-96 p-2">   {/* pt-20  for the NavBar*/}
+      <div className="hidden md:flex flex-col gap-y-2 bg-black h-full w-96 p-2 pt-20">
         <Box className="flex-1">
           <div className="px-5 py-4">
             <SideBarItem label="ARTISTS TOOLS" href="/" />
