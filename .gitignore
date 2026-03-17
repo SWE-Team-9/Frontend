@@ -10,6 +10,10 @@
 !.yarn/releases
 !.yarn/versions
 
+############################# Added New #############################
+node_modules/
+
+
 # testing
 /coverage
 
