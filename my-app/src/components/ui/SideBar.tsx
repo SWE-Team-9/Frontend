@@ -1,6 +1,6 @@
 "use client";
-import Box from "@/src/components/ui/navigation/Box";
-import SideBarItem from "@/src/components/ui/navigation/SideBarItem";
+import Box from "@/src/components/ui/Box";
+import SideBarItem from "@/src/components/ui/SideBarItem";
 interface SideBarProps {
   children: React.ReactNode; 
 }

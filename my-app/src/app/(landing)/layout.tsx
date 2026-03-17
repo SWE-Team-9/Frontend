@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { AuthProvider } from "@/src/context/AuthContext"; // Ensure this path matches where you saved the file
+import { AuthProvider } from "@/src/context/AuthContext";
 
 export default function LandingLayout({ children }: { children: React.ReactNode }) {
   return (

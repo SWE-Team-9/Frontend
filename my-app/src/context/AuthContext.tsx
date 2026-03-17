@@ -3,7 +3,6 @@
 import React, { createContext, useContext, useState } from "react";
 import AuthModal from "@/src/components/auth/AuthModal";
 
-// Define the User structure for Member 2
 interface User {
   name: string;
   email?: string;
@@ -20,7 +19,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [authView, setAuthView] = useState<"login" | "signup" | null>(null);
   
-  // Explicitly tell TypeScript this state holds a User or null
   const [user, setUser] = useState<User | null>(null);
 
   const openAuth = (view: "login" | "signup") => setAuthView(view);
@@ -29,7 +27,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const login = (email: string) => {
     setUser({ name: "User", email: email }); 
     closeAuth();
-    // Redirect logic to verify the flow as requested
+    // Redirect logic to verify the flow
     window.location.href = "/discover"; 
   };
 
