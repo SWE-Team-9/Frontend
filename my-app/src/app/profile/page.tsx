@@ -3,18 +3,16 @@
 import React from "react";
 import { FiShare } from "react-icons/fi";
 import { GrEdit } from "react-icons/gr";
-import { FaFacebook , FaTwitter  ,FaPinterest} from "react-icons/fa";
+import { FaFacebook, FaTwitter, FaPinterest } from "react-icons/fa";
 import { TiSocialTumbler } from "react-icons/ti";
-// Import custom hooks and UI components for MVC architecture
-import { useProfileController } from "../../hooks/useProfileController";
-import { SocialLinkInput } from "../../components/ui/SocialLinkInput";
-import { PrivacyToggle } from "../../components/ui/PrivacyToggle";
+import { useProfileController } from "@/src/hooks/useProfileController";
+import { SocialLinkInput } from "@/src/components/ui/SocialLinkInput";
+import { PrivacyToggle } from "@/src/components/ui/PrivacyToggle";
 import { HiOutlineEnvelope } from "react-icons/hi2";
+import NavBar from "@/src/components/ui/NavBar";
 
-/**
- * Profile Page Component
- * Implements the View layer of the MVC pattern, delegating logic to useProfileController.
- */
+// Implements the View layer of the MVC pattern, delegating logic to useProfileController.
+
 export default function ProfilePage() {
   const BUTTON_STYLE =
     "bg-zinc-800/50 border border-zinc-700 px-4 py-1 rounded text-xs font-bold hover:bg-zinc-700 transition-colors uppercase flex items-center gap-2";
@@ -30,7 +28,7 @@ export default function ProfilePage() {
     accountTier,
     setProfileData,
     genre,
-    genres, // Added for Genre logic
+    genres,
     isPrivate,
     togglePrivate,
     links,
@@ -61,14 +59,12 @@ export default function ProfilePage() {
     showSuccessToast,
   } = useProfileController();
 
-  /**
-   * Renders the Details sub-page (e.g., Likes, Following, Followers)
-   */
+  // Renders the Details sub-page
   const renderDetailsPage = () => (
     <div className="container mx-auto px-8 py-10 animate-in fade-in duration-500">
       {/* Detail Header Section */}
       <div className="flex items-center gap-6 mb-12">
-        <div className="w-32 h-32 rounded-full bg-gradient-to-br from-zinc-700 to-zinc-500 shadow-xl"></div>
+        <div className="w-32 h-32 rounded-full bg-linear-to-br from-zinc-700 to-zinc-500 shadow-xl"></div>
         <h2 className="text-3xl font-bold">
           {detailTab} BY {displayName}
         </h2>
@@ -122,17 +118,19 @@ export default function ProfilePage() {
   );
 
   return (
-    <div className="min-h-screen bg-[#121212] text-white font-sans overflow-x-hidden relative">
+    <div className="min-h-screen pt-16 bg-[#121212] text-white font-sans overflow-x-hidden relative">
+      <NavBar />
+
       {/* Conditional Rendering based on viewState */}
       {viewState === "details" ? (
         renderDetailsPage()
       ) : (
         <>
           {/* --- SECTION 1: VISUAL HEADER --- */}
-          <div className="relative w-full min-h-[300px] bg-[#d38b7d] p-4 md:p-8 flex flex-col md:flex-row items-center md:items-start justify-between gap-6">
+          <div className="relative w-full min-h-75 bg-[#d38b7d] p-4 md:p-8 flex flex-col md:flex-row items-center md:items-start justify-between gap-6">
             <div className="flex flex-col md:flex-row gap-4 md:gap-8 items-center text-center md:text-left mt-4">
               {/* Profile Avatar with Hover Effect */}
-              <div className="w-[120px] h-[120px] md:w-[200px] md:h-[200px] rounded-full bg-zinc-400/30 flex items-center justify-center border border-white/10 shadow-2xl overflow-hidden relative group cursor-pointer">
+              <div className="w-30 h-30 md:w-50 md:h-50 rounded-full bg-zinc-400/30 flex items-center justify-center border border-white/10 shadow-2xl overflow-hidden relative group cursor-pointer">
                 <span className="text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity absolute inset-0 flex items-center justify-center bg-black/40">
                   Update image
                 </span>
@@ -168,7 +166,7 @@ export default function ProfilePage() {
 
           {/* --- SECTION 2: NAVIGATION BAR (Sticky) --- */}
           <div className="border-b border-zinc-800 bg-[#121212] sticky top-0 z-40 overflow-x-auto">
-            <div className="container mx-auto px-4 md:px-8 flex justify-between items-center h-12 min-w-[600px] md:min-w-full">
+            <div className="container mx-auto px-4 md:px-8 flex justify-between items-center h-12 min-w-150 md:min-w-full">
               {/* Tab List */}
               <ul className="flex gap-8 text-[14px] font-bold text-zinc-400 h-full">
                 {tabs?.map((tab: string) => (
@@ -321,7 +319,7 @@ export default function ProfilePage() {
       {/* --- MODAL 1: EDIT PROFILE --- */}
       {isEditOpen && (
         <div className="fixed inset-0 bg-black/90 z-50 flex items-start justify-center p-4 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-[#1a1a1a] w-full max-w-[800px] rounded-lg border border-zinc-800 shadow-2xl my-8 overflow-hidden">
+          <div className="bg-[#1a1a1a] w-full max-w-200 rounded-lg border border-zinc-800 shadow-2xl my-8 overflow-hidden">
             <div className="p-8 pb-0">
               <h2 className="text-[28px] font-bold text-white mb-2 uppercase">
                 Edit your Profile
@@ -346,7 +344,7 @@ export default function ProfilePage() {
                 <div className="flex flex-col md:flex-row gap-12">
                   {/* Image Upload Area */}
                   <div className="flex flex-col items-center gap-4 w-full md:w-1/3">
-                    <div className="w-[240px] h-[240px] rounded-full bg-zinc-700 shadow-2xl flex items-center justify-center relative group">
+                    <div className="w-60 h-60 rounded-full bg-zinc-700 shadow-2xl flex items-center justify-center relative group">
                       <span className="text-[10px] font-bold uppercase">
                         Avatar
                       </span>
@@ -578,7 +576,7 @@ export default function ProfilePage() {
       {/* --- MODAL 2: SHARE MODAL --- */}
       {isShareOpen && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-[#1a1a1a] w-full max-w-[500px] rounded-sm border border-[#333] shadow-2xl overflow-hidden relative">
+          <div className="bg-[#1a1a1a] w-full max-w-125 rounded-sm border border-[#333] shadow-2xl overflow-hidden relative">
             {/* Modal Tab Headers */}
             <div className="flex border-b border-[#333]">
               <button
@@ -598,40 +596,39 @@ export default function ProfilePage() {
             <div className="p-8 space-y-8">
               {shareTab === "Share" ? (
                 <>
-                  {/* High Quality SVG Social Icons with official brand colors */}
                   <div className="flex gap-4 mb-10">
-                    {/* Twitter / X */}
+                    {/* Twitter*/}
                     <div
                       title="Twitter"
-                      className="w-[50px] h-[50px] rounded-full bg-[#1DA1F2] flex items-center justify-center cursor-pointer hover:opacity-80 transition-all shadow-lg"
+                      className="w-12.5 h-12.5 rounded-full bg-[#1DA1F2] flex items-center justify-center cursor-pointer hover:opacity-80 transition-all shadow-lg"
                     >
-                     <FaTwitter  size={30}/>
+                      <FaTwitter size={30} />
                     </div>
                     {/* Facebook */}
                     <div
                       title="Facebook"
-                      className="w-[50px] h-[50px] rounded-full bg-[#1877F2] flex items-center justify-center cursor-pointer hover:opacity-80 transition-all shadow-lg "
+                      className="w-12.5 h-12.5 rounded-full bg-[#1877F2] flex items-center justify-center cursor-pointer hover:opacity-80 transition-all shadow-lg "
                     >
-                      <FaFacebook size ={30} />
+                      <FaFacebook size={30} />
                     </div>
                     {/* Tumblr */}
                     <div
                       title="Tumblr"
-                      className="w-[50px] h-[50px] rounded-full bg-[#35465C] flex items-center justify-center cursor-pointer hover:opacity-80 transition-all shadow-lg"
+                      className="w-12.5 h-12.5 rounded-full bg-[#35465C] flex items-center justify-center cursor-pointer hover:opacity-80 transition-all shadow-lg"
                     >
                       <TiSocialTumbler size={50} />
                     </div>
                     {/* Pinterest */}
                     <div
                       title="Pinterest"
-                      className="w-[50px] h-[50px] rounded-full bg-[#E60023] flex items-center justify-center cursor-pointer hover:opacity-80 transition-all shadow-lg"
+                      className="w-12.5 h-12.5 rounded-full bg-[#E60023] flex items-center justify-center cursor-pointer hover:opacity-80 transition-all shadow-lg"
                     >
-                     <FaPinterest size ={30} />
+                      <FaPinterest size={30} />
                     </div>
                     {/* Email / Mail */}
                     <div
                       title="Email"
-                      className="w-[50px] h-[50px] rounded-full bg-[#333] flex items-center justify-center cursor-pointer hover:opacity-80 transition-all shadow-lg border border-zinc-700"
+                      className="w-12.5 h-12.5 rounded-full bg-[#333] flex items-center justify-center cursor-pointer hover:opacity-80 transition-all shadow-lg border border-zinc-700"
                     >
                       <HiOutlineEnvelope size={30} />
                     </div>
@@ -711,8 +708,8 @@ export default function ProfilePage() {
       )}
 
       {showSuccessToast && (
-        <div className="fixed top-20 right-10 z-[100] animate-in slide-in-from-right duration-300">
-          <div className="bg-[#333] border border-zinc-700 p-4 flex items-center gap-4 shadow-2xl rounded-sm min-w-[300px]">
+        <div className="fixed top-20 right-10 z-100 animate-in slide-in-from-right duration-300">
+          <div className="bg-[#333] border border-zinc-700 p-4 flex items-center gap-4 shadow-2xl rounded-sm min-w-75">
             <div className="w-12 h-12 bg-zinc-600 flex items-center justify-center rounded-sm">
               <span className="text-zinc-400 text-2xl">👤</span>
             </div>

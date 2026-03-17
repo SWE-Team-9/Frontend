@@ -1,16 +1,14 @@
 import { useProfileStore } from '../store/useProfileStore';
 import { useState } from 'react';
 
-/**
- * useProfileController Hook
- * Acts as the 'Controller' in the MVC architecture.
- * Manages UI logic, form validation, and acts as a bridge between the Store (Model) and the Page (View).
- */
+// Acts as the 'Controller' in the MVC architecture.
+// Manages UI logic, form validation, and acts as a bridge between the Store (Model) and the Page (View).
+
 export const useProfileController = () => {
   // Access global state from the Zustand store
   const store = useProfileStore();
 
-  // --- 1. UI Control States ---
+  // 1. UI Control States
   const [activeTab, setActiveTab] = useState("All");
   // Controls current view (e.g., main profile vs. details page)
   const [viewState, setViewState] = useState("profile"); 
@@ -23,7 +21,7 @@ export const useProfileController = () => {
   const [error, setError] = useState("");
   const [showSuccessToast, setShowSuccessToast] = useState(false);
 
-  // --- 2. Static Data ---
+  // 2. Static Data
   const tabs = ["All", "Popular tracks", "Tracks", "Albums", "Playlists", "Reposts"];
   const longLink = "https://soundcloud.com/gehad-mourad-904565429";
   const shortLink = "https://on.soundcloud.com/8LKK3k9RQB5hmgoZ3W";
@@ -31,12 +29,8 @@ export const useProfileController = () => {
   // List of required music genres as per Sprint requirements
   const genres = ["None", "Rock", "Pop", "Hip Hop", "Jazz", "Electronic"];
 
-  // --- 3. Logic Methods ---
-
-  /**
-   * handleSave
-   * Validates mandatory fields and saves changes, then triggers success feedback.
-   */
+  // 3. Logic Methods
+// Validates mandatory fields and saves changes, then triggers success feedback.
   const handleSave = () => {
     // Validation Logic: Ensure required fields are not empty
     if (store.displayName.trim() === "") {
@@ -54,16 +48,11 @@ export const useProfileController = () => {
     
     setError("");
     setIsEditOpen(false);
-
     setShowSuccessToast(true);
-    
     setTimeout(() => setShowSuccessToast(false), 3000);
   };
 
-  /**
-   * copyToClipboard
-   * Copies the chosen profile link (long or shortened) to the user's clipboard.
-   */
+// Copies the chosen profile link (long or shortened) to the user's clipboard.
   const copyToClipboard = async () => {
     const textToCopy = isShortened ? shortLink : longLink;
     try {
@@ -75,9 +64,9 @@ export const useProfileController = () => {
     }
   };
 
-  // --- 4. Return Everything to View ---
+  // 4. Return Everything to View
   return {
-    ...store, // Spread Model data (displayName, bio, links, etc.) and Store Actions
+    ...store, // Spread Model data and Store Actions
     activeTab, 
     setActiveTab, 
     tabs,
