@@ -1,38 +1,36 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import SideBar from "@/src/components/ui/SideBar";
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
 });
+
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: "SoundCloud",
-  description: "Stream and listen to music online for free on SoundCloud",
-  icons: {
-    icon: "/icon.png",
-  },
+  title: "SoundCloud | Profile",
+  description: "Your music profile on SoundCloud",
 };
 
-
-export default function RootLayout({
+export default function ProfileLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} font-sans bg-amber-950 text-white`}>
-       <div className="max-w-7xl mx-auto px-6">
-          <SideBar>
-            {children}
-          </SideBar>  
-        </div>
+      <body 
+        className={`${geistSans.variable} ${geistMono.variable} font-sans bg-[#121212] text-white`}
+        suppressHydrationWarning={true} // السطر ده هو اللي هيشيل الخطأ اللي ظهرلك
+      >
+        <main className="w-full min-h-screen">
+          {children}
+        </main>
       </body>
     </html> 
   );
