@@ -6,30 +6,17 @@ import { GrEdit } from "react-icons/gr";
 import { FaFacebook, FaTwitter, FaPinterest } from "react-icons/fa";
 import { TiSocialTumbler } from "react-icons/ti";
 import { HiOutlineEnvelope } from "react-icons/hi2";
-
-// Import Custom Hook (Controller Layer)
+import NavBar from "@/src/components/ui/NavBar";
 import { useProfileController } from "../../hooks/useProfileController";
-
-// Import Fragmented Components (View Layer)
 import { Stats } from "../../components/profile/sidebar/Stats";
 import { SocialLinksList } from "../../components/profile/sidebar/SocialLinksList";
 import { EditProfileModal } from "../../components/profile/modals/EditProfileModal";
 
-/**
- * ProfilePage Component
- * This is the main view component that aggregates different sub-components
- * and connects them to the logic provided by the useProfileController.
- */
 export default function ProfilePage() {
-  // Common styles for primary action buttons
   const BUTTON_STYLE =
     "bg-zinc-800/50 border border-zinc-700 px-4 py-1 rounded text-xs font-bold hover:bg-zinc-700 transition-colors uppercase flex items-center gap-2";
-
-  // Initialize the Controller to manage state and logic
   const controller = useProfileController();
-  
-  // Destructuring state for cleaner JSX consumption
-  const {
+    const {
     displayName, city, country, genre, links, activeTab, setActiveTab,
     tabs, viewState, setViewState, detailTab, setDetailTab, isShareOpen,
     setIsShareOpen, shareTab, setShareTab, isShortened, setIsShortened,
@@ -37,15 +24,11 @@ export default function ProfilePage() {
     accountTier, isEditOpen, setIsEditOpen
   } = controller;
 
-  /**
-   * Sub-render function for the Details View
-   * Displays Likes, Following, and Followers lists
-   */
   const renderDetailsPage = () => (
     <div className="container mx-auto px-8 py-10 animate-in fade-in duration-500">
       {/* Detail View Header */}
       <div className="flex items-center gap-6 mb-12">
-        <div className="w-32 h-32 rounded-full bg-gradient-to-br from-zinc-700 to-zinc-500 shadow-xl"></div>
+        <div className="w-32 h-32 rounded-full bg-linear-to-br from-zinc-700 to-zinc-500 shadow-xl"></div>
         <h2 className="text-3xl font-bold">
           {detailTab} BY {displayName}
         </h2>
