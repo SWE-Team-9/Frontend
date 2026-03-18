@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import AuthInput from "@/src/components/auth/AuthInput";
 import { useAuth } from "@/src/context/AuthContext";
 import { useAuthStore } from "@/src/store/useAuthStore";
+import { loginUser, signupUser } from "@/src/services/authService";
 import { FaFacebook } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { FaApple } from "react-icons/fa";
@@ -27,9 +28,8 @@ export default function AuthModal({
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isResetSent, setIsResetSent] = useState(false);
-  const { setEmail: setEmailStore} = useAuthStore();
+  const { setEmail: setEmailStore } = useAuthStore();
   const router = useRouter();
-  
 
   const months = [
     "January",
@@ -58,13 +58,12 @@ export default function AuthModal({
     }
   }, [isOpen, initialView]);
 
-  // Social Login Handler (Assisting Maryam)
   const handleSocialLogin = (provider: string) => {
     console.log(`Redirecting to ${provider} OAuth...`);
-    // window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/${provider}`;
+    // Implement OAuth flow here (redirect to backend endpoint that initiates OAuth)
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -81,7 +80,14 @@ export default function AuthModal({
           document.getElementById("login-password") as HTMLInputElement
         )?.value;
         if (!pass) return setError("Password is required.");
-        login(email);
+
+        // Login with JWT via authService
+        try {
+          await loginUser({ email, password: pass });
+          router.push("/discover"); // redirect after successful login
+        } catch (err: any) {
+          setError(err.response?.data?.message || "Login failed");
+        }
       }
     } else if (view === "signup") {
       if (step === 1) {
@@ -124,8 +130,23 @@ export default function AuthModal({
         if (selectedDate.getMonth() !== month - 1)
           return setError("Please enter a valid calendar date.");
 
-        setEmailStore(email);
-        router.push("/verify-email-notice");
+        // Signup with JWT via authService
+        const pass = (
+          document.getElementById("reg-password") as HTMLInputElement
+        )?.value;
+        try {
+          await signupUser({
+            email,
+            password: pass,
+            name,
+            dob: `${year}-${month}-${day}`,
+            gender,
+          });
+          setEmailStore(email); // store email for verification
+          router.push("/verify-email-notice"); // redirect after signup
+        } catch (err: any) {
+          setError(err.response?.data?.message || "Signup failed");
+        }
       }
     } else if (view === "forgot") {
       if (isResetSent) {

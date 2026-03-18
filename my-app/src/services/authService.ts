@@ -15,21 +15,21 @@ interface SignupData {
 }
 
 export const loginUser = async ({ email, password }: LoginData) => {
-  const res = await api.post("/auth/login", { email, password });
-  const { accessToken, refreshToken } = res.data;
-  useAuthStore.getState().setTokens(accessToken, refreshToken);
-  useAuthStore.getState().setEmail(email);
-  return res.data;
+  const RESPONSE = await api.post("/auth/login", { email, password }); // backend endpoint for login
+  const { accessToken, refreshToken } = RESPONSE.data; // assuming the backend returns these tokens upon successful login
+  useAuthStore.getState().setTokens(accessToken, refreshToken); // store the tokens in Zustand
+  useAuthStore.getState().setEmail(email); 
+  return RESPONSE.data; // return the response data for further use (AuthModal) can handle redirect, or display messages
 };
 
 export const signupUser = async (data: SignupData) => {
-  const res = await api.post("/auth/signup", data);
-  const { accessToken, refreshToken } = res.data;
+  const RESPONSE = await api.post("/auth/signup", data); // backend endpoint for signup
+  const { accessToken, refreshToken } = RESPONSE.data; 
   useAuthStore.getState().setTokens(accessToken, refreshToken);
   useAuthStore.getState().setEmail(data.email);
-  return res.data;
+  return RESPONSE.data;
 };
 
-export const logoutUser = async () => {
+export const logoutUser = async () => { // ((backend endpoint for logout)) clear tokens on frontend
   useAuthStore.getState().clearTokens();
 };
