@@ -7,17 +7,11 @@ export default function SideNavLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className="font-sans bg-amber-950 text-white"
-      >
-        <div className="max-w-7xl mx-auto px-6">
-          <SideBar>
-            <NavBar />
-            {children}
-          </SideBar>
-        </div>
-      </body>
-    </html>
+    <div className="font-sans bg-amber-950 text-white max-w-7xl mx-auto px-6">
+        <SideBar>
+          <NavBar />
+          {children}
+        </SideBar>
+      </div>
   );
 }

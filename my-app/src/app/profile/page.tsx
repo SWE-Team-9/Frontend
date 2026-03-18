@@ -292,7 +292,7 @@ export default function ProfilePage() {
               <div className="space-y-4">
                 <div className="flex justify-between items-center text-zinc-500 text-[13px] border-b border-zinc-900 pb-2">
                   <p className="flex items-center gap-2 font-bold uppercase">
-                    👥 1 Following
+                    1 Following
                   </p>
                   <button
                     onClick={() => {
@@ -710,9 +710,6 @@ export default function ProfilePage() {
       {showSuccessToast && (
         <div className="fixed top-20 right-10 z-100 animate-in slide-in-from-right duration-300">
           <div className="bg-[#333] border border-zinc-700 p-4 flex items-center gap-4 shadow-2xl rounded-sm min-w-75">
-            <div className="w-12 h-12 bg-zinc-600 flex items-center justify-center rounded-sm">
-              <span className="text-zinc-400 text-2xl">👤</span>
-            </div>
             <div>
               <p className="text-white text-sm font-bold">
                 Your profile has been updated
