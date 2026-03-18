@@ -7,6 +7,8 @@ import { FaFacebook } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { FaApple } from "react-icons/fa";
 
+import { startSocialLogin, type SocialProvider } from "@/src/lib/auth/authService";
+
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -22,6 +24,9 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
   const [error, setError] = useState<string | null>(null);
   const [isResetSent, setIsResetSent] = useState(false);
 
+  const [socialLoading, setSocialLoading] = useState<SocialProvider | null>(null);
+  const [socialError, setSocialError] = useState<string | null>(null);
+
   const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 101 }, (_, i) => currentYear - i);
@@ -33,13 +38,27 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
       setStep(1);
       setError(null);
       setIsResetSent(false);
+      setSocialError(null);
+      setSocialLoading(null);
     }
   }, [isOpen, initialView]);
 
-  // Social Login Handler (Assisting Maryam)
-  const handleSocialLogin = (provider: string) => {
-    console.log(`Redirecting to ${provider} OAuth...`);
-    // window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/${provider}`;
+  // Social Login Handler
+  const handleUnavailableProvider = (providerName: string) => {
+  setError(null);
+  setSocialError(`${providerName} login is not available yet.`);
+  };
+
+  const handleSocialLogin = async (provider: SocialProvider) => {
+    try {
+      setError(null);
+      setSocialError(null);
+      setSocialLoading(provider);
+      startSocialLogin(provider);
+    } catch (err) {
+      setSocialLoading(null);
+      setSocialError("Unable to start Google login. Please try again.");
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -127,10 +146,39 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
 
         {step === 1 && view !== "forgot" && (
           <div className="w-full flex flex-col gap-2.5 mb-6">
-            <button onClick={() => handleSocialLogin('facebook')} type="button" className="w-full h-10 bg-[#1877f2] text-white text-sm font-bold rounded-sm flex items-center justify-center gap-2 cursor-pointer hover:opacity-90"> <FaFacebook size={18} /> Continue with Facebook</button>
-            <button onClick={() => handleSocialLogin('google')} type="button" className="w-full h-10 bg-white text-black text-sm font-bold rounded-sm flex items-center justify-center gap-2 cursor-pointer hover:bg-gray-100"><FcGoogle size={18} />Continue with Google</button>
-            <button onClick={() => handleSocialLogin('apple')} type="button" className="w-full h-10 bg-black text-white text-sm font-bold rounded-sm border border-gray-700 flex items-center justify-center gap-2 cursor-pointer hover:bg-[#111]"><FaApple size={18}/>Continue with Apple</button>
-            <div className="flex items-center w-full mt-4"><span className="text-white text-sm font-bold">or with email</span></div>
+            <button 
+            onClick={() => handleUnavailableProvider("Facebook")}
+            type="button"
+            disabled={!!socialLoading}
+            className="w-full h-10 bg-[#1877f2] text-white text-sm font-bold rounded-sm flex items-center justify-center gap-2 cursor-pointer hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <FaFacebook size={18} /> 
+              Continue with Facebook
+            </button>
+            
+            <button 
+              onClick={() => handleSocialLogin("google")}
+              type="button"
+              disabled={!!socialLoading}
+              className="w-full h-10 bg-white text-black text-sm font-bold rounded-sm flex items-center justify-center gap-2 cursor-pointer hover:bg-gray-100 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <FcGoogle size={18} />
+              {socialLoading === "google" ? "Redirecting..." : "Continue with Google"}
+            </button>   
+            
+            <button 
+              onClick={() => handleUnavailableProvider("Apple")}
+              type="button"
+              disabled={!!socialLoading}
+              className="w-full h-10 bg-black text-white text-sm font-bold rounded-sm border border-gray-700 flex items-center justify-center gap-2 cursor-pointer hover:bg-[#111] disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <FaApple size={18} />
+              Continue with Apple
+            </button>  
+            {socialError && <p className="text-red-500 text-xs mt-1">{socialError}</p>}
+            <div 
+              className="flex items-center w-full mt-4"><span className="text-white text-sm font-bold">or with email</span>
+            </div>
           </div>
         )}
 
