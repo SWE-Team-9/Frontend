@@ -22,7 +22,6 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
   const [error, setError] = useState<string | null>(null);
   const [isResetSent, setIsResetSent] = useState(false);
 
-  // Constants for Date of Birth
   const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 101 }, (_, i) => currentYear - i);
@@ -37,7 +36,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
     }
   }, [isOpen, initialView]);
 
-  // Social Login Handler (Assisting Member 3)
+  // Social Login Handler (Assisting Maryam)
   const handleSocialLogin = (provider: string) => {
     console.log(`Redirecting to ${provider} OAuth...`);
     // window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/${provider}`;
@@ -105,10 +104,10 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 p-4">
+    <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/70 p-4">
       <button onClick={onClose} className="absolute top-8 right-10 text-white text-2xl hover:text-gray-400 transition-colors cursor-pointer">✕</button>
 
-      <div className="bg-[#121212] w-full max-w-[450px] min-h-[550px] p-8 md:p-10 rounded-sm shadow-2xl relative flex flex-col">
+      <div className="bg-[#121212] w-full max-w-112.5 min-h-137.5 p-8 md:p-10 rounded-sm shadow-2xl relative flex flex-col">
         
         {((view === "signup" && step > 1) || (view === "login" && step === 2) || view === "forgot") && (
           <button 

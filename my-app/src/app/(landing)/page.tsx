@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/src/context/AuthContext";
-import { IoIosSearch } from "react-icons/io";
+import {FiSearch} from "react-icons/fi";
 import { FaSoundcloud } from "react-icons/fa";
 
 export default function LandingPage(){
@@ -12,29 +12,35 @@ export default function LandingPage(){
   // 1. DATA of The slides 
   const slides = [
     {
-      image: "https://a-v2.sndcdn.com/assets/images/front-hero-artist-fan-534fb484.jpeg",
+      image:
+        "https://a-v2.sndcdn.com/assets/images/front-hero-artist-fan-534fb484.jpeg",
       title: "Discover. Get Discovered.",
-      description: "Discover your next obsession, or become someone else’s.SoundCloud is the only community where fans and artists come together to discover and connect through music.",
+      description:
+        "Discover your next obsession, or become someone else’s.SoundCloud is the only community where fans and artists come together to discover and connect through music.",
       buttonText: "Get Started",
       buttonColor: "bg-white/90",
-      secondaryLink: null
+      secondaryLink: null,
     },
     {
-      image: "https://a-v2.sndcdn.com/assets/images/front-hero-artist-db39c288.jpeg",
+      image:
+        "https://a-v2.sndcdn.com/assets/images/front-hero-artist-db39c288.jpeg",
       title: "It all starts with an upload.",
-      description: "From bedrooms and broom closets to studios and stadiums, SoundCloud is where you define what’s next in music. Just hit upload.",
+      description:
+        "From bedrooms and broom closets to studios and stadiums, SoundCloud is where you define what’s next in music. Just hit upload.",
       buttonText: "Upload",
       buttonColor: "bg-white/90",
-      secondaryLink: "Explore Artist Pro"
+      secondaryLink: "Explore Artist Pro",
     },
     {
-      image: "https://a-v2.sndcdn.com/assets/images/front-hero-fan-7bdd78dc.jpeg",
+      image:
+        "https://a-v2.sndcdn.com/assets/images/front-hero-fan-7bdd78dc.jpeg",
       title: "Where every music scene lives.",
-      description: "Discover 400 million songs, remixes and DJ sets: every chart-topping track you can find elsewhere, and millions more you can’t find anywhere else.",
+      description:
+        "Discover 400 million songs, remixes and DJ sets: every chart-topping track you can find elsewhere, and millions more you can’t find anywhere else.",
       buttonText: " Upload",
       buttonColor: "bg-white/90",
-      secondaryLink: "Explore Go+"
-    }
+      secondaryLink: "Explore Go+",
+    },
   ];
 
   
@@ -59,7 +65,7 @@ export default function LandingPage(){
           
           {/* THE SLIDING LAYERS */}
           {slides.map((slide, index) => (
-            <div 
+            <div
               key={index}
               className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
                 index === currentIndex ? "opacity-100 z-10" : "opacity-0 z-0"
@@ -85,14 +91,15 @@ export default function LandingPage(){
                 >
                   {slide.buttonText}
                 </button>
-                {slide.secondaryLink && (
-                  <a 
-                    href="#"
-                    className="text-xs xs:text-sm md:text-md text-white/90 font-bold  transition-colors cursor-pointer "
-                  >
-                    {slide.secondaryLink}
-                  </a>
-                )}
+               
+                  {slide.secondaryLink && (
+                    <a
+                      href="#"
+                      className="text-md text-white/90 font-bold  transition-colors cursor-pointer "
+                    >
+                      {slide.secondaryLink}
+                    </a>
+                  )}
                 </div>
               </div>
             </div>
@@ -172,7 +179,7 @@ export default function LandingPage(){
           {/* CAROUSEL DOTS */}
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2.5 z-30">
             {slides.map((_, index) => (
-              <div 
+              <div
                 key={index}
                 className={`w-2 h-2 rounded-full transition-all duration-300 ${
                   index === currentIndex ? "bg-white scale-125" : "bg-white/40"
@@ -193,7 +200,7 @@ export default function LandingPage(){
               />
               
               <span className="absolute right-4 top-3.5 text-slate-400">
-                <IoIosSearch />
+                <FiSearch size={20} />
               </span>
             </div>
             <span className="text-white font-medium text-lg hidden md:block">or</span>
@@ -209,7 +216,6 @@ export default function LandingPage(){
               Hear what’s trending for free in the SoundCloud community
             </h2>
         </section>
-
       </div>
     </div>
   );
