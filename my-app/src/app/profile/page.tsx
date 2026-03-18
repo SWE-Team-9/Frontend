@@ -118,7 +118,7 @@ export default function ProfilePage() {
   );
 
   return (
-    <div className="min-h-screen pt-16 bg-[#121212] text-white font-sans overflow-x-hidden relative">
+    <div className="min-h-screen pt-16 bg-[#121212] text-white font-sans overflow-x-hidden relative max-w-7xl mx-auto px-6">
       <NavBar />
 
       {/* Conditional Rendering based on viewState */}
