@@ -2,22 +2,41 @@ import { create } from "zustand";
 
 type AuthView = "login" | "signup" | "forgot" | "verify-email-notice";
 
-interface AuthState { 
-  email: string;
-  isVerified: boolean | null; // null = unknown, true = verified, false = failed
-  verificationToken: string | null;
+interface AuthState {
+  // (Email Verification Flow)
+  email: string | null; // store email for verification and resending
   setEmail: (email: string) => void; // store email for resending verification
-  setVerified: (status: boolean) => void; 
-  setToken: (token: string) => void; // store token for verification
-  resetVerification: () => void;
+
+  // (JWT Handling)
+  accessToken: string | null;
+  refreshToken: string | null;
+  isAuthenticated: boolean;
+
+  setTokens: (accessToken: string, refreshToken: string) => void;
+  clearTokens: () => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
-  email: "",
-  isVerified: null,
-  verificationToken: null,
+  email: null,
   setEmail: (email) => set({ email }),
-  setVerified: (status) => set({ isVerified: status }),
-  setToken: (token) => set({ verificationToken: token }),
-  resetVerification: () => set({ email: "", isVerified: null, verificationToken: null }),
+
+  accessToken: null,
+  refreshToken: null,
+  isAuthenticated: false,
+
+  setTokens: (accessToken, refreshToken) =>
+    set({
+      accessToken,
+      refreshToken,
+      isAuthenticated: true,
+    }),
+
+  clearTokens: () =>
+    set({
+      accessToken: null,
+      refreshToken: null,
+      isAuthenticated: false,
+      email: null, // optional (depends on your flow)
+    }),
+    
 }));
