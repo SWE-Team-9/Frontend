@@ -7,8 +7,7 @@ import { FaFacebook } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { FaApple } from "react-icons/fa";
 
-import { startSocialLogin, type SocialProvider } from "@/src/lib/auth/authService";
-
+import { startSocialLogin, registerWithCaptcha, type SocialProvider } from "@/src/lib/auth/authService";
 import CaptchaField from "./CaptchaField";
 
 interface AuthModalProps {
@@ -32,6 +31,9 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [captchaError, setCaptchaError] = useState<string | null>(null);
 
+  const [loginPassword, setLoginPassword] = useState("");
+  const [signupPassword, setSignupPassword] = useState("");
+
   const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 101 }, (_, i) => currentYear - i);
@@ -47,6 +49,8 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
       setSocialLoading(null);
       setCaptchaToken(null);
       setCaptchaError(null);
+      setLoginPassword("");
+      setSignupPassword("");
     }
   }, [isOpen, initialView]);
 
@@ -64,11 +68,11 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
       startSocialLogin(provider);
     } catch (err) {
       setSocialLoading(null);
-      setSocialError("Unable to start Google login. Please try again.");
+      setSocialError(err instanceof Error ? err.message : "Unable to start Google login. Please try again.");
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
 
@@ -81,9 +85,13 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
       if (step === 1) {
         setStep(2);
       } else {
-        const pass = (document.getElementById('login-password') as HTMLInputElement)?.value;
-        if (!pass) return setError("Password is required.");
+        if (!loginPassword.trim()) {
+          setError("Password is required.");
+          return;
+        }
+
         login(email);
+        onClose();
       }
     } 
     else if (view === "signup") {
@@ -91,11 +99,16 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
         setStep(2);
       } 
       else if (step === 2) {
-        const pass = (document.getElementById('reg-password') as HTMLInputElement)?.value;
-        if (!pass) return setError("Please create a password.");
-        if (pass.length < 8) {
-          return setError("Password must be at least 8 characters long.");
+        if (!signupPassword.trim()) {
+          setError("Please create a password.");
+          return;
         }
+
+        if (signupPassword.length < 8) {
+          setError("Password must be at least 8 characters long.");
+          return;
+        }
+
         setStep(3);
       } 
       else {
@@ -105,22 +118,61 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
         const year = parseInt((document.getElementById('birth-year') as HTMLSelectElement).value);
         const gender = (document.getElementById('gender') as HTMLSelectElement).value;
 
-        if (!name) return setError("Display name is required.");
-        if (!month || !day || !year) return setError("Please complete your date of birth.");
-        if (!gender) return setError("Please select your gender.");
+        if (!name) {
+          setError("Display name is required.");
+          return;
+        }
+
+        if (!month || !day || !year) {
+          setError("Please complete your date of birth.");
+          return;
+        }
+
+        if (!gender) {
+          setError("Please select your gender.");
+          return;
+        }
 
         const selectedDate = new Date(year, month - 1, day);
         const today = new Date();
 
-        if (selectedDate > today) return setError("Birth date cannot be in the future.");
-        if (selectedDate.getMonth() !== month - 1) return setError("Please enter a valid calendar date.");
-        
+        if (selectedDate > today) {
+          setError("Birth date cannot be in the future.");
+          return;
+        }
+
+        if (selectedDate.getMonth() !== month - 1) {
+          setError("Please enter a valid calendar date.");
+          return;
+        }
+
         if (!captchaToken) {
           setCaptchaError("Please complete the CAPTCHA.");
           return;
         }
-        setCaptchaError(null);
-        login(email);
+
+        if (!signupPassword.trim()) {
+          setError("Please create a password.");
+          return;
+        }
+
+        try {
+          setCaptchaError(null);
+
+          await registerWithCaptcha({
+            email,
+            password: signupPassword,
+            displayName: name,
+            birthDate: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
+            gender,
+            captchaToken,
+          });
+
+          login(email);
+          onClose();
+        } catch (err) {
+          setError("Unable to create your account right now.");
+        }
       }
     }
     else if (view === "forgot") {
@@ -213,7 +265,15 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
               {step === 2 && (
                 <div className="space-y-4">
                   <p className="text-sm text-gray-400">{email}</p>
-                  <AuthInput type="password" placeholder={view === "login" ? "Your password" : "Create a password"} id={view === "login" ? "login-password" : "reg-password"} />
+                  <AuthInput
+                    type="password"
+                    placeholder={view === "login" ? "Your password" : "Create a password"}
+                    id={view === "login" ? "login-password" : "reg-password"}
+                    value={view === "login" ? loginPassword : signupPassword}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      view === "login" ? setLoginPassword(e.target.value) : setSignupPassword(e.target.value)
+                    }
+                  />                  
                   {view === "login" && (
                     <button type="button" onClick={() => setView("forgot")} className="text-xs text-[#38d] hover:underline cursor-pointer">Forgot your password?</button>
                   )}

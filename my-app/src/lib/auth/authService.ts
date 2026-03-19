@@ -14,7 +14,7 @@ export function startSocialLogin(provider: SocialProvider) {
 
   if (typeof window !== "undefined") {
     sessionStorage.setItem("oauth_provider", provider);
-    sessionStorage.setItem("oauth_return_to", "/");
+    sessionStorage.setItem("oauth_return_to", "/discover");
   }
 
   window.location.href = `${apiBaseUrl}/auth/${provider}`;
@@ -44,6 +44,23 @@ export async function registerWithCaptcha(payload: RegisterPayload) {
 
   if (!res.ok) {
     throw new Error("Registration failed.");
+  }
+
+  return res.json();
+}
+
+export async function getCurrentUser() {
+  const apiBaseUrl = ensureApiBaseUrl();
+
+  const res = await fetch(`${apiBaseUrl}/auth/me`, {
+    credentials: "include",
+    headers: {
+      "Accept": "application/json",
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch current user.");
   }
 
   return res.json();

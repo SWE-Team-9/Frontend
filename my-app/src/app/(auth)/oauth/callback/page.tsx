@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { getCurrentUser } from "@/src/lib/auth/authService";
+
 export default function OAuthCallbackPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -10,20 +12,12 @@ export default function OAuthCallbackPage() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const res = await fetch("http://localhost:3000/api/v1/auth/me", {
-          credentials: "include",
-        });
-
-        if (!res.ok) {
-          throw new Error("Failed to fetch user.");
-        }
-
-        const user = await res.json();
-
+        const user = await getCurrentUser();
         console.log("Logged in user:", user);
 
         // redirect after login
-        router.replace("/");
+        const returnTo = sessionStorage.getItem("oauth_return_to") || "/discover";
+        router.replace(returnTo);        
       } catch (err) {
         setError("Login failed. Please try again.");
       }
