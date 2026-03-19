@@ -9,6 +9,8 @@ import { FaApple } from "react-icons/fa";
 
 import { startSocialLogin, type SocialProvider } from "@/src/lib/auth/authService";
 
+import CaptchaField from "./CaptchaField";
+
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -27,6 +29,9 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
   const [socialLoading, setSocialLoading] = useState<SocialProvider | null>(null);
   const [socialError, setSocialError] = useState<string | null>(null);
 
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaError, setCaptchaError] = useState<string | null>(null);
+
   const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 101 }, (_, i) => currentYear - i);
@@ -40,6 +45,8 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
       setIsResetSent(false);
       setSocialError(null);
       setSocialLoading(null);
+      setCaptchaToken(null);
+      setCaptchaError(null);
     }
   }, [isOpen, initialView]);
 
@@ -107,7 +114,12 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
 
         if (selectedDate > today) return setError("Birth date cannot be in the future.");
         if (selectedDate.getMonth() !== month - 1) return setError("Please enter a valid calendar date.");
-
+        
+        if (!captchaToken) {
+          setCaptchaError("Please complete the CAPTCHA.");
+          return;
+        }
+        setCaptchaError(null);
         login(email);
       }
     }
@@ -237,6 +249,15 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
                       <option value="other">Prefer not to say</option>
                     </select>
                   </div>
+                  <CaptchaField
+                    value={captchaToken}
+                    onChange={(token) => {
+                      setCaptchaToken(token);
+                      if (token) setCaptchaError(null);
+                    }}
+                  />
+
+                  {captchaError && <p className="text-red-500 text-xs mt-1">{captchaError}</p>}
                 </div>
               )}
             </>

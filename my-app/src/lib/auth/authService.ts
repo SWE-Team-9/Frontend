@@ -1,49 +1,23 @@
 export type SocialProvider = "google";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api/v1";
 
-function ensureApiUrl() {
-  if (!API_URL) {
+function ensureApiBaseUrl() {
+  if (!API_BASE_URL) {
     throw new Error("NEXT_PUBLIC_API_URL is not configured.");
   }
-  return API_URL;
+  return API_BASE_URL;
 }
 
 export function startSocialLogin(provider: SocialProvider) {
-  const apiUrl = ensureApiUrl();
+  const apiBaseUrl = ensureApiBaseUrl();
 
-  // Save where the user should come back after auth if needed
   if (typeof window !== "undefined") {
     sessionStorage.setItem("oauth_provider", provider);
     sessionStorage.setItem("oauth_return_to", "/");
   }
 
-  window.location.href = `${apiUrl}/auth/${provider}`;
-}
-
-export interface CompleteOAuthPayload {
-  code: string;
-  state?: string;
-  provider: SocialProvider;
-}
-
-export async function completeOAuthLogin(payload: CompleteOAuthPayload) {
-  const apiUrl = ensureApiUrl();
-
-  const res = await fetch(`${apiUrl}/auth/${payload.provider}/callback`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "include",
-    body: JSON.stringify(payload),
-  });
-
-  if (!res.ok) {
-    throw new Error("OAuth login failed.");
-  }
-
-  return res.json();
+  window.location.href = `${apiBaseUrl}/auth/${provider}`;
 }
 
 export interface RegisterPayload {
@@ -56,12 +30,13 @@ export interface RegisterPayload {
 }
 
 export async function registerWithCaptcha(payload: RegisterPayload) {
-  const apiUrl = ensureApiUrl();
+  const apiBaseUrl = ensureApiBaseUrl();
 
-  const res = await fetch(`${apiUrl}/auth/register`, {
+  const res = await fetch(`${apiBaseUrl}/auth/register`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      "Accept": "application/json",
     },
     credentials: "include",
     body: JSON.stringify(payload),
