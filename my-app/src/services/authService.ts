@@ -1,6 +1,5 @@
 import api from "@/src/services/api";
 import { useAuthStore } from "@/src/store/useAuthStore";
-
 interface LoginData {
   email: string;
   password: string;

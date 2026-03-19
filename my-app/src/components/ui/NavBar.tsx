@@ -58,7 +58,7 @@ const NavBar: React.FC<NavBarProps> = ({
   ],
 
   PROFILE_MENU = [
-    { label: "Profile", icon: MdPerson , href: "/profile" },
+    { label: "Profile", icon: MdPerson, href: "/profile" },
     { label: "Likes", icon: ImHeart },
     { label: "Playlists", icon: FiList },
     { label: "Stations", icon: IoRadio },
@@ -193,7 +193,7 @@ const NavBar: React.FC<NavBarProps> = ({
               alt="profile"
               className="w-6 h-6 rounded-full"
             />
-            <FiChevronDown className="text-neutral-400"/>
+            <FiChevronDown className="text-neutral-400" />
             {openMenu === "profile" && <DropdownMenu items={PROFILE_MENU} />}
           </button>
 

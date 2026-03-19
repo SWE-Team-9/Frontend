@@ -9,15 +9,13 @@ import {
   forgotPassword,
   registerUser,
 } from "@/src/services/authService";
-import { FaFacebook } from "react-icons/fa";
+import { FaFacebook, FaApple } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
-import { FaApple } from "react-icons/fa";
+import { IoIosArrowBack } from "react-icons/io";
 import { useRouter } from "next/navigation";
-
 import { startSocialLogin, registerWithCaptcha, type SocialProvider } from "@/src/lib/auth/authService";
-
 import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
-import CaptchaField from "./CaptchaField";
+import CaptchaField from "@/src/components/auth/CaptchaField";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -36,6 +34,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
   const [isResetSent, setIsResetSent] = useState(false);
   const { setEmail: setEmailStore } = useAuthStore();
   const router = useRouter();
+  
   const [socialLoading, setSocialLoading] = useState<SocialProvider | null>(null);
   const [socialError, setSocialError] = useState<string | null>(null);
 
@@ -113,9 +112,11 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
          // Login with JWT via authService
         try {
           await loginUser({ email, password: loginPassword });
-          login(email);
+
+          ////////////////////////////////////////////////////////////////////////////////
+          setEmailStore(email);
           onClose();  // Close modal
-            
+           //////////////////////////////////////////////////////////////////////////////// 
           router.push("/discover"); // redirect after successful login
         } catch (err: any) {
           setError(err.response?.data?.message || "Login failed");
@@ -218,20 +219,20 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
 
           setEmailStore(email); // store email for verification
           router.push("/verify-email-notice"); // redirect after signup
-            
           onClose();
-        } catch (err: any) {
-  setError(err.response?.data?.message || "Signup failed");
-} finally {
-  setIsSubmitting(false);
-}
 
+        } catch (err: any) {
+          setError(err.response?.data?.message || "Signup failed");
+        } finally {
+          setIsSubmitting(false);
         }
       }
-    } else if (view === "forgot") {
+    }
+    else if (view === "forgot") {
       if (isResetSent) {
         onClose();
       } else {
+
         try {
           await forgotPassword(email);
           setIsResetSent(true);
@@ -259,8 +260,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
           view === "forgot") && (
           <button
             onClick={() => {
-
-        setError(null);
+              setError(null);
               setCaptchaError(null);
               if (view === "forgot") {
                 setView("login");
@@ -271,7 +271,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
             }}
             className="w-8 h-8 rounded-full bg-[#222] flex items-center justify-center text-white mb-4 hover:bg-[#333] cursor-pointer"
           >
-            ‹
+          <IoIosArrowBack size={24}/>
           </button>
         )}
 
@@ -316,6 +316,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
               <FaApple size={18} />
               Continue with Apple
             </button>  
+
             {socialError && <p className="text-red-500 text-xs mt-1">{socialError}</p>}
             <div 
               className="flex items-center w-full mt-4"><span className="text-white text-sm font-bold">or with email</span>
@@ -338,8 +339,8 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
                     <a href="/help" className="text-[#38d]">
                       Help Center
                     </a>
-      
                   </p>
+
                   <AuthInput
                     type="email"
                     placeholder="Email address"
