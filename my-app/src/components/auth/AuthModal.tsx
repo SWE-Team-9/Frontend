@@ -14,18 +14,21 @@ import { FcGoogle } from "react-icons/fc";
 import { FaApple } from "react-icons/fa";
 import { useRouter } from "next/navigation";
 
+import { startSocialLogin, registerWithCaptcha, type SocialProvider } from "@/src/lib/auth/authService";
+
+import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
+import CaptchaField from "./CaptchaField";
+
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialView: "login" | "signup";
 }
 
-export default function AuthModal({
-  isOpen,
-  onClose,
-  initialView,
-}: AuthModalProps) {
-
+export default function AuthModal({ isOpen, onClose, initialView }: AuthModalProps) {
+  const { login } = useAuth();
+  const { executeRecaptcha } = useGoogleReCaptcha();
+  
   const [view, setView] = useState<"login" | "signup" | "forgot">(initialView);
   const [step, setStep] = useState(1);
   const [email, setEmail] = useState("");
@@ -33,21 +36,18 @@ export default function AuthModal({
   const [isResetSent, setIsResetSent] = useState(false);
   const { setEmail: setEmailStore } = useAuthStore();
   const router = useRouter();
+  const [socialLoading, setSocialLoading] = useState<SocialProvider | null>(null);
+  const [socialError, setSocialError] = useState<string | null>(null);
 
-  const months = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ];
+  const [captchaReady, setCaptchaReady] = useState(false);
+  const [captchaError, setCaptchaError] = useState<string | null>(null);
+
+  const [loginPassword, setLoginPassword] = useState("");
+  const [signupPassword, setSignupPassword] = useState("");
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 101 }, (_, i) => currentYear - i);
   const days = Array.from({ length: 31 }, (_, i) => i + 1);
@@ -58,15 +58,35 @@ export default function AuthModal({
       setStep(1);
       setError(null);
       setIsResetSent(false);
+      setSocialError(null);
+      setSocialLoading(null);
+      setCaptchaReady(!!executeRecaptcha);
+      setCaptchaError(null);
+      setLoginPassword("");
+      setSignupPassword("");
+      setIsSubmitting(false);
     }
-  }, [isOpen, initialView]);
+  }, [isOpen, initialView, executeRecaptcha]);
 
-  const handleSocialLogin = (provider: string) => {
-    console.log(`Redirecting to ${provider} OAuth...`);
-    // Implement OAuth flow here (redirect to backend endpoint that initiates OAuth)
+  // Social Login Handler
+  const handleUnavailableProvider = (providerName: string) => {
+  setError(null);
+  setSocialError(`${providerName} login is not available yet.`);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSocialLogin = async (provider: SocialProvider) => {
+    try {
+      setError(null);
+      setSocialError(null);
+      setSocialLoading(provider);
+      startSocialLogin(provider);
+    } catch (err) {
+      setSocialLoading(null);
+      setSocialError(err instanceof Error ? err.message : "Unable to start Google login. Please try again.");
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
 
@@ -77,32 +97,50 @@ export default function AuthModal({
 
     if (view === "login") {
       if (step === 1) {
+        setError(null);
         setStep(2);
       } else {
-        const pass = (
-          document.getElementById("login-password") as HTMLInputElement
-        )?.value;
-        if (!pass) return setError("Password is required.");
-
-        // Login with JWT via authService
+    
+//         const PASSWORD = (
+//           document.getElementById("login-password") as HTMLInputElement
+//         )?.value;
+        
+        if (!loginPassword.trim()) {
+         setError("Password is required.");
+         return;
+        }
+        
+         // Login with JWT via authService
         try {
-          await loginUser({ email, password: pass });
+          await loginUser({ email, password: loginPassword });
+          login(email);
+          onClose();  // Close modal
+            
           router.push("/discover"); // redirect after successful login
         } catch (err: any) {
           setError(err.response?.data?.message || "Login failed");
         }
+        
+        
       }
     } else if (view === "signup") {
       if (step === 1) {
+        setError(null);
         setStep(2);
-      } else if (step === 2) {
-        const pass = (
-          document.getElementById("reg-password") as HTMLInputElement
-        )?.value;
-        if (!pass) return setError("Please create a password.");
-        if (pass.length < 8) {
-          return setError("Password must be at least 8 characters long.");
+      } 
+      else if (step === 2) {
+        if (!signupPassword.trim()) {
+          setError("Please create a password.");
+          return;
         }
+
+        if (signupPassword.length < 8) {
+          setError("Password must be at least 8 characters long.");
+          return;
+        }
+
+        setError(null);
+        setCaptchaError(null);
         setStep(3);
       } else {
         const name = (
@@ -120,35 +158,74 @@ export default function AuthModal({
         const gender = (document.getElementById("gender") as HTMLSelectElement)
           .value;
 
-        if (!name) return setError("Display name is required.");
-        if (!month || !day || !year)
-          return setError("Please complete your date of birth.");
-        if (!gender) return setError("Please select your gender.");
+        if (!name) {
+          setError("Display name is required.");
+          return;
+        }
+
+        if (!month || !day || !year) {
+          setError("Please complete your date of birth.");
+          return;
+        }
+
+        if (!gender) {
+          setError("Please select your gender.");
+          return;
+        }
 
         const selectedDate = new Date(year, month - 1, day);
         const today = new Date();
 
-        if (selectedDate > today)
-          return setError("Birth date cannot be in the future.");
-        if (selectedDate.getMonth() !== month - 1)
-          return setError("Please enter a valid calendar date.");
+        if (selectedDate > today) {
+          setError("Birth date cannot be in the future.");
+          return;
+        }
 
-        // Signup with JWT via authService
-        const pass = (
-          document.getElementById("reg-password") as HTMLInputElement
-        )?.value;
+        if (selectedDate.getMonth() !== month - 1) {
+          setError("Please enter a valid calendar date.");
+          return;
+        }
+
+        if (!signupPassword.trim()) {
+          setError("Please create a password.");
+          return;
+        }
+
         try {
-          await registerUser({
+          setIsSubmitting(true);
+          setCaptchaError(null);
+
+          if (!executeRecaptcha) {
+            setCaptchaError("Verification is not ready yet. Please try again.");
+            return;
+          }
+
+          const recaptchaToken = await executeRecaptcha("register");
+
+          if (!recaptchaToken) {
+            setCaptchaError("Verification failed. Please try again.");
+            return;
+          }
+
+          await registerWithCaptcha({
             email,
-            password: pass,
-            name,
-            dob: `${year}-${month}-${day}`,
+            password: signupPassword,
+            displayName: name,
+            birthDate: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
             gender,
+            captchaToken: recaptchaToken,
           });
+
           setEmailStore(email); // store email for verification
           router.push("/verify-email-notice"); // redirect after signup
+            
+          onClose();
         } catch (err: any) {
-          setError(err.response?.data?.message || "Signup failed");
+  setError(err.response?.data?.message || "Signup failed");
+} finally {
+  setIsSubmitting(false);
+}
+
         }
       }
     } else if (view === "forgot") {
@@ -182,6 +259,9 @@ export default function AuthModal({
           view === "forgot") && (
           <button
             onClick={() => {
+
+        setError(null);
+              setCaptchaError(null);
               if (view === "forgot") {
                 setView("login");
                 setStep(2);
@@ -207,34 +287,38 @@ export default function AuthModal({
 
         {step === 1 && view !== "forgot" && (
           <div className="w-full flex flex-col gap-2.5 mb-6">
-            <button
-              onClick={() => handleSocialLogin("facebook")}
-              type="button"
-              className="w-full h-10 bg-[#1877f2] text-white text-sm font-bold rounded-sm flex items-center justify-center gap-2 cursor-pointer hover:opacity-90"
+            <button 
+            onClick={() => handleUnavailableProvider("Facebook")}
+            type="button"
+            disabled={!!socialLoading || isSubmitting}
+            className="w-full h-10 bg-[#1877f2] text-white text-sm font-bold rounded-sm flex items-center justify-center gap-2 cursor-pointer hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {" "}
-              <FaFacebook size={18} /> Continue with Facebook
+              <FaFacebook size={18} /> 
+              Continue with Facebook
             </button>
-            <button
+            
+            <button 
               onClick={() => handleSocialLogin("google")}
               type="button"
-              className="w-full h-10 bg-white text-black text-sm font-bold rounded-sm flex items-center justify-center gap-2 cursor-pointer hover:bg-gray-100"
+              disabled={!!socialLoading || isSubmitting}
+              className="w-full h-10 bg-white text-black text-sm font-bold rounded-sm flex items-center justify-center gap-2 cursor-pointer hover:bg-gray-100 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <FcGoogle size={18} />
-              Continue with Google
-            </button>
-            <button
-              onClick={() => handleSocialLogin("apple")}
+              {socialLoading === "google" ? "Redirecting..." : "Continue with Google"}
+            </button>   
+            
+            <button 
+              onClick={() => handleUnavailableProvider("Apple")}
               type="button"
-              className="w-full h-10 bg-black text-white text-sm font-bold rounded-sm border border-gray-700 flex items-center justify-center gap-2 cursor-pointer hover:bg-[#111]"
+              disabled={!!socialLoading || isSubmitting}
+              className="w-full h-10 bg-black text-white text-sm font-bold rounded-sm border border-gray-700 flex items-center justify-center gap-2 cursor-pointer hover:bg-[#111] disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <FaApple size={18} />
               Continue with Apple
-            </button>
-            <div className="flex items-center w-full mt-4">
-              <span className="text-white text-sm font-bold">
-                or with email
-              </span>
+            </button>  
+            {socialError && <p className="text-red-500 text-xs mt-1">{socialError}</p>}
+            <div 
+              className="flex items-center w-full mt-4"><span className="text-white text-sm font-bold">or with email</span>
             </div>
           </div>
         )}
@@ -254,14 +338,18 @@ export default function AuthModal({
                     <a href="/help" className="text-[#38d]">
                       Help Center
                     </a>
-                    .
+      
                   </p>
                   <AuthInput
                     type="email"
                     placeholder="Email address"
                     value={email}
-                    onChange={(e: any) => setEmail(e.target.value)}
-                  />
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      setEmail(e.target.value);
+                      setError(null);
+                      setSocialError(null);
+                    }}
+                  />                    
                 </>
               )}
             </div>
@@ -272,19 +360,30 @@ export default function AuthModal({
                   type="email"
                   placeholder="Email address"
                   value={email}
-                  onChange={(e: any) => setEmail(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    setEmail(e.target.value);
+                    setError(null);
+                    setSocialError(null);
+                  }}
                 />
-              )}
+              )}              
               {step === 2 && (
                 <div className="space-y-4">
                   <p className="text-sm text-gray-400">{email}</p>
                   <AuthInput
                     type="password"
-                    placeholder={
-                      view === "login" ? "Your password" : "Create a password"
-                    }
+                    placeholder={view === "login" ? "Your password" : "Create a password"}
                     id={view === "login" ? "login-password" : "reg-password"}
-                  />
+                    value={view === "login" ? loginPassword : signupPassword}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      setError(null);
+                      if (view === "login") {
+                        setLoginPassword(e.target.value);
+                      } else {
+                        setSignupPassword(e.target.value);
+                      }
+                    }}
+                  />                  
                   {view === "login" && (
                     <button
                       type="button"
@@ -358,6 +457,9 @@ export default function AuthModal({
                       <option value="other">Prefer not to say</option>
                     </select>
                   </div>
+
+                  <CaptchaField isReady={!!executeRecaptcha} error={captchaError} />
+
                 </div>
               )}
             </>
@@ -367,15 +469,16 @@ export default function AuthModal({
 
           <button
             type="submit"
-            className="bg-white/80 hover:bg-white text-black py-3 font-bold rounded-sm transition-all active:scale-[0.98] mt-4 cursor-pointer"
+            disabled={isSubmitting}
+            className="bg-white/80 hover:bg-white text-black py-3 font-bold rounded-sm transition-all active:scale-[0.98] mt-4 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {view === "forgot"
-              ? isResetSent
-                ? "Done"
-                : "Send reset link"
-              : step === 3
-                ? "Accept & Continue"
-                : "Continue"}
+            {isSubmitting
+              ? "Please wait..."
+              : view === "forgot"
+                ? (isResetSent ? "Done" : "Send reset link")
+                : step === 3
+                  ? "Accept & Continue"
+                  : "Continue"}
           </button>
         </form>
 
