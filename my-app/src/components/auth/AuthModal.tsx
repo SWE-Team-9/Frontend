@@ -1,11 +1,18 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import AuthInput from './AuthInput';
-import { useAuth } from '@/src/context/AuthContext';
+import React, { useState, useEffect } from "react";
+import AuthInput from "@/src/components/auth/AuthInput";
+import { useAuth } from "@/src/context/AuthContext";
+import { useAuthStore } from "@/src/store/useAuthStore";
+import {
+  loginUser,
+  forgotPassword,
+  registerUser,
+} from "@/src/services/authService";
 import { FaFacebook } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { FaApple } from "react-icons/fa";
+import { useRouter } from "next/navigation";
 
 import { startSocialLogin, registerWithCaptcha, type SocialProvider } from "@/src/lib/auth/authService";
 
@@ -23,11 +30,12 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
   const { executeRecaptcha } = useGoogleReCaptcha();
   
   const [view, setView] = useState<"login" | "signup" | "forgot">(initialView);
-  const [step, setStep] = useState(1); 
+  const [step, setStep] = useState(1);
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isResetSent, setIsResetSent] = useState(false);
-
+  const { setEmail: setEmailStore } = useAuthStore();
+  const router = useRouter();
   const [socialLoading, setSocialLoading] = useState<SocialProvider | null>(null);
   const [socialError, setSocialError] = useState<string | null>(null);
 
@@ -92,16 +100,30 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
         setError(null);
         setStep(2);
       } else {
+    
+//         const PASSWORD = (
+//           document.getElementById("login-password") as HTMLInputElement
+//         )?.value;
+        
         if (!loginPassword.trim()) {
-          setError("Password is required.");
-          return;
+         setError("Password is required.");
+         return;
         }
-
-        login(email);
-        onClose();
+        
+         // Login with JWT via authService
+        try {
+          await loginUser({ email, password: loginPassword });
+          login(email);
+          onClose();  // Close modal
+            
+          router.push("/discover"); // redirect after successful login
+        } catch (err: any) {
+          setError(err.response?.data?.message || "Login failed");
+        }
+        
+        
       }
-    } 
-    else if (view === "signup") {
+    } else if (view === "signup") {
       if (step === 1) {
         setError(null);
         setStep(2);
@@ -120,13 +142,21 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
         setError(null);
         setCaptchaError(null);
         setStep(3);
-      } 
-      else {
-        const name = (document.getElementById('display-name') as HTMLInputElement)?.value;
-        const month = parseInt((document.getElementById('birth-month') as HTMLSelectElement).value);
-        const day = parseInt((document.getElementById('birth-day') as HTMLSelectElement).value);
-        const year = parseInt((document.getElementById('birth-year') as HTMLSelectElement).value);
-        const gender = (document.getElementById('gender') as HTMLSelectElement).value;
+      } else {
+        const name = (
+          document.getElementById("display-name") as HTMLInputElement
+        )?.value;
+        const month = parseInt(
+          (document.getElementById("birth-month") as HTMLSelectElement).value,
+        );
+        const day = parseInt(
+          (document.getElementById("birth-day") as HTMLSelectElement).value,
+        );
+        const year = parseInt(
+          (document.getElementById("birth-year") as HTMLSelectElement).value,
+        );
+        const gender = (document.getElementById("gender") as HTMLSelectElement)
+          .value;
 
         if (!name) {
           setError("Display name is required.");
@@ -186,20 +216,28 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
             captchaToken: recaptchaToken,
           });
 
-          login(email);
+          setEmailStore(email); // store email for verification
+          router.push("/verify-email-notice"); // redirect after signup
+            
           onClose();
-        } catch (err) {
-          setError("Unable to create your account right now.");
-        } finally {
-          setIsSubmitting(false);
+        } catch (err: any) {
+  setError(err.response?.data?.message || "Signup failed");
+} finally {
+  setIsSubmitting(false);
+}
+
         }
       }
-    }
-    else if (view === "forgot") {
+    } else if (view === "forgot") {
       if (isResetSent) {
         onClose();
       } else {
-        setIsResetSent(true);
+        try {
+          await forgotPassword(email);
+          setIsResetSent(true);
+        } catch (err: any) {
+          setError(err.response?.data?.message || "Failed to send reset link");
+        }
       }
     }
   };
@@ -208,18 +246,29 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
 
   return (
     <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/70 p-4">
-      <button onClick={onClose} className="absolute top-8 right-10 text-white text-2xl hover:text-gray-400 transition-colors cursor-pointer">✕</button>
+      <button
+        onClick={onClose}
+        className="absolute top-8 right-10 text-white text-2xl hover:text-gray-400 transition-colors cursor-pointer"
+      >
+        ✕
+      </button>
 
       <div className="bg-[#121212] w-full max-w-112.5 min-h-137.5 p-8 md:p-10 rounded-sm shadow-2xl relative flex flex-col">
-        
-        {((view === "signup" && step > 1) || (view === "login" && step === 2) || view === "forgot") && (
-          <button 
+        {((view === "signup" && step > 1) ||
+          (view === "login" && step === 2) ||
+          view === "forgot") && (
+          <button
             onClick={() => {
-              setError(null);
+
+        setError(null);
               setCaptchaError(null);
-              if (view === "forgot") { setView("login"); setStep(2); }
-              else { setStep(step - 1); }
-            }} 
+              if (view === "forgot") {
+                setView("login");
+                setStep(2);
+              } else {
+                setStep(step - 1);
+              }
+            }}
             className="w-8 h-8 rounded-full bg-[#222] flex items-center justify-center text-white mb-4 hover:bg-[#333] cursor-pointer"
           >
             ‹
@@ -227,7 +276,13 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
         )}
 
         <h1 className="text-3xl text-white font-bold mb-6">
-          {view === "forgot" ? "Reset your password" : view === "login" ? "Sign in" : step === 3 ? "Tell us more about you" : "Create an account"}
+          {view === "forgot"
+            ? "Reset your password"
+            : view === "login"
+              ? "Sign in"
+              : step === 3
+                ? "Tell us more about you"
+                : "Create an account"}
         </h1>
 
         {step === 1 && view !== "forgot" && (
@@ -272,10 +327,19 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
           {view === "forgot" ? (
             <div className="space-y-4">
               {isResetSent ? (
-                <p className="text-green-500 text-sm font-medium">A reset link has been sent to your email.</p>
+                <p className="text-green-500 text-sm font-medium">
+                  A reset link has been sent to your email.
+                </p>
               ) : (
                 <>
-                  <p className="text-sm text-gray-400">If the email address is in our database, we will send you an email to reset your password. Need help? visit our <a href="/help" className="text-[#38d]">Help Center</a>.</p>
+                  <p className="text-sm text-gray-400">
+                    If the email address is in our database, we will send you an
+                    email to reset your password. Need help? visit our{" "}
+                    <a href="/help" className="text-[#38d]">
+                      Help Center
+                    </a>
+      
+                  </p>
                   <AuthInput
                     type="email"
                     placeholder="Email address"
@@ -321,34 +385,72 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
                     }}
                   />                  
                   {view === "login" && (
-                    <button type="button" onClick={() => setView("forgot")} className="text-xs text-[#38d] hover:underline cursor-pointer">Forgot your password?</button>
+                    <button
+                      type="button"
+                      onClick={() => setView("forgot")}
+                      className="text-xs text-[#38d] hover:underline cursor-pointer"
+                    >
+                      Forgot your password?
+                    </button>
                   )}
                 </div>
               )}
-
               {step === 3 && (
                 <div className="flex flex-col gap-5">
-                  <AuthInput label="Display name" type="text" placeholder="Your display name" id="display-name" />
+                  <AuthInput
+                    label="Display name"
+                    type="text"
+                    placeholder="Your display name"
+                    id="display-name"
+                  />
                   <div className="space-y-2 text-left">
-                    <label className="text-xs font-bold uppercase text-gray-400">Date of birth (required)</label>
+                    <label className="text-xs font-bold uppercase text-gray-400">
+                      Date of birth (required)
+                    </label>
                     <div className="flex gap-2">
-                      <select id="birth-month" className="flex-1 bg-[#333] text-white p-2.5 rounded-sm text-sm border-none outline-none cursor-pointer">
+                      <select
+                        id="birth-month"
+                        className="flex-1 bg-[#333] text-white p-2.5 rounded-sm text-sm border-none outline-none cursor-pointer"
+                      >
                         <option value="">Month</option>
-                        {months.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+                        {months.map((m, i) => (
+                          <option key={m} value={i + 1}>
+                            {m}
+                          </option>
+                        ))}
                       </select>
-                      <select id="birth-day" className="w-20 bg-[#333] text-white p-2.5 rounded-sm text-sm border-none outline-none cursor-pointer">
+                      <select
+                        id="birth-day"
+                        className="w-20 bg-[#333] text-white p-2.5 rounded-sm text-sm border-none outline-none cursor-pointer"
+                      >
                         <option value="">Day</option>
-                        {days.map(d => <option key={d} value={d}>{d}</option>)}
+                        {days.map((d) => (
+                          <option key={d} value={d}>
+                            {d}
+                          </option>
+                        ))}
                       </select>
-                      <select id="birth-year" className="w-24 bg-[#333] text-white p-2.5 rounded-sm text-sm border-none outline-none cursor-pointer">
+                      <select
+                        id="birth-year"
+                        className="w-24 bg-[#333] text-white p-2.5 rounded-sm text-sm border-none outline-none cursor-pointer"
+                      >
                         <option value="">Year</option>
-                        {years.map(y => <option key={y} value={y}>{y}</option>)}
+                        {years.map((y) => (
+                          <option key={y} value={y}>
+                            {y}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   </div>
                   <div className="space-y-2 text-left">
-                    <label className="text-xs font-bold uppercase text-gray-400">Gender (required)</label>
-                    <select id="gender" className="w-full bg-[#333] text-white p-3 rounded-sm text-sm border-none outline-none cursor-pointer">
+                    <label className="text-xs font-bold uppercase text-gray-400">
+                      Gender (required)
+                    </label>
+                    <select
+                      id="gender"
+                      className="w-full bg-[#333] text-white p-3 rounded-sm text-sm border-none outline-none cursor-pointer"
+                    >
                       <option value="">Select Gender</option>
                       <option value="female">Female</option>
                       <option value="male">Male</option>
@@ -382,8 +484,13 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
 
         {step === 1 && view !== "forgot" && (
           <div className="mt-auto pt-8 flex flex-col items-center">
-            <button onClick={() => setView(view === "login" ? "signup" : "login")} className="text-sm text-white hover:underline cursor-pointer">
-              {view === "login" ? "Don't have an account? Create one" : "Already have an account? Sign in"}
+            <button
+              onClick={() => setView(view === "login" ? "signup" : "login")}
+              className="text-sm text-white hover:underline cursor-pointer"
+            >
+              {view === "login"
+                ? "Don't have an account? Create one"
+                : "Already have an account? Sign in"}
             </button>
           </div>
         )}

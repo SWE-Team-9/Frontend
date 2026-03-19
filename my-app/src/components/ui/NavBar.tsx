@@ -46,7 +46,7 @@ interface NavBarProps {
 
 const NavBar: React.FC<NavBarProps> = ({
   LEFT_ROUTES = [
-    { label: "Home", href: "/" },
+    { label: "Home", href: "/discover" },
     { label: "Feed", href: "/feed" },
     { label: "Library", href: "/library" },
   ],
@@ -58,7 +58,7 @@ const NavBar: React.FC<NavBarProps> = ({
   ],
 
   PROFILE_MENU = [
-    { label: "Profile", icon: MdPerson },
+    { label: "Profile", icon: MdPerson , href: "/profile" },
     { label: "Likes", icon: ImHeart },
     { label: "Playlists", icon: FiList },
     { label: "Stations", icon: IoRadio },
@@ -131,7 +131,7 @@ const NavBar: React.FC<NavBarProps> = ({
   return (
     <div
       ref={menuRef}
-      className={`fixed top-0 left-0 w-full z-50 bg-black py-2 ${className}`}
+      className={`fixed inset-x-0 z-50 bg-[#121212] py-2 ${className || "w-full mx-auto"}`}
     >
       <div className="max-w-7xl mx-auto flex justify-center items-center gap-8">
         {/* LEFT SECTION */}
@@ -193,7 +193,7 @@ const NavBar: React.FC<NavBarProps> = ({
               alt="profile"
               className="w-6 h-6 rounded-full"
             />
-            <FiChevronDown className="text-neutral-400" />
+            <FiChevronDown className="text-neutral-400"/>
             {openMenu === "profile" && <DropdownMenu items={PROFILE_MENU} />}
           </button>
 

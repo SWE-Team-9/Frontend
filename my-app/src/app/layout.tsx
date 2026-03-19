@@ -1,8 +1,8 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-
 import ReCaptchaProvider from "@/src/components/providers/ReCaptchaProvider";
+import AuthProvider from "@/src/components/AuthProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,12 +27,17 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Initialize auth state on app load
   return (
     <html lang="en">
+
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+       <AuthProvider>
         <ReCaptchaProvider>
           {children}
         </ReCaptchaProvider>
+        </AuthProvider> 
+
       </body>
     </html>
   );
