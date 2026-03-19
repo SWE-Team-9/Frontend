@@ -1,27 +1,25 @@
 "use client";
 
 interface CaptchaFieldProps {
-  value: string | null;
-  onChange: (token: string | null) => void;
+  isReady: boolean;
+  error?: string | null;
 }
 
-export default function CaptchaField({ value, onChange }: CaptchaFieldProps) {
+export default function CaptchaField({ isReady, error }: CaptchaFieldProps) {
   return (
     <div className="flex flex-col gap-2 rounded-sm border border-gray-700 bg-[#1a1a1a] p-4">
-      <p className="text-sm text-gray-300">CAPTCHA placeholder</p>
-      <p className="text-xs text-gray-500">
-        Replace this with reCAPTCHA / hCaptcha / Turnstile later.
+      <p className="text-xs text-gray-400 leading-relaxed">
+        This site is protected by reCAPTCHA and the Google Privacy Policy and
+        Terms of Service apply.
       </p>
 
-      <button
-        type="button"
-        onClick={() => onChange(value ? null : "mock-captcha-token")}
-        className="w-fit rounded-sm bg-white px-3 py-2 text-sm font-bold text-black hover:bg-gray-200"
-      >
-        {value ? "Clear CAPTCHA" : "I'm not a robot"}
-      </button>
+      {isReady ? (
+        <p className="text-xs text-green-500">Verification ready.</p>
+      ) : (
+        <p className="text-xs text-gray-500">Verification will run on submit.</p>
+      )}
 
-      {value && <p className="text-xs text-green-500">CAPTCHA completed.</p>}
+      {error && <p className="text-xs text-red-500">{error}</p>}
     </div>
   );
 }

@@ -8,6 +8,8 @@ import { FcGoogle } from "react-icons/fc";
 import { FaApple } from "react-icons/fa";
 
 import { startSocialLogin, registerWithCaptcha, type SocialProvider } from "@/src/lib/auth/authService";
+
+import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 import CaptchaField from "./CaptchaField";
 
 interface AuthModalProps {
@@ -18,6 +20,7 @@ interface AuthModalProps {
 
 export default function AuthModal({ isOpen, onClose, initialView }: AuthModalProps) {
   const { login } = useAuth();
+  const { executeRecaptcha } = useGoogleReCaptcha();
   
   const [view, setView] = useState<"login" | "signup" | "forgot">(initialView);
   const [step, setStep] = useState(1); 
@@ -28,7 +31,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
   const [socialLoading, setSocialLoading] = useState<SocialProvider | null>(null);
   const [socialError, setSocialError] = useState<string | null>(null);
 
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaReady, setCaptchaReady] = useState(false);
   const [captchaError, setCaptchaError] = useState<string | null>(null);
 
   const [loginPassword, setLoginPassword] = useState("");
@@ -49,13 +52,13 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
       setIsResetSent(false);
       setSocialError(null);
       setSocialLoading(null);
-      setCaptchaToken(null);
+      setCaptchaReady(!!executeRecaptcha);
       setCaptchaError(null);
       setLoginPassword("");
       setSignupPassword("");
       setIsSubmitting(false);
     }
-  }, [isOpen, initialView]);
+  }, [isOpen, initialView, executeRecaptcha]);
 
   // Social Login Handler
   const handleUnavailableProvider = (providerName: string) => {
@@ -113,6 +116,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
           setError("Password must be at least 8 characters long.");
           return;
         }
+
         setError(null);
         setCaptchaError(null);
         setStep(3);
@@ -152,11 +156,6 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
           return;
         }
 
-        if (!captchaToken) {
-          setCaptchaError("Please complete the CAPTCHA.");
-          return;
-        }
-
         if (!signupPassword.trim()) {
           setError("Please create a password.");
           return;
@@ -166,20 +165,33 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
           setIsSubmitting(true);
           setCaptchaError(null);
 
+          if (!executeRecaptcha) {
+            setCaptchaError("Verification is not ready yet. Please try again.");
+            return;
+          }
+
+          const recaptchaToken = await executeRecaptcha("register");
+
+          if (!recaptchaToken) {
+            setCaptchaError("Verification failed. Please try again.");
+            return;
+          }
+
           await registerWithCaptcha({
             email,
             password: signupPassword,
             displayName: name,
             birthDate: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
             gender,
-            captchaToken,
+            captchaToken: recaptchaToken,
           });
 
           login(email);
           onClose();
         } catch (err) {
           setError("Unable to create your account right now.");
-        } finally {          setIsSubmitting(false);
+        } finally {
+          setIsSubmitting(false);
         }
       }
     }
@@ -203,6 +215,8 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
         {((view === "signup" && step > 1) || (view === "login" && step === 2) || view === "forgot") && (
           <button 
             onClick={() => {
+              setError(null);
+              setCaptchaError(null);
               if (view === "forgot") { setView("login"); setStep(2); }
               else { setStep(step - 1); }
             }} 
@@ -221,7 +235,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
             <button 
             onClick={() => handleUnavailableProvider("Facebook")}
             type="button"
-            disabled={!!socialLoading}
+            disabled={!!socialLoading || isSubmitting}
             className="w-full h-10 bg-[#1877f2] text-white text-sm font-bold rounded-sm flex items-center justify-center gap-2 cursor-pointer hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <FaFacebook size={18} /> 
@@ -231,7 +245,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
             <button 
               onClick={() => handleSocialLogin("google")}
               type="button"
-              disabled={!!socialLoading}
+              disabled={!!socialLoading || isSubmitting}
               className="w-full h-10 bg-white text-black text-sm font-bold rounded-sm flex items-center justify-center gap-2 cursor-pointer hover:bg-gray-100 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <FcGoogle size={18} />
@@ -241,7 +255,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
             <button 
               onClick={() => handleUnavailableProvider("Apple")}
               type="button"
-              disabled={!!socialLoading}
+              disabled={!!socialLoading || isSubmitting}
               className="w-full h-10 bg-black text-white text-sm font-bold rounded-sm border border-gray-700 flex items-center justify-center gap-2 cursor-pointer hover:bg-[#111] disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <FaApple size={18} />
@@ -277,8 +291,18 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
             </div>
           ) : (
             <>
-              {step === 1 && <AuthInput type="email" placeholder="Email address" value={email} onChange={(e:any)=>setEmail(e.target.value)} />}
-              
+              {step === 1 && (
+                <AuthInput
+                  type="email"
+                  placeholder="Email address"
+                  value={email}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    setEmail(e.target.value);
+                    setError(null);
+                    setSocialError(null);
+                  }}
+                />
+              )}              
               {step === 2 && (
                 <div className="space-y-4">
                   <p className="text-sm text-gray-400">{email}</p>
@@ -331,15 +355,9 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
                       <option value="other">Prefer not to say</option>
                     </select>
                   </div>
-                  <CaptchaField
-                    value={captchaToken}
-                    onChange={(token) => {
-                      setCaptchaToken(token);
-                      if (token) setCaptchaError(null);
-                    }}
-                  />
 
-                  {captchaError && <p className="text-red-500 text-xs mt-1">{captchaError}</p>}
+                  <CaptchaField isReady={!!executeRecaptcha} error={captchaError} />
+
                 </div>
               )}
             </>

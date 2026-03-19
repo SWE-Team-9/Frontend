@@ -1,6 +1,7 @@
 export type SocialProvider = "google";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api/v1";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api/v1";
 
 function ensureApiBaseUrl() {
   if (!API_BASE_URL) {
@@ -36,7 +37,8 @@ export async function registerWithCaptcha(payload: RegisterPayload) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Accept": "application/json",
+      Accept: "application/json",
+      "X-Recaptcha-Token": payload.captchaToken,
     },
     credentials: "include",
     body: JSON.stringify(payload),
@@ -55,7 +57,7 @@ export async function getCurrentUser() {
   const res = await fetch(`${apiBaseUrl}/auth/me`, {
     credentials: "include",
     headers: {
-      "Accept": "application/json",
+      Accept: "application/json",
     },
   });
 
