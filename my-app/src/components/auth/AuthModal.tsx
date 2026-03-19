@@ -34,6 +34,8 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
   const [loginPassword, setLoginPassword] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 101 }, (_, i) => currentYear - i);
@@ -51,6 +53,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
       setCaptchaError(null);
       setLoginPassword("");
       setSignupPassword("");
+      setIsSubmitting(false);
     }
   }, [isOpen, initialView]);
 
@@ -160,6 +163,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
         }
 
         try {
+          setIsSubmitting(true);
           setCaptchaError(null);
 
           await registerWithCaptcha({
@@ -175,6 +179,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
           onClose();
         } catch (err) {
           setError("Unable to create your account right now.");
+        } finally {          setIsSubmitting(false);
         }
       }
     }
@@ -342,8 +347,18 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
 
           {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
 
-          <button type="submit" className="bg-white/80 hover:bg-white text-black py-3 font-bold rounded-sm transition-all active:scale-[0.98] mt-4 cursor-pointer">
-            {view === "forgot" ? (isResetSent ? "Done" : "Send reset link") : step === 3 ? "Accept & Continue" : "Continue"}
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="bg-white/80 hover:bg-white text-black py-3 font-bold rounded-sm transition-all active:scale-[0.98] mt-4 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {isSubmitting
+              ? "Please wait..."
+              : view === "forgot"
+                ? (isResetSent ? "Done" : "Send reset link")
+                : step === 3
+                  ? "Accept & Continue"
+                  : "Continue"}
           </button>
         </form>
 
