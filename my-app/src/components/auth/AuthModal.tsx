@@ -83,6 +83,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
 
     if (view === "login") {
       if (step === 1) {
+        setError(null);
         setStep(2);
       } else {
         if (!loginPassword.trim()) {
@@ -96,6 +97,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
     } 
     else if (view === "signup") {
       if (step === 1) {
+        setError(null);
         setStep(2);
       } 
       else if (step === 2) {
@@ -108,7 +110,8 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
           setError("Password must be at least 8 characters long.");
           return;
         }
-
+        setError(null);
+        setCaptchaError(null);
         setStep(3);
       } 
       else {
@@ -254,7 +257,16 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
               ) : (
                 <>
                   <p className="text-sm text-gray-400">If the email address is in our database, we will send you an email to reset your password. Need help? visit our <a href="/help" className="text-[#38d]">Help Center</a>.</p>
-                  <AuthInput type="email" placeholder="Email address" value={email} onChange={(e:any)=>setEmail(e.target.value)} />
+                  <AuthInput
+                    type="email"
+                    placeholder="Email address"
+                    value={email}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      setEmail(e.target.value);
+                      setError(null);
+                      setSocialError(null);
+                    }}
+                  />                    
                 </>
               )}
             </div>
@@ -270,9 +282,14 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
                     placeholder={view === "login" ? "Your password" : "Create a password"}
                     id={view === "login" ? "login-password" : "reg-password"}
                     value={view === "login" ? loginPassword : signupPassword}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      view === "login" ? setLoginPassword(e.target.value) : setSignupPassword(e.target.value)
-                    }
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      setError(null);
+                      if (view === "login") {
+                        setLoginPassword(e.target.value);
+                      } else {
+                        setSignupPassword(e.target.value);
+                      }
+                    }}
                   />                  
                   {view === "login" && (
                     <button type="button" onClick={() => setView("forgot")} className="text-xs text-[#38d] hover:underline cursor-pointer">Forgot your password?</button>
