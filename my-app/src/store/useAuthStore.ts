@@ -24,19 +24,33 @@ export const useAuthStore = create<AuthState>((set) => ({
   refreshToken: null,
   isAuthenticated: false,
 
-  setTokens: (accessToken, refreshToken) =>
+  setTokens: (accessToken, refreshToken) => {
+    // Storing tokens in localStorage for persistence across sessions
+    localStorage.setItem("accessToken", accessToken);
+
+    if (refreshToken) {
+      localStorage.setItem("refreshToken", refreshToken);
+    }
+
+    // Update state
     set({
       accessToken,
       refreshToken,
       isAuthenticated: true,
-    }),
+    });
+  },
 
-  clearTokens: () =>
+  clearTokens: () => {
+    // Remove tokens from localStorage
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+
+    // Clear state
     set({
       accessToken: null,
       refreshToken: null,
       isAuthenticated: false,
-      email: null, // optional (depends on your flow)
-    }),
-    
+      email: null,
+    });
+  },
 }));

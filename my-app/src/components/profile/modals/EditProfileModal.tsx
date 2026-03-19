@@ -1,6 +1,6 @@
 import React from "react";
-import { PrivacyToggle } from "../../ui/PrivacyToggle";
-import { SocialLinkInput } from "../../ui/SocialLinkInput";
+import { PrivacyToggle } from "@/src/components/ui/PrivacyToggle";
+import { SocialLinkInput } from "@/src/components/ui/SocialLinkInput";
 
 export interface SocialLink {
   id: number;
@@ -17,7 +17,7 @@ interface EditModalProps {
     lastName: string;
     bio: string;
     profileUrl: string;
-    accountTier: string;
+    accountTier: "Artist" | "Listener" | undefined;  
     genre: string;
     genres?: string[];
     links?: SocialLink[];
@@ -46,7 +46,7 @@ export const EditProfileModal = ({
 
   return (
     <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto scrollbar-hide">
-      <div className="bg-[#1a1a1a] w-full max-w-[1000px] rounded-lg border border-zinc-800 shadow-2xl my-auto overflow-hidden relative">
+      <div className="bg-[#1a1a1a] w-full max-w-250 rounded-lg border border-zinc-800 shadow-2xl my-auto overflow-hidden relative">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-zinc-500 hover:text-white text-2xl"
@@ -71,7 +71,7 @@ export const EditProfileModal = ({
           >
             <div className="flex flex-col md:flex-row gap-12">
               <div className="flex flex-col items-center gap-4 w-full md:w-1/3">
-                <div className="w-[200px] h-[200px] rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center relative group overflow-hidden">
+                <div className="w-50 h-50 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center relative group overflow-hidden">
                   <span className="text-xs font-bold text-zinc-500 uppercase">
                     Avatar
                   </span>

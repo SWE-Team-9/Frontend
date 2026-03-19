@@ -131,7 +131,7 @@ const NavBar: React.FC<NavBarProps> = ({
   return (
     <div
       ref={menuRef}
-      className={`fixed top-0 left-0 w-full z-50 bg-black py-2 ${className}`}
+      className={`fixed inset-x-0 z-50 bg-[#121212] py-2 ${className || "w-full mx-auto"}`}
     >
       <div className="max-w-7xl mx-auto flex justify-center items-center gap-8">
         {/* LEFT SECTION */}

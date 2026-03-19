@@ -56,7 +56,7 @@ export default function LandingPage() {
       <div className="w-full px-4 md:px-0 md:w-[90%] lg:w-[80%] flex flex-col">
 
         {/* HERO SECTION */}
-        <section className="relative h-[360px] xs:h-[400px] md:h-[480px] w-full bg-[#333] overflow-hidden mt-6 md:mt-10 rounded-sm shadow-sm">
+        <section className="relative h-90 xs:h-[400px] md:h-120 w-full bg-[#333] overflow-hidden mt-6 md:mt-10 rounded-sm shadow-sm">
 
           {/* SLIDES */}
           {slides.map((slide, index) => (
@@ -68,14 +68,14 @@ export default function LandingPage() {
             >
               {/* Background */}
               <div
-                className="absolute inset-0 bg-cover bg-[center_top]"
+                className="absolute inset-0 bg-cover bg-position-[center_top]"
                 style={{ backgroundImage: `url('${slide.image}')` }}
               >
                 <div className="absolute inset-0 bg-[#121212]/40"></div>
               </div>
 
               {/* Content */}
-              <div className="relative z-20 h-full flex flex-col justify-center items-start px-4 md:px-6 md:px-12 max-w-2xl text-white">
+              <div className="relative z-20 h-full flex flex-col justify-center items-start px-4 md:px-12 max-w-2xl text-white">
                 <h1 className="text-2xl xs:text-3xl md:text-5xl font-bold leading-tight mb-4 md:mb-6">
                   {slide.title}
                 </h1>

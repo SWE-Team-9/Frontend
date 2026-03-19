@@ -1,13 +1,13 @@
-import { useProfileStore } from '../store/useProfileStore';
+import { useProfileStore } from '@/src/store/useProfileStore';
 import { useState } from 'react';
 
-// Acts as the 'Controller' in the MVC architecture.
 // Manages UI logic, form validation, and acts as a bridge between the Store (Model) and the Page (View).
+type AccountTier = "Artist" | "Listener" | undefined;
 
 export const useProfileController = () => {
   // Access global state from the Zustand store
   const store = useProfileStore();
-
+  
   // 1. UI Control States
   const [activeTab, setActiveTab] = useState("All");
   // Controls current view (e.g., main profile vs. details page)
@@ -20,6 +20,7 @@ export const useProfileController = () => {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
   const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [accountTier, setAccountTier] = useState<AccountTier>(store.accountTier); 
 
   // 2. Static Data
   const tabs = ["All", "Popular tracks", "Tracks", "Albums", "Playlists", "Reposts"];
@@ -64,10 +65,25 @@ export const useProfileController = () => {
     }
   };
 
+  const setProfileData = (data: Partial<typeof store & { accountTier?: AccountTier }>) => {
+  if (data.accountTier) {
+    if (data.accountTier === "Artist" || data.accountTier === "Listener") {
+      setAccountTier(data.accountTier);
+    }
+  }
+  Object.keys(data).forEach((key) => {
+    if (key !== "accountTier" && key in store) {
+      (store as any)[key] = (data as any)[key];
+    }
+  });
+};
+
   // 4. Return Everything to View
   return {
     ...store, // Spread Model data and Store Actions
     activeTab, 
+    accountTier, 
+    setProfileData, 
     setActiveTab, 
     tabs,
     viewState, 

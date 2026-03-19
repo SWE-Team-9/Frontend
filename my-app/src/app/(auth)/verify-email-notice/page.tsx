@@ -6,16 +6,25 @@ import { useRouter } from "next/navigation";
 import { FaRegPaperPlane } from "react-icons/fa6";
 import { FcGoogle } from "react-icons/fc";
 import { useState } from "react";
+import { resendVerification } from "@/src/services/authService";
 
 export default function VerifyEmailNoticePage() {
   const email = useAuthStore((state) => state.email);
   const router = useRouter();
-  const [showResentMsg, setShowResentMsg] = useState(false);
 
-  const handleResend = () => {
-    // Simulate resend
-    setShowResentMsg(true);
-    setTimeout(() => setShowResentMsg(false), 3000)
+  const [message, setMessage] = useState("");
+
+  const handleResend = async () => {
+    try {
+      if (!email) return;
+
+      await resendVerification(email);
+      setMessage("Verification email resent successfully!");
+    } catch (err: any) {
+      setMessage(
+        err.response?.data?.message || "Failed to resend verification email",
+      );
+    }
   };
 
   const handleBackToLogin = () => {
@@ -46,14 +55,14 @@ export default function VerifyEmailNoticePage() {
           </button>
         </p>
 
-         {/* Resent confirmation popup */}
-        {showResentMsg && (
+        {/* Resent confirmation popup */}
+        {message && (
           <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-green-600 text-white px-4 py-2 rounded-md text-sm font-semibold">
-            Verification code resent!
+            {message}
           </div>
         )}
 
-        {/* Icon (simple version) */}
+        {/* Icon */}
         <div className="flex justify-center mb-6">
           <FaRegPaperPlane size={120} />
         </div>

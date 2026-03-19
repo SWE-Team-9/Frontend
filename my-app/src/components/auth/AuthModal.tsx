@@ -4,7 +4,11 @@ import React, { useState, useEffect } from "react";
 import AuthInput from "@/src/components/auth/AuthInput";
 import { useAuth } from "@/src/context/AuthContext";
 import { useAuthStore } from "@/src/store/useAuthStore";
-import { loginUser, signupUser } from "@/src/services/authService";
+import {
+  loginUser,
+  forgotPassword,
+  registerUser,
+} from "@/src/services/authService";
 import { FaFacebook } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { FaApple } from "react-icons/fa";
@@ -21,7 +25,6 @@ export default function AuthModal({
   onClose,
   initialView,
 }: AuthModalProps) {
-  const { login } = useAuth();
 
   const [view, setView] = useState<"login" | "signup" | "forgot">(initialView);
   const [step, setStep] = useState(1);
@@ -135,7 +138,7 @@ export default function AuthModal({
           document.getElementById("reg-password") as HTMLInputElement
         )?.value;
         try {
-          await signupUser({
+          await registerUser({
             email,
             password: pass,
             name,
@@ -152,7 +155,12 @@ export default function AuthModal({
       if (isResetSent) {
         onClose();
       } else {
-        setIsResetSent(true);
+        try {
+          await forgotPassword(email);
+          setIsResetSent(true);
+        } catch (err: any) {
+          setError(err.response?.data?.message || "Failed to send reset link");
+        }
       }
     }
   };
