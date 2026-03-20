@@ -271,7 +271,7 @@ export default function LandingPage() {
         {/* TRENDING */}
         <section className="pt-4 pb-10 text-center">
           <h2 className="text-md xs:text-lg md:text-2xl font-bold text-white">
-            Hear what’s trending for free in the SoundCloud community
+            Here’s what’s trending for free in the SoundCloud community
           </h2>
         </section>
 
