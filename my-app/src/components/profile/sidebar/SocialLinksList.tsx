@@ -3,7 +3,7 @@ import React from "react";
 export const SocialLinksList = ({
   links,
 }: {
-  links: { id: number; url: string; title: string }[];
+  links: { id: number; platform: string; url: string }[];
 }) => (
   <div className="mt-6 border-t border-zinc-900 pt-4 text-left">
     <p className="text-zinc-500 text-[10px] font-bold uppercase mb-3">
@@ -25,7 +25,7 @@ export const SocialLinksList = ({
             >
               <span className="text-[10px]">🔗</span>
               <span className="truncate">
-                {link.title || link.url.replace(/^https?:\/\//, "")}
+                {link.platform || link.url.replace(/^https?:\/\//, "")}
               </span>
             </a>
           ))

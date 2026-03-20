@@ -2,10 +2,22 @@ import React from "react";
 import { PrivacyToggle } from "@/src/components/ui/PrivacyToggle";
 import { SocialLinkInput } from "@/src/components/ui/SocialLinkInput";
 
+// ─────────────────────────────────────────────────────────────
+// Edit Profile Modal
+//
+// BEGINNER TIP:
+//   This component receives TWO props:
+//     - `data`     → the current values to show in the form
+//     - `handlers` → functions to call when the user types or clicks
+//   This separation keeps the modal "dumb" — it just displays
+//   things and calls handlers. The real logic lives in
+//   useProfileController.
+// ─────────────────────────────────────────────────────────────
+
 export interface SocialLink {
   id: number;
+  platform: string;
   url: string;
-  title: string;
 }
 
 interface EditModalProps {
@@ -13,21 +25,20 @@ interface EditModalProps {
   onClose: () => void;
   data: {
     displayName: string;
-    firstName: string;
-    lastName: string;
+    handle: string;
     bio: string;
-    profileUrl: string;
-    accountTier: "Artist" | "Listener" | undefined;  
-    genre: string;
+    location: string;
+    website: string;
+    accountType: "ARTIST" | "LISTENER";
+    favoriteGenres: string[];
     genres?: string[];
     links?: SocialLink[];
     isPrivate?: boolean;
     error?: string;
-    city: string;
-    country: string;
+    isSaving?: boolean;
   };
   handlers: {
-    setProfileData: (data: Partial<EditModalProps["data"]>) => void;
+    setProfileData: (data: Record<string, unknown>) => void;
     handleSave: () => void;
     addLink: () => void;
     removeLink: (id: number) => void;
@@ -99,27 +110,27 @@ export const EditProfileModal = ({
                   />
                 </div>
 
-                {/* جزء الـ Profile URL الجديد */}
+                {/* Profile URL / handle */}
                 <div>
                   <label className="block text-[13px] font-bold text-white mb-2 uppercase">
                     Profile URL *
                   </label>
                   <div className="flex items-center bg-[#333] border border-zinc-800 rounded p-2 h-10 overflow-hidden">
                     <span className="text-zinc-500 text-[11px] font-bold mr-1 uppercase whitespace-nowrap">
-                      soundcloud.com/
+                      spotly.com/
                     </span>
                     <input
                       type="text"
-                      value={data.profileUrl}
+                      value={data.handle}
                       onChange={(e) =>
-                        handlers.setProfileData({ profileUrl: e.target.value })
+                        handlers.setProfileData({ handle: e.target.value })
                       }
                       className="bg-transparent text-white font-bold outline-none w-full text-sm"
                     />
                   </div>
                 </div>
 
-                {/* جزء الـ Account Type الجديد */}
+                {/* Account Type */}
                 <div className="space-y-3">
                   <label className="block text-[13px] font-bold text-white uppercase">
                     Account Type
@@ -128,80 +139,53 @@ export const EditProfileModal = ({
                     <button
                       type="button"
                       onClick={() =>
-                        handlers.setProfileData({ accountTier: "Artist" })
+                        handlers.setProfileData({ accountType: "ARTIST" })
                       }
-                      className={`flex-1 py-2 rounded font-bold text-xs uppercase transition-all ${data.accountTier === "Artist" ? "bg-white text-black" : "bg-transparent border border-zinc-700 text-zinc-400"}`}
+                      className={`flex-1 py-2 rounded font-bold text-xs uppercase transition-all ${data.accountType === "ARTIST" ? "bg-white text-black" : "bg-transparent border border-zinc-700 text-zinc-400"}`}
                     >
                       Artist
                     </button>
                     <button
                       type="button"
                       onClick={() =>
-                        handlers.setProfileData({ accountTier: "Listener" })
+                        handlers.setProfileData({ accountType: "LISTENER" })
                       }
-                      className={`flex-1 py-2 rounded font-bold text-xs uppercase transition-all ${data.accountTier === "Listener" ? "bg-white text-black" : "bg-transparent border border-zinc-700 text-zinc-400"}`}
+                      className={`flex-1 py-2 rounded font-bold text-xs uppercase transition-all ${data.accountType === "LISTENER" ? "bg-white text-black" : "bg-transparent border border-zinc-700 text-zinc-400"}`}
                     >
                       Listener
                     </button>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[13px] font-bold text-white mb-2 uppercase">
-                      First name
-                    </label>
-                    <input
-                      type="text"
-                      value={data.firstName}
-                      onChange={(e) =>
-                        handlers.setProfileData({ firstName: e.target.value })
-                      }
-                      className="w-full bg-[#333] border border-zinc-800 p-2 rounded text-white h-10"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[13px] font-bold text-white mb-2 uppercase">
-                      Last name
-                    </label>
-                    <input
-                      type="text"
-                      value={data.lastName}
-                      onChange={(e) =>
-                        handlers.setProfileData({ lastName: e.target.value })
-                      }
-                      className="w-full bg-[#333] border border-zinc-800 p-2 rounded text-white h-10"
-                    />
-                  </div>
+                {/* Location */}
+                <div>
+                  <label className="block text-[13px] font-bold text-white mb-2 uppercase">
+                    Location
+                  </label>
+                  <input
+                    type="text"
+                    value={data.location}
+                    onChange={(e) =>
+                      handlers.setProfileData({ location: e.target.value })
+                    }
+                    className="w-full bg-[#333] border border-zinc-800 p-2 rounded text-white font-bold h-10 outline-none focus:border-white"
+                  />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[13px] font-bold text-white mb-2 uppercase">
-                      City
-                    </label>
-                    <input
-                      type="text"
-                      value={data.city}
-                      onChange={(e) =>
-                        handlers.setProfileData({ city: e.target.value })
-                      }
-                      className="w-full bg-[#333] border border-zinc-800 p-2 rounded text-white font-bold h-10 outline-none focus:border-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[13px] font-bold text-white mb-2 uppercase">
-                      Country <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={data.country}
-                      onChange={(e) =>
-                        handlers.setProfileData({ country: e.target.value })
-                      }
-                      className={`w-full bg-[#333] border p-2 rounded text-white font-bold h-10 outline-none focus:border-white ${data.error?.includes("Country") ? "border-red-500" : "border-zinc-800"}`}
-                    />
-                  </div>
+                {/* Website */}
+                <div>
+                  <label className="block text-[13px] font-bold text-white mb-2 uppercase">
+                    Website
+                  </label>
+                  <input
+                    type="text"
+                    value={data.website}
+                    placeholder="https://..."
+                    onChange={(e) =>
+                      handlers.setProfileData({ website: e.target.value })
+                    }
+                    className="w-full bg-[#333] border border-zinc-800 p-2 rounded text-white font-bold h-10 outline-none focus:border-white"
+                  />
                 </div>
 
                 {/* Favorite Genre */}
@@ -210,9 +194,12 @@ export const EditProfileModal = ({
                     Favorite Genre
                   </label>
                   <select
-                    value={data.genre}
+                    value={data.favoriteGenres?.[0] || "None"}
                     onChange={(e) =>
-                      handlers.setProfileData({ genre: e.target.value })
+                      handlers.setProfileData({
+                        favoriteGenres:
+                          e.target.value === "None" ? [] : [e.target.value],
+                      })
                     }
                     className="w-full bg-[#333] border border-zinc-800 p-2 rounded text-white font-bold h-10 outline-none"
                   >
@@ -281,9 +268,10 @@ export const EditProfileModal = ({
           <button
             type="button"
             onClick={handlers.handleSave}
-            className="bg-white text-black px-6 py-1.5 rounded font-bold uppercase text-[11px] hover:bg-zinc-200 shadow-lg"
+            disabled={data.isSaving}
+            className="bg-white text-black px-6 py-1.5 rounded font-bold uppercase text-[11px] hover:bg-zinc-200 shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Save Changes
+            {data.isSaving ? "Saving..." : "Save Changes"}
           </button>
         </div>
       </div>

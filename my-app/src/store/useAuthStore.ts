@@ -1,56 +1,48 @@
 import { create } from "zustand";
 
-type AuthView = "login" | "signup" | "forgot" | "verify-email-notice";
+// ─────────────────────────────────────────────────────────────
+// Auth Store
+//
+// WHY NO TOKENS?
+//   Our backend uses httpOnly cookies for JWT tokens. The browser
+//   handles sending them automatically — JavaScript cannot (and
+//   should not) read them. So we only need to know:
+//     1. Whether the user is logged in  (isAuthenticated)
+//     2. Basic user info returned by the backend (user)
+//     3. The email for the "verify email" flow
+// ─────────────────────────────────────────────────────────────
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  displayName: string;
+  handle?: string;
+  avatarUrl?: string | null;
+  isVerified?: boolean;
+}
 
 interface AuthState {
-  // (Email Verification Flow)
-  email: string | null; // store email for verification and resending
-  setEmail: (email: string) => void; // store email for resending verification
-
-  // (JWT Handling)
-  accessToken: string | null;
-  refreshToken: string | null;
+  // Current user data (null when logged out)
+  user: AuthUser | null;
   isAuthenticated: boolean;
 
-  setTokens: (accessToken: string, refreshToken: string) => void;
-  clearTokens: () => void;
+  // Email kept separately for the "check your inbox" screen
+  email: string | null;
+
+  // Actions
+  setUser: (user: AuthUser) => void;
+  setEmail: (email: string) => void;
+  logout: () => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
+  user: null,
+  isAuthenticated: false,
   email: null,
+
+  setUser: (user) => set({ user, isAuthenticated: true, email: user.email }),
+
   setEmail: (email) => set({ email }),
 
-  accessToken: null,
-  refreshToken: null,
-  isAuthenticated: false,
-
-  setTokens: (accessToken, refreshToken) => {
-    // Storing tokens in localStorage for persistence across sessions
-    localStorage.setItem("accessToken", accessToken);
-
-    if (refreshToken) {
-      localStorage.setItem("refreshToken", refreshToken);
-    }
-
-    // Update state
-    set({
-      accessToken,
-      refreshToken,
-      isAuthenticated: true,
-    });
-  },
-
-  clearTokens: () => {
-    // Remove tokens from localStorage
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-
-    // Clear state
-    set({
-      accessToken: null,
-      refreshToken: null,
-      isAuthenticated: false,
-      email: null,
-    });
-  },
+  logout: () => set({ user: null, isAuthenticated: false, email: null }),
 }));

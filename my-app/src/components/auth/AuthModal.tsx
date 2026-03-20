@@ -7,7 +7,6 @@ import { useAuthStore } from "@/src/store/useAuthStore";
 import {
   loginUser,
   forgotPassword,
-  registerUser,
 } from "@/src/services/authService";
 import { FaFacebook, FaApple } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
@@ -24,7 +23,7 @@ interface AuthModalProps {
 }
 
 export default function AuthModal({ isOpen, onClose, initialView }: AuthModalProps) {
-  const { login } = useAuth();
+  useAuth(); // keep — ensures we're inside AuthContext
   const { executeRecaptcha } = useGoogleReCaptcha();
   
   const [view, setView] = useState<"login" | "signup" | "forgot">(initialView);
@@ -38,11 +37,12 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
   const [socialLoading, setSocialLoading] = useState<SocialProvider | null>(null);
   const [socialError, setSocialError] = useState<string | null>(null);
 
-  const [captchaReady, setCaptchaReady] = useState(false);
+  const [_captchaReady, setCaptchaReady] = useState(false);
   const [captchaError, setCaptchaError] = useState<string | null>(null);
 
   const [loginPassword, setLoginPassword] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
+  const [signupPasswordConfirm, setSignupPasswordConfirm] = useState("");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -63,6 +63,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
       setCaptchaError(null);
       setLoginPassword("");
       setSignupPassword("");
+      setSignupPasswordConfirm("");
       setIsSubmitting(false);
     }
   }, [isOpen, initialView, executeRecaptcha]);
@@ -118,8 +119,9 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
           onClose();  // Close modal
            //////////////////////////////////////////////////////////////////////////////// 
           router.push("/discover"); // redirect after successful login
-        } catch (err: any) {
-          setError(err.response?.data?.message || "Login failed");
+        } catch (err: unknown) {
+          const axiosErr = err as { response?: { data?: { message?: string } } };
+          setError(axiosErr.response?.data?.message || "Login failed");
         }
         
         
@@ -137,6 +139,16 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
 
         if (signupPassword.length < 8) {
           setError("Password must be at least 8 characters long.");
+          return;
+        }
+
+        if (!signupPasswordConfirm.trim()) {
+          setError("Please confirm your password.");
+          return;
+        }
+
+        if (signupPassword !== signupPasswordConfirm) {
+          setError("Passwords do not match.");
           return;
         }
 
@@ -208,21 +220,30 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
             return;
           }
 
+          // Map the <select> values to what the backend expects
+          const genderMap: Record<string, "MALE" | "FEMALE" | "PREFER_NOT_TO_SAY"> = {
+            male: "MALE",
+            female: "FEMALE",
+            other: "PREFER_NOT_TO_SAY",
+          };
+
           await registerWithCaptcha({
             email,
             password: signupPassword,
-            displayName: name,
-            birthDate: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
-            gender,
-            captchaToken: recaptchaToken,
+            password_confirm: signupPasswordConfirm,
+            display_name: name,
+            date_of_birth: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
+            gender: genderMap[gender] || "PREFER_NOT_TO_SAY",
+            captcha_token: recaptchaToken,
           });
 
           setEmailStore(email); // store email for verification
           router.push("/verify-email-notice"); // redirect after signup
           onClose();
 
-        } catch (err: any) {
-          setError(err.response?.data?.message || "Signup failed");
+        } catch (err: unknown) {
+          const axiosErr = err as { response?: { data?: { message?: string } } };
+          setError(axiosErr.response?.data?.message || "Signup failed");
         } finally {
           setIsSubmitting(false);
         }
@@ -236,8 +257,9 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
         try {
           await forgotPassword(email);
           setIsResetSent(true);
-        } catch (err: any) {
-          setError(err.response?.data?.message || "Failed to send reset link");
+        } catch (err: unknown) {
+          const axiosErr = err as { response?: { data?: { message?: string } } };
+          setError(axiosErr.response?.data?.message || "Failed to send reset link");
         }
       }
     }
@@ -384,7 +406,20 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
                         setSignupPassword(e.target.value);
                       }
                     }}
-                  />                  
+                  />
+                  {/* Confirm password — only shown during signup */}
+                  {view === "signup" && (
+                    <AuthInput
+                      type="password"
+                      placeholder="Confirm your password"
+                      id="reg-password-confirm"
+                      value={signupPasswordConfirm}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        setError(null);
+                        setSignupPasswordConfirm(e.target.value);
+                      }}
+                    />
+                  )}
                   {view === "login" && (
                     <button
                       type="button"

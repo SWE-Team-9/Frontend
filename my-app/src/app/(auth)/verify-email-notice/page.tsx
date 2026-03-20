@@ -20,9 +20,10 @@ export default function VerifyEmailNoticePage() {
 
       await resendVerification(email);
       setMessage("Verification email resent successfully!");
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } } };
       setMessage(
-        err.response?.data?.message || "Failed to resend verification email",
+        axiosErr.response?.data?.message || "Failed to resend verification email",
       );
     }
   };
