@@ -88,7 +88,7 @@ const NavBar: React.FC<NavBarProps> = ({
     { label: "Keyboard shortcuts", dividerAfter: true },
 
     { label: "Subscription" },
-    { label: "Settings" },
+    { label: "Settings", href: "/settings" },
     { label: "Sign out" },
   ],
 

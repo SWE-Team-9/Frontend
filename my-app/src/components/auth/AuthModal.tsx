@@ -1,19 +1,20 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import ReCAPTCHA from "react-google-recaptcha";
 import AuthInput from "@/src/components/auth/AuthInput";
 import { useAuth } from "@/src/context/AuthContext";
 import { useAuthStore } from "@/src/store/useAuthStore";
 import {
   loginUser,
   forgotPassword,
+  resendVerification,
 } from "@/src/services/authService";
 import { FaFacebook, FaApple } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { IoIosArrowBack } from "react-icons/io";
 import { useRouter } from "next/navigation";
 import { startSocialLogin, registerWithCaptcha, type SocialProvider } from "@/src/lib/auth/authService";
-import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 import CaptchaField from "@/src/components/auth/CaptchaField";
 
 interface AuthModalProps {
@@ -24,8 +25,8 @@ interface AuthModalProps {
 
 export default function AuthModal({ isOpen, onClose, initialView }: AuthModalProps) {
   useAuth(); // keep — ensures we're inside AuthContext
-  const { executeRecaptcha } = useGoogleReCaptcha();
-  
+  const captchaRef = useRef<ReCAPTCHA | null>(null);
+
   const [view, setView] = useState<"login" | "signup" | "forgot">(initialView);
   const [step, setStep] = useState(1);
   const [email, setEmail] = useState("");
@@ -33,12 +34,15 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
   const [isResetSent, setIsResetSent] = useState(false);
   const { setEmail: setEmailStore } = useAuthStore();
   const router = useRouter();
-  
+
   const [socialLoading, setSocialLoading] = useState<SocialProvider | null>(null);
   const [socialError, setSocialError] = useState<string | null>(null);
-
-  const [_captchaReady, setCaptchaReady] = useState(false);
   const [captchaError, setCaptchaError] = useState<string | null>(null);
+
+  // Resend verification after failed login
+  const [showResendVerification, setShowResendVerification] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendSent, setResendSent] = useState(false);
 
   const [loginPassword, setLoginPassword] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
@@ -59,14 +63,17 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
       setIsResetSent(false);
       setSocialError(null);
       setSocialLoading(null);
-      setCaptchaReady(!!executeRecaptcha);
       setCaptchaError(null);
+      setShowResendVerification(false);
+      setResendLoading(false);
+      setResendSent(false);
       setLoginPassword("");
       setSignupPassword("");
       setSignupPasswordConfirm("");
       setIsSubmitting(false);
+      captchaRef.current?.reset();
     }
-  }, [isOpen, initialView, executeRecaptcha]);
+  }, [isOpen, initialView]);
 
   // Social Login Handler
   const handleUnavailableProvider = (providerName: string) => {
@@ -83,6 +90,19 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
     } catch (err) {
       setSocialLoading(null);
       setSocialError(err instanceof Error ? err.message : "Unable to start Google login. Please try again.");
+    }
+  };
+
+  const handleResendVerification = async () => {
+    try {
+      setResendLoading(true);
+      await resendVerification(email);
+      setResendSent(true);
+    } catch {
+      // always show success to prevent email enumeration
+      setResendSent(true);
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -113,15 +133,16 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
          // Login with JWT via authService
         try {
           await loginUser({ email, password: loginPassword });
-
-          ////////////////////////////////////////////////////////////////////////////////
           setEmailStore(email);
-          onClose();  // Close modal
-           //////////////////////////////////////////////////////////////////////////////// 
-          router.push("/discover"); // redirect after successful login
+          onClose();
+          router.push("/discover");
         } catch (err: unknown) {
-          const axiosErr = err as { response?: { data?: { message?: string } } };
-          setError(axiosErr.response?.data?.message || "Login failed");
+          const axiosErr = err as { response?: { data?: { error?: string; message?: string } } };
+          if (axiosErr.response?.data?.error === "EMAIL_NOT_VERIFIED") {
+            setShowResendVerification(true);
+          } else {
+            setError(axiosErr.response?.data?.message || "Login failed");
+          }
         }
         
         
@@ -208,15 +229,11 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
           setIsSubmitting(true);
           setCaptchaError(null);
 
-          if (!executeRecaptcha) {
-            setCaptchaError("Verification is not ready yet. Please try again.");
-            return;
-          }
-
-          const recaptchaToken = await executeRecaptcha("register");
+          const recaptchaToken = captchaRef.current?.getValue();
 
           if (!recaptchaToken) {
-            setCaptchaError("Verification failed. Please try again.");
+            setCaptchaError("Please complete the CAPTCHA verification.");
+            setIsSubmitting(false);
             return;
           }
 
@@ -244,6 +261,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
         } catch (err: unknown) {
           const axiosErr = err as { response?: { data?: { message?: string } } };
           setError(axiosErr.response?.data?.message || "Signup failed");
+          captchaRef.current?.reset(); // let the user tick again on failure
         } finally {
           setIsSubmitting(false);
         }
@@ -494,7 +512,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
                     </select>
                   </div>
 
-                  <CaptchaField isReady={!!executeRecaptcha} error={captchaError} />
+                  <CaptchaField captchaRef={captchaRef} error={captchaError} />
 
                 </div>
               )}
@@ -502,6 +520,31 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
           )}
 
           {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+
+          {/* Unverified email banner — shown after login attempt */}
+          {showResendVerification && (
+            <div className="rounded-sm border border-yellow-600/50 bg-yellow-900/20 p-4 flex flex-col gap-3">
+              {resendSent ? (
+                <p className="text-sm text-green-400">
+                  Verification email sent! Check your inbox and click the link to activate your account.
+                </p>
+              ) : (
+                <>
+                  <p className="text-sm text-yellow-300">
+                    Your email address hasn&apos;t been verified yet. Check your inbox for the verification link.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleResendVerification}
+                    disabled={resendLoading}
+                    className="text-sm font-bold text-white bg-yellow-700 hover:bg-yellow-600 rounded-sm py-2 px-4 transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    {resendLoading ? "Sending..." : "Resend verification email"}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
 
           <button
             type="submit"

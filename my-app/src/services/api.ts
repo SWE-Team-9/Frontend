@@ -10,11 +10,18 @@ import axios from "axios";
 //   to include those cookies on every call.
 // ─────────────────────────────────────────────────────────────
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api/v1";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3006/api/v1";
 
 const api = axios.create({
   baseURL: API_URL,
-  withCredentials: true, // ← this makes the browser send cookies automatically
+  withCredentials: true, // ← cookies are sent automatically (httpOnly tokens)
+  headers: {
+    // Custom header sent on every AJAX request.
+    // Browsers enforce CORS pre-flight for custom headers, so a cross-origin
+    // attacker page can NOT forge this header — providing CSRF mitigation on
+    // top of the SameSite=Lax cookie policy set by the backend.
+    "X-Requested-With": "XMLHttpRequest",
+  },
 });
 
 // ─── Auto-refresh when access token expires ──────────────────
@@ -49,7 +56,19 @@ api.interceptors.response.use(
         // Retry the original request — the new cookie is now set
         return api(originalRequest);
       } catch {
-        // Refresh failed → user must log in again
+        // Refresh failed — the session was revoked or the token expired.
+        // Clear the user from the store and send them back to the home page.
+        // We import useAuthStore lazily here to avoid circular-import issues
+        // (api.ts is used inside authService.ts which is used by the store).
+        try {
+          const { useAuthStore } = await import("@/src/store/useAuthStore");
+          useAuthStore.getState().logout();
+        } catch {
+          // If the store import fails for any reason, proceed to redirect anyway
+        }
+        if (typeof window !== "undefined") {
+          window.location.replace("/");
+        }
         return Promise.reject(error);
       }
     }

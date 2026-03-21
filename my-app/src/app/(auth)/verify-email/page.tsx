@@ -1,94 +1,87 @@
 "use client";
 
-import React from "react";
-import { useAuthStore } from "@/src/store/useAuthStore";
-import { useRouter } from "next/navigation";
-import { FaRegPaperPlane } from "react-icons/fa6";
-import { FcGoogle } from "react-icons/fc";
-import { useState } from "react";
-import { resendVerification } from "@/src/services/authService";
+import React, { useEffect, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { verifyEmail } from "@/src/services/authService";
 
-export default function VerifyEmailNoticePage() {
-  const email = useAuthStore((state) => state.email);
+type Status = "verifying" | "success" | "error";
+
+export default function VerifyEmailPage() {
+  const searchParams = useSearchParams();
   const router = useRouter();
+  const [status, setStatus] = useState<Status>("verifying");
+  const [errorMessage, setErrorMessage] = useState<string>("");
 
-  const [message, setMessage] = useState("");
+  useEffect(() => {
+    const token = searchParams.get("token");
 
-  const handleResend = async () => {
-    try {
-      if (!email) return;
-
-      await resendVerification(email);
-      setMessage("Verification email resent successfully!");
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { message?: string } } };
-      setMessage(
-        axiosErr.response?.data?.message || "Failed to resend verification email",
-      );
+    if (!token) {
+      setErrorMessage("No verification token found. Please use the link from your email.");
+      setStatus("error");
+      return;
     }
-  };
 
-  const handleBackToLogin = () => {
-    router.push("/");
-  };
+    verifyEmail(token)
+      .then(() => setStatus("success"))
+      .catch((err: unknown) => {
+        const axiosErr = err as { response?: { data?: { message?: string } } };
+        setErrorMessage(
+          axiosErr.response?.data?.message ||
+            "This verification link is invalid or has already been used.",
+        );
+        setStatus("error");
+      });
+  }, [searchParams]);
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-      {/* Modal */}
-      <div className="bg-black text-white w-100 rounded-lg p-6 text-center shadow-xl">
-        <h1 className="text-2xl font-bold mb-4">Check your inbox!</h1>
-        {/* Message */}
-        <p className="text-sm text-gray-300 mb-2">
-          Click on the link we sent to
-        </p>
-        <p className="font-semibold mb-4">
-          {email || "your-email@example.com"}
-        </p>
-
-        {/* Resend */}
-        <p className="text-sm text-gray-400 mb-6">
-          No email in your inbox or spam folder?{" "}
-          <button
-            onClick={handleResend}
-            className="text-blue-400 hover:underline"
-          >
-            Send again
-          </button>
-        </p>
-
-        {/* Resent confirmation popup */}
-        {message && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-green-600 text-white px-4 py-2 rounded-md text-sm font-semibold">
-            {message}
-          </div>
+    <div className="min-h-screen bg-black flex items-center justify-center p-4">
+      <div className="bg-[#121212] w-full max-w-md rounded-sm shadow-2xl p-10 text-center flex flex-col items-center gap-6">
+        {status === "verifying" && (
+          <>
+            <div className="w-10 h-10 border-4 border-white/20 border-t-white rounded-full animate-spin" />
+            <p className="text-white text-lg font-semibold">Verifying your email…</p>
+          </>
         )}
 
-        {/* Icon */}
-        <div className="flex justify-center mb-6">
-          <FaRegPaperPlane size={120} />
-        </div>
+        {status === "success" && (
+          <>
+            <div className="w-16 h-16 rounded-full bg-green-600/20 flex items-center justify-center">
+              <svg className="w-8 h-8 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-bold text-white">Email verified!</h1>
+            <p className="text-gray-400 text-sm">
+              Your account is now active. You can sign in with your email and password.
+            </p>
+            <button
+              onClick={() => router.push("/")}
+              className="w-full bg-white text-black font-bold py-3 rounded-sm hover:bg-gray-100 transition-colors cursor-pointer"
+            >
+              Sign in
+            </button>
+          </>
+        )}
 
-        {/* Open Gmail */}
-        <a
-          href="https://mail.google.com"
-          target="_blank"
-          className="flex items-center justify-center gap-2 bg-white text-black py-2 rounded-md font-medium mb-4"
-        >
-          <FcGoogle size={20} />
-          Open Gmail
-        </a>
-
-        {/* Back */}
-        <p className="text-sm text-gray-400">
-          Wrong address?{" "}
-          <button
-            onClick={handleBackToLogin}
-            className="text-blue-400 hover:underline"
-          >
-            Back to login
-          </button>
-        </p>
+        {status === "error" && (
+          <>
+            <div className="w-16 h-16 rounded-full bg-red-600/20 flex items-center justify-center">
+              <svg className="w-8 h-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-bold text-white">Verification failed</h1>
+            <p className="text-gray-400 text-sm">{errorMessage}</p>
+            <button
+              onClick={() => router.push("/")}
+              className="w-full bg-white text-black font-bold py-3 rounded-sm hover:bg-gray-100 transition-colors cursor-pointer"
+            >
+              Back to home
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
 }
+
