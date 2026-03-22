@@ -25,7 +25,6 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/*////////////////////////////manal//////////////////////*/
 @keyframes slideDown {
   from {
     transform: translateY(-100%);
@@ -39,4 +38,18 @@ body {
 
 .animate-slideDown {
   animation: slideDown 0.2s ease-out forwards;
+}
+
+
+
+
+@layer utilities {
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;  
+    scrollbar-width: none;  
+  }
 }

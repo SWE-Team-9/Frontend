@@ -19,6 +19,9 @@ import {
   FiMoreHorizontal,
   FiMenu,
 } from "react-icons/fi";
+import { useAuthStore } from "@/src/store/useAuthStore";
+import { logoutUser } from "@/src/services/authService";
+import { useRouter } from "next/navigation";
 
 interface NavItem {
   label: string;
@@ -46,7 +49,7 @@ interface NavBarProps {
 
 const NavBar: React.FC<NavBarProps> = ({
   LEFT_ROUTES = [
-    { label: "Home", href: "/" },
+    { label: "Home", href: "/discover" },
     { label: "Feed", href: "/feed" },
     { label: "Library", href: "/library" },
   ],
@@ -58,7 +61,7 @@ const NavBar: React.FC<NavBarProps> = ({
   ],
 
   PROFILE_MENU = [
-    { label: "Profile", icon: MdPerson },
+    { label: "Profile", icon: MdPerson, href: "/profile" },
     { label: "Likes", icon: ImHeart },
     { label: "Playlists", icon: FiList },
     { label: "Stations", icon: IoRadio },
@@ -85,7 +88,7 @@ const NavBar: React.FC<NavBarProps> = ({
     { label: "Keyboard shortcuts", dividerAfter: true },
 
     { label: "Subscription" },
-    { label: "Settings" },
+    { label: "Settings", href: "/settings" },
     { label: "Sign out" },
   ],
 
@@ -111,6 +114,28 @@ const NavBar: React.FC<NavBarProps> = ({
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null); // Ref for detecting clicks outside of the menu
 
+  // Read the current logged-in user from the global auth store
+  const user = useAuthStore((state) => state.user);
+  // Use the user's avatar if available, otherwise a default silhouette
+  const avatarSrc = user?.avatarUrl || "/images/profile.jpg";
+  // Display name fallback: use handle or the part before "@" in email
+  const displayLabel = user
+    ? user.displayName || user.handle || user.email.split("@")[0]
+    : null;
+
+  const router = useRouter();
+
+  // Sign-out handler — clears cookies on the backend, clears store
+  const handleLogout = async () => {
+    await logoutUser();
+    router.push("/");
+  };
+
+  // Inject the logout action into the "Sign out" menu item
+  const moreMenuWithLogout = MORE_MENU.map((item) =>
+    item.label === "Sign out" ? { ...item, onClick: handleLogout } : item,
+  );
+
   useEffect(() => {
     // Close menus when clicking outside
     const handleClickOutside = (event: MouseEvent) => {
@@ -131,7 +156,7 @@ const NavBar: React.FC<NavBarProps> = ({
   return (
     <div
       ref={menuRef}
-      className={`fixed top-0 left-0 w-full z-50 bg-black py-2 ${className}`}
+      className={`fixed inset-x-0 z-50 bg-[#121212] py-2 ${className || "w-full mx-auto"}`}
     >
       <div className="max-w-7xl mx-auto flex justify-center items-center gap-8">
         {/* LEFT SECTION */}
@@ -189,10 +214,17 @@ const NavBar: React.FC<NavBarProps> = ({
             onClick={() => toggleMenu("profile")}
           >
             <img
-              src="/images/profile.jpg"
-              alt="profile"
-              className="w-6 h-6 rounded-full"
+              src={avatarSrc}
+              alt={displayLabel || "Profile"}
+              className="w-6 h-6 rounded-full object-cover"
+              onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/images/profile.jpg"; }}
             />
+            {/* Show the user's display name (or handle / email prefix) when logged in */}
+            {displayLabel && (
+              <span className="hidden lg:block text-white text-sm font-medium max-w-24 truncate">
+                {displayLabel}
+              </span>
+            )}
             <FiChevronDown className="text-neutral-400" />
             {openMenu === "profile" && <DropdownMenu items={PROFILE_MENU} />}
           </button>
@@ -228,7 +260,7 @@ const NavBar: React.FC<NavBarProps> = ({
               size={20}
               className="text-neutral-400 hover:text-white"
             />
-            {openMenu === "menu" && <DropdownMenu items={MORE_MENU} />}
+            {openMenu === "menu" && <DropdownMenu items={moreMenuWithLogout} />}
           </button>
         </div>
       </div>

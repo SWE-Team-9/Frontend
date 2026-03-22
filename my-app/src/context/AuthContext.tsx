@@ -2,42 +2,42 @@
 
 import React, { createContext, useContext, useState } from "react";
 import AuthModal from "@/src/components/auth/AuthModal";
+import { logoutUser } from "@/src/services/authService";
 
-interface User {
-  name: string;
-  email?: string;
-}
+// ─────────────────────────────────────────────────────────────
+// AuthContext
+//
+// This context does two simple things:
+//   1. Provides an `openAuth("login")` / `openAuth("signup")` function
+//      so any component can pop open the login/signup modal.
+//   2. Exposes the current user and a logout helper.
+// ─────────────────────────────────────────────────────────────
 
 interface AuthContextType {
   openAuth: (view: "login" | "signup") => void;
-  user: User | null; // Allow it to be a User object or null
-  login: (email: string) => void; 
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [authView, setAuthView] = useState<"login" | "signup" | null>(null);
-  
-  const [user, setUser] = useState<User | null>(null);
 
   const openAuth = (view: "login" | "signup") => setAuthView(view);
   const closeAuth = () => setAuthView(null);
 
-  const login = (email: string) => {
-    setUser({ name: "User", email: email }); 
+  const logout = async () => {
+    await logoutUser();
     closeAuth();
-    // Redirect logic to verify the flow
-    window.location.href = "/discover"; 
   };
 
   return (
-    <AuthContext.Provider value={{ openAuth, user, login }}>
+    <AuthContext.Provider value={{ openAuth, logout }}>
       {children}
-      <AuthModal 
-        isOpen={authView !== null} 
-        initialView={authView || "login"} 
-        onClose={closeAuth} 
+      <AuthModal
+        isOpen={authView !== null}
+        initialView={authView || "login"}
+        onClose={closeAuth}
       />
     </AuthContext.Provider>
   );
