@@ -34,7 +34,9 @@ interface AuthModalProps {
 
 export default function AuthModal({ isOpen, onClose, initialView }: AuthModalProps) {
   useAuth(); // keep — ensures we're inside AuthContext
-  const captchaRef = useRef<ReCAPTCHA | null>(null);
+  const signupCaptchaRef = useRef<ReCAPTCHA | null>(null);
+  const loginCaptchaRef = useRef<ReCAPTCHA | null>(null);
+
 
   const [view, setView] = useState<"login" | "signup" | "forgot">(initialView);
   const [step, setStep] = useState(1);
@@ -46,7 +48,8 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
 
   const [socialLoading, setSocialLoading] = useState<SocialProvider | null>(null);
   const [socialError, setSocialError] = useState<string | null>(null);
-  const [captchaError, setCaptchaError] = useState<string | null>(null);
+  const [signupCaptchaError, setSignupCaptchaError] = useState<string | null>(null);
+  const [loginCaptchaError, setLoginCaptchaError] = useState<string | null>(null);
 
   // Resend verification after failed login
   const [showResendVerification, setShowResendVerification] = useState(false);
@@ -72,7 +75,8 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
       setIsResetSent(false);
       setSocialError(null);
       setSocialLoading(null);
-      setCaptchaError(null);
+      setSignupCaptchaError(null);
+      setLoginCaptchaError(null);
       setShowResendVerification(false);
       setResendLoading(false);
       setResendSent(false);
@@ -80,14 +84,15 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
       setSignupPassword("");
       setSignupPasswordConfirm("");
       setIsSubmitting(false);
-      captchaRef.current?.reset();
+      signupCaptchaRef.current?.reset();
+      loginCaptchaRef.current?.reset();
     }
   }, [isOpen, initialView]);
 
   // Social Login Handler
   const handleUnavailableProvider = (providerName: string) => {
-  setError(null);
-  setSocialError(`${providerName} login is not available yet.`);
+    setError(null);
+    setSocialError(`${providerName} login is not available yet.`);
   };
 
   const handleSocialLogin = async (provider: SocialProvider) => {
@@ -117,6 +122,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (isSubmitting) return;
     setError(null);
 
     if (!email.trim()) {
@@ -134,22 +140,33 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
         setError(null);
         setStep(2);
       } else {
-    
-//         const PASSWORD = (
-//           document.getElementById("login-password") as HTMLInputElement
-//         )?.value;
-        
+
+        //         const PASSWORD = (
+        //           document.getElementById("login-password") as HTMLInputElement
+        //         )?.value;
+
         if (!loginPassword.trim()) {
-         setError("Password is required.");
-         return;
+          setError("Password is required.");
+          return;
         }
-        
-         // Login with JWT via authService
+
+        setLoginCaptchaError(null);
+
+        const loginCaptchaToken = loginCaptchaRef.current?.getValue();
+
+        if (!loginCaptchaToken) {
+          setLoginCaptchaError("Please complete the CAPTCHA verification.");
+          return;
+        }
+
+        // Login with JWT via authService
         try {
+          setIsSubmitting(true);
           setShowResendVerification(false);
           setResendSent(false);
+          setLoginCaptchaError(null);
 
-          await loginUser({ email, password: loginPassword });
+          await loginUser({ email, password: loginPassword, captcha_token: loginCaptchaToken });
           setEmailStore(email);
           onClose();
           router.push("/discover");
@@ -165,25 +182,27 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
             };
           };
 
-          if (axiosErr.response?.data?.error === "EMAIL_NOT_VERIFIED") {
+          if (axiosErr.response?.status === 429) {
+            setError("Too many login attempts. Please wait a moment and try again.");
+          } else if (axiosErr.response?.data?.error === "EMAIL_NOT_VERIFIED") {
             setShowResendVerification(true);
             setError("Your email is not verified yet.");
           } else {
             setError(
-              axiosErr.response?.data?.message ||
-              axiosErr.response?.data?.detail ||
               "Incorrect email or password."
             );
           }
+          loginCaptchaRef.current?.reset(); // let the user tick again on failure
+        } finally {
+          setIsSubmitting(false);
         }
-        
-        
       }
+
     } else if (view === "signup") {
       if (step === 1) {
         setError(null);
         setStep(2);
-      } 
+      }
       else if (step === 2) {
         if (!signupPassword.trim()) {
           setError("Please create a password.");
@@ -206,7 +225,8 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
         }
 
         setError(null);
-        setCaptchaError(null);
+        setSignupCaptchaError(null);
+        setLoginCaptchaError(null);
         setStep(3);
       } else {
         const name =
@@ -265,12 +285,13 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
 
         try {
           setIsSubmitting(true);
-          setCaptchaError(null);
+          setSignupCaptchaError(null);
+          setLoginCaptchaError(null);
 
-          const recaptchaToken = captchaRef.current?.getValue();
+          const recaptchaToken = signupCaptchaRef.current?.getValue();
 
           if (!recaptchaToken) {
-            setCaptchaError("Please complete the CAPTCHA verification.");
+            setSignupCaptchaError("Please complete the CAPTCHA verification.");
             setIsSubmitting(false);
             return;
           }
@@ -299,7 +320,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
         } catch (err: unknown) {
           const axiosErr = err as { response?: { data?: { message?: string } } };
           setError(axiosErr.response?.data?.message || "Signup failed");
-          captchaRef.current?.reset(); // let the user tick again on failure
+          signupCaptchaRef.current?.reset(); // let the user tick again on failure
         } finally {
           setIsSubmitting(false);
         }
@@ -336,22 +357,23 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
         {((view === "signup" && step > 1) ||
           (view === "login" && step === 2) ||
           view === "forgot") && (
-          <button
-            onClick={() => {
-              setError(null);
-              setCaptchaError(null);
-              if (view === "forgot") {
-                setView("login");
-                setStep(2);
-              } else {
-                setStep(step - 1);
-              }
-            }}
-            className="w-8 h-8 rounded-full bg-[#222] flex items-center justify-center text-white mb-4 hover:bg-[#333] cursor-pointer"
-          >
-          <IoIosArrowBack size={24}/>
-          </button>
-        )}
+            <button
+              onClick={() => {
+                setError(null);
+                setSignupCaptchaError(null);
+                setLoginCaptchaError(null);
+                if (view === "forgot") {
+                  setView("login");
+                  setStep(2);
+                } else {
+                  setStep(step - 1);
+                }
+              }}
+              className="w-8 h-8 rounded-full bg-[#222] flex items-center justify-center text-white mb-4 hover:bg-[#333] cursor-pointer"
+            >
+              <IoIosArrowBack size={24} />
+            </button>
+          )}
 
         <h1 className="text-3xl text-white font-bold mb-6">
           {view === "forgot"
@@ -365,17 +387,17 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
 
         {step === 1 && view !== "forgot" && (
           <div className="w-full flex flex-col gap-2.5 mb-6">
-            <button 
-            onClick={() => handleUnavailableProvider("Facebook")}
-            type="button"
-            disabled={!!socialLoading || isSubmitting}
-            className="w-full h-10 bg-[#1877f2] text-white text-sm font-bold rounded-sm flex items-center justify-center gap-2 cursor-pointer hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
+            <button
+              onClick={() => handleUnavailableProvider("Facebook")}
+              type="button"
+              disabled={!!socialLoading || isSubmitting}
+              className="w-full h-10 bg-[#1877f2] text-white text-sm font-bold rounded-sm flex items-center justify-center gap-2 cursor-pointer hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <FaFacebook size={18} /> 
+              <FaFacebook size={18} />
               Continue with Facebook
             </button>
-            
-            <button 
+
+            <button
               onClick={() => handleSocialLogin("google")}
               type="button"
               disabled={!!socialLoading || isSubmitting}
@@ -383,9 +405,9 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
             >
               <FcGoogle size={18} />
               {socialLoading === "google" ? "Redirecting..." : "Continue with Google"}
-            </button>   
-            
-            <button 
+            </button>
+
+            <button
               onClick={() => handleUnavailableProvider("Apple")}
               type="button"
               disabled={!!socialLoading || isSubmitting}
@@ -393,10 +415,10 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
             >
               <FaApple size={18} />
               Continue with Apple
-            </button>  
+            </button>
 
             {socialError && <p className="text-red-500 text-xs mt-1">{socialError}</p>}
-            <div 
+            <div
               className="flex items-center w-full mt-4"><span className="text-white text-sm font-bold">or with email</span>
             </div>
           </div>
@@ -428,7 +450,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
                       setError(null);
                       setSocialError(null);
                     }}
-                  />                    
+                  />
                 </>
               )}
             </div>
@@ -445,7 +467,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
                     setSocialError(null);
                   }}
                 />
-              )}              
+              )}
               {step === 2 && (
                 <div className="space-y-4">
                   <p className="text-sm text-gray-400">{email}</p>
@@ -465,6 +487,12 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
                       }
                     }}
                   />
+                  {view === "login" && (
+                    <CaptchaField
+                      captchaRef={loginCaptchaRef}
+                      error={loginCaptchaError}
+                    />
+                  )}
                   {/* Confirm password — only shown during signup */}
                   {view === "signup" && (
                     <AuthInput
@@ -552,7 +580,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
                     </select>
                   </div>
 
-                  <CaptchaField captchaRef={captchaRef} error={captchaError} />
+                  <CaptchaField captchaRef={signupCaptchaRef} error={signupCaptchaError} />
 
                 </div>
               )}
