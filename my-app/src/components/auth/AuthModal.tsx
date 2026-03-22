@@ -36,6 +36,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
   useAuth(); // keep — ensures we're inside AuthContext
   const signupCaptchaRef = useRef<ReCAPTCHA | null>(null);
   const loginCaptchaRef = useRef<ReCAPTCHA | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
 
   const [view, setView] = useState<"login" | "signup" | "forgot">(initialView);
@@ -69,6 +70,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
 
   useEffect(() => {
     if (isOpen) {
+      document.body.style.overflow = 'hidden';
       setView(initialView);
       setStep(1);
       setError(null);
@@ -87,7 +89,15 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
       signupCaptchaRef.current?.reset();
       loginCaptchaRef.current?.reset();
     }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
   }, [isOpen, initialView]);
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [step, view]);
 
   // Social Login Handler
   const handleUnavailableProvider = (providerName: string) => {
@@ -348,12 +358,12 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
     <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/70 p-4">
       <button
         onClick={onClose}
-        className="absolute top-8 right-10 text-white text-2xl hover:text-gray-400 transition-colors cursor-pointer"
+        className="absolute top-4 right-4 sm:top-8 sm:right-10 text-white text-2xl hover:text-gray-400 transition-colors cursor-pointer z-50"
       >
         ✕
       </button>
 
-      <div className="bg-[#121212] w-full max-w-112.5 min-h-137.5 p-8 md:p-10 rounded-sm shadow-2xl relative flex flex-col">
+      <div ref={scrollContainerRef} className="bg-[#121212] w-full max-w-[450px] max-h-[calc(100vh-40px)] overflow-y-auto p-4 xs:p-8 md:p-10 rounded-sm shadow-2xl relative flex flex-col mx-auto scrollbar-thin scrollbar-thumb-gray-600">
         {((view === "signup" && step > 1) ||
           (view === "login" && step === 2) ||
           view === "forgot") && (
@@ -529,10 +539,10 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
                     <label className="text-xs font-bold uppercase text-gray-400">
                       Date of birth (required)
                     </label>
-                    <div className="flex gap-2">
+                    <div className="flex flex-col gap-2">
                       <select
                         id="birth-month"
-                        className="flex-1 bg-[#333] text-white p-2.5 rounded-sm text-sm border-none outline-none cursor-pointer"
+                        className=" w-full sm:w-auto bg-[#333] text-white p-2.5 rounded-sm text-sm border-none outline-none cursor-pointer h-11"
                       >
                         <option value="">Month</option>
                         {months.map((m, i) => (
@@ -541,9 +551,10 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
                           </option>
                         ))}
                       </select>
+                    <div className="flex w-full gap-2">
                       <select
                         id="birth-day"
-                        className="w-20 bg-[#333] text-white p-2.5 rounded-sm text-sm border-none outline-none cursor-pointer"
+                        className="flex-1 bg-[#333] text-white p-2.5 rounded-sm text-sm border-none outline-none cursor-pointer h-11"
                       >
                         <option value="">Day</option>
                         {days.map((d) => (
@@ -554,7 +565,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
                       </select>
                       <select
                         id="birth-year"
-                        className="w-24 bg-[#333] text-white p-2.5 rounded-sm text-sm border-none outline-none cursor-pointer"
+                        className="flex-1  bg-[#333] text-white p-2.5 rounded-sm text-sm border-none outline-none cursor-pointer h-11"
                       >
                         <option value="">Year</option>
                         {years.map((y) => (
@@ -564,6 +575,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
                         ))}
                       </select>
                     </div>
+                   </div>
                   </div>
                   <div className="space-y-2 text-left">
                     <label className="text-xs font-bold uppercase text-gray-400">
@@ -580,8 +592,12 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
                     </select>
                   </div>
 
-                  <CaptchaField captchaRef={signupCaptchaRef} error={signupCaptchaError} />
+                  <div className="w-full overflow-hidden flex justify-center sm:justify-start">
+                    <div className="scale-[0.8] xxs:scale-[0.9] xs:scale-[100] origin-right xss:origin-center">
 
+                      <CaptchaField captchaRef={signupCaptchaRef} error={signupCaptchaError} />
+                    </div>
+                  </div>
                 </div>
               )}
             </>
@@ -628,7 +644,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
                   : "Continue"}
           </button>
         </form>
-
+ 
         {step === 1 && view !== "forgot" && (
           <div className="mt-auto pt-8 flex flex-col items-center">
             <button
