@@ -17,6 +17,15 @@ import { useRouter } from "next/navigation";
 import { startSocialLogin, registerWithCaptcha, type SocialProvider } from "@/src/lib/auth/authService";
 import CaptchaField from "@/src/components/auth/CaptchaField";
 
+const PASSWORD_REGEX =
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
+
+const PASSWORD_MESSAGE =
+  "Password must be at least 8 characters and include uppercase, lowercase, number, and special character.";
+
+const EMAIL_REGEX =
+  /^(?!\.)(?!.*\.\.)([^\s@\.][^\s@]*[^\s@\.])@([^\s@]+\.[^\s@]+)$/;
+
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -110,7 +119,12 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
     e.preventDefault();
     setError(null);
 
-    if (!email.trim() || !email.includes("@")) {
+    if (!email.trim()) {
+      setError("Email is required.");
+      return;
+    }
+
+    if (!EMAIL_REGEX.test(email)) {
       setError("Please enter a valid email address.");
       return;
     }
@@ -158,8 +172,8 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
           return;
         }
 
-        if (signupPassword.length < 8) {
-          setError("Password must be at least 8 characters long.");
+        if (!PASSWORD_REGEX.test(signupPassword)) {
+          setError(PASSWORD_MESSAGE);
           return;
         }
 
@@ -177,9 +191,10 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
         setCaptchaError(null);
         setStep(3);
       } else {
-        const name = (
-          document.getElementById("display-name") as HTMLInputElement
-        )?.value;
+        const name =
+          ((document.getElementById("display-name") as HTMLInputElement)?.value ?? "");
+        const trimmedName = name.trim();
+
         const month = parseInt(
           (document.getElementById("birth-month") as HTMLSelectElement).value,
         );
@@ -192,7 +207,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
         const gender = (document.getElementById("gender") as HTMLSelectElement)
           .value;
 
-        if (!name) {
+        if (!trimmedName) {
           setError("Display name is required.");
           return;
         }
@@ -225,6 +240,11 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
           return;
         }
 
+        if (!PASSWORD_REGEX.test(signupPassword)) {
+          setError(PASSWORD_MESSAGE);
+          return;
+        }
+
         try {
           setIsSubmitting(true);
           setCaptchaError(null);
@@ -248,7 +268,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
             email,
             password: signupPassword,
             password_confirm: signupPasswordConfirm,
-            display_name: name,
+            display_name: trimmedName,
             date_of_birth: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
             gender: genderMap[gender] || "PREFER_NOT_TO_SAY",
             captcha_token: recaptchaToken,
