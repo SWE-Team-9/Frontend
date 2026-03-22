@@ -19,6 +19,7 @@ interface LoginData {
   email: string;
   password: string;
   remember_me?: boolean;
+  captcha_token?: string;  
 }
 
 interface RegisterData {
@@ -32,11 +33,21 @@ interface RegisterData {
 }
 
 // ================= LOGIN =================
-export const loginUser = async ({ email, password, remember_me }: LoginData) => {
+export const loginUser = async ({
+  email,
+  password,
+  remember_me,
+  captcha_token,
+}: LoginData) => {
   // POST /auth/login  →  sets httpOnly cookies + returns { message, user }
-  const response = await api.post("/auth/login", { email, password, remember_me });
+  const response = await api.post("/auth/login", {
+    email,
+    password,
+    remember_me,
+    captcha_token,
+  });
   const { user } = response.data;
-
+  
   // Backend returns snake_case fields — we map them to camelCase for the store
   if (user) {
     useAuthStore.getState().setUser({
