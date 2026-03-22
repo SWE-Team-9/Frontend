@@ -1,9 +1,9 @@
 "use client";
- 
+
 import React from "react";
 import { FiShare } from "react-icons/fi";
 import { AvatarUpload } from "@/src/components/profile/AvatarUpload";
-import { CoverPhoto} from "@/src/components/profile/CoverPhoto";
+import { CoverPhoto } from "@/src/components/profile/CoverPhoto";
 import { GrEdit } from "react-icons/gr";
 import { FaFacebook, FaTwitter, FaPinterest } from "react-icons/fa";
 import { TiSocialTumbler } from "react-icons/ti";
@@ -104,34 +104,27 @@ export default function ProfilePage() {
   );
 
   return (
-
     <div className="min-h-screen bg-[#121212] text-white font-sans overflow-x-hidden relative">
       {/* Conditional Rendering: Main Profile vs Details Page */}
       <NavBar className="max-w-7xl mx-auto px-6" />
-
-       <div className="h-16" /> {/* Spacer to prevent content from being hidden behind NavBar */}
+      <div className="h-16" />{" "}
+      {/* Spacer to prevent content from being hidden behind NavBar */}
       <div className="max-w-7xl mx-auto px-6">
         {viewState === "details" ? (
           renderDetailsPage()
         ) : (
           <>
             {/* --- SECTION 1: VISUAL HEADER (Banner & Avatar) --- */}
+            {/* --- SECTION 1: VISUAL HEADER (Banner & Avatar) --- */}
             <div className="relative w-full min-h-65 bg-[#d38b7d] p-4 md:p-6 flex flex-col md:flex-row items-center md:items-start justify-between gap-4">
-              <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-center text-center md:text-left mt-2">
-                
-                 <AvatarUpload username={""} location={""} />
+              {/* Cover photo in background */}
+              <div className="absolute inset-0 z-0 w-full h-full">
+                <CoverPhoto />
+              </div>
 
-<!--                 {/* Profile Avatar Container */}
-                <div className="w-27.5 h-27.5 md:w-45 md:h-45 rounded-full bg-zinc-400/30 flex items-center justify-center border border-white/10 shadow-2xl overflow-hidden relative group cursor-pointer">
-                  <span className="text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity absolute inset-0 flex items-center justify-center bg-black/40">
-                    Update image
-                  </span>
-                  <span className="text-[10px] md:text-xs font-bold">
-                    Avatar
-                  </span>
-                </div> -->
-
-                {/* User Identity Information */}
+              {/* Avatar + info in front - Cleaned up to one instance */}
+              <div className="relative z-10 flex flex-col md:flex-row gap-4 md:gap-6 items-center text-center md:text-left mt-2">
+                <AvatarUpload username={displayName} location={location} />
                 <div className="flex flex-col gap-1.5 items-center md:items-start">
                   <div className="flex flex-col md:flex-row items-center gap-2 bg-black px-3 py-1 w-fit">
                     <h1 className="text-xl md:text-3xl font-bold uppercase tracking-tight">
@@ -152,16 +145,7 @@ export default function ProfilePage() {
                   )}
                 </div>
               </div>
-              
-               <CoverPhoto />
-<!--               {/* Header Image Action Button */}
-              <button className="bg-black/80 px-3 py-1 rounded text-[9px] md:text-[11px] font-bold border border-white/20 hover:bg-black transition-colors self-end md:self-start uppercase">
-                Upload header image
-              </button> -->
-              
             </div>
-
-
             {/* --- SECTION 2: NAVIGATION BAR (Sticky Tabs) --- */}
             <div className="border-b border-zinc-800 bg-[#121212] sticky top-0 z-40 overflow-x-auto">
               <div className="container mx-auto px-4 md:px-8 flex justify-between items-center h-12 min-w-150 md:min-w-full">
@@ -229,7 +213,10 @@ export default function ProfilePage() {
                       Favorite Genre
                     </p>
                     {favoriteGenres.map((g) => (
-                      <p key={g} className="text-sm font-bold text-white flex items-center gap-2">
+                      <p
+                        key={g}
+                        className="text-sm font-bold text-white flex items-center gap-2"
+                      >
                         <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
                         {g}
                       </p>
@@ -244,7 +231,7 @@ export default function ProfilePage() {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center text-zinc-500 text-[13px] border-b border-zinc-900 pb-2">
                     <p className="flex items-center gap-2 font-bold uppercase">
-                      👥 1 Following
+                      1 Following
                     </p>
                     <button
                       onClick={() => {
@@ -420,13 +407,9 @@ export default function ProfilePage() {
         )}
 
         {/* --- NOTIFICATION LAYER --- */}
-        {/* Toast notification for successful updates */}
         {showSuccessToast && (
           <div className="fixed top-20 right-10 z-100 animate-in slide-in-from-right duration-300">
             <div className="bg-[#333] border border-zinc-700 p-4 flex items-center gap-4 shadow-2xl rounded-sm min-w-75">
-              <div className="w-12 h-12 bg-zinc-600 flex items-center justify-center rounded-sm">
-                <span className="text-zinc-400 text-2xl">👤</span>
-              </div>
               <div>
                 <p className="text-white text-sm font-bold">
                   Your profile has been updated

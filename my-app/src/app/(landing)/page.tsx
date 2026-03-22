@@ -58,10 +58,8 @@ export default function LandingPage() {
   return (
     <div className="w-full min-h-screen bg-[#111] flex flex-col items-center">
       <div className="w-full px-4 md:px-0 md:w-[90%] lg:w-[80%] flex flex-col">
-
         {/* HERO SECTION */}
         <section className="relative h-90 xs:h-[400px] md:h-120 w-full bg-[#333] overflow-hidden mt-6 md:mt-10 rounded-sm shadow-sm">
-
           {/* SLIDES */}
           {slides.map((slide, index) => (
             <div
@@ -113,9 +111,9 @@ export default function LandingPage() {
           <div className="absolute top-0 left-0 w-full h-20 px-4 md:px-10 flex items-center justify-between z-40">
             {/* Logo */}
             <div className="flex items-center gap-2">
-                <span className="text-white text-2xl font-bold italic">
-                  <FaSoundcloud size={40} />
-                </span>
+              <span className="text-white text-2xl font-bold italic">
+                <FaSoundcloud size={40} />
+              </span>
               <span className="text-white font-semibold text-sm uppercase">
                 SoundCloud
               </span>
@@ -128,7 +126,11 @@ export default function LandingPage() {
                   /* ── Logged in ─────────────────────────────────────── */
                   <>
                     <span className="text-white text-sm font-medium">
-                      Hi, {user.displayName || user.handle || user.email.split("@")[0]}!
+                      Hi,{" "}
+                      {user.displayName ||
+                        user.handle ||
+                        user.email.split("@")[0]}
+                      !
                     </span>
                     <button
                       onClick={() => router.push("/discover")}
@@ -274,7 +276,6 @@ export default function LandingPage() {
             Here’s what’s trending for free in the SoundCloud community
           </h2>
         </section>
-
       </div>
     </div>
   );

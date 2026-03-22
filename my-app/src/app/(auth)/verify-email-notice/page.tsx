@@ -34,7 +34,7 @@ export default function VerifyEmailNoticePage() {
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-      {/* Modal */}
+      
       <div className="bg-black text-white w-100 rounded-lg p-6 text-center shadow-xl">
         <h1 className="text-2xl font-bold mb-4">Check your inbox!</h1>
         {/* Message */}
@@ -63,7 +63,7 @@ export default function VerifyEmailNoticePage() {
           </div>
         )}
 
-        {/* Icon */}
+       
         <div className="flex justify-center mb-6">
           <FaRegPaperPlane size={120} />
         </div>

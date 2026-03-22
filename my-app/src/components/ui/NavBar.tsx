@@ -117,7 +117,7 @@ const NavBar: React.FC<NavBarProps> = ({
   // Read the current logged-in user from the global auth store
   const user = useAuthStore((state) => state.user);
   // Use the user's avatar if available, otherwise a default silhouette
-  const avatarSrc = user?.avatarUrl || "/images/profile.jpg";
+  const avatarSrc = user?.avatarUrl || "IMAGE";
   // Display name fallback: use handle or the part before "@" in email
   const displayLabel = user
     ? user.displayName || user.handle || user.email.split("@")[0]

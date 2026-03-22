@@ -44,7 +44,7 @@ export const loginUser = async ({
     email,
     password,
     remember_me,
-    captcha_token,
+    //captcha_token,
   });
   const { user } = response.data;
   
