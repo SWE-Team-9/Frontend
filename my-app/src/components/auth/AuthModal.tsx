@@ -146,16 +146,34 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
         
          // Login with JWT via authService
         try {
+          setShowResendVerification(false);
+          setResendSent(false);
+
           await loginUser({ email, password: loginPassword });
           setEmailStore(email);
           onClose();
           router.push("/discover");
         } catch (err: unknown) {
-          const axiosErr = err as { response?: { data?: { error?: string; message?: string } } };
+          const axiosErr = err as {
+            response?: {
+              data?: {
+                error?: string;
+                message?: string;
+                detail?: string;
+              };
+              status?: number;
+            };
+          };
+
           if (axiosErr.response?.data?.error === "EMAIL_NOT_VERIFIED") {
             setShowResendVerification(true);
+            setError("Your email is not verified yet.");
           } else {
-            setError(axiosErr.response?.data?.message || "Login failed");
+            setError(
+              axiosErr.response?.data?.message ||
+              axiosErr.response?.data?.detail ||
+              "Incorrect email or password."
+            );
           }
         }
         
@@ -439,6 +457,8 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                       setError(null);
                       if (view === "login") {
+                        setShowResendVerification(false);
+                        setResendSent(false);
                         setLoginPassword(e.target.value);
                       } else {
                         setSignupPassword(e.target.value);
