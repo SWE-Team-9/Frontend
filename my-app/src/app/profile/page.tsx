@@ -1,5 +1,5 @@
 "use client";
-
+ 
 import React from "react";
 import { FiShare } from "react-icons/fi";
 import { AvatarUpload } from "@/src/components/profile/AvatarUpload";
@@ -132,16 +132,30 @@ export default function ProfilePage() {
         <>
          {/* --- SECTION 1: VISUAL HEADER --- */}
 <div className="relative w-full min-h-[300px] bg-[#d38b7d] overflow-hidden">
+  
+
+
+   {/* --- //////////////////////////manal//////////////////////////// --- */}
 
   {/* Cover as full background */}
+  
   <CoverPhoto />
+
+{/* --- /////////////////////////////////////////////////////////////// --- */}
 
   {/* Content on top */}
   <div className="absolute inset-0 p-4 md:p-8 flex flex-col md:flex-row items-center md:items-start gap-6">
 
     <div className="flex flex-col md:flex-row gap-4 md:gap-8 items-center text-center md:text-left mt-4">
       
-      <AvatarUpload username={""} />
+      
+      
+      {/* --- ///////////////////////////manal//////////////////////////// --- */}
+
+      <AvatarUpload username={""} location={""} />
+
+
+      {/* --- /////////////////////////////////////////////////////////////// --- */}
 
       {/* Identity Info */}
       <div className="flex flex-col gap-2 items-center md:items-start">
