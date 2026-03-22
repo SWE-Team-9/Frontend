@@ -1,12 +1,15 @@
 "use client";
-
+ 
 import React from "react";
 import { FiShare } from "react-icons/fi";
+import { AvatarUpload } from "@/src/components/profile/AvatarUpload";
+import { CoverPhoto} from "@/src/components/profile/CoverPhoto";
 import { GrEdit } from "react-icons/gr";
 import { FaFacebook, FaTwitter, FaPinterest } from "react-icons/fa";
 import { TiSocialTumbler } from "react-icons/ti";
 import { HiOutlineEnvelope } from "react-icons/hi2";
 import NavBar from "@/src/components/ui/NavBar";
+
 import { useProfileController } from "@/src/hooks/useProfileController";
 import { Stats } from "@/src/components/profile/sidebar/Stats";
 import { SocialLinksList } from "@/src/components/profile/sidebar/SocialLinksList";
@@ -101,6 +104,7 @@ export default function ProfilePage() {
   );
 
   return (
+
     <div className="min-h-screen bg-[#121212] text-white font-sans overflow-x-hidden relative">
       {/* Conditional Rendering: Main Profile vs Details Page */}
       <NavBar className="max-w-7xl mx-auto px-6" />
@@ -114,7 +118,10 @@ export default function ProfilePage() {
             {/* --- SECTION 1: VISUAL HEADER (Banner & Avatar) --- */}
             <div className="relative w-full min-h-65 bg-[#d38b7d] p-4 md:p-6 flex flex-col md:flex-row items-center md:items-start justify-between gap-4">
               <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-center text-center md:text-left mt-2">
-                {/* Profile Avatar Container */}
+                
+                 <AvatarUpload username={""} location={""} />
+
+<!--                 {/* Profile Avatar Container */}
                 <div className="w-27.5 h-27.5 md:w-45 md:h-45 rounded-full bg-zinc-400/30 flex items-center justify-center border border-white/10 shadow-2xl overflow-hidden relative group cursor-pointer">
                   <span className="text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity absolute inset-0 flex items-center justify-center bg-black/40">
                     Update image
@@ -122,7 +129,7 @@ export default function ProfilePage() {
                   <span className="text-[10px] md:text-xs font-bold">
                     Avatar
                   </span>
-                </div>
+                </div> -->
 
                 {/* User Identity Information */}
                 <div className="flex flex-col gap-1.5 items-center md:items-start">
@@ -145,11 +152,15 @@ export default function ProfilePage() {
                   )}
                 </div>
               </div>
-              {/* Header Image Action Button */}
+              
+               <CoverPhoto />
+<!--               {/* Header Image Action Button */}
               <button className="bg-black/80 px-3 py-1 rounded text-[9px] md:text-[11px] font-bold border border-white/20 hover:bg-black transition-colors self-end md:self-start uppercase">
                 Upload header image
-              </button>
+              </button> -->
+              
             </div>
+
 
             {/* --- SECTION 2: NAVIGATION BAR (Sticky Tabs) --- */}
             <div className="border-b border-zinc-800 bg-[#121212] sticky top-0 z-40 overflow-x-auto">
