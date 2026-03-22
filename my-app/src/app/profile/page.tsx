@@ -2,6 +2,8 @@
 
 import React from "react";
 import { FiShare } from "react-icons/fi";
+import { AvatarUpload } from "@/src/components/profile/AvatarUpload";
+import { CoverPhoto} from "@/src/components/profile/CoverPhoto";
 import { GrEdit } from "react-icons/gr";
 import { FaFacebook, FaTwitter, FaPinterest } from "react-icons/fa";
 import { TiSocialTumbler } from "react-icons/ti";
@@ -10,6 +12,8 @@ import { SocialLinkInput } from "@/src/components/ui/SocialLinkInput";
 import { PrivacyToggle } from "@/src/components/ui/PrivacyToggle";
 import { HiOutlineEnvelope } from "react-icons/hi2";
 import NavBar from "@/src/components/ui/NavBar";
+
+
 
 // Implements the View layer of the MVC pattern, delegating logic to useProfileController.
 
@@ -118,7 +122,7 @@ export default function ProfilePage() {
   );
 
   return (
-    <div className="min-h-screen pt-16 bg-[#121212] text-white font-sans overflow-x-hidden relative">
+    <div className="min-h-screen pt-16 bg-[#121212] text-white font-sans overflow-x-hidden relative max-w-7xl mx-auto px-6">
       <NavBar />
 
       {/* Conditional Rendering based on viewState */}
@@ -126,43 +130,49 @@ export default function ProfilePage() {
         renderDetailsPage()
       ) : (
         <>
-          {/* --- SECTION 1: VISUAL HEADER --- */}
-          <div className="relative w-full min-h-75 bg-[#d38b7d] p-4 md:p-8 flex flex-col md:flex-row items-center md:items-start justify-between gap-6">
-            <div className="flex flex-col md:flex-row gap-4 md:gap-8 items-center text-center md:text-left mt-4">
-              {/* Profile Avatar with Hover Effect */}
-              <div className="w-30 h-30 md:w-50 md:h-50 rounded-full bg-zinc-400/30 flex items-center justify-center border border-white/10 shadow-2xl overflow-hidden relative group cursor-pointer">
-                <span className="text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity absolute inset-0 flex items-center justify-center bg-black/40">
-                  Update image
-                </span>
-                <span className="text-[10px] md:text-xs font-bold">Avatar</span>
-              </div>
-              {/* Identity Info */}
-              <div className="flex flex-col gap-2 items-center md:items-start">
-                <div className="flex flex-col md:flex-row items-center gap-2 bg-black px-3 py-1 w-fit">
-                  <h1 className="text-2xl md:text-4xl font-bold">
-                    {displayName}
-                  </h1>
-                  {accountTier === "Artist" && (
-                    <span className="bg-[#f50] text-[8px] md:text-[10px] px-2 py-0.5 rounded font-black uppercase">
-                      Artist
-                    </span>
-                  )}
-                </div>
-                {(city || country) && (
-                  <div className="flex items-center gap-1 mt-1">
-                    <p className=" text-neutral-400   text-xs md:text-sm bg-black px-2 py-1 w-fit font-bold uppercase">
-                      {city}
-                      {city && country ? ", " : ""}
-                      {country}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-            <button className="bg-black/80 px-3 py-1.5 rounded text-[10px] md:text-[12px] font-bold border border-white/20 hover:bg-black transition-colors self-end md:self-start uppercase">
-              Upload header image
-            </button>
+         {/* --- SECTION 1: VISUAL HEADER --- */}
+<div className="relative w-full min-h-[300px] bg-[#d38b7d] overflow-hidden">
+
+  {/* Cover as full background */}
+  <CoverPhoto />
+
+  {/* Content on top */}
+  <div className="absolute inset-0 p-4 md:p-8 flex flex-col md:flex-row items-center md:items-start gap-6">
+
+    <div className="flex flex-col md:flex-row gap-4 md:gap-8 items-center text-center md:text-left mt-4">
+      
+      <AvatarUpload username={""} />
+
+      {/* Identity Info */}
+      <div className="flex flex-col gap-2 items-center md:items-start">
+        
+        <div className="flex flex-col md:flex-row items-center gap-2 bg-black px-3 py-1 w-fit">
+          <h1 className="text-2xl md:text-4xl font-bold">
+            {displayName}
+          </h1>
+
+          {accountTier === "Artist" && (
+            <span className="bg-[#f50] text-[8px] md:text-[10px] px-2 py-0.5 rounded font-black uppercase">
+              Artist
+            </span>
+          )}
+        </div>
+
+        {(city || country) && (
+          <div className="flex items-center gap-1 mt-1">
+            <p className="text-neutral-400 text-xs md:text-sm bg-black px-2 py-1 w-fit font-bold uppercase">
+              {city}
+              {city && country ? ", " : ""}
+              {country}
+            </p>
           </div>
+        )}
+
+      </div>
+    </div>
+
+  </div>
+</div>
 
           {/* --- SECTION 2: NAVIGATION BAR (Sticky) --- */}
           <div className="border-b border-zinc-800 bg-[#121212] sticky top-0 z-40 overflow-x-auto">
