@@ -1,58 +1,90 @@
-import { create } from 'zustand';
+import { create } from "zustand";
 
-// Defines the shape of the global profile store, including user data and action functions.
+// ─────────────────────────────────────────────────────────────
+// Profile Store
+//
+// Holds the current user's profile data. When the user visits
+// /profile we fetch their data from the backend and put it here
+// so every component can read it.
+//
+// BEGINNER TIP:
+//   Think of this as a "global variable" that any React component
+//   can read and update. Zustand makes sure React re-renders
+//   automatically when the data changes.
+// ─────────────────────────────────────────────────────────────
+
+export interface SocialLink {
+  id: number;          // local ID for the UI (so React can track list items)
+  platform: string;    // e.g. "instagram", "youtube"
+  url: string;
+}
+
 interface ProfileState {
-  // Data Properties
+  // ---- Data from the backend ----
   displayName: string;
-  firstName: string;
-  lastName: string;
-  city: string;
-  country: string;
+  handle: string;
   bio: string;
-  profileUrl: string;
+  location: string;
+  website: string;
+  avatarUrl: string | null;
+  coverUrl: string | null;
   isPrivate: boolean;
-  genre: string;
-  accountTier: "Artist" | "Listener";
-  links: { id: number; url: string; title: string }[];
+  accountType: "ARTIST" | "LISTENER";
+  favoriteGenres: string[];
+  links: SocialLink[];
+  followersCount: number;
+  followingCount: number;
+  tracksCount: number;
 
-  // Action Functions (Methods to update state)
+  // ---- Loading flag ----
+  isLoaded: boolean;     // true once we fetched from the backend at least once
+
+  // ---- Actions ----
   setProfileData: (data: Partial<ProfileState>) => void;
-  
-  // Toggles the privacy mode between public and private
   togglePrivate: () => void;
   addLink: () => void;
   removeLink: (id: number) => void;
   updateLink: (id: number, field: string, value: string) => void;
 }
 
-// Global state management for the user profile using Zustand.
 export const useProfileStore = create<ProfileState>()((set) => ({
-  // Initial State Values
-  displayName: "Gehad mourad",
-  firstName: "Gehad",
-  lastName: "mourad",
-  city: "",
-  country: "Egypt",
-  bio: "biomedical engineer",
-  profileUrl: "gehad-mourad-904565429",
+  // Default / empty values
+  displayName: "",
+  handle: "",
+  bio: "",
+  location: "",
+  website: "",
+  avatarUrl: null,
+  coverUrl: null,
   isPrivate: false,
-  accountTier: "Artist",
-  genre: "None",
-  links: [{ id: 1, url: '', title: '' }],
+  accountType: "LISTENER",
+  favoriteGenres: [],
+  links: [{ id: 1, platform: "", url: "" }],
+  followersCount: 0,
+  followingCount: 0,
+  tracksCount: 0,
+  isLoaded: false,
 
-  // Action Implementations
+  // ---- Action implementations ----
 
   setProfileData: (data) => set((state) => ({ ...state, ...data })),
+
   togglePrivate: () => set((state) => ({ isPrivate: !state.isPrivate })),
-  addLink: () => set((state) => ({ 
-    links: [...state.links, { id: Date.now(), url: '', title: '' }] 
-  })),
 
-  removeLink: (id) => set((state) => ({
-    links: state.links.filter((l) => l.id !== id)
-  })),
+  addLink: () =>
+    set((state) => ({
+      links: [...state.links, { id: Date.now(), platform: "", url: "" }],
+    })),
 
-  updateLink: (id, field, value) => set((state) => ({
-    links: state.links.map((l) => l.id === id ? { ...l, [field]: value } : l)
-  })),
+  removeLink: (id) =>
+    set((state) => ({
+      links: state.links.filter((l) => l.id !== id),
+    })),
+
+  updateLink: (id, field, value) =>
+    set((state) => ({
+      links: state.links.map((l) =>
+        l.id === id ? { ...l, [field]: value } : l,
+      ),
+    })),
 }));

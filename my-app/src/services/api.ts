@@ -1,73 +1,75 @@
 import axios from "axios";
-import { useAuthStore } from "@/src/store/useAuthStore";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+// ─────────────────────────────────────────────────────────────
+// Axios instance that talks to our NestJS backend.
+//
+// KEY CONCEPT — "httpOnly cookies":
+//   Our backend stores JWT tokens inside cookies that the browser
+//   sends automatically with every request. We do NOT store tokens
+//   in localStorage. The `withCredentials: true` flag tells axios
+//   to include those cookies on every call.
+// ─────────────────────────────────────────────────────────────
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3006/api/v1";
 
 const api = axios.create({
   baseURL: API_URL,
-  withCredentials: true, // Send cookies with requests for authentication
+  withCredentials: true, // ← cookies are sent automatically (httpOnly tokens)
+  headers: {
+    // Custom header sent on every AJAX request.
+    // Browsers enforce CORS pre-flight for custom headers, so a cross-origin
+    // attacker page can NOT forge this header — providing CSRF mitigation on
+    // top of the SameSite=Lax cookie policy set by the backend.
+    "X-Requested-With": "XMLHttpRequest",
+  },
 });
 
-let refreshPromise: Promise<string | null> | null = null; // To track ongoing refresh token request and prevent multiple simultaneous refreshes
+// ─── Auto-refresh when access token expires ──────────────────
+// If the server replies 401 (Unauthorized), we try ONE refresh
+// request. If the refresh works the server sets new cookies and
+// we retry the original request. If it fails, the user must log
+// in again.
+// ─────────────────────────────────────────────────────────────
 
-// Request interceptor => attach access token
-api.interceptors.request.use(
-  (config) => {
-    const { accessToken } = useAuthStore.getState();
-    if (accessToken && config.headers) {
-      config.headers.Authorization = `Bearer ${accessToken}`; // Attach token to all requests
-    }
-    return config;
-  },
-  (error) => Promise.reject(error),
-);
+let refreshPromise: Promise<void> | null = null; // prevents multiple refreshes at once
 
-// Response interceptor => auto-refresh JWT if expired
 api.interceptors.response.use(
-  (response) => response,
+  (response) => response, // success → pass through
   async (error) => {
-    // Handle 401 errors by trying to refresh the token
-    const originalRequest = error.config; // Save original request to retry after refreshing token
+    const originalRequest = error.config;
 
+    // Only attempt refresh for 401 errors, and only once per request
     if (error.response?.status === 401 && !originalRequest._retry) {
-      // Check if error is due to unauthorized access (401) and we haven't already tried refreshing
-      originalRequest._retry = true; // Mark request as retried to prevent infinite loops
-
-      const { refreshToken, setTokens, clearTokens } = useAuthStore.getState();
+      originalRequest._retry = true;
 
       try {
+        // If another request is already refreshing, wait for it
         if (!refreshPromise) {
-          refreshPromise = (async () => {
-            const RESPONSE = await axios.post(
-              `${API_URL}/auth/refresh`,
-              refreshToken ? { refreshToken } : {},
-              { withCredentials: true },
-            );
-
-            const newAccessToken = RESPONSE.data?.accessToken ?? null;
-            const newRefreshToken =
-              RESPONSE.data?.refreshToken ?? refreshToken ?? null;
-
-            if (!newAccessToken) return null;
-            setTokens(newAccessToken, newRefreshToken);
-            return newAccessToken;
-          })().finally(() => {
-            refreshPromise = null;
-          });
+          refreshPromise = api
+            .post("/auth/refresh")              // cookies sent automatically
+            .then(() => {})                     // server sets new cookies
+            .finally(() => { refreshPromise = null; });
         }
 
-        const newAccessToken = await refreshPromise;
-        if (!newAccessToken) {
-          clearTokens();
-          return Promise.reject(error);
-        }
+        await refreshPromise;
 
-        originalRequest.headers = originalRequest.headers || {};
-        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        // Retry the original request — the new cookie is now set
         return api(originalRequest);
-      } catch (err) {
-        clearTokens();
-        return Promise.reject(err);
+      } catch {
+        // Refresh failed — the session was revoked or the token expired.
+        // Clear the user from the store and send them back to the home page.
+        // We import useAuthStore lazily here to avoid circular-import issues
+        // (api.ts is used inside authService.ts which is used by the store).
+        try {
+          const { useAuthStore } = await import("@/src/store/useAuthStore");
+          useAuthStore.getState().logout();
+        } catch {
+          // If the store import fails for any reason, proceed to redirect anyway
+        }
+        if (typeof window !== "undefined") {
+          window.location.replace("/");
+        }
+        return Promise.reject(error);
       }
     }
 

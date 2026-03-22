@@ -1,24 +1,22 @@
 "use client";
 
+import ReCAPTCHA from "react-google-recaptcha";
+
 interface CaptchaFieldProps {
-  isReady: boolean;
+  captchaRef: React.RefObject<ReCAPTCHA | null>;
   error?: string | null;
 }
 
-export default function CaptchaField({ isReady, error }: CaptchaFieldProps) {
+export default function CaptchaField({ captchaRef, error }: CaptchaFieldProps) {
+  const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || "";
+
   return (
-    <div className="flex flex-col gap-2 rounded-sm border border-gray-700 bg-[#1a1a1a] p-4">
-      <p className="text-xs text-gray-400 leading-relaxed">
-        This site is protected by reCAPTCHA and the Google Privacy Policy and
-        Terms of Service apply.
-      </p>
-
-      {isReady ? (
-        <p className="text-xs text-green-500">Verification ready.</p>
-      ) : (
-        <p className="text-xs text-gray-500">Verification will run on submit.</p>
-      )}
-
+    <div className="flex flex-col gap-2">
+      <ReCAPTCHA
+        ref={captchaRef}
+        sitekey={siteKey}
+        theme="dark"
+      />
       {error && <p className="text-xs text-red-500">{error}</p>}
     </div>
   );

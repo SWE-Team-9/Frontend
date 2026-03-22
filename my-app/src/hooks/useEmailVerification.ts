@@ -1,36 +1,36 @@
-import { useAuthStore } from "@/src/store/useAuthStore";
+import {
+  verifyEmail as verifyEmailApi,
+  resendVerification as resendVerificationApi,
+} from "@/src/services/authService";
 
-export const useEmailVerification = () => { // email verification logic hook
-  const { verificationToken, setVerified, resetVerification } = useAuthStore();
+// ─────────────────────────────────────────────────────────────
+// useEmailVerification
+//
+// Thin wrapper around the two email-verification endpoints.
+// Uses the shared authService (which uses our axios instance
+// with cookies) instead of raw fetch.
+// ─────────────────────────────────────────────────────────────
 
-  // token verification
-  const verifyEmail = async (token?: string) => { // token can come from URL or store
-    if (!token && !verificationToken) return false;
-
+export const useEmailVerification = () => {
+  /** Call POST /auth/verify-email with the token from the email link */
+  const verifyEmail = async (token: string) => {
     try {
-      const t = token || verificationToken;
-      const RESPONSE = await fetch(`/api/auth/verify-email?token=${t}`); // Our backend endpoint
-      if (!RESPONSE.ok) throw new Error();
-      setVerified(true);
+      await verifyEmailApi(token);
       return true;
     } catch {
-      setVerified(false);
       return false;
     }
   };
 
-  // resend verification email
+  /** Call POST /auth/resend-verification with the user's email */
   const resendVerification = async (email: string) => {
     try {
-      const RESPONSE = await fetch("/api/auth/resend-verification", { // Our backend endpoint
-        method: "POST",
-        body: JSON.stringify({ email }),
-      });
-      return RESPONSE.ok;
+      await resendVerificationApi(email);
+      return true;
     } catch {
       return false;
     }
   };
 
-  return { verifyEmail, resendVerification, resetVerification };
+  return { verifyEmail, resendVerification };
 };

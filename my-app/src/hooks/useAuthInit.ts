@@ -1,26 +1,24 @@
 "use client";
 import { useEffect } from "react";
-import { useAuthStore } from "@/src/store/useAuthStore";
 import { getCurrentUser } from "@/src/services/authService";
 
+// ─────────────────────────────────────────────────────────────
+// useAuthInit
+//
+// Runs once when the app loads. Calls GET /auth/me to check if
+// the user's cookies are still valid. If yes → store the user.
+// If no → user stays logged out (nothing to clean up).
+//
+// Session revocation is handled automatically by the Axios
+// interceptor in api.ts: when the access token expires and the
+// refresh fails (because the session was revoked), it clears
+// the auth store and redirects to the home page.
+// ─────────────────────────────────────────────────────────────
+
 export const useAuthInit = () => {
-  const { setTokens, setEmail } = useAuthStore();
-
   useEffect(() => {
-    const accessToken = localStorage.getItem("accessToken");
-    const refreshToken = localStorage.getItem("refreshToken");
-
-    if (accessToken && refreshToken) {
-      setTokens(accessToken, refreshToken);
-
-      // Optional: fetch current user to populate email
-      getCurrentUser()
-        .then((res) => {
-          setEmail(res.data.email);
-        })
-        .catch(() => {
-          console.log("Failed to fetch current user, tokens may be invalid");
-        });
-    }
-  }, [setTokens, setEmail]);
+    getCurrentUser().catch(() => {
+      // Not logged in — that's fine, do nothing
+    });
+  }, []);
 };

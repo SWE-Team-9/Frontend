@@ -2,11 +2,15 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/src/context/AuthContext";
+import { useAuthStore } from "@/src/store/useAuthStore";
+import { useRouter } from "next/navigation";
 import { FiSearch } from "react-icons/fi";
 import { FaSoundcloud } from "react-icons/fa";
 
 export default function LandingPage() {
   const { openAuth } = useAuth();
+  const user = useAuthStore((state) => state.user);
+  const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const slides = [
@@ -120,27 +124,45 @@ export default function LandingPage() {
             {/* Desktop Nav */}
             <div className="flex items-center gap-2 md:gap-3">
               <div className="hidden md:flex items-center gap-3">
-                <button
-                  onClick={() => openAuth?.("login")}
-                  className="text-black text-[10px] xs:text-xs md:text-sm font-medium border border-white/40 px-3 py-1.5 rounded-sm bg-white cursor-pointer"
-                >
-                  Sign in
-                </button>
+                {user ? (
+                  /* ── Logged in ─────────────────────────────────────── */
+                  <>
+                    <span className="text-white text-sm font-medium">
+                      Hi, {user.displayName || user.handle || user.email.split("@")[0]}!
+                    </span>
+                    <button
+                      onClick={() => router.push("/discover")}
+                      className="bg-white text-black text-[10px] xs:text-xs md:text-sm font-bold px-3 py-1.5 rounded-sm cursor-pointer"
+                    >
+                      Go to Discover →
+                    </button>
+                  </>
+                ) : (
+                  /* ── Logged out ────────────────────────────────────── */
+                  <>
+                    <button
+                      onClick={() => openAuth?.("login")}
+                      className="text-black text-[10px] xs:text-xs md:text-sm font-medium border border-white/40 px-3 py-1.5 rounded-sm bg-white cursor-pointer"
+                    >
+                      Sign in
+                    </button>
 
-                <button
-                  onClick={() => openAuth?.("signup")}
-                  className="bg-black text-white text-[10px] xs:text-xs md:text-sm font-bold px-3 py-1.5 rounded-sm cursor-pointer"
-                >
-                  Create account
-                </button>
+                    <button
+                      onClick={() => openAuth?.("signup")}
+                      className="bg-black text-white text-[10px] xs:text-xs md:text-sm font-bold px-3 py-1.5 rounded-sm cursor-pointer"
+                    >
+                      Create account
+                    </button>
 
-                <a
-                  href="/artists"
-                  target="_blank"
-                  className="text-white text-xs md:text-sm font-medium cursor-pointer"
-                >
-                  For Artists
-                </a>
+                    <a
+                      href="/artists"
+                      target="_blank"
+                      className="text-white text-xs md:text-sm font-medium cursor-pointer"
+                    >
+                      For Artists
+                    </a>
+                  </>
+                )}
               </div>
 
               {/* Burger */}
@@ -164,25 +186,41 @@ export default function LandingPage() {
                   ✕
                 </button>
 
-                <button
-                  onClick={() => {
-                    openAuth?.("login");
-                    setIsMenuOpen(false);
-                  }}
-                  className="w-full bg-white mt-4 text-black py-3 font-bold rounded-sm text-sm"
-                >
-                  Sign In
-                </button>
+                {user ? (
+                  /* ── Logged in (mobile) ─────────────────────────── */
+                  <button
+                    onClick={() => {
+                      router.push("/discover");
+                      setIsMenuOpen(false);
+                    }}
+                    className="w-full bg-white mt-4 text-black py-3 font-bold rounded-sm text-sm"
+                  >
+                    Go to Discover →
+                  </button>
+                ) : (
+                  /* ── Logged out (mobile) ────────────────────────── */
+                  <>
+                    <button
+                      onClick={() => {
+                        openAuth?.("login");
+                        setIsMenuOpen(false);
+                      }}
+                      className="w-full bg-white mt-4 text-black py-3 font-bold rounded-sm text-sm"
+                    >
+                      Sign In
+                    </button>
 
-                <button
-                  onClick={() => {
-                    openAuth?.("signup");
-                    setIsMenuOpen(false);
-                  }}
-                  className="w-full bg-black text-white py-3 font-bold rounded-sm border border-white/20 text-sm"
-                >
-                  Create Account
-                </button>
+                    <button
+                      onClick={() => {
+                        openAuth?.("signup");
+                        setIsMenuOpen(false);
+                      }}
+                      className="w-full bg-black text-white py-3 font-bold rounded-sm border border-white/20 text-sm"
+                    >
+                      Create Account
+                    </button>
+                  </>
+                )}
 
                 <a
                   href="/artists"
@@ -233,7 +271,7 @@ export default function LandingPage() {
         {/* TRENDING */}
         <section className="pt-4 pb-10 text-center">
           <h2 className="text-md xs:text-lg md:text-2xl font-bold text-white">
-            Hear what’s trending for free in the SoundCloud community
+            Here’s what’s trending for free in the SoundCloud community
           </h2>
         </section>
 

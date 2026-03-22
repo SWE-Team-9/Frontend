@@ -1,21 +1,30 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import ReCAPTCHA from "react-google-recaptcha";
 import AuthInput from "@/src/components/auth/AuthInput";
 import { useAuth } from "@/src/context/AuthContext";
 import { useAuthStore } from "@/src/store/useAuthStore";
 import {
   loginUser,
   forgotPassword,
-  registerUser,
+  resendVerification,
 } from "@/src/services/authService";
 import { FaFacebook, FaApple } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { IoIosArrowBack } from "react-icons/io";
 import { useRouter } from "next/navigation";
 import { startSocialLogin, registerWithCaptcha, type SocialProvider } from "@/src/lib/auth/authService";
-import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 import CaptchaField from "@/src/components/auth/CaptchaField";
+
+const PASSWORD_REGEX =
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
+
+const PASSWORD_MESSAGE =
+  "Password must be at least 8 characters and include uppercase, lowercase, number, and special character.";
+
+const EMAIL_REGEX =
+  /^(?!\.)(?!.*\.\.)([^\s@\.][^\s@]*[^\s@\.])@([^\s@]+\.[^\s@]+)$/;
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -24,9 +33,11 @@ interface AuthModalProps {
 }
 
 export default function AuthModal({ isOpen, onClose, initialView }: AuthModalProps) {
-  const { login } = useAuth();
-  const { executeRecaptcha } = useGoogleReCaptcha();
-  
+  useAuth(); // keep — ensures we're inside AuthContext
+  const signupCaptchaRef = useRef<ReCAPTCHA | null>(null);
+  const loginCaptchaRef = useRef<ReCAPTCHA | null>(null);
+
+
   const [view, setView] = useState<"login" | "signup" | "forgot">(initialView);
   const [step, setStep] = useState(1);
   const [email, setEmail] = useState("");
@@ -34,15 +45,20 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
   const [isResetSent, setIsResetSent] = useState(false);
   const { setEmail: setEmailStore } = useAuthStore();
   const router = useRouter();
-  
+
   const [socialLoading, setSocialLoading] = useState<SocialProvider | null>(null);
   const [socialError, setSocialError] = useState<string | null>(null);
+  const [signupCaptchaError, setSignupCaptchaError] = useState<string | null>(null);
+  const [loginCaptchaError, setLoginCaptchaError] = useState<string | null>(null);
 
-  const [captchaReady, setCaptchaReady] = useState(false);
-  const [captchaError, setCaptchaError] = useState<string | null>(null);
+  // Resend verification after failed login
+  const [showResendVerification, setShowResendVerification] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendSent, setResendSent] = useState(false);
 
   const [loginPassword, setLoginPassword] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
+  const [signupPasswordConfirm, setSignupPasswordConfirm] = useState("");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -59,18 +75,24 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
       setIsResetSent(false);
       setSocialError(null);
       setSocialLoading(null);
-      setCaptchaReady(!!executeRecaptcha);
-      setCaptchaError(null);
+      setSignupCaptchaError(null);
+      setLoginCaptchaError(null);
+      setShowResendVerification(false);
+      setResendLoading(false);
+      setResendSent(false);
       setLoginPassword("");
       setSignupPassword("");
+      setSignupPasswordConfirm("");
       setIsSubmitting(false);
+      signupCaptchaRef.current?.reset();
+      loginCaptchaRef.current?.reset();
     }
-  }, [isOpen, initialView, executeRecaptcha]);
+  }, [isOpen, initialView]);
 
   // Social Login Handler
   const handleUnavailableProvider = (providerName: string) => {
-  setError(null);
-  setSocialError(`${providerName} login is not available yet.`);
+    setError(null);
+    setSocialError(`${providerName} login is not available yet.`);
   };
 
   const handleSocialLogin = async (provider: SocialProvider) => {
@@ -85,11 +107,30 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
     }
   };
 
+  const handleResendVerification = async () => {
+    try {
+      setResendLoading(true);
+      await resendVerification(email);
+      setResendSent(true);
+    } catch {
+      // always show success to prevent email enumeration
+      setResendSent(true);
+    } finally {
+      setResendLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (isSubmitting) return;
     setError(null);
 
-    if (!email.trim() || !email.includes("@")) {
+    if (!email.trim()) {
+      setError("Email is required.");
+      return;
+    }
+
+    if (!EMAIL_REGEX.test(email)) {
       setError("Please enter a valid email address.");
       return;
     }
@@ -99,54 +140,99 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
         setError(null);
         setStep(2);
       } else {
-    
-//         const PASSWORD = (
-//           document.getElementById("login-password") as HTMLInputElement
-//         )?.value;
-        
-        if (!loginPassword.trim()) {
-         setError("Password is required.");
-         return;
-        }
-        
-         // Login with JWT via authService
-        try {
-          await loginUser({ email, password: loginPassword });
 
-          ////////////////////////////////////////////////////////////////////////////////
-          setEmailStore(email);
-          onClose();  // Close modal
-           //////////////////////////////////////////////////////////////////////////////// 
-          router.push("/discover"); // redirect after successful login
-        } catch (err: any) {
-          setError(err.response?.data?.message || "Login failed");
+        //         const PASSWORD = (
+        //           document.getElementById("login-password") as HTMLInputElement
+        //         )?.value;
+
+        if (!loginPassword.trim()) {
+          setError("Password is required.");
+          return;
         }
-        
-        
+
+        setLoginCaptchaError(null);
+
+        const loginCaptchaToken = loginCaptchaRef.current?.getValue();
+
+        if (!loginCaptchaToken) {
+          setLoginCaptchaError("Please complete the CAPTCHA verification.");
+          return;
+        }
+
+        // Login with JWT via authService
+        try {
+          setIsSubmitting(true);
+          setShowResendVerification(false);
+          setResendSent(false);
+          setLoginCaptchaError(null);
+
+          await loginUser({ email, password: loginPassword, captcha_token: loginCaptchaToken });
+          setEmailStore(email);
+          onClose();
+          router.push("/discover");
+        } catch (err: unknown) {
+          const axiosErr = err as {
+            response?: {
+              data?: {
+                error?: string;
+                message?: string;
+                detail?: string;
+              };
+              status?: number;
+            };
+          };
+
+          if (axiosErr.response?.status === 429) {
+            setError("Too many login attempts. Please wait a moment and try again.");
+          } else if (axiosErr.response?.data?.error === "EMAIL_NOT_VERIFIED") {
+            setShowResendVerification(true);
+            setError("Your email is not verified yet.");
+          } else {
+            setError(
+              "Incorrect email or password."
+            );
+          }
+          loginCaptchaRef.current?.reset(); // let the user tick again on failure
+        } finally {
+          setIsSubmitting(false);
+        }
       }
+
     } else if (view === "signup") {
       if (step === 1) {
         setError(null);
         setStep(2);
-      } 
+      }
       else if (step === 2) {
         if (!signupPassword.trim()) {
           setError("Please create a password.");
           return;
         }
 
-        if (signupPassword.length < 8) {
-          setError("Password must be at least 8 characters long.");
+        if (!PASSWORD_REGEX.test(signupPassword)) {
+          setError(PASSWORD_MESSAGE);
+          return;
+        }
+
+        if (!signupPasswordConfirm.trim()) {
+          setError("Please confirm your password.");
+          return;
+        }
+
+        if (signupPassword !== signupPasswordConfirm) {
+          setError("Passwords do not match.");
           return;
         }
 
         setError(null);
-        setCaptchaError(null);
+        setSignupCaptchaError(null);
+        setLoginCaptchaError(null);
         setStep(3);
       } else {
-        const name = (
-          document.getElementById("display-name") as HTMLInputElement
-        )?.value;
+        const name =
+          ((document.getElementById("display-name") as HTMLInputElement)?.value ?? "");
+        const trimmedName = name.trim();
+
         const month = parseInt(
           (document.getElementById("birth-month") as HTMLSelectElement).value,
         );
@@ -159,7 +245,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
         const gender = (document.getElementById("gender") as HTMLSelectElement)
           .value;
 
-        if (!name) {
+        if (!trimmedName) {
           setError("Display name is required.");
           return;
         }
@@ -192,37 +278,49 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
           return;
         }
 
+        if (!PASSWORD_REGEX.test(signupPassword)) {
+          setError(PASSWORD_MESSAGE);
+          return;
+        }
+
         try {
           setIsSubmitting(true);
-          setCaptchaError(null);
+          setSignupCaptchaError(null);
+          setLoginCaptchaError(null);
 
-          if (!executeRecaptcha) {
-            setCaptchaError("Verification is not ready yet. Please try again.");
-            return;
-          }
-
-          const recaptchaToken = await executeRecaptcha("register");
+          const recaptchaToken = signupCaptchaRef.current?.getValue();
 
           if (!recaptchaToken) {
-            setCaptchaError("Verification failed. Please try again.");
+            setSignupCaptchaError("Please complete the CAPTCHA verification.");
+            setIsSubmitting(false);
             return;
           }
+
+          // Map the <select> values to what the backend expects
+          const genderMap: Record<string, "MALE" | "FEMALE" | "PREFER_NOT_TO_SAY"> = {
+            male: "MALE",
+            female: "FEMALE",
+            other: "PREFER_NOT_TO_SAY",
+          };
 
           await registerWithCaptcha({
             email,
             password: signupPassword,
-            displayName: name,
-            birthDate: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
-            gender,
-            captchaToken: recaptchaToken,
+            password_confirm: signupPasswordConfirm,
+            display_name: trimmedName,
+            date_of_birth: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
+            gender: genderMap[gender] || "PREFER_NOT_TO_SAY",
+            captcha_token: recaptchaToken,
           });
 
           setEmailStore(email); // store email for verification
           router.push("/verify-email-notice"); // redirect after signup
           onClose();
 
-        } catch (err: any) {
-          setError(err.response?.data?.message || "Signup failed");
+        } catch (err: unknown) {
+          const axiosErr = err as { response?: { data?: { message?: string } } };
+          setError(axiosErr.response?.data?.message || "Signup failed");
+          signupCaptchaRef.current?.reset(); // let the user tick again on failure
         } finally {
           setIsSubmitting(false);
         }
@@ -236,8 +334,9 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
         try {
           await forgotPassword(email);
           setIsResetSent(true);
-        } catch (err: any) {
-          setError(err.response?.data?.message || "Failed to send reset link");
+        } catch (err: unknown) {
+          const axiosErr = err as { response?: { data?: { message?: string } } };
+          setError(axiosErr.response?.data?.message || "Failed to send reset link");
         }
       }
     }
@@ -258,22 +357,23 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
         {((view === "signup" && step > 1) ||
           (view === "login" && step === 2) ||
           view === "forgot") && (
-          <button
-            onClick={() => {
-              setError(null);
-              setCaptchaError(null);
-              if (view === "forgot") {
-                setView("login");
-                setStep(2);
-              } else {
-                setStep(step - 1);
-              }
-            }}
-            className="w-8 h-8 rounded-full bg-[#222] flex items-center justify-center text-white mb-4 hover:bg-[#333] cursor-pointer"
-          >
-          <IoIosArrowBack size={24}/>
-          </button>
-        )}
+            <button
+              onClick={() => {
+                setError(null);
+                setSignupCaptchaError(null);
+                setLoginCaptchaError(null);
+                if (view === "forgot") {
+                  setView("login");
+                  setStep(2);
+                } else {
+                  setStep(step - 1);
+                }
+              }}
+              className="w-8 h-8 rounded-full bg-[#222] flex items-center justify-center text-white mb-4 hover:bg-[#333] cursor-pointer"
+            >
+              <IoIosArrowBack size={24} />
+            </button>
+          )}
 
         <h1 className="text-3xl text-white font-bold mb-6">
           {view === "forgot"
@@ -287,17 +387,17 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
 
         {step === 1 && view !== "forgot" && (
           <div className="w-full flex flex-col gap-2.5 mb-6">
-            <button 
-            onClick={() => handleUnavailableProvider("Facebook")}
-            type="button"
-            disabled={!!socialLoading || isSubmitting}
-            className="w-full h-10 bg-[#1877f2] text-white text-sm font-bold rounded-sm flex items-center justify-center gap-2 cursor-pointer hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
+            <button
+              onClick={() => handleUnavailableProvider("Facebook")}
+              type="button"
+              disabled={!!socialLoading || isSubmitting}
+              className="w-full h-10 bg-[#1877f2] text-white text-sm font-bold rounded-sm flex items-center justify-center gap-2 cursor-pointer hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <FaFacebook size={18} /> 
+              <FaFacebook size={18} />
               Continue with Facebook
             </button>
-            
-            <button 
+
+            <button
               onClick={() => handleSocialLogin("google")}
               type="button"
               disabled={!!socialLoading || isSubmitting}
@@ -305,9 +405,9 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
             >
               <FcGoogle size={18} />
               {socialLoading === "google" ? "Redirecting..." : "Continue with Google"}
-            </button>   
-            
-            <button 
+            </button>
+
+            <button
               onClick={() => handleUnavailableProvider("Apple")}
               type="button"
               disabled={!!socialLoading || isSubmitting}
@@ -315,10 +415,10 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
             >
               <FaApple size={18} />
               Continue with Apple
-            </button>  
+            </button>
 
             {socialError && <p className="text-red-500 text-xs mt-1">{socialError}</p>}
-            <div 
+            <div
               className="flex items-center w-full mt-4"><span className="text-white text-sm font-bold">or with email</span>
             </div>
           </div>
@@ -350,7 +450,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
                       setError(null);
                       setSocialError(null);
                     }}
-                  />                    
+                  />
                 </>
               )}
             </div>
@@ -367,7 +467,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
                     setSocialError(null);
                   }}
                 />
-              )}              
+              )}
               {step === 2 && (
                 <div className="space-y-4">
                   <p className="text-sm text-gray-400">{email}</p>
@@ -379,12 +479,33 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                       setError(null);
                       if (view === "login") {
+                        setShowResendVerification(false);
+                        setResendSent(false);
                         setLoginPassword(e.target.value);
                       } else {
                         setSignupPassword(e.target.value);
                       }
                     }}
-                  />                  
+                  />
+                  {view === "login" && (
+                    <CaptchaField
+                      captchaRef={loginCaptchaRef}
+                      error={loginCaptchaError}
+                    />
+                  )}
+                  {/* Confirm password — only shown during signup */}
+                  {view === "signup" && (
+                    <AuthInput
+                      type="password"
+                      placeholder="Confirm your password"
+                      id="reg-password-confirm"
+                      value={signupPasswordConfirm}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        setError(null);
+                        setSignupPasswordConfirm(e.target.value);
+                      }}
+                    />
+                  )}
                   {view === "login" && (
                     <button
                       type="button"
@@ -459,7 +580,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
                     </select>
                   </div>
 
-                  <CaptchaField isReady={!!executeRecaptcha} error={captchaError} />
+                  <CaptchaField captchaRef={signupCaptchaRef} error={signupCaptchaError} />
 
                 </div>
               )}
@@ -467,6 +588,31 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
           )}
 
           {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+
+          {/* Unverified email banner — shown after login attempt */}
+          {showResendVerification && (
+            <div className="rounded-sm border border-yellow-600/50 bg-yellow-900/20 p-4 flex flex-col gap-3">
+              {resendSent ? (
+                <p className="text-sm text-green-400">
+                  Verification email sent! Check your inbox and click the link to activate your account.
+                </p>
+              ) : (
+                <>
+                  <p className="text-sm text-yellow-300">
+                    Your email address hasn&apos;t been verified yet. Check your inbox for the verification link.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleResendVerification}
+                    disabled={resendLoading}
+                    className="text-sm font-bold text-white bg-yellow-700 hover:bg-yellow-600 rounded-sm py-2 px-4 transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    {resendLoading ? "Sending..." : "Resend verification email"}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
 
           <button
             type="submit"

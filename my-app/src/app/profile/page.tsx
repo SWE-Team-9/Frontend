@@ -18,9 +18,8 @@ export default function ProfilePage() {
   const controller = useProfileController();
   const {
     displayName,
-    city,
-    country,
-    genre,
+    location,
+    favoriteGenres,
     links,
     activeTab,
     setActiveTab,
@@ -40,8 +39,7 @@ export default function ProfilePage() {
     shortLink,
     longLink,
     showSuccessToast,
-    accountTier,
-    isEditOpen,
+    accountType,
     setIsEditOpen,
   } = controller;
 
@@ -132,18 +130,16 @@ export default function ProfilePage() {
                     <h1 className="text-xl md:text-3xl font-bold uppercase tracking-tight">
                       {displayName}
                     </h1>
-                    {accountTier === "Artist" && (
+                    {accountType === "ARTIST" && (
                       <span className="bg-zinc-800 text-zinc-400 text-[10px] md:text-[12px] px-2 py-1 rounded-sm font-black uppercase border border-zinc-700/50 shadow-sm shrink-0">
                         Artist
                       </span>
                     )}
                   </div>
-                  {(city || country) && (
+                  {location && (
                     <div className="flex items-center gap-1 mt-0.5">
                       <p className="text-neutral-400 text-[10px] md:text-xs bg-black px-2 py-1 w-fit font-bold uppercase">
-                        {city}
-                        {city && country ? ", " : ""}
-                        {country}
+                        {location}
                       </p>
                     </div>
                   )}
@@ -209,18 +205,24 @@ export default function ProfilePage() {
               {/* Sidebar Column: Contains stats, genres, and social links */}
               <div className="w-full lg:w-[320px] space-y-10">
                 {/* Fragmented Statistics Component */}
-                <Stats followers={0} following={1} tracks={0} />
+                <Stats
+                  followers={controller.followersCount}
+                  following={controller.followingCount}
+                  tracks={controller.tracksCount}
+                />
 
                 {/* Dynamic Favorite Genre Display */}
-                {genre && genre !== "None" && (
+                {favoriteGenres.length > 0 && (
                   <div className="space-y-1 mt-6 border-t border-zinc-900 pt-4">
                     <p className="text-zinc-500 text-[10px] font-bold uppercase mb-1">
                       Favorite Genre
                     </p>
-                    <p className="text-sm font-bold text-white flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
-                      {genre}
-                    </p>
+                    {favoriteGenres.map((g) => (
+                      <p key={g} className="text-sm font-bold text-white flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
+                        {g}
+                      </p>
+                    ))}
                   </div>
                 )}
 
@@ -262,10 +264,18 @@ export default function ProfilePage() {
           isOpen={controller.isEditOpen}
           onClose={() => controller.setIsEditOpen(false)}
           data={{
-            ...controller,
-            city: controller.city,
-            country: controller.country,
+            displayName: controller.displayName,
+            handle: controller.handle,
+            bio: controller.bio,
+            location: controller.location,
+            website: controller.website,
+            accountType: controller.accountType,
+            favoriteGenres: controller.favoriteGenres,
+            genres: controller.genres,
+            links: controller.links,
+            isPrivate: controller.isPrivate,
             error: controller.error,
+            isSaving: controller.isSaving,
           }}
           handlers={controller}
         />
