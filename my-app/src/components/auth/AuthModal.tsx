@@ -437,7 +437,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
 
             {socialError && <p className="text-red-500 text-xs mt-1">{socialError}</p>}
             <div
-              className="flex items-center w-full mt-4"><span className="text-white text-sm font-bold">or with email</span>
+              className="flex items-center w-full mt-4"><span className="text-white text-sm font-bold">Or with email</span>
             </div>
           </div>
         )}
