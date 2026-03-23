@@ -32,6 +32,11 @@ interface RegisterData {
   captcha_token?: string;
 }
 
+interface CheckEmailResponse {
+  available: boolean;
+  email: string;
+}
+
 // ================= LOGIN =================
 export const loginUser = async ({
   email,
@@ -68,6 +73,14 @@ export const registerUser = async (data: RegisterData) => {
   const response = await api.post("/auth/register", data);
   // After registration the user must verify their email before they can log in
   useAuthStore.getState().setEmail(data.email);
+  return response.data;
+};
+
+// ================= CHECK EMAIL AVAILABILITY =================
+export const checkEmailAvailability = async (email: string): Promise<CheckEmailResponse> => {
+  const response = await api.get("/auth/check-email", {
+    params: { email },
+  });
   return response.data;
 };
 
