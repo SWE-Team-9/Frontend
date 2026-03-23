@@ -195,7 +195,7 @@ export function CoverPhoto() {
         
         {/* Dropdown options */}
         {finalImage && showDropdown && (
-          <div className="bg-zinc-950 border border-zinc-800 shadow-lg flex flex-col gap-1 min-w-[100px] animate-slideDown">
+          <div className="bg-zinc-950 border border-zinc-800 shadow-lg flex flex-col gap-1 min-w-25 animate-slideDown">
             <button
               onClick={handleReplaceImage}
               className="text-white text-sm px-3 py-2 rounded hover:text-slate-300 transition-colors text-left"
@@ -224,7 +224,7 @@ export function CoverPhoto() {
       {/* Popup for positioning and zooming */}
       {showPopup && tempImage && (
         <div className="fixed inset-0 bg-white/35 flex justify-center items-start pt-20 z-50">
-          <div className="bg-[#1E1E1E] p-5 rounded-sm shadow-lg w-full max-w-[850px] text-left animate-slideDown">
+          <div className="bg-[#1E1E1E] p-5 rounded-sm shadow-lg w-full max-w-212.5 text-left animate-slideDown">
             {/* Header */}
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-white">
@@ -241,7 +241,7 @@ export function CoverPhoto() {
             {/* Image container */}
             <div 
               ref={containerRef}
-              className="w-full h-[220px] mb-2 overflow-hidden rounded-none border border-gray-700 relative"
+              className="w-full h-55 mb-2 overflow-hidden rounded-none border border-gray-700 relative"
             >
               {/* Draggable image */}
               <img 
@@ -280,7 +280,7 @@ export function CoverPhoto() {
                     step="0.1"
                     value={zoom}
                     onChange={(e) => setZoom(parseFloat(e.target.value))}
-                    className="w-[300px] appearance-none h-2 rounded-lg cursor-pointer bg-zinc-800 accent-white"
+                    className="w-75 appearance-none h-2 rounded-lg cursor-pointer bg-zinc-800 accent-white"
                   />
                   <button
                     onClick={() => setZoom(Math.min(3, zoom + 0.1))}
@@ -313,7 +313,7 @@ export function CoverPhoto() {
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-white/25 flex justify-center items-start z-50 ">
           <div 
-            className="bg-black p-3 rounded-lg shadow-xl w-[350px] text-left animate-slideDown mt-[10vh] h-[160px]"
+            className="bg-black p-3 rounded-lg shadow-xl w-87.5 text-left animate-slideDown mt-[10vh] h-40"
           >
             <h2 className="text-xl font-bold mb-2 text-white">Are you sure?</h2>
             <p className="text-sm text-zinc-100 mb-4">
