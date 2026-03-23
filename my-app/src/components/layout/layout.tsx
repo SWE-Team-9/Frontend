@@ -9,7 +9,7 @@ export default function SideNavLayout({
   return (
     <html lang="en">
       <body
-        className="font-sans bg-amber-950 text-white"
+        className="font-sans text-white"
       >
         <div className="max-w-7xl mx-auto px-6">
           <SideBar>
