@@ -9,6 +9,7 @@ import {
   loginUser,
   forgotPassword,
   resendVerification,
+  checkEmailAvailability,
 } from "@/src/services/authService";
 import { FaFacebook, FaApple } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
@@ -62,6 +63,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
   const [signupPasswordConfirm, setSignupPasswordConfirm] = useState("");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
 
   const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   const currentYear = new Date().getFullYear();
@@ -128,6 +130,43 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
     } finally {
       setResendLoading(false);
     }
+  };
+
+  const validateSignupEmailAvailability = async () => {
+    const normalizedEmail = email.trim();
+
+    if (!normalizedEmail) {
+      setError("Email is required.");
+      return false;
+    }
+
+    if (!EMAIL_REGEX.test(normalizedEmail)) {
+      setError("Please enter a valid email address.");
+      return false;
+    }
+
+    try {
+      setIsCheckingEmail(true);
+      const result = await checkEmailAvailability(normalizedEmail);
+
+      if (!result.available) {
+        setError("An account with this email already exists.");
+        return false;
+      }
+
+      return true;
+    } catch {
+      // Do not block progression when availability service is temporarily unreachable.
+      return true;
+    } finally {
+      setIsCheckingEmail(false);
+    }
+  };
+
+  const handleSignupEmailBlur = async () => {
+    if (view !== "signup" || step !== 1) return;
+
+    await validateSignupEmailAvailability();
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -214,6 +253,11 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
 
     } else if (view === "signup") {
       if (step === 1) {
+        const isEmailAvailable = await validateSignupEmailAvailability();
+        if (!isEmailAvailable) {
+          return;
+        }
+
         setError(null);
         setStep(2);
       }
@@ -480,6 +524,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
                     setError(null);
                     setSocialError(null);
                   }}
+                      onBlur={handleSignupEmailBlur}
                 />
               )}
               {step === 2 && (
@@ -636,11 +681,13 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
 
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || isCheckingEmail}
             className="bg-white/80 hover:bg-white text-black py-3 font-bold rounded-sm transition-all active:scale-[0.98] mt-4 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {isSubmitting
               ? "Please wait..."
+              : isCheckingEmail
+                ? "Checking email..."
               : view === "forgot"
                 ? (isResetSent ? "Done" : "Send reset link")
                 : step === 3

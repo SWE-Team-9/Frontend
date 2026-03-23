@@ -7,6 +7,7 @@ interface AuthInputProps {
   placeholder: string;
   value?: string | number;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
   name?: string;
 }
 
@@ -17,6 +18,7 @@ export default function AuthInput({
   placeholder, 
   value, 
   onChange,
+  onBlur,
   name 
 }: AuthInputProps) {
   return (
@@ -32,6 +34,7 @@ export default function AuthInput({
         type={type}
         value={value}
         onChange={onChange}
+        onBlur={onBlur}
         placeholder={placeholder}
         className="w-full h-11 px-3 bg-[#333] text-white border-none rounded-sm text-sm focus:ring-1 focus:ring-gray-500 outline-none placeholder-gray-500 transition-all"
       />
