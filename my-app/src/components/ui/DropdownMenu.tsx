@@ -16,7 +16,7 @@ interface DropdownMenuProps {
 
 const DropdownMenu: React.FC<DropdownMenuProps> = ({ items }) => {
   return (
-    <div className="absolute top-10 right-0 bg-neutral-900 text-white rounded-md shadow-md w-44 border border-neutral-700">
+    <div className="absolute top-10 right-0 bg-neutral-900 text-white rounded-md shadow-md w-44 border border-neutral-700 max-h-96 overflow-y-auto">
       {items.map((item, index) => {
         const Icon = item.icon;
 

@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
+  --background: #121212;
   --foreground: #171717;
 }
 
@@ -52,4 +52,28 @@ body {
     -ms-overflow-style: none;  
     scrollbar-width: none;  
   }
+}
+
+/* Apply to whole app */
+* {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: #3f3f46 #121212;
+}
+
+/* Chrome, Edge, Safari */
+*::-webkit-scrollbar {
+  width: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: #121212;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: #3f3f46;
+  border-radius: 9999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: #52525b;
 }

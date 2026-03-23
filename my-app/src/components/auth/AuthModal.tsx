@@ -367,7 +367,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
         ✕
       </button>
 
-      <div ref={scrollContainerRef} className="bg-[#121212] w-full max-w-[450px] max-h-[calc(100vh-40px)] overflow-y-auto p-4 xs:p-8 md:p-10 rounded-sm shadow-2xl relative flex flex-col mx-auto scrollbar-thin scrollbar-thumb-gray-600">
+      <div ref={scrollContainerRef} className="bg-[#121212] w-full max-w-112.5 max-h-[calc(100vh-40px)] overflow-y-auto p-4 xs:p-8 md:p-10 rounded-sm shadow-2xl relative flex flex-col mx-auto scrollbar-thin scrollbar-thumb-gray-600">
         {((view === "signup" && step > 1) ||
           (view === "login" && step === 2) ||
           view === "forgot") && (

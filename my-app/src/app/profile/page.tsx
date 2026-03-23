@@ -115,14 +115,13 @@ export default function ProfilePage() {
         ) : (
           <>
             {/* --- SECTION 1: VISUAL HEADER (Banner & Avatar) --- */}
-            {/* --- SECTION 1: VISUAL HEADER (Banner & Avatar) --- */}
             <div className="relative w-full min-h-65 bg-[#d38b7d] p-4 md:p-6 flex flex-col md:flex-row items-center md:items-start justify-between gap-4">
               {/* Cover photo in background */}
               <div className="absolute inset-0 z-0 w-full h-full">
                 <CoverPhoto />
               </div>
 
-              {/* Avatar + info in front - Cleaned up to one instance */}
+              {/* Avatar + info in front */}
               <div className="relative z-10 flex flex-col md:flex-row gap-4 md:gap-6 items-center text-center md:text-left mt-2">
                 <AvatarUpload username={displayName} location={location} />
                 <div className="flex flex-col gap-1.5 items-center md:items-start">
