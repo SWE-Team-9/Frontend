@@ -141,10 +141,6 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
         setStep(2);
       } else {
 
-        //         const PASSWORD = (
-        //           document.getElementById("login-password") as HTMLInputElement
-        //         )?.value;
-
         if (!loginPassword.trim()) {
           setError("Password is required.");
           return;

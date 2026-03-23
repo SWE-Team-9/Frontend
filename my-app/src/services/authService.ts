@@ -1,5 +1,6 @@
 import api from "@/src/services/api";
 import { useAuthStore } from "@/src/store/useAuthStore";
+import { useProfileStore } from "@/src/store/useProfileStore";
 
 // ─────────────────────────────────────────────────────────────
 // Auth Service
@@ -77,6 +78,7 @@ export const logoutUser = async () => {
     await api.post("/auth/logout"); // clears httpOnly cookies on the backend
   } finally {
     useAuthStore.getState().logout();
+    useProfileStore.getState().resetProfile();
   }
 };
 
@@ -86,6 +88,7 @@ export const logoutAllSessions = async () => {
     await api.post("/auth/logout-all");
   } finally {
     useAuthStore.getState().logout();
+    useProfileStore.getState().resetProfile();
   }
 };
 

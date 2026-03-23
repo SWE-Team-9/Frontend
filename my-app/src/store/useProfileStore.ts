@@ -41,14 +41,14 @@ interface ProfileState {
 
   // ---- Actions ----
   setProfileData: (data: Partial<ProfileState>) => void;
+  resetProfile: () => void;
   togglePrivate: () => void;
   addLink: () => void;
   removeLink: (id: number) => void;
   updateLink: (id: number, field: string, value: string) => void;
 }
 
-export const useProfileStore = create<ProfileState>()((set) => ({
-  // Default / empty values
+const initialProfileState = {
   displayName: "",
   handle: "",
   bio: "",
@@ -57,17 +57,24 @@ export const useProfileStore = create<ProfileState>()((set) => ({
   avatarUrl: null,
   coverUrl: null,
   isPrivate: false,
-  accountType: "LISTENER",
-  favoriteGenres: [],
+  accountType: "LISTENER" as const,
+  favoriteGenres: [] as string[],
   links: [{ id: 1, platform: "", url: "" }],
   followersCount: 0,
   followingCount: 0,
   tracksCount: 0,
   isLoaded: false,
+};
+
+export const useProfileStore = create<ProfileState>()((set) => ({
+  // Default / empty values
+  ...initialProfileState,
 
   // ---- Action implementations ----
 
   setProfileData: (data) => set((state) => ({ ...state, ...data })),
+
+  resetProfile: () => set(initialProfileState),
 
   togglePrivate: () => set((state) => ({ isPrivate: !state.isPrivate })),
 

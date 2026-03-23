@@ -135,9 +135,7 @@ export const useProfileController = () => {
         .filter((l) => l.url.trim() !== "")
         .map((l) => ({ platform: l.platform || "website", url: l.url }));
 
-      if (validLinks.length > 0) {
-        await updateMyLinks(validLinks);
-      }
+      await updateMyLinks(validLinks);
 
       setIsEditOpen(false);
       setShowSuccessToast(true);

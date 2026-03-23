@@ -62,7 +62,9 @@ api.interceptors.response.use(
         // (api.ts is used inside authService.ts which is used by the store).
         try {
           const { useAuthStore } = await import("@/src/store/useAuthStore");
+          const { useProfileStore } = await import("@/src/store/useProfileStore");
           useAuthStore.getState().logout();
+          useProfileStore.getState().resetProfile();
         } catch {
           // If the store import fails for any reason, proceed to redirect anyway
         }
