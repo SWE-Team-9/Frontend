@@ -99,21 +99,20 @@ export const EditProfileModal = ({
                 {/* Profile URL / handle */}
                 <div>
                   <label className="block text-[13px] font-bold text-white mb-2 uppercase">
-                    Profile URL *
+                    Profile URL
                   </label>
-                  <div className="flex items-center bg-[#333] border border-zinc-800 rounded p-2 h-10 overflow-hidden">
+                  {/* Handle cannot be changed after registration — shown for reference only */}
+                  <div className="flex items-center bg-[#333] border border-zinc-800 rounded p-2 h-10 overflow-hidden opacity-60 cursor-not-allowed">
                     <span className="text-zinc-500 text-[11px] font-bold mr-1 uppercase whitespace-nowrap">
                       spotly.com/
                     </span>
-                    <input
-                      type="text"
-                      value={data.handle}
-                      onChange={(e) =>
-                        handlers.setProfileData({ handle: e.target.value })
-                      }
-                      className="bg-transparent text-white font-bold outline-none w-full text-sm"
-                    />
+                    <span className="text-zinc-400 font-bold text-sm select-none">
+                      {data.handle}
+                    </span>
                   </div>
+                  <p className="text-zinc-600 text-[11px] mt-1">
+                    Your profile URL cannot be changed.
+                  </p>
                 </div>
 
                 {/* Account Type */}

@@ -10,6 +10,8 @@ import { HiOutlineEnvelope } from "react-icons/hi2";
 import NavBar from "@/src/components/ui/NavBar";
 
 import { useProfileController } from "@/src/hooks/useProfileController";
+import { uploadProfileImage } from "@/src/services/profileService";
+import { useProfileStore } from "@/src/store/useProfileStore";
 import { Stats } from "@/src/components/profile/sidebar/Stats";
 import { SocialLinksList } from "@/src/components/profile/sidebar/SocialLinksList";
 import { EditProfileModal } from "@/src/components/profile/modals/EditProfileModal";
@@ -18,6 +20,7 @@ export default function ProfilePage() {
   const BUTTON_STYLE =
     "bg-zinc-800/50 border border-zinc-700 px-4 py-1 rounded text-xs font-bold hover:bg-zinc-700 transition-colors uppercase flex items-center gap-2";
   const controller = useProfileController();
+  const store = useProfileStore();
   const {
     displayName,
     location,
@@ -117,8 +120,22 @@ export default function ProfilePage() {
             {/* --- SECTION 1: VISUAL HEADER (Banner & Avatar) --- */}
             <div className="relative w-full min-h-65 bg-[#d38b7d] p-4 md:p-6 flex flex-col md:flex-row items-center md:items-start justify-between gap-4">
               <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-center text-center md:text-left mt-2">
-                <CoverPhoto />
-                 <AvatarUpload username={displayName} location={location} />
+                <CoverPhoto
+                  onSave={async (file) => {
+                    // Upload cover photo and save URL from backend to store
+                    const data = await uploadProfileImage("cover", file);
+                    store.setProfileData({ coverUrl: data.url });
+                  }}
+                />
+                 <AvatarUpload
+                  username={displayName}
+                  location={location}
+                  onUpload={async (file) => {
+                    // Upload avatar and save URL from backend to store
+                    const data = await uploadProfileImage("avatar", file);
+                    store.setProfileData({ avatarUrl: data.url });
+                  }}
+                />
 
                 {/* User Identity Information */}
                 <div className="flex flex-col gap-1.5 items-center md:items-start">

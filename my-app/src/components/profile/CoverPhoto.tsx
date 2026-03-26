@@ -3,7 +3,13 @@ import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 
 // Main component for Cover Photo functionality
-export function CoverPhoto() {
+export function CoverPhoto({
+  // onSave is called after the user positions their cover photo.
+  // It receives the cropped File and should upload it to the backend.
+  onSave,
+}: {
+  onSave?: (file: File) => Promise<void>;
+}) {
   // -----------------------------
   // State variables
   // -----------------------------
@@ -12,6 +18,8 @@ export function CoverPhoto() {
   const [showPopup, setShowPopup] = useState(false); // Controls preview popup visibility
   const [showDropdown, setShowDropdown] = useState(false); // Controls dropdown menu visibility
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false); // Controls delete confirmation modal
+  const [isUploading, setIsUploading] = useState(false); // True while sending to the backend
+  const [uploadError, setUploadError] = useState<string | null>(null); // Error if upload fails
 
   const [pos, setPos] = useState({ x: 0, y: 0 }); // Position of the draggable image
   const [dragging, setDragging] = useState(false); // Is user dragging the image
@@ -143,7 +151,7 @@ export function CoverPhoto() {
     }
   }, [tempImage]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // Save the cropped image as final image
     if (!tempImage || !containerRef.current || !imageRef.current) return;
     const canvas = document.createElement("canvas");
@@ -160,9 +168,28 @@ export function CoverPhoto() {
     const height = img.naturalHeight * scale;
     ctx.drawImage(img, pos.x, pos.y, width, height);
     const croppedData = canvas.toDataURL("image/png");
+
+    // Show the cropped image immediately (fast feedback)
     setFinalImage(croppedData);
     setShowPopup(false);
     setTempImage(null);
+    setUploadError(null);
+
+    // Upload to the backend if a handler was provided
+    if (onSave) {
+      try {
+        setIsUploading(true);
+        // Convert base64 canvas data to a File object
+        const response = await fetch(croppedData);
+        const blob = await response.blob();
+        const file = new File([blob], "cover.png", { type: "image/png" });
+        await onSave(file);
+      } catch {
+        setUploadError("Cover upload failed. Preview shown but not saved.");
+      } finally {
+        setIsUploading(false);
+      }
+    }
   };
 
   const handleCancel = () => {
@@ -187,6 +214,13 @@ export function CoverPhoto() {
         />
       )}
 
+      {/* Spinner overlay while uploading to the backend */}
+      {isUploading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-20">
+          <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+        </div>
+      )}
+
       {/* Dropdown and update button */}
       <div className="absolute top-8 right-5 flex flex-col items-end gap-2 z-10">
         <button
@@ -196,6 +230,11 @@ export function CoverPhoto() {
         >
           {finalImage ? "Update image" : "Update image"}
         </button>
+
+        {/* Error message if upload failed */}
+        {uploadError && (
+          <p className="text-red-400 text-xs text-right max-w-48">{uploadError}</p>
+        )}
 
         {/* Dropdown options */}
         {finalImage && showDropdown && (

@@ -10,7 +10,9 @@ export function AvatarUpload({
   username,
   location,
 }: {
-  onUpload?: (url: string) => void;
+  // onUpload is called after the user crops their image.
+  // It receives the cropped File and should upload it to the backend.
+  onUpload?: (file: File) => Promise<void>;
   username: string;
   location: string;
 }) {
@@ -26,6 +28,8 @@ export function AvatarUpload({
 
   const [showOptions, setShowOptions] = useState(false); // Show dropdown options
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false); // Show delete confirmation
+  const [isUploading, setIsUploading] = useState(false); // True while sending image to backend
+  const [uploadError, setUploadError] = useState<string | null>(null); // Error message if upload fails
 
   // -----------------------------
   // Added state for validation
@@ -107,13 +111,28 @@ export function AvatarUpload({
 
   const handleSave = async () => {
     const croppedImage = await createCroppedImage();
+    if (!croppedImage) return;
 
-    if (croppedImage) {
-      setPreview(croppedImage);
-      onUpload?.(croppedImage);
-    }
-
+    // Show the cropped image in the browser immediately (fast feedback)
+    setPreview(croppedImage);
     setShowEditor(false);
+    setUploadError(null);
+
+    // Upload the image to the backend if a handler was provided
+    if (onUpload) {
+      try {
+        setIsUploading(true);
+        // Convert the base64 image to a File object that can be sent to the server
+        const response = await fetch(croppedImage);
+        const blob = await response.blob();
+        const file = new File([blob], "avatar.png", { type: "image/png" });
+        await onUpload(file);
+      } catch {
+        setUploadError("Image upload failed. Your preview is shown but not saved.");
+      } finally {
+        setIsUploading(false);
+      }
+    }
   };
 
   const handleDelete = () => {
@@ -123,6 +142,7 @@ export function AvatarUpload({
 
   return (
     <>
+      {/* Show a spinning overlay while saving to the backend */}
       <div className="relative w-40 h-40 md:w-48 md:h-48 rounded-full bg-zinc-400/30 flex items-center justify-center border border-white/10 shadow-2xl overflow-hidden group">
         {preview ? (
           <Image
@@ -136,14 +156,21 @@ export function AvatarUpload({
           <span className="text-[10px] md:text-xs font-bold">Upload image</span>
         )}
 
-        {preview ? (
+        {/* Show a spinner while uploading */}
+        {isUploading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-full">
+            <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          </div>
+        )}
+
+        {preview && !isUploading ? (
           <button
             onClick={() => setShowOptions(!showOptions)}
             className="absolute inset-0 flex items-center justify-center bg-black/40 text-white text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity rounded-full"
           >
             Update image
           </button>
-        ) : (
+        ) : !preview && !isUploading ? (
           <label className="absolute inset-0 flex items-center justify-center bg-black/40 text-white text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity rounded-full cursor-pointer">
             Upload image
             <input
@@ -153,8 +180,15 @@ export function AvatarUpload({
               className="hidden"
             />
           </label>
-        )}
+        ) : null}
       </div>
+
+      {/* Show an error if the upload failed (the local preview still shows) */}
+      {uploadError && (
+        <p className="text-red-400 text-xs text-center mt-2 max-w-48">
+          {uploadError}
+        </p>
+      )}
 
       {showOptions && preview && (
         <div className="absolute mt-50 left-[11.5%] -translate-x-1/2 w-40">
