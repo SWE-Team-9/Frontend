@@ -27,43 +27,62 @@ const api = axios.create({
 let refreshPromise: Promise<void> | null = null; // prevents multiple refreshes at once
 
 api.interceptors.response.use(
-  (response) => response, // success → pass through
+  (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // Only attempt refresh for 401 errors, and only once per request
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // If there's no request config, just reject
+    if (!originalRequest) {
+      return Promise.reject(error);
+    }
+
+    const requestUrl = originalRequest.url ?? "";
+
+    // Endpoints that should NEVER trigger silent refresh
+    const shouldSkipRefresh =
+      requestUrl.includes("/auth/login") ||
+      requestUrl.includes("/auth/register") ||
+      requestUrl.includes("/auth/forgot-password") ||
+      requestUrl.includes("/auth/reset-password") ||
+      requestUrl.includes("/auth/resend-verification") ||
+      requestUrl.includes("/auth/verify-email") ||
+      requestUrl.includes("/auth/check-email") ||
+      requestUrl.includes("/auth/refresh");
+
+    // Only attempt refresh for 401s on requests that are NOT auth-entry flows
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !shouldSkipRefresh
+    ) {
       originalRequest._retry = true;
 
       try {
-        // If another request is already refreshing, wait for it
         if (!refreshPromise) {
           refreshPromise = api
-            .post("/auth/refresh")              // cookies sent automatically
-            .then(() => {})                     // server sets new cookies
-            .finally(() => { refreshPromise = null; });
+            .post("/auth/refresh")
+            .then(() => {})
+            .finally(() => {
+              refreshPromise = null;
+            });
         }
 
         await refreshPromise;
-
-        // Retry the original request — the new cookie is now set
         return api(originalRequest);
       } catch {
-        // Refresh failed — the session was revoked or the token expired.
-        // Clear the user from the store and send them back to the home page.
-        // We import useAuthStore lazily here to avoid circular-import issues
-        // (api.ts is used inside authService.ts which is used by the store).
         try {
           const { useAuthStore } = await import("@/src/store/useAuthStore");
           const { useProfileStore } = await import("@/src/store/useProfileStore");
           useAuthStore.getState().logout();
           useProfileStore.getState().resetProfile();
         } catch {
-          // If the store import fails for any reason, proceed to redirect anyway
+          // ignore store cleanup errors
         }
+
         if (typeof window !== "undefined") {
           window.location.replace("/");
         }
+
         return Promise.reject(error);
       }
     }

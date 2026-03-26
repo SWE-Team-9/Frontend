@@ -226,14 +226,20 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
               status?: number;
             };
           };
+
           const backendError = axiosErr.response?.data?.error;
           const backendMessage = axiosErr.response?.data?.message;
 
           if (axiosErr.response?.status === 429) {
             setError("Too many login attempts. Please wait a moment and try again.");
-          } else if (axiosErr.response?.data?.error === "EMAIL_NOT_VERIFIED") {
+          } else if (backendError === "EMAIL_NOT_VERIFIED") {
             setShowResendVerification(true);
             setError("Your email is not verified yet.");
+          } else if (
+            backendError === "INVALID_CREDENTIALS" ||
+            axiosErr.response?.status === 401
+          ) {
+            setError("Incorrect email or password.");
           } else if (backendError === "CAPTCHA_TOKEN_MISSING") {
             setLoginCaptchaError("Please complete the CAPTCHA verification.");
           } else if (backendError === "CAPTCHA_FAILED") {
@@ -243,9 +249,10 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
           } else if (typeof backendMessage === "string" && backendMessage.trim().length > 0) {
             setError(backendMessage);
           } else {
-            setError("Incorrect email or password.");
+            setError("Something went wrong during login.");
           }
-          loginCaptchaRef.current?.reset(); // let the user tick again on failure
+
+          loginCaptchaRef.current?.reset();
         } finally {
           setIsSubmitting(false);
         }
@@ -420,6 +427,8 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
                 setError(null);
                 setSignupCaptchaError(null);
                 setLoginCaptchaError(null);
+                setIsSubmitting(false);
+                setIsCheckingEmail(false);
                 if (view === "forgot") {
                   setView("login");
                   setStep(2);
