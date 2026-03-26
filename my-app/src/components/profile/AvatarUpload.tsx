@@ -4,20 +4,31 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import Cropper, { type Area } from "react-easy-crop";
 
+const dataURLtoFile = (dataurl: string, filename: string) => {
+  const arr = dataurl.split(",");
+  const mime = arr[0].match(/:(.*?);/)?.[1];
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+
+  return new File([u8arr], filename, { type: mime });
+};
+
 // Component for uploading and editing avatar image
 export function AvatarUpload({
   onUpload,
   username,
   location,
-  initialUrl,
+  avatarUrl,
 }: {
-  // onUpload is called after the user crops their image.
-  // It receives the cropped File and should upload it to the backend.
-  onUpload?: (file: File) => Promise<void>;
+  onUpload?: (file: File) => Promise<string | undefined>;
   username: string;
   location: string;
-  // The currently saved avatar URL from the backend (shown on page load)
-  initialUrl?: string | null;
+  avatarUrl?: string | null;
 }) {
   // -----------------------------
   // State variables
@@ -119,30 +130,22 @@ export function AvatarUpload({
   };
 
   const handleSave = async () => {
-    const croppedImage = await createCroppedImage();
-    if (!croppedImage) return;
+  const croppedImage = await createCroppedImage();
 
-    // Show the cropped image in the browser immediately (fast feedback)
-    setPreview(croppedImage);
-    setShowEditor(false);
-    setUploadError(null);
+  if (croppedImage && onUpload) {
+    // 🔥 Convert base64 → File
+    const file = dataURLtoFile(croppedImage, "avatar.png");
 
-    // Upload the image to the backend if a handler was provided
-    if (onUpload) {
-      try {
-        setIsUploading(true);
-        // Convert the base64 image to a File object that can be sent to the server
-        const response = await fetch(croppedImage);
-        const blob = await response.blob();
-        const file = new File([blob], "avatar.png", { type: "image/png" });
-        await onUpload(file);
-      } catch {
-        setUploadError("Image upload failed. Your preview is shown but not saved.");
-      } finally {
-        setIsUploading(false);
-      }
+    // 🔥 Upload to backend
+    const uploadedUrl = await onUpload(file);
+
+    if (uploadedUrl) {
+      setPreview(uploadedUrl); // ✅ use real URL
     }
-  };
+  }
+
+  setShowEditor(false);
+};
 
   const handleDelete = () => {
     setPreview(null);
@@ -153,9 +156,9 @@ export function AvatarUpload({
     <>
       {/* Show a spinning overlay while saving to the backend */}
       <div className="relative w-40 h-40 md:w-48 md:h-48 rounded-full bg-zinc-400/30 flex items-center justify-center border border-white/10 shadow-2xl overflow-hidden group">
-        {preview ? (
+        {preview || avatarUrl ? (
           <Image
-            src={preview}
+            src={preview || avatarUrl!}
             alt="Avatar preview"
             fill
             className="rounded-full object-cover"
@@ -165,14 +168,7 @@ export function AvatarUpload({
           <span className="text-[10px] md:text-xs font-bold">Upload image</span>
         )}
 
-        {/* Show a spinner while uploading */}
-        {isUploading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-full">
-            <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-          </div>
-        )}
-
-        {preview && !isUploading ? (
+        {preview || avatarUrl ? (
           <button
             onClick={() => setShowOptions(!showOptions)}
             className="absolute inset-0 flex items-center justify-center bg-black/40 text-white text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity rounded-full"
@@ -192,14 +188,7 @@ export function AvatarUpload({
         ) : null}
       </div>
 
-      {/* Show an error if the upload failed (the local preview still shows) */}
-      {uploadError && (
-        <p className="text-red-400 text-xs text-center mt-2 max-w-48">
-          {uploadError}
-        </p>
-      )}
-
-      {showOptions && preview && (
+      {showOptions && (preview || avatarUrl) && (
         <div className="absolute mt-50 left-[11.5%] -translate-x-1/2 w-40">
           <div className="mb-2">
             <label
@@ -266,99 +255,97 @@ export function AvatarUpload({
         </div>
       )}
 
-      {showEditor && tempImage && (
-        <div className="fixed inset-0 bg-white/30 backdrop-blur-sm flex items-start justify-center pt-20 z-50 overflow-y-auto">
-          {/* Close button */}
+{showEditor && tempImage && (
+  <div className="fixed inset-0 bg-white/30 backdrop-blur-sm flex items-start justify-center pt-20 z-50 overflow-y-auto">
+    {/* Close button */}
+    <button
+      onClick={() => setShowEditor(false)}
+      className="absolute top-6 right-6 text-black text-2xl font-bold hover:text-zinc-700 z-50"
+    >
+      ×
+    </button>
+
+    {/* Popup container */}
+    <div className="bg-zinc-900 p-5 rounded-xl flex flex-col items-center gap-4 w-full max-w-125 shadow-2xl
+                    max-h-[calc(100vh-5rem)] overflow-y-auto">
+      {/* User info */}
+      <h2 className="text-white font-bold text-2xl">{username}</h2>
+      <p className="text-zinc-400 text-sm">{location}</p>
+      <p className="text-zinc-300 text-xs text-center">
+        For best results, upload images of at least{" "}
+        <strong>1000×1000 pixels</strong>. 2MB file-size limit.
+      </p>
+
+      {/* Cropper */}
+      <div className="relative w-120 h-120 rounded-full overflow-hidden bg-transparent shadow-lg">
+        <Cropper
+          image={tempImage}
+          crop={crop}
+          zoom={zoom}
+          aspect={1}
+          cropShape="round"
+          objectFit="cover"
+          showGrid={false}
+          onCropChange={setCrop}
+          onZoomChange={setZoom}
+          onCropComplete={onCropComplete}
+          restrictPosition
+        />
+      </div>
+
+      {/* Controls */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between w-full mt-6 gap-3">
+        {isValidImage ? (
+          <div className="flex items-center gap-2 flex-1">
+            <button
+              onClick={() => setZoom((z) => Math.max(1, z - 0.1))}
+              className="bg-zinc-800 text-white px-3 py-2 rounded hover:bg-zinc-700 transition"
+            >
+              -
+            </button>
+
+            <input
+              type="range"
+              min={1}
+              max={3}
+              step={0.1}
+              value={zoom}
+              onChange={(e) => setZoom(Number(e.target.value))}
+              className="flex-1 appearance-none h-2 rounded-lg cursor-pointer bg-zinc-800 accent-zinc-800"
+            />
+
+            <button
+              onClick={() => setZoom((z) => Math.min(3, z + 0.1))}
+              className="bg-zinc-800 text-white px-3 py-2 rounded hover:bg-zinc-700 transition"
+            >
+              +
+            </button>
+          </div>
+        ) : (
+          <p className="text-zinc-400 text-sm flex-1">
+            ⚠️ Image is too small and may appear blurry
+          </p>
+        )}
+
+        {/* Save / Cancel buttons */}
+        <div className="flex gap-3 ml-0 sm:ml-6 mt-2 sm:mt-0">
           <button
             onClick={() => setShowEditor(false)}
-            className="absolute top-6 right-6 text-black text-2xl font-bold hover:text-zinc-700 z-50"
+            className="bg-zinc-800 text-white px-2 py-2 rounded text-sm hover:bg-zinc-700 transition"
           >
-            ×
+            Cancel
           </button>
-
-          {/* Popup container */}
-          <div
-            className="bg-zinc-900 p-5 rounded-xl flex flex-col items-center gap-4 w-full max-w-125 shadow-2xl
-                    max-h-[calc(100vh-5rem)] overflow-y-auto"
+          <button
+            onClick={handleSave}
+            className="bg-white text-black px-2 py-2 rounded font-bold text-sm hover:bg-gray-200 transition"
           >
-            {/* User info */}
-            <h2 className="text-white font-bold text-2xl">{username}</h2>
-            <p className="text-zinc-400 text-sm">{location}</p>
-            <p className="text-zinc-300 text-xs text-center">
-              For best results, upload images of at least{" "}
-              <strong>1000×1000 pixels</strong>. 2MB file-size limit.
-            </p>
-
-            {/* Cropper */}
-            <div className="relative w-120 h-120 rounded-full overflow-hidden bg-transparent shadow-lg">
-              <Cropper
-                image={tempImage}
-                crop={crop}
-                zoom={zoom}
-                aspect={1}
-                cropShape="round"
-                objectFit="cover"
-                showGrid={false}
-                onCropChange={setCrop}
-                onZoomChange={setZoom}
-                onCropComplete={onCropComplete}
-                restrictPosition
-              />
-            </div>
-
-            {/* Controls */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between w-full mt-6 gap-3">
-              {isValidImage ? (
-                <div className="flex items-center gap-2 flex-1">
-                  <button
-                    onClick={() => setZoom((z) => Math.max(1, z - 0.1))}
-                    className="bg-zinc-800 text-white px-3 py-2 rounded hover:bg-zinc-700 transition"
-                  >
-                    -
-                  </button>
-
-                  <input
-                    type="range"
-                    min={1}
-                    max={3}
-                    step={0.1}
-                    value={zoom}
-                    onChange={(e) => setZoom(Number(e.target.value))}
-                    className="flex-1 appearance-none h-2 rounded-lg cursor-pointer bg-zinc-800 accent-zinc-800"
-                  />
-
-                  <button
-                    onClick={() => setZoom((z) => Math.min(3, z + 0.1))}
-                    className="bg-zinc-800 text-white px-3 py-2 rounded hover:bg-zinc-700 transition"
-                  >
-                    +
-                  </button>
-                </div>
-              ) : (
-                <p className="text-zinc-400 text-sm flex-1">
-                  ⚠️ Image is too small and may appear blurry
-                </p>
-              )}
-
-              {/* Save / Cancel buttons */}
-              <div className="flex gap-3 ml-0 sm:ml-6 mt-2 sm:mt-0">
-                <button
-                  onClick={() => setShowEditor(false)}
-                  className="bg-zinc-800 text-white px-2 py-2 rounded text-sm hover:bg-zinc-700 transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSave}
-                  className="bg-white text-black px-2 py-2 rounded font-bold text-sm hover:bg-gray-200 transition"
-                >
-                  Save
-                </button>
-              </div>
-            </div>
-          </div>
+            Save
+          </button>
         </div>
-      )}
+      </div>
+    </div>
+  </div>
+)}
     </>
   );
 }

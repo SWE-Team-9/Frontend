@@ -46,6 +46,8 @@ export default function ProfilePage() {
     showSuccessToast,
     accountType,
     setIsEditOpen,
+    handleAvatarUpload,
+    avatarUrl,
   } = controller;
 
   const renderDetailsPage = () => (
@@ -120,24 +122,8 @@ export default function ProfilePage() {
             {/* --- SECTION 1: VISUAL HEADER (Banner & Avatar) --- */}
             <div className="relative w-full min-h-65 bg-[#d38b7d] p-4 md:p-6 flex flex-col md:flex-row items-center md:items-start justify-between gap-4">
               <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-center text-center md:text-left mt-2">
-                <CoverPhoto
-                  initialUrl={store.coverUrl}
-                  onSave={async (file) => {
-                    // Upload cover photo and save URL from backend to store
-                    const data = await uploadProfileImage("cover", file);
-                    store.setProfileData({ coverUrl: data.url });
-                  }}
-                />
-                 <AvatarUpload
-                  username={displayName}
-                  location={location}
-                  initialUrl={store.avatarUrl}
-                  onUpload={async (file) => {
-                    // Upload avatar and save URL from backend to store
-                    const data = await uploadProfileImage("avatar", file);
-                    store.setProfileData({ avatarUrl: data.url });
-                  }}
-                />
+                <CoverPhoto />
+                 <AvatarUpload username={displayName} location={location} onUpload={handleAvatarUpload} avatarUrl={avatarUrl}/>
 
                 {/* User Identity Information */}
                 <div className="flex flex-col gap-1.5 items-center md:items-start">
@@ -246,7 +232,7 @@ export default function ProfilePage() {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center text-zinc-500 text-[13px] border-b border-zinc-900 pb-2">
                     <p className="flex items-center gap-2 font-bold uppercase">
-                       1 Following
+                      👥 1 Following
                     </p>
                     <button
                       onClick={() => {
@@ -426,7 +412,9 @@ export default function ProfilePage() {
         {showSuccessToast && (
           <div className="fixed top-20 right-10 z-100 animate-in slide-in-from-right duration-300">
             <div className="bg-[#333] border border-zinc-700 p-4 flex items-center gap-4 shadow-2xl rounded-sm min-w-75">
-              
+              <div className="w-12 h-12 bg-zinc-600 flex items-center justify-center rounded-sm">
+                <span className="text-zinc-400 text-2xl">👤</span>
+              </div>
               <div>
                 <p className="text-white text-sm font-bold">
                   Your profile has been updated

@@ -1,9 +1,10 @@
 import { useProfileStore } from "@/src/store/useProfileStore";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   getMyProfile,
   updateMyProfile,
   updateMyLinks,
+  uploadProfileImage,
 } from "@/src/services/profileService";
 
 // ─────────────────────────────────────────────────────────────
@@ -37,6 +38,8 @@ export const useProfileController = () => {
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isAvatarUploading, setIsAvatarUploading] = useState(false);
+  const hasRequestedProfileRef = useRef(false);
 
   // ---- Static data ----
   const tabs = ["All", "Popular tracks", "Tracks", "Albums", "Playlists", "Reposts"];
@@ -62,7 +65,9 @@ export const useProfileController = () => {
   //  FETCH profile from backend on first load
   // ──────────────────────────────────────────
   const loadProfile = useCallback(async () => {
-    if (store.isLoaded) return; // already loaded
+    if (store.isLoaded || hasRequestedProfileRef.current) return; // already loaded or already requested
+    hasRequestedProfileRef.current = true;
+
     try {
       setIsLoading(true);
       const profile = await getMyProfile();
@@ -95,6 +100,7 @@ export const useProfileController = () => {
       });
     } catch {
       // If the profile fetch fails (not logged in, etc.), just ignore
+      hasRequestedProfileRef.current = false;
       console.log("Could not load profile — user may not be logged in.");
     } finally {
       setIsLoading(false);
@@ -148,6 +154,31 @@ export const useProfileController = () => {
     }
   };
 
+  const handleAvatarUpload = async (file: File): Promise<string | undefined> => {
+    if (isAvatarUploading) return store.avatarUrl || undefined;
+
+    try {
+      setIsAvatarUploading(true);
+      setError("");
+
+      const result = await uploadProfileImage("avatar", file);
+      const uploadedUrl =
+        (result as { url?: string | null })?.url || undefined;
+
+      if (uploadedUrl) {
+        store.setProfileData({ avatarUrl: uploadedUrl });
+      }
+
+      return uploadedUrl;
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } } };
+      setError(axiosErr.response?.data?.message || "Failed to upload avatar.");
+      throw err;
+    } finally {
+      setIsAvatarUploading(false);
+    }
+  };
+
   // ---- Clipboard helper ----
   const copyToClipboard = async () => {
     const textToCopy = isShortened ? shortLink : longLink;
@@ -194,5 +225,7 @@ export const useProfileController = () => {
     shortLink,
     isSaving,
     isLoading,
+    isAvatarUploading,
+    handleAvatarUpload,
   };
 };
