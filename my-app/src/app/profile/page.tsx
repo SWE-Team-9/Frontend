@@ -121,6 +121,7 @@ export default function ProfilePage() {
             <div className="relative w-full min-h-65 bg-[#d38b7d] p-4 md:p-6 flex flex-col md:flex-row items-center md:items-start justify-between gap-4">
               <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-center text-center md:text-left mt-2">
                 <CoverPhoto
+                  initialUrl={store.coverUrl}
                   onSave={async (file) => {
                     // Upload cover photo and save URL from backend to store
                     const data = await uploadProfileImage("cover", file);
@@ -130,6 +131,7 @@ export default function ProfilePage() {
                  <AvatarUpload
                   username={displayName}
                   location={location}
+                  initialUrl={store.avatarUrl}
                   onUpload={async (file) => {
                     // Upload avatar and save URL from backend to store
                     const data = await uploadProfileImage("avatar", file);

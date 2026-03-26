@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Cropper, { type Area } from "react-easy-crop";
 
 // Component for uploading and editing avatar image
@@ -9,17 +9,26 @@ export function AvatarUpload({
   onUpload,
   username,
   location,
+  initialUrl,
 }: {
   // onUpload is called after the user crops their image.
   // It receives the cropped File and should upload it to the backend.
   onUpload?: (file: File) => Promise<void>;
   username: string;
   location: string;
+  // The currently saved avatar URL from the backend (shown on page load)
+  initialUrl?: string | null;
 }) {
   // -----------------------------
   // State variables
   // -----------------------------
-  const [preview, setPreview] = useState<string | null>(null); // Final preview image
+  const [preview, setPreview] = useState<string | null>(initialUrl ?? null); // Final preview image
+
+  // When the profile loads from the backend (async), update the preview
+  // so the saved avatar is shown after the API call finishes.
+  useEffect(() => {
+    if (initialUrl) setPreview(initialUrl);
+  }, [initialUrl]);
   const [showEditor, setShowEditor] = useState(false); // Toggle Cropper editor
   const [tempImage, setTempImage] = useState<string | null>(null); // Temporary image for editing
 

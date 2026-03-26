@@ -7,14 +7,22 @@ export function CoverPhoto({
   // onSave is called after the user positions their cover photo.
   // It receives the cropped File and should upload it to the backend.
   onSave,
+  // The currently saved cover URL from the backend (shown on page load)
+  initialUrl,
 }: {
   onSave?: (file: File) => Promise<void>;
+  initialUrl?: string | null;
 }) {
   // -----------------------------
   // State variables
   // -----------------------------
   const [tempImage, setTempImage] = useState<string | null>(null); // Temporary image for preview
-  const [finalImage, setFinalImage] = useState<string | null>(null); // Final saved image
+  const [finalImage, setFinalImage] = useState<string | null>(initialUrl ?? null); // Final saved image
+
+  // When the profile loads from the backend (async), show the saved cover photo.
+  useEffect(() => {
+    if (initialUrl) setFinalImage(initialUrl);
+  }, [initialUrl]);
   const [showPopup, setShowPopup] = useState(false); // Controls preview popup visibility
   const [showDropdown, setShowDropdown] = useState(false); // Controls dropdown menu visibility
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false); // Controls delete confirmation modal
