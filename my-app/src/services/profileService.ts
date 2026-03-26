@@ -1,18 +1,9 @@
 import api from "@/src/services/api";
 
 // ─────────────────────────────────────────────────────────────
-// Profile Service
-//
-// All API calls related to user profiles. The backend endpoints
-// live at /api/v1/profiles/* — but since our axios baseURL
-// already includes /api/v1, we just write /profiles/...
-//
-// BEGINNER TIP:
-//   Every function here returns a Promise. You call them with
-//   `await` inside a try/catch block so you can handle errors.
+//   Every function here returns a Promise. Call them with
+//   `await` inside a try/catch block to handle errors.
 // ─────────────────────────────────────────────────────────────
-
-// ====== Types that match the backend response ======
 
 export interface UserProfile {
   id: string;
