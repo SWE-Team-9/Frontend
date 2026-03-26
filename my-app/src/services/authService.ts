@@ -165,11 +165,14 @@ export const confirmEmailChange = async (token: string) => {
 
 // ================= GET CURRENT USER =================
 export const getCurrentUser = async () => {
-  // GET /auth/me  →  returns user object
-  const response = await api.get("/auth/me");
+  const response = await api.get("/auth/me", {
+    headers: {
+      "x-skip-refresh": "true",
+    },
+  });
+
   const user = response.data;
 
-  // Backend returns snake_case fields — we map them to camelCase for the store
   if (user) {
     useAuthStore.getState().setUser({
       id: user.id,
@@ -180,6 +183,7 @@ export const getCurrentUser = async () => {
       isVerified: user.is_verified ?? false,
     });
   }
+
   return user;
 };
 

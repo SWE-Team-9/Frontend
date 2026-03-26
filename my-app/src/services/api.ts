@@ -73,14 +73,11 @@ api.interceptors.response.use(
         try {
           const { useAuthStore } = await import("@/src/store/useAuthStore");
           const { useProfileStore } = await import("@/src/store/useProfileStore");
+          
           useAuthStore.getState().logout();
           useProfileStore.getState().resetProfile();
         } catch {
           // ignore store cleanup errors
-        }
-
-        if (typeof window !== "undefined") {
-          window.location.replace("/");
         }
 
         return Promise.reject(error);

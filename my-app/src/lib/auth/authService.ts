@@ -43,23 +43,3 @@ export async function registerWithCaptcha(payload: RegisterPayload) {
   useAuthStore.getState().setEmail(payload.email);
   return response.data;
 }
-
-// ====== Fetch logged-in user ======
-
-export async function getCurrentUser() {
-  const response = await api.get("/auth/me");
-  const user = response.data;
-
-  // Backend returns snake_case fields — map to camelCase for the store
-  if (user) {
-    useAuthStore.getState().setUser({
-      id: user.id,
-      email: user.email,
-      displayName: user.display_name ?? "",
-      handle: user.handle ?? "",
-      avatarUrl: user.avatar_url ?? null,
-      isVerified: user.is_verified ?? false,
-    });
-  }
-  return user;
-}
