@@ -1,5 +1,6 @@
-'use client'
-import { useState, useRef, useEffect } from 'react'
+"use client";
+import Image from "next/image";
+import { useState, useRef, useEffect } from "react";
 
 // Main component for Cover Photo functionality
 export function CoverPhoto() {
@@ -70,7 +71,7 @@ export function CoverPhoto() {
     if (file && file.type.startsWith('image/')) {
       const reader = new FileReader()
       reader.onload = () => {
-        const img = new Image()
+        const img = new window.Image()
         img.onload = () => {
           const isTooSmall = img.width < MIN_WIDTH || img.height < MIN_HEIGHT
           const isTooLarge = file.size > MAX_SIZE
@@ -177,9 +178,12 @@ export function CoverPhoto() {
     <div className="absolute inset-0 overflow-hidden">
       {/* Render final image if exists */}
       {finalImage && (
-        <img 
-          src={finalImage} 
-          className="w-full h-full object-cover absolute"
+        <Image
+          src={finalImage}
+          alt="Cover photo"
+          fill
+          className="object-cover absolute"
+          unoptimized
         />
       )}
       
@@ -244,24 +248,30 @@ export function CoverPhoto() {
               className="w-full h-55 mb-2 overflow-hidden rounded-none border border-gray-700 relative"
             >
               {/* Draggable image */}
-              <img 
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
                 ref={imageRef}
-                src={tempImage} 
+                src={tempImage}
+                alt="Cover photo preview"
                 onMouseDown={handleMouseDown}
-                style={{ 
+                style={{
                   transform: `translate(${pos.x}px, ${pos.y}px) scale(${zoom})`,
-                  position: 'absolute',
+                  position: "absolute",
                   width: `${scaledSize.width}px`,
                   height: `${scaledSize.height}px`,
-                  objectFit: 'cover'
+                  objectFit: "cover",
                 }}
                 className="cursor-grab active:cursor-grabbing select-none will-change-transform"
               />
               {/* Avatar overlay */}
-              <img
-                src="/path-to-avatar.png"
-                className="absolute bottom-4 left-4 w-16 h-16 rounded-full border-2 border-white"
-              />
+              <div className="absolute bottom-4 left-4 w-16 h-16">
+                <Image
+                  src="/path-to-avatar.png"
+                  alt="Avatar overlay"
+                  fill
+                  className="rounded-full border-2 border-white object-cover"
+                />
+              </div>
             </div>
             {/* Controls */}
             <div className="flex justify-between items-center gap-3 mt-4">

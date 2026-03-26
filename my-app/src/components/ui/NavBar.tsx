@@ -1,5 +1,5 @@
 "use client";
-
+import Image from "next/image";
 import DropdownMenu from "@/src/components/ui/DropdownMenu";
 import NavBarItem from "@/src/components/ui/NavBarItem";
 import { useState, useRef, useEffect } from "react";
@@ -117,13 +117,20 @@ const NavBar: React.FC<NavBarProps> = ({
   // Read the current logged-in user from the global auth store
   const user = useAuthStore((state) => state.user);
   // Use the user's avatar if available, otherwise a default silhouette
-  const avatarSrc = user?.avatarUrl || "/images/profile.png";
+  const [profileImageSrc, setProfileImageSrc] = useState(
+    user?.avatarUrl || "/images/profile.png",
+  );
   // Display name fallback: use handle or the part before "@" in email
   const displayLabel = user
     ? user.displayName || user.handle || user.email.split("@")[0]
     : null;
 
   const router = useRouter();
+
+  useEffect(() => {
+    setProfileImageSrc(user?.avatarUrl || "/images/profile.png");
+  }, [user]);
+    
 
   // Sign-out handler — clears cookies on the backend, clears store
   const handleLogout = async () => {
@@ -213,8 +220,8 @@ const NavBar: React.FC<NavBarProps> = ({
             className="relative flex items-center gap-1 cursor-pointer"
             onClick={() => toggleMenu("profile")}
           >
-            <img
-              src={avatarSrc}
+            <Image
+              src={profileImageSrc}
               alt={displayLabel || "Profile"}
               className="w-6 h-6 rounded-full object-cover"
               onError={(e) => {

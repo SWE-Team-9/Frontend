@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, useState, useEffect } from "react";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { confirmEmailChange } from "@/src/services/authService";
 
@@ -29,38 +29,43 @@ export default function ConfirmEmailChangePage() {
 function ConfirmEmailChangeInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const token = searchParams.get("token") ?? "";
 
-  const [state, setState] = useState<"pending" | "success" | "error">("pending");
-  const [message, setMessage] = useState("");
+  const token = useMemo(() => searchParams.get("token") ?? "", [searchParams]);
+  const isValidToken = token !== "" && isSafeToken(token);
+
+  const [state, setState] = useState<"pending" | "success" | "error">(
+    isValidToken ? "pending" : "error",
+  );
+  const [message, setMessage] = useState(
+    isValidToken
+      ? ""
+      : "This confirmation link is invalid or has expired. Please request a new email change from Settings.",
+  );
 
   useEffect(() => {
-    // Validate token format before sending — prevents sending garbage to the API
-    if (!token || !isSafeToken(token)) {
-      setState("error");
-      setMessage(
-        "This confirmation link is invalid or has expired. Please request a new email change from Settings.",
-      );
-      return;
-    }
+    if (!isValidToken) return;
 
     let cancelled = false;
+    let redirectTimeout: ReturnType<typeof setTimeout> | null = null;
 
     confirmEmailChange(token)
       .then(() => {
         if (cancelled) return;
+
         setState("success");
         setMessage(
           "Your email address has been updated. You have been signed out for security — please sign in with your new email.",
         );
-        // Redirect to home after 4 s so the user sees the message
-        setTimeout(() => {
+
+        redirectTimeout = setTimeout(() => {
           if (!cancelled) router.replace("/");
         }, 4000);
       })
       .catch((err: unknown) => {
         if (cancelled) return;
+
         const axiosErr = err as { response?: { data?: { message?: string } } };
+
         setState("error");
         setMessage(
           axiosErr.response?.data?.message ??
@@ -70,8 +75,11 @@ function ConfirmEmailChangeInner() {
 
     return () => {
       cancelled = true;
+      if (redirectTimeout) {
+        clearTimeout(redirectTimeout);
+      }
     };
-  }, [token, router]);
+  }, [isValidToken, token, router]);
 
   return (
     <div className="min-h-screen bg-[#121212] flex items-center justify-center p-4">

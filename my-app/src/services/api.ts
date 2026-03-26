@@ -10,18 +10,11 @@ import axios from "axios";
 //   to include those cookies on every call.
 // ─────────────────────────────────────────────────────────────
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3006/api/v1";
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 const api = axios.create({
   baseURL: API_URL,
   withCredentials: true, // ← cookies are sent automatically (httpOnly tokens)
-  headers: {
-    // Custom header sent on every AJAX request.
-    // Browsers enforce CORS pre-flight for custom headers, so a cross-origin
-    // attacker page can NOT forge this header — providing CSRF mitigation on
-    // top of the SameSite=Lax cookie policy set by the backend.
-    "X-Requested-With": "XMLHttpRequest",
-  },
 });
 
 // ─── Auto-refresh when access token expires ──────────────────
