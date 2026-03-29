@@ -227,7 +227,7 @@ const NavBar: React.FC<NavBarProps> = ({
               className="relative flex items-center gap-1 cursor-pointer"
               onClick={() => toggleMenu("profile")}
             >
-              <Image
+              {/* <Image
                 src={profileImageSrc}
                 alt={displayLabel || "Profile"}
                 className="w-6 h-6 rounded-full object-cover"
@@ -235,7 +235,7 @@ const NavBar: React.FC<NavBarProps> = ({
                   e.currentTarget.onerror = null;
                   e.currentTarget.src = "/images/profile.png";
                 }}
-              />
+              /> */}
               {/* Show the user's display name (or handle / email prefix) when logged in */}
               {displayLabel && (
                 <span className="hidden lg:block text-white text-sm font-medium max-w-24 truncate">
