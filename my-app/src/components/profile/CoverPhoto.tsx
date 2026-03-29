@@ -2,6 +2,7 @@
 import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 
+
 // Main component for Cover Photo functionality
 export function CoverPhoto() {
   // -----------------------------

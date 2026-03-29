@@ -27,8 +27,6 @@ const isValidEmail = (e: string) =>
 const isUUID = (s: string) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
 
-// ─── Shared UI pieces ────────────────────────────────────────────────────────
-
 function SectionCard({
   title,
   children,
@@ -63,8 +61,7 @@ function StatusMessage({
   );
 }
 
-// ─── Change Password ─────────────────────────────────────────────────────────
-
+// Change password Section 
 function ChangePasswordSection() {
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
@@ -79,7 +76,7 @@ function ChangePasswordSection() {
     e.preventDefault();
     setStatus(null);
 
-    // — Client-side validation —
+    // Client-side validation 
     if (!current.trim()) {
       setStatus({ type: "error", msg: "Current password is required." });
       return;
@@ -158,7 +155,7 @@ function ChangePasswordSection() {
         <button
           type="submit"
           disabled={loading}
-          className="mt-2 h-10 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-sm text-sm transition-colors"
+          className="mt-2 h-10 bg-white cursor-pointer text-black font-bold rounded-sm text-sm"
         >
           {loading ? "Saving…" : "Update Password"}
         </button>
@@ -167,8 +164,7 @@ function ChangePasswordSection() {
   );
 }
 
-// ─── Change Email ────────────────────────────────────────────────────────────
-
+// Change Email Section
 function ChangeEmailSection({ currentEmail }: { currentEmail: string }) {
   const [newEmail, setNewEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -252,7 +248,7 @@ function ChangeEmailSection({ currentEmail }: { currentEmail: string }) {
         <button
           type="submit"
           disabled={loading}
-          className="mt-2 h-10 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-sm text-sm transition-colors"
+          className="mt-2 h-10 bg-white cursor-pointer text-black font-bold rounded-sm text-sm"
         >
           {loading ? "Sending…" : "Send Confirmation Email"}
         </button>
@@ -261,8 +257,7 @@ function ChangeEmailSection({ currentEmail }: { currentEmail: string }) {
   );
 }
 
-// ─── Sessions Management ─────────────────────────────────────────────────────
-
+//  Sessions Management
 // Matches the shape returned by GET /auth/sessions → { sessions: Session[] }
 interface Session {
   id: string;
@@ -287,7 +282,7 @@ function SessionsSection() {
     msg: string;
   } | null>(null);
 
-  // ── Load sessions from the backend ──────────────────────────
+  // Load sessions from the backend
   const fetchSessions = useCallback(async () => {
     try {
       setFetchError(null);
@@ -306,7 +301,7 @@ function SessionsSection() {
     fetchSessions();
   }, [fetchSessions]);
 
-  // ── Revoke a DIFFERENT session (not the one you are using) ───
+  // Revoke a DIFFERENT session (not the one you are using)
   // After revoking, the other browser/tab will be sent to the
   // home page automatically the next time it makes an API call.
   const handleRevoke = async (sessionId: string) => {
@@ -329,7 +324,7 @@ function SessionsSection() {
     }
   };
 
-  // ── Sign out from the CURRENT session (this browser/tab) ─────
+  // Sign out from the CURRENT session (this browser/tab)
   // This calls the normal logout endpoint which clears the cookies,
   // then redirects to the home page.
   const handleSignOutCurrent = async () => {
@@ -344,7 +339,7 @@ function SessionsSection() {
     }
   };
 
-  // ── Sign out from ALL sessions ───────────────────────────────
+  // Sign out from ALL sessions
   const handleLogoutAll = async () => {
     setActionStatus(null);
     setLogoutAllLoading(true);
@@ -364,7 +359,7 @@ function SessionsSection() {
   return (
     <SectionCard title="Active Sessions">
 
-      {/* ── Refresh button row ───────────────────────────────── */}
+      {/* Refresh button row */}
       <div className="flex items-center justify-between mb-4">
         <p className="text-sm text-zinc-400">
           Revoke any session you don&apos;t recognise.
@@ -387,7 +382,7 @@ function SessionsSection() {
         <p className="text-sm text-zinc-400">No active sessions found.</p>
       )}
 
-      {/* ── Sessions list ────────────────────────────────────── */}
+      {/* Sessions list */}
       {sessions.length > 0 && (
         <ul className="divide-y divide-zinc-800 mb-5">
           {sessions.map((session) => (
@@ -400,7 +395,7 @@ function SessionsSection() {
                 <p className="text-sm text-white truncate">
                   {session.device?.device_name ?? "Unknown device"}
                   {session.is_current && (
-                    <span className="ml-2 text-xs bg-orange-500 text-white px-1.5 py-0.5 rounded">
+                    <span className="ml-2 text-xs bg-white text-black px-1.5 py-0.5 rounded">
                       This device
                     </span>
                   )}
@@ -420,7 +415,7 @@ function SessionsSection() {
                   onClick={handleSignOutCurrent}
                   disabled={logoutCurrentLoading}
                   title="Sign out of this browser"
-                  className="shrink-0 text-xs text-orange-400 hover:text-orange-300 disabled:opacity-50 border border-orange-400/30 hover:border-orange-300/50 px-3 py-1 rounded transition-colors"
+                  className="shrink-0 text-xs text-white hover:text-white border border-white hover:border-white cursor-pointer px-3 py-1 rounded"
                 >
                   {logoutCurrentLoading ? "Signing out…" : "Sign out"}
                 </button>
@@ -446,7 +441,7 @@ function SessionsSection() {
         <StatusMessage type={actionStatus.type} message={actionStatus.msg} />
       )}
 
-      {/* ── Sign out from every session at once ──────────────── */}
+      {/* Sign out from every session at once */}
       <button
         onClick={handleLogoutAll}
         disabled={logoutAllLoading}
@@ -458,9 +453,9 @@ function SessionsSection() {
   );
 }
 
-// ─── Page root ────────────────────────────────────────────────────────────────
+// Page root
 
-type Tab = "security" | "sessions";
+type Tab = "security" | "sessions"; 
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("security");
@@ -498,7 +493,7 @@ export default function SettingsPage() {
             onClick={() => setActiveTab(tab.id)}
             className={`pb-3 text-sm font-bold uppercase tracking-wider transition-colors ${
               activeTab === tab.id
-                ? "text-orange-400 border-b-2 border-orange-400"
+                ? "text-white border-b-2 border-white"
                 : "text-zinc-400 hover:text-white"
             }`}
           >

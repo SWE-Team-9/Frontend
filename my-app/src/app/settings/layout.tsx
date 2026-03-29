@@ -5,9 +5,9 @@ export default function SettingsLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <div className="font-sans text-white min-h-screen max-w-7xl mx-auto px-6">
+    <div className="font-sans text-white min-h-screen max-w-7xl mx-auto">
       <NavBar className="sticky top-0 z-50" />
-      <SideBar>{children}</SideBar>
+      <SideBar showSidebar={false}>{children}</SideBar>
     </div>
   );
 }

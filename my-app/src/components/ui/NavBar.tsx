@@ -32,35 +32,37 @@ interface NavItem {
 
 interface NavBarProps {
   children?: React.ReactNode;
-  LEFT_ROUTES?: NavItem[];
-  RIGHT_ROUTES?: NavItem[];
-  PROFILE_MENU?: NavItem[];
-  MORE_MENU?: NavItem[];
+  leftRoutes?: NavItem[];
+  rightRoutes?: NavItem[];
+  profileMenu?: NavItem[];
+  moreMenu?: NavItem[];
 
   showNotifications?: boolean;
   showMessages?: boolean;
+  showProfile?: boolean;
+  showMoreMenu?: boolean;
+  showSearch?: boolean;
 
   notificationsContent?: React.ReactNode;
   messagesContent?: React.ReactNode;
 
-  showSearch?: boolean;
   className?: string;
 }
 
 const NavBar: React.FC<NavBarProps> = ({
-  LEFT_ROUTES = [
+  leftRoutes = [
     { label: "Home", href: "/discover" },
     { label: "Feed", href: "/feed" },
     { label: "Library", href: "/library" },
   ],
 
-  RIGHT_ROUTES = [
+  rightRoutes = [
     { label: "Try ArtistPro", href: "/pro" },
     { label: "For Artists", href: "/artists" },
     { label: "Upload", href: "/upload" },
   ],
 
-  PROFILE_MENU = [
+  profileMenu = [
     { label: "Profile", icon: MdPerson, href: "/profile" },
     { label: "Likes", icon: ImHeart },
     { label: "Playlists", icon: FiList },
@@ -73,7 +75,7 @@ const NavBar: React.FC<NavBarProps> = ({
     { label: "Distribute", icon: TbArrowLeftRight },
   ],
 
-  MORE_MENU = [
+  moreMenu = [
     { label: "About us" },
     { label: "Legal" },
     { label: "Copyright", dividerAfter: true },
@@ -93,9 +95,10 @@ const NavBar: React.FC<NavBarProps> = ({
   ],
 
   showSearch = true,
-
   showNotifications = true,
   showMessages = true,
+  showProfile = true,
+  showMoreMenu = true,
 
   notificationsContent = (
     <div className="absolute top-10 right-0 bg-neutral-900 text-white rounded-md shadow-md w-56 p-3 border border-neutral-700">
@@ -130,7 +133,6 @@ const NavBar: React.FC<NavBarProps> = ({
   useEffect(() => {
     setProfileImageSrc(user?.avatarUrl || "/images/profile.png");
   }, [user]);
-    
 
   // Sign-out handler — clears cookies on the backend, clears store
   const handleLogout = async () => {
@@ -139,7 +141,7 @@ const NavBar: React.FC<NavBarProps> = ({
   };
 
   // Inject the logout action into the "Sign out" menu item
-  const moreMenuWithLogout = MORE_MENU.map((item) =>
+  const moreMenuWithLogout = moreMenu.map((item) =>
     item.label === "Sign out" ? { ...item, onClick: handleLogout } : item,
   );
 
@@ -176,15 +178,17 @@ const NavBar: React.FC<NavBarProps> = ({
             <FiMenu size={24} />
           </button>
 
-          <div className="hidden md:flex gap-6">
-            {LEFT_ROUTES.map((route) => (
-              <NavBarItem
-                key={route.label}
-                label={route.label}
-                href={route.href}
-              />
-            ))}
-          </div>
+          {leftRoutes.length > 0 && (
+            <div className="hidden md:flex gap-6">
+              {leftRoutes.map((route) => (
+                <NavBarItem
+                  key={route.label}
+                  label={route.label}
+                  href={route.href}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* CENTER SECTION */}
@@ -204,40 +208,44 @@ const NavBar: React.FC<NavBarProps> = ({
 
         {/* RIGHT SECTION */}
         <div className="flex items-center gap-4">
-          <div className="hidden lg:flex gap-6">
-            {RIGHT_ROUTES.map((route) => (
-              <NavBarItem
-                key={route.label}
-                label={route.label}
-                href={route.href}
-              />
-            ))}
-          </div>
+          {rightRoutes.length > 0 && (
+            <div className="hidden lg:flex gap-6">
+              {rightRoutes.map((route) => (
+                <NavBarItem
+                  key={route.label}
+                  label={route.label}
+                  href={route.href}
+                />
+              ))}
+            </div>
+          )}
 
           {/* PROFILE */}
-          <button
-            aria-label="Open profile menu"
-            className="relative flex items-center gap-1 cursor-pointer"
-            onClick={() => toggleMenu("profile")}
-          >
-            <Image
-              src={profileImageSrc}
-              alt={displayLabel || "Profile"}
-              className="w-6 h-6 rounded-full object-cover"
-              onError={(e) => {
-                e.currentTarget.onerror = null;
-                e.currentTarget.src = "/images/profile.png";
-              }}
-            />
-            {/* Show the user's display name (or handle / email prefix) when logged in */}
-            {displayLabel && (
-              <span className="hidden lg:block text-white text-sm font-medium max-w-24 truncate">
-                {displayLabel}
-              </span>
-            )}
-            <FiChevronDown className="text-neutral-400" />
-            {openMenu === "profile" && <DropdownMenu items={PROFILE_MENU} />}
-          </button>
+          {showProfile && (
+            <button
+              aria-label="Open profile menu"
+              className="relative flex items-center gap-1 cursor-pointer"
+              onClick={() => toggleMenu("profile")}
+            >
+              <Image
+                src={profileImageSrc}
+                alt={displayLabel || "Profile"}
+                className="w-6 h-6 rounded-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = "/images/profile.png";
+                }}
+              />
+              {/* Show the user's display name (or handle / email prefix) when logged in */}
+              {displayLabel && (
+                <span className="hidden lg:block text-white text-sm font-medium max-w-24 truncate">
+                  {displayLabel}
+                </span>
+              )}
+              <FiChevronDown className="text-neutral-400" />
+              {openMenu === "profile" && <DropdownMenu items={profileMenu} />}
+            </button>
+          )}
 
           {/* NOTIFICATIONS */}
           {showNotifications && (
@@ -262,16 +270,20 @@ const NavBar: React.FC<NavBarProps> = ({
           )}
 
           {/* MORE MENU */}
-          <button
-            className="relative cursor-pointer"
-            onClick={() => toggleMenu("menu")}
-          >
-            <FiMoreHorizontal
-              size={20}
-              className="text-neutral-400 hover:text-white"
-            />
-            {openMenu === "menu" && <DropdownMenu items={moreMenuWithLogout} />}
-          </button>
+          {showMoreMenu && (
+            <button
+              className="relative cursor-pointer"
+              onClick={() => toggleMenu("menu")}
+            >
+              <FiMoreHorizontal
+                size={20}
+                className="text-neutral-400 hover:text-white"
+              />
+              {openMenu === "menu" && (
+                <DropdownMenu items={moreMenuWithLogout} />
+              )}
+            </button>
+          )}
         </div>
       </div>
 
@@ -279,23 +291,15 @@ const NavBar: React.FC<NavBarProps> = ({
       {openMenu === "mobile" && (
         <div className="md:hidden bg-neutral-900 border-t border-neutral-700 p-4 hover:text-white">
           <div className="flex flex-col gap-4">
-            {LEFT_ROUTES.map((route) => (
-              <NavBarItem
-                key={route.label}
-                label={route.label}
-                href={route.href}
-                onClick={() => setOpenMenu(null)}
-              />
-            ))}
-
-            {RIGHT_ROUTES.map((route) => (
-              <NavBarItem
-                key={route.label}
-                label={route.label}
-                href={route.href}
-                onClick={() => setOpenMenu(null)}
-              />
-            ))}
+            {[...leftRoutes, ...rightRoutes].length > 0 &&
+              [...leftRoutes, ...rightRoutes].map((route) => (
+                <NavBarItem
+                  key={route.label}
+                  label={route.label}
+                  href={route.href}
+                  onClick={() => setOpenMenu(null)}
+                />
+              ))}
           </div>
         </div>
       )}
