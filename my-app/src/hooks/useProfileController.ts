@@ -62,7 +62,10 @@ export const useProfileController = () => {
   //  FETCH profile from backend on first load
   // ──────────────────────────────────────────
   const loadProfile = useCallback(async () => {
-    if (store.isLoaded) return; // already loaded
+    if (store.useMockData || store.isLoaded) {
+      setIsLoading(false);
+      return;
+    }
     try {
       setIsLoading(true);
       const profile = await getMyProfile();
@@ -112,6 +115,12 @@ export const useProfileController = () => {
     // Simple validation
     if (!store.displayName.trim()) {
       setError("Display name is required!");
+      return;
+    }
+    if (store.useMockData) {
+      setIsEditOpen(false);
+      setShowSuccessToast(true);
+      setTimeout(() => setShowSuccessToast(false), 3000);
       return;
     }
 

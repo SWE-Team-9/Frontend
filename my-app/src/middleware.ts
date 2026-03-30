@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 // Routes that require the user to be authenticated
-const PROTECTED_PREFIXES = ["/discover", "/profile", "/settings"];
+const PROTECTED_PREFIXES = ["/discover", "/settings"];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -31,5 +31,5 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   // Only run middleware on protected paths — skip static assets and API routes
-  matcher: ["/discover/:path*", "/profile/:path*", "/settings/:path*"],
+  matcher: ["/discover/:path*", "/settings/:path*"],
 };
