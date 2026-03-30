@@ -1,17 +1,22 @@
 "use client";
 
 import React from "react";
-import Dropzone from "./Dropzone";
-import UploadButton from "./UploadButton";
+import Dropzone from "@/src/components/upload/Dropzone";
 import { useUploadStore } from "@/src/store/uploadStore";
 import { MdDeleteForever } from "react-icons/md";
-
+import { useRouter } from "next/navigation";
 
 // Combines the Dropzone and UploadButton components,
 // and displays a list of selected files with the option to remove them before uploading
 
 const UploadForm: React.FC = () => {
   const { files, removeFile } = useUploadStore();
+  const router = useRouter();
+
+   const handleNext = () => {
+    // Navigate to the metadata form page
+    router.push("/track-data"); 
+  };
 
   return (
     <div className="max-w-7xl mx-auto p-6 bg-[#121212] rounded-lg w-full">
@@ -29,7 +34,16 @@ const UploadForm: React.FC = () => {
           ))}
         </ul>
       )}
-      <UploadButton />
+
+     {/* Next Button instead of UploadButton */}
+      {files.length > 0 && (
+        <button
+          onClick={handleNext}
+          className="mt-6 px-6 py-3 bg-white hover:bg-gray-200 cursor-pointer text-black font-semibold rounded-lg w-full text-lg"
+        >
+          Next
+        </button>
+      )}
     </div>
   );
 };

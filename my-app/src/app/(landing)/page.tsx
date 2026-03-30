@@ -6,6 +6,7 @@ import { useAuthStore } from "@/src/store/useAuthStore";
 import { useRouter } from "next/navigation";
 import { FiSearch } from "react-icons/fi";
 import { FaSoundcloud } from "react-icons/fa";
+import Image from "next/image";
 
 export default function LandingPage() {
   const { openAuth } = useAuth();
@@ -110,14 +111,17 @@ export default function LandingPage() {
           {/* HEADER */}
           <div className="absolute top-0 left-0 w-full h-20 px-4 md:px-10 flex items-center justify-between z-40">
             {/* Logo */}
-            <div className="flex items-center gap-2">
-              <span className="text-white text-2xl font-bold italic">
-                <FaSoundcloud size={40} />
-              </span>
-              <span className="text-white font-semibold text-sm uppercase">
-                SoundCloud
-              </span>
-            </div>
+           
+              <div className="flex items-center pt-2">
+                <Image
+                  src="/logo.png"
+                  alt="Logo"
+                  width={100}
+                  height={100}
+                  className="object-contain "
+                />
+              </div>
+            
 
             {/* Desktop Nav */}
             <div className="flex items-center gap-2 md:gap-3">

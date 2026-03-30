@@ -25,12 +25,12 @@ const Dropzone: React.FC<DropzoneProps> = ({ onFilesAdded }) => {
 
   return (
     <div
-      className="border-2 border-dashed border-neutral-600 rounded-lg p-10 flex flex-col items-center justify-center cursor-pointer hover:border-white transition h-72 w-full"
+      className="border-2 border-dashed border-neutral-600 rounded-lg p-10 flex flex-col items-center justify-center cursor-pointer hover:border-white transition h-96 w-full"
       onClick={() => inputRef.current?.click()}
     >
       <input
         type="file"
-        accept=".wav,.flac,.aiff,.alac,.mp3"
+        accept=".wav,.mp3"
         multiple
         className="hidden"
         ref={inputRef}
@@ -43,7 +43,7 @@ const Dropzone: React.FC<DropzoneProps> = ({ onFilesAdded }) => {
         Drag and drop audio files here or click to select
       </p>
       <p className="text-center text-sm text-gray-500 mt-1">
-        Supported: WAV, FLAC, AIFF, ALAC, MP3 (Max 4GB)
+        Supported: WAV, MP3 (Max 4GB)
       </p>
     </div>
   );
