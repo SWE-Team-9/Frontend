@@ -170,7 +170,18 @@ const NavBar: React.FC<NavBarProps> = ({
       <div className="max-w-7xl mx-auto flex justify-center items-center gap-8">
         {/* LEFT SECTION */}
         <div className="flex items-center gap-4">
-          <FaSoundcloud size={48} className="text-white shrink-0" />
+          <div className="flex items-center pt-2">
+            <Image
+              src="/logo.png"
+              alt="Logo"
+              width={100}
+              height={100}
+              className="object-contain "
+            />
+          </div>
+
+          {/* <FaSoundcloud size={48} className="text-white shrink-0" /> */}
+
           <button
             className="md:hidden text-white"
             onClick={() => toggleMenu("mobile")}

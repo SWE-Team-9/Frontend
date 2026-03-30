@@ -2,6 +2,10 @@
 
 import React, { useRef } from "react";
 import { useUploadStore } from "@/src/store/uploadStore";
+import { IoIosCloudUpload } from "react-icons/io";
+
+// Handles file selection via click or drag-and-drop,
+// and updates the upload store with selected files
 
 interface DropzoneProps {
   onFilesAdded?: (files: File[]) => void;
@@ -9,8 +13,10 @@ interface DropzoneProps {
 
 const Dropzone: React.FC<DropzoneProps> = ({ onFilesAdded }) => {
   const { addFile } = useUploadStore();
-  const inputRef = useRef<HTMLInputElement>(null);
 
+  const inputRef = useRef<HTMLInputElement>(null); // Ref to the hidden file input element
+
+  // Converts FileList to an array and adds each file to the store
   const handleFiles = (files: FileList) => {
     const arr = Array.from(files);
     arr.forEach((file) => addFile(file));
@@ -19,30 +25,26 @@ const Dropzone: React.FC<DropzoneProps> = ({ onFilesAdded }) => {
 
   return (
     <div
-      className="border-2 border-dashed border-gray-400 rounded-lg p-10 flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 transition"
+      className="border-2 border-dashed border-neutral-600 rounded-lg p-10 flex flex-col items-center justify-center cursor-pointer hover:border-white transition h-72 w-full"
       onClick={() => inputRef.current?.click()}
     >
       <input
         type="file"
-        accept=".wav,.flac,.aiff,.alac"
+        accept=".wav,.flac,.aiff,.alac,.mp3"
         multiple
         className="hidden"
         ref={inputRef}
         onChange={(e) => e.target.files && handleFiles(e.target.files)}
       />
-      <div className="text-center">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="mx-auto h-12 w-12 text-gray-500"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2m-6-4v6m0 0l-3-3m3 3l3-3m-9-4h12" />
-        </svg>
-        <p className="mt-2 text-gray-300">Drag and drop audio files here or click to select</p>
-        <p className="mt-1 text-sm text-gray-500">Supported: WAV, FLAC, AIFF, ALAC (Max 4GB)</p>
-      </div>
+
+      {/* Centered Icon and Text */}
+      <IoIosCloudUpload size={140} className="text-gray-300 mb-4" />
+      <p className="text-center text-gray-300 font-medium">
+        Drag and drop audio files here or click to select
+      </p>
+      <p className="text-center text-sm text-gray-500 mt-1">
+        Supported: WAV, FLAC, AIFF, ALAC, MP3 (Max 4GB)
+      </p>
     </div>
   );
 };

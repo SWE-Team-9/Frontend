@@ -40,9 +40,6 @@ body {
   animation: slideDown 0.2s ease-out forwards;
 }
 
-
-
-
 @layer utilities {
   .scrollbar-hide::-webkit-scrollbar {
     display: none;

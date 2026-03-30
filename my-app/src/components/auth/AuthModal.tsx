@@ -15,7 +15,7 @@ import { FaFacebook, FaApple } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { IoIosArrowBack } from "react-icons/io";
 import { useRouter } from "next/navigation";
-import { startSocialLogin, registerWithCaptcha, type SocialProvider } from "@/src/lib/auth/authService";
+import { startSocialLogin, registerWithCaptcha, type SocialProvider } from "@/src/services/authService";
 import CaptchaField from "@/src/components/auth/CaptchaField";
 
 const PASSWORD_REGEX =

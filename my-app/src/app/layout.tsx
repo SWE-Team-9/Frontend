@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SoundCloud",
-  description: "Stream and listen to music online for free on SoundCloud",
+  title: "IQA3",
+  description: "Stream and listen to music online for free on IQA3",
   icons: {
     icon: "/icon.png",
   },
