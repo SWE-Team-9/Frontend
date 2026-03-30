@@ -81,20 +81,6 @@ export const EditProfileModal = ({
             onSubmit={(e) => e.preventDefault()}
           >
             <div className="flex flex-col md:flex-row gap-12">
-              <div className="flex flex-col items-center gap-4 w-full md:w-1/3">
-                <div className="w-50 h-50 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center relative group overflow-hidden">
-                  <span className="text-xs font-bold text-zinc-500 uppercase">
-                    Avatar
-                  </span>
-                  <button
-                    type="button"
-                    className="absolute bottom-6 bg-black/80 text-white px-4 py-1.5 rounded text-[11px] font-bold border border-white/20 uppercase hover:bg-black transition-colors"
-                  >
-                    Upload image
-                  </button>
-                </div>
-              </div>
-
               <div className="flex-1 space-y-6">
                 <div>
                   <label className="block text-[13px] font-bold text-white mb-2 uppercase">

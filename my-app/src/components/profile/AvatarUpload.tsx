@@ -1,6 +1,8 @@
 "use client";
+
+import Image from "next/image";
 import { useState } from "react";
-import Cropper from "react-easy-crop";
+import Cropper, { type Area } from "react-easy-crop";
 
 // Component for uploading and editing avatar image
 export function AvatarUpload({
@@ -31,62 +33,54 @@ export function AvatarUpload({
   const [isValidImage, setIsValidImage] = useState(true); // Check if image is large enough
 
   // -----------------------------
-  // NEW: store cropped area
+  // Store cropped area
   // -----------------------------
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
 
   // -----------------------------
   // Handlers
   // -----------------------------
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Handle image selection
     const file = e.target.files?.[0];
     if (file && file.type.startsWith("image/")) {
       const reader = new FileReader();
 
       reader.onload = () => {
-        const img = new Image();
+        const result = reader.result;
+        if (typeof result !== "string") return;
+
+        const img = new window.Image();
 
         img.onload = () => {
-          // -----------------------------
-          // Check image size
-          // -----------------------------
           const isTooSmall = img.width < 1000 || img.height < 1000;
           setIsValidImage(!isTooSmall);
 
-          // -----------------------------
-          // Always allow image
-          // -----------------------------
-          const url = reader.result as string;
-          setTempImage(url);
-          setShowEditor(true); // Open editor
-
-          // -----------------------------
-          // Force minimum zoom to cover circle
-          // -----------------------------
+          setTempImage(result);
+          setShowEditor(true);
 
           const minZoom = Math.max(1, 480 / Math.min(img.width, img.height));
           setZoom(minZoom);
         };
 
-        img.src = reader.result as string;
+        img.src = result;
       };
 
       reader.readAsDataURL(file);
     }
   };
-  const onCropComplete = (_: any, croppedAreaPixels: any) => {
-    setCroppedAreaPixels(croppedAreaPixels);
+
+  const onCropComplete = (_croppedArea: Area, croppedPixels: Area) => {
+    setCroppedAreaPixels(croppedPixels);
   };
 
   const createCroppedImage = async () => {
     if (!tempImage || !croppedAreaPixels) return null;
 
-    const image = new Image();
+    const image = new window.Image();
     image.src = tempImage;
 
-    await new Promise((resolve) => {
-      image.onload = resolve;
+    await new Promise<void>((resolve) => {
+      image.onload = () => resolve();
     });
 
     const canvas = document.createElement("canvas");
@@ -112,41 +106,36 @@ export function AvatarUpload({
   };
 
   const handleSave = async () => {
-    // Save edited image
     const croppedImage = await createCroppedImage();
 
     if (croppedImage) {
       setPreview(croppedImage);
       onUpload?.(croppedImage);
     }
+
     setShowEditor(false);
   };
 
   const handleDelete = () => {
-    // Delete preview image
     setPreview(null);
     setShowDeleteConfirm(false);
   };
 
-  // -----------------------------
-  // JSX Rendering
-  // -----------------------------
   return (
     <>
-      {/* Avatar container */}
       <div className="relative w-40 h-40 md:w-48 md:h-48 rounded-full bg-zinc-400/30 flex items-center justify-center border border-white/10 shadow-2xl overflow-hidden group">
-        {/* Show preview if exists */}
         {preview ? (
-          <img
+          <Image
             src={preview}
-            className="w-full h-full rounded-full object-cover"
-            alt="Avatar"
+            alt="Avatar preview"
+            fill
+            className="rounded-full object-cover"
+            unoptimized
           />
         ) : (
           <span className="text-[10px] md:text-xs font-bold">Upload image</span>
         )}
 
-        {/* Hover overlay for updating image */}
         {preview ? (
           <button
             onClick={() => setShowOptions(!showOptions)}
@@ -167,7 +156,6 @@ export function AvatarUpload({
         )}
       </div>
 
-      {/* Dropdown options for preview */}
       {showOptions && preview && (
         <div className="absolute mt-50 left-[11.5%] -translate-x-1/2 w-40">
           <div className="mb-2">
@@ -181,8 +169,7 @@ export function AvatarUpload({
             </label>
           </div>
 
-          <div className="bg-zinc-950 text-white  shadow-lg p-2 flex flex-col gap-2 w-30 border border-zinc-700/50">
-            {/* Replace image option */}
+          <div className="bg-zinc-950 text-white shadow-lg p-2 flex flex-col gap-2 w-30 border border-zinc-700/50">
             <label className="cursor-pointer hover:text-slate-500 px-2 py-1 rounded text-xs block w-full text-left transition-colors">
               Replace image
               <input
@@ -195,7 +182,7 @@ export function AvatarUpload({
                 className="hidden"
               />
             </label>
-            {/* Delete image option */}
+
             <button
               onClick={() => {
                 setShowOptions(false);
@@ -209,7 +196,6 @@ export function AvatarUpload({
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-white/25 flex justify-center items-start z-50">
           <div className="bg-black p-3 rounded-lg shadow-xl w-87.5 text-left animate-slideDown mt-[10vh] h-40">
@@ -237,32 +223,35 @@ export function AvatarUpload({
         </div>
       )}
 
-      {/* Cropper editor popup */}
-      {showEditor && (
-        <div className="fixed inset-0 bg-white/30 backdrop-blur-sm flex items-center justify-center z-50">
+      {showEditor && tempImage && (
+        <div className="fixed inset-0 bg-white/30 backdrop-blur-sm flex items-start justify-center pt-20 z-50 overflow-y-auto">
           {/* Close button */}
           <button
             onClick={() => setShowEditor(false)}
-            className="absolute top-6 right-6 text-black text-2xl font-bold hover:text-zinc-700"
+            className="absolute top-6 right-6 text-black text-2xl font-bold hover:text-zinc-700 z-50"
           >
             ×
           </button>
 
-          <div className="bg-zinc-900 p-5 rounded-xl flex flex-col items-center gap-4 w-125 shadow-2xl">
+          {/* Popup container */}
+          <div
+            className="bg-zinc-900 p-5 rounded-xl flex flex-col items-center gap-4 w-full max-w-125 shadow-2xl
+                    max-h-[calc(100vh-5rem)] overflow-y-auto"
+          >
             {/* User info */}
             <h2 className="text-white font-bold text-2xl">{username}</h2>
             <p className="text-zinc-400 text-sm">{location}</p>
-            <p className="text-zinc-300 text-xs">
+            <p className="text-zinc-300 text-xs text-center">
               For best results, upload images of at least{" "}
               <strong>1000×1000 pixels</strong>. 2MB file-size limit.
             </p>
 
-            {/* Cropper container */}
+            {/* Cropper */}
             <div className="relative w-120 h-120 rounded-full overflow-hidden bg-transparent shadow-lg">
               <Cropper
-                image={tempImage!}
+                image={tempImage}
                 crop={crop}
-                zoom={Math.max(zoom, isValidImage ? 1 : 1)}
+                zoom={zoom}
                 aspect={1}
                 cropShape="round"
                 objectFit="cover"
@@ -270,12 +259,12 @@ export function AvatarUpload({
                 onCropChange={setCrop}
                 onZoomChange={setZoom}
                 onCropComplete={onCropComplete}
-                restrictPosition={true} // Prevent image from going out of frame
+                restrictPosition
               />
             </div>
 
-            {/* Zoom & action buttons */}
-            <div className="flex items-center justify-between w-full mt-6">
+            {/* Controls */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between w-full mt-6 gap-3">
               {isValidImage ? (
                 <div className="flex items-center gap-2 flex-1">
                   <button
@@ -308,7 +297,8 @@ export function AvatarUpload({
                 </p>
               )}
 
-              <div className="flex gap-3 ml-6">
+              {/* Save / Cancel buttons */}
+              <div className="flex gap-3 ml-0 sm:ml-6 mt-2 sm:mt-0">
                 <button
                   onClick={() => setShowEditor(false)}
                   className="bg-zinc-800 text-white px-2 py-2 rounded text-sm hover:bg-zinc-700 transition"

@@ -1,37 +1,60 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { verifyEmail } from "@/src/services/authService";
 
 type Status = "verifying" | "success" | "error";
 
 export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-black" />}>
+      <VerifyEmailInner />
+    </Suspense>
+  );
+}
+
+function VerifyEmailInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [status, setStatus] = useState<Status>("verifying");
-  const [errorMessage, setErrorMessage] = useState<string>("");
+
+  const token = useMemo(() => searchParams.get("token"), [searchParams]);
+  const hasToken = Boolean(token);
+
+  const [status, setStatus] = useState<Status>(hasToken ? "verifying" : "error");
+  const [errorMessage, setErrorMessage] = useState<string>(
+    hasToken
+      ? ""
+      : "No verification token found. Please use the link from your email.",
+  );
 
   useEffect(() => {
-    const token = searchParams.get("token");
+    if (!token) return;
 
-    if (!token) {
-      setErrorMessage("No verification token found. Please use the link from your email.");
-      setStatus("error");
-      return;
-    }
+    let cancelled = false;
 
     verifyEmail(token)
-      .then(() => setStatus("success"))
+      .then(() => {
+        if (!cancelled) {
+          setStatus("success");
+        }
+      })
       .catch((err: unknown) => {
+        if (cancelled) return;
+
         const axiosErr = err as { response?: { data?: { message?: string } } };
+
         setErrorMessage(
           axiosErr.response?.data?.message ||
             "This verification link is invalid or has already been used.",
         );
         setStatus("error");
       });
-  }, [searchParams]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-4">
@@ -46,7 +69,13 @@ export default function VerifyEmailPage() {
         {status === "success" && (
           <>
             <div className="w-16 h-16 rounded-full bg-green-600/20 flex items-center justify-center">
-              <svg className="w-8 h-8 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <svg
+                className="w-8 h-8 text-green-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2.5}
+              >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             </div>
@@ -66,7 +95,13 @@ export default function VerifyEmailPage() {
         {status === "error" && (
           <>
             <div className="w-16 h-16 rounded-full bg-red-600/20 flex items-center justify-center">
-              <svg className="w-8 h-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <svg
+                className="w-8 h-8 text-red-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2.5}
+              >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </div>
@@ -84,4 +119,3 @@ export default function VerifyEmailPage() {
     </div>
   );
 }
-

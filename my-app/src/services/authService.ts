@@ -3,18 +3,15 @@ import { useAuthStore } from "@/src/store/useAuthStore";
 import { useProfileStore } from "@/src/store/useProfileStore";
 
 // ─────────────────────────────────────────────────────────────
-// Auth Service
-//
-// Every function here calls our NestJS backend at /api/v1/auth/*.
-// The base URL already includes /api/v1 (set in api.ts), so we
-// only write the path starting from /auth/...
-//
+// Every function here calls our NestJS backend at /api/v1/auth/
 // COOKIES: The backend sets httpOnly cookies on login/register.
 //          We never touch tokens directly — they travel in cookies
 //          automatically.
 // ─────────────────────────────────────────────────────────────
 
-// ====== Types that match the backend DTOs ======
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+
+export type SocialProvider = "google"; 
 
 interface LoginData {
   email: string;
@@ -30,12 +27,30 @@ interface RegisterData {
   display_name: string;
   date_of_birth: string;       // "YYYY-MM-DD"
   gender: "MALE" | "FEMALE" | "PREFER_NOT_TO_SAY";
-  captcha_token?: string;
+  captcha_token: string;
 }
 
 interface CheckEmailResponse {
   available: boolean;
   email: string;
+}
+
+// ====== Google OAuth — redirect-based ======
+export function startSocialLogin(provider: SocialProvider) {
+  if (typeof window !== "undefined") {
+    sessionStorage.setItem("oauth_provider", provider);
+    sessionStorage.setItem("oauth_return_to", "/discover");
+  }
+  // Redirect the whole browser to the backend's Google OAuth URL
+  window.location.href = `${API_BASE_URL}/auth/${provider}`;
+}
+
+// ====== Registration with reCAPTCHA ======
+export async function registerWithCaptcha(data: RegisterData) {
+  // Uses the shared axios instance so cookies are handled automatically
+  const response = await api.post("/auth/register", data);
+  useAuthStore.getState().setEmail(data.email);
+  return response.data;
 }
 
 // ================= LOGIN =================
@@ -65,15 +80,6 @@ export const loginUser = async ({
       isVerified: user.is_verified ?? false,
     });
   }
-  return response.data;
-};
-
-// ================= REGISTER =================
-export const registerUser = async (data: RegisterData) => {
-  // POST /auth/register  →  returns { message }
-  const response = await api.post("/auth/register", data);
-  // After registration the user must verify their email before they can log in
-  useAuthStore.getState().setEmail(data.email);
   return response.data;
 };
 

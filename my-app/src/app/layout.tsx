@@ -1,7 +1,7 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import AuthProvider from "@/src/components/AuthProvider";
+import AuthProvider from "@/src/components/providers/AuthProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SoundCloud",
-  description: "Stream and listen to music online for free on SoundCloud",
+  title: "IQA3",
+  description: "Stream and listen to music online for free on IQA3",
   icons: {
     icon: "/icon.png",
   },

@@ -2,7 +2,7 @@
 
 :root {
   --background: #121212;
-  --foreground: #171717;
+  --foreground: #121212;
 }
 
 @theme inline {
@@ -14,7 +14,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
+    --background: #121212;
     --foreground: #ededed;
   }
 }
@@ -39,9 +39,6 @@ body {
 .animate-slideDown {
   animation: slideDown 0.2s ease-out forwards;
 }
-
-
-
 
 @layer utilities {
   .scrollbar-hide::-webkit-scrollbar {
