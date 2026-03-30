@@ -5,8 +5,8 @@ import { useAuth } from "@/src/context/AuthContext";
 import { useAuthStore } from "@/src/store/useAuthStore";
 import { useRouter } from "next/navigation";
 import { FiSearch } from "react-icons/fi";
-import { FaSoundcloud } from "react-icons/fa";
 import Image from "next/image";
+
 
 export default function LandingPage() {
   const { openAuth } = useAuth();
@@ -107,12 +107,14 @@ export default function LandingPage() {
               </div>
             </div>
           ))}
+          
 
           {/* HEADER */}
           <div className="absolute top-0 left-0 w-full h-20 px-4 md:px-10 flex items-center justify-between z-40">
             {/* Logo */}
-           
-              <div className="flex items-center pt-2">
+
+
+            <div className="flex items-center pt-2">
                 <Image
                   src="/logo.png"
                   alt="Logo"
