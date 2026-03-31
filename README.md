@@ -5,7 +5,7 @@
 ### Styling
 - **Tailwind CSS**
 ### State Management
-- **Zustand**
+- **Zustand** 
 ### API Communication
 - **Axios**
 - **MSW (Mock Service Worker)**
