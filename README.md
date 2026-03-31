@@ -1,7 +1,7 @@
 # Frontend Tech Stack
 ### Framework
 - **Next.js (App Router)**
-- **TypeScript**
+- **TypeScript** 
 ### Styling
 - **Tailwind CSS**
 ### State Management
