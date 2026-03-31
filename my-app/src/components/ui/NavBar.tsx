@@ -3,7 +3,6 @@ import Image from "next/image";
 import DropdownMenu from "@/src/components/ui/DropdownMenu";
 import NavBarItem from "@/src/components/ui/NavBarItem";
 import { useState, useRef, useEffect } from "react";
-import { FaSoundcloud } from "react-icons/fa";
 import { MdPerson, MdPersonAddAlt1, MdStars, MdBarChart } from "react-icons/md";
 import { BsPersonCheckFill } from "react-icons/bs";
 import { ImHeart } from "react-icons/im";

@@ -52,13 +52,14 @@ const UploadButton: React.FC = () => {
         } else {
           updateFileStatus(fileName, "DONE");
         }
-      } catch (err: any) {
-        updateFileStatus(
-          fileName,
-          "ERROR",
-          undefined,
-          err.message || "Unknown error during polling",
-        );
+      } catch (err: unknown) {
+        let message = "Unknown error during polling";
+
+        if (err instanceof Error) {
+          message = err.message;
+        }
+
+        updateFileStatus(fileName, "ERROR", undefined, message);
         break;
       }
     }
@@ -101,13 +102,14 @@ const UploadButton: React.FC = () => {
         } else {
           updateFileStatus(file.name, "DONE");
         }
-      } catch (err: any) {
-        updateFileStatus(
-          file.name,
-          "ERROR",
-          undefined,
-          err.message || "Unknown error during upload",
-        );
+      } catch (err: unknown) {
+        let message = "Unknown error during upload";
+
+        if (err instanceof Error) {
+          message = err.message;
+        }
+
+        updateFileStatus(file.name, "ERROR", undefined, message);
       }
     }
 
@@ -126,8 +128,10 @@ const UploadButton: React.FC = () => {
 
       <div className="mt-4 space-y-2">
         {fileStatuses.map((f) => (
-          <div key={f.name} className="flex flex-col items-center p-3 border rounded-lg">
-            
+          <div
+            key={f.name}
+            className="flex flex-col items-center p-3 border rounded-lg"
+          >
             <div className="flex flex-col items-center gap-2">
               <span className="text-sm">{f.name}</span>
               <FileStatusBadge status={f.status} />

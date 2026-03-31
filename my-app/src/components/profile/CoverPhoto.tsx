@@ -259,7 +259,7 @@ export function CoverPhoto() {
               className="w-full h-55 mb-2 overflow-hidden rounded-none border border-gray-700 relative"
             >
               {/* Draggable image */}
-              <img
+              <Image
                 ref={imageRef}
                 src={tempImage}
                 alt="Cover photo preview"
