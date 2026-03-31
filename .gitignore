@@ -45,4 +45,3 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.tsDockerfile
 my-app/.env.production
-Dockerfile
