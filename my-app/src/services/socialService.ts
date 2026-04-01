@@ -1,74 +1,72 @@
 import axios from "axios";
 
-/** * Base URL for social endpoints. 
- * Note: Currently bypassed by Mock Data to avoid 404 errors until Backend is ready.
+/** * Base URL for social endpoints as per Module 3 Documentation.
  */
 const BASE_URL = "/api/v1/social";
 
-/** * Mock data for testing purposes. 
- * Replaces live API responses to test UI and interaction logic.
- */
-const MOCK_USERS = [
-  { id: "1", name: "Doja Cat", handle: "dojacat", followers: "2M", isFollowing: true, avatar: "https://ui-avatars.com/api/?name=Doja+Cat" },
-  { id: "2", name: "Bad-Bunny", handle: "badbunny", followers: "3M", isFollowing: true, avatar: "https://ui-avatars.com/api/?name=Bad+Bunny" },
-  { id: "3", name: "Travis Scott", handle: "travisscott", followers: "6.22M", isFollowing: true, avatar: "https://ui-avatars.com/api/?name=Travis+Scott" },
-  { id: "4", name: "Mazen LoFi", handle: "mazen", followers: "500", isFollowing: false, avatar: "https://ui-avatars.com/api/?name=Mazen" },
-];
-
 export const socialService = {
   
-  /** * Follow/Unfollow Logic
-   * Simulates a server request and logs the action to the console.
+  /** * 1. Follow User
+   * Method: POST /api/v1/social/follow/{userId}
    */
   followUser: async (userId: string) => {
-    console.log("Mock Follow Action for user ID:", userId);
-    return { status: 200, data: { success: true } };
+    return await axios.post(`${BASE_URL}/follow/${userId}`);
   },
 
+  /** * 2. Unfollow User
+   * Method: DELETE /api/v1/social/follow/{userId}
+   */
   unfollowUser: async (userId: string) => {
-    console.log("Mock Unfollow Action for user ID:", userId);
-    return { status: 200, data: { success: true } };
+    return await axios.delete(`${BASE_URL}/follow/${userId}`);
   },
 
-  /** * Fetches the list of followers for a specific user.
-   * Currently returns a subset of MOCK_USERS.
+  /** * 3. Get Followers List
+   * Method: GET /api/v1/social/{userId}/followers
    */
   getFollowers: async (userId: string, page = 1, limit = 20) => {
-    console.log("Fetching Mock Followers List");
-    return { data: { data: MOCK_USERS.slice(0, 2) } }; 
+    return await axios.get(`${BASE_URL}/${userId}/followers`, {
+      params: { page, limit }
+    });
   },
   
-  /** * Fetches the list of users that the current user is following.
-   * Returns mock users where isFollowing is true.
+  /** * 4. Get Following List
+   * Method: GET /api/v1/social/{userId}/following
    */
   getFollowing: async (userId: string, page = 1, limit = 20) => {
-    console.log("Fetching Mock Following List");
-    return { data: { data: MOCK_USERS.filter(u => u.isFollowing) } };
+    return await axios.get(`${BASE_URL}/${userId}/following`, {
+      params: { page, limit }
+    });
   },
 
-  /** * Fetches suggested users to follow.
-   * Returns mock users where isFollowing is false.
+  /** * 5. Suggested Users
+   * Method: GET /api/v1/social/suggestions
    */
   getSuggestions: async (limit = 10) => {
-    console.log("Fetching Mock Suggestions List");
-    return { data: { data: MOCK_USERS.filter(u => !u.isFollowing) } };
+    return await axios.get(`${BASE_URL}/suggestions`, {
+      params: { limit }
+    });
   },
 
-  /** * Block Management
-   * Mocked functions to resolve immediately without backend calls.
+  /** * 6. Block User
+   * Method: POST /api/v1/social/block/{userId}
    */
-  blockUser: (userId: string) => {
-    console.log("Mock Block for user:", userId);
-    return Promise.resolve({ data: { success: true } });
+  blockUser: async (userId: string) => {
+    return await axios.post(`${BASE_URL}/block/${userId}`);
   },
 
-  unblockUser: (userId: string) => {
-    console.log("Mock Unblock for user:", userId);
-    return Promise.resolve({ data: { success: true } });
+  /** * 7. Unblock User
+   * Method: DELETE /api/v1/social/block/{userId}
+   */
+  unblockUser: async (userId: string) => {
+    return await axios.delete(`${BASE_URL}/block/${userId}`);
   },
 
-  getBlockedUsers: (page = 1, limit = 20) => {
-    console.log("Fetching Mock Blocked Users");
-    return Promise.resolve({ data: { data: [] } });
+  /** * 8. Get Blocked Users
+   * Method: GET /api/v1/social/blocked-users
+   */
+  getBlockedUsers: async (page = 1, limit = 20) => {
+    return await axios.get(`${BASE_URL}/blocked-users`, {
+      params: { page, limit }
+    });
   },
 };

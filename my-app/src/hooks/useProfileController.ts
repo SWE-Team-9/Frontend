@@ -38,6 +38,9 @@ interface ServerUser {
   avatar?: string;
 }
 
+
+
+
 type AccountType = "ARTIST" | "LISTENER";
 
 /**
@@ -458,18 +461,68 @@ if (store.isLoaded || hasRequestedProfileRef.current || store.useMockData) retur
   /**
    * Optimistic update logic for Following/Unfollowing a user
    */
+  /**
+   * TASK: Real-Time Follow Logic (Gehad)
+   * Synchronizes UI lists and Sidebar counts instantly
+   */
   const toggleFollow = (userId: number) => {
-    const toggleInList = <T extends { id: number; isFollowing: boolean }>(
-      list: T[],
-    ): T[] =>
+    // Find the user object from any of our current lists
+    const allKnownUsers = [...followersList, ...followingList, ...suggestedUsers];
+    const targetUser = allKnownUsers.find((u) => u.id === userId);
+
+    if (!targetUser) return;
+
+    const isCurrentlyFollowing = targetUser.isFollowing;
+    const nextFollowingState = !isCurrentlyFollowing;
+
+    // 1. Update Sidebar Count (Optimistic Update)
+    store.setProfileData({
+      followingCount: nextFollowingState
+        ? store.followingCount + 1
+        : Math.max(0, store.followingCount - 1),
+    });
+
+    // 2. Update Followers/Suggestions lists UI state
+    const updateListState = <T extends { id: number; isFollowing: boolean }>(list: T[]): T[] =>
       list.map((user) =>
-        user.id === userId ? { ...user, isFollowing: !user.isFollowing } : user,
+        user.id === userId ? { ...user, isFollowing: nextFollowingState } : user
       );
 
-    setFollowingList((prev) => toggleInList(prev));
-    setFollowersList((prev) => toggleInList(prev));
-    setSuggestedUsers((prev) => toggleInList(prev));
-    console.log(`Optimistic Update: Toggled user ${userId}`);
+    setFollowersList((prev) => updateListState(prev));
+    setSuggestedUsers((prev) => updateListState(prev));
+
+  // 3. Dynamic Following List Management (Add/Remove)
+    if (nextFollowingState) {
+      // If now following, add to the Following List if not already there
+      setFollowingList((prev) => {
+        if (prev.some((u) => u.id === userId)) return prev;
+
+        // الحل هنا: بننشئ كائن مستخدم كامل البيانات (User) عشان نرضي TypeScript
+        const newUser: User = {
+          id: targetUser.id,
+          name: targetUser.name,
+          // بنضيف قيم افتراضية للحقول الناقصة عشان الـ Interface يكمل
+         handle: (targetUser as User).handle || `user_${targetUser.id}`,
+          followers: (targetUser as User).followers || "0",
+          tracks: (targetUser as User).tracks || 0,
+          avatar: targetUser.avatar || "",
+          isFollowing: true,
+        };
+
+        return [...prev, newUser];
+      });
+    } else {
+      // If unfollowed, remove from the Following List immediately
+      setFollowingList((prev) => prev.filter((u) => u.id !== userId));
+    }
+
+    console.log(`Real-Time Sync: User ${userId} is now ${nextFollowingState ? "Following" : "Follow"}`);
+    // // To update your OWN followers count in sidebar (if applicable)
+    // store.setProfileData({
+    //   followersCount: nextFollowingState 
+    //     ? store.followersCount + 1 
+    //     : Math.max(0, store.followersCount - 1)
+    // });
   };
 
   return {

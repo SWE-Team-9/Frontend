@@ -83,7 +83,7 @@ export const ProfileSidebar = ({
       </div>
 
       {/* --- SECTION 2: LIKES PREVIEW --- */}
-      <div className="mb-10 border-t border-zinc-900 pt-4">
+      {/* <div className="mb-10 border-t border-zinc-900 pt-4">
         <div className="flex justify-between items-center text-zinc-500 text-[13px] mb-4">
           <p className="font-bold uppercase tracking-tight">🧡 1 LIKE</p>
           <button className="hover:text-white transition-colors text-xs">
@@ -109,7 +109,7 @@ export const ProfileSidebar = ({
             </div>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* --- SECTION 3: ON TOUR / ARTIST PRO --- */}
       <div className="bg-zinc-900/20 p-5 rounded-md border border-zinc-800/50 mb-10 text-left">
