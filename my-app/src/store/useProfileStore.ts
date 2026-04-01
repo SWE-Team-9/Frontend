@@ -35,6 +35,7 @@ interface ProfileState {
   followersCount: number;
   followingCount: number;
   tracksCount: number;
+  useMockData: boolean;
 
   // ---- Loading flag ----
   isLoaded: boolean;     // true once we fetched from the backend at least once
@@ -49,9 +50,9 @@ interface ProfileState {
 }
 
 const initialProfileState = {
-  displayName: "",
+  displayName: "Gehad Khamis",
   handle: "",
-  bio: "",
+bio: "Biomedical Engineering Student",
   location: "",
   website: "",
   avatarUrl: null,
@@ -60,10 +61,11 @@ const initialProfileState = {
   accountType: "LISTENER" as const,
   favoriteGenres: [] as string[],
   links: [{ id: 1, platform: "", url: "" }],
-  followersCount: 0,
-  followingCount: 0,
-  tracksCount: 0,
-  isLoaded: false,
+  followersCount: 200,
+  followingCount: 150,
+  tracksCount: 5,
+isLoaded: true,
+  useMockData: true,
 };
 
 export const useProfileStore = create<ProfileState>()((set) => ({

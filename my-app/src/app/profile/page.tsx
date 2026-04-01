@@ -1,28 +1,49 @@
 "use client";
- import React from "react";
-import { FiShare } from "react-icons/fi";
-import { AvatarUpload } from "@/src/components/profile/AvatarUpload";
-import { CoverPhoto} from "@/src/components/profile/CoverPhoto";
-import { GrEdit } from "react-icons/gr";
-import { FaFacebook, FaTwitter, FaPinterest } from "react-icons/fa";
-import { TiSocialTumbler } from "react-icons/ti";
-import { HiOutlineEnvelope } from "react-icons/hi2";
-import NavBar from "@/src/components/ui/NavBar";
 
-import { useProfileController } from "@/src/hooks/useProfileController";
-import { Stats } from "@/src/components/profile/sidebar/Stats";
-import { SocialLinksList } from "@/src/components/profile/sidebar/SocialLinksList";
-import { EditProfileModal } from "@/src/components/profile/modals/EditProfileModal";
+import React from "react";
+import { FiShare } from "react-icons/fi";
+import { GrEdit } from "react-icons/gr";
+import { useProfileController } from "../../hooks/useProfileController";
+import Image from "next/image";
+import { useParams } from "next/navigation"; 
+import { EditProfileModal } from "../../components/profile/modals/EditProfileModal";
+import { ProfileHeader } from "../../components/profile/ProfileHeader";
+import { ShareModal } from "@/src/components/profile/modals/ShareModal";
+import { ProfileSidebar } from "@/src/components/profile/ProfileSidebar";
+import { AvatarUpload } from "@/src/components/profile/AvatarUpload";
+import { CoverPhoto } from "@/src/components/profile/CoverPhoto";
+interface Track {
+  trackId: string;
+  title: string;
+  artist: { display_name: string };
+  durationSeconds: number;
+  liked: boolean;
+}
+
+interface User {
+  id: number;
+  name: string;
+  handle: string;
+  followers: string;
+  tracks: number;
+  isFollowing: boolean;
+  avatar: string;
+}
 
 export default function ProfilePage() {
+  const params = useParams();
+  const profileId = params.handle as string || params.id as string; 
+
   const BUTTON_STYLE =
     "bg-zinc-800/50 border border-zinc-700 px-4 py-1 rounded text-xs font-bold hover:bg-zinc-700 transition-colors uppercase flex items-center gap-2";
-  const controller = useProfileController();
+
+  const controller = useProfileController(profileId);
+
   const {
     displayName,
+    bio,
     location,
-    favoriteGenres,
-    links,
+    website,
     activeTab,
     setActiveTab,
     tabs,
@@ -32,396 +53,307 @@ export default function ProfilePage() {
     setDetailTab,
     isShareOpen,
     setIsShareOpen,
-    shareTab,
-    setShareTab,
-    isShortened,
-    setIsShortened,
-    copied,
-    copyToClipboard,
-    shortLink,
-    longLink,
-    showSuccessToast,
     accountType,
+    isEditOpen,
     setIsEditOpen,
     handleAvatarUpload,
     avatarUrl,
+    followersCount,
+    followingCount,
+    tracksCount,
+    showSuccessToast,
+    links,
+    displayTracks,
+    displayUsers,
+    toggleFollow,
+    likesList,
+    searchQuery,    
+    setSearchQuery, 
+    filteredUsers,  
+    suggestedUsers,
+    handleLoadMore, // Added from controller
+    isLoading,      // Added from controller
   } = controller;
 
+  /**
+   * Sub-render function for the Details View (Likes, Following, Followers)
+   */
   const renderDetailsPage = () => (
     <div className="container mx-auto px-8 py-10 animate-in fade-in duration-500">
-      {/* Detail View Header */}
+      {/* 1. Detail View Header (Avatar and Title) */}
       <div className="flex items-center gap-6 mb-12">
-        <div className="w-32 h-32 rounded-full bg-linear-to-br from-zinc-700 to-zinc-500 shadow-xl"></div>
-        <h2 className="text-3xl font-bold">
+        <div className="w-32 h-32 rounded-full bg-gradient-to-br from-zinc-700 to-zinc-500 shadow-xl"></div>
+        <h2 className="text-3xl font-bold uppercase">
           {detailTab} BY {displayName}
         </h2>
       </div>
 
-      {/* Internal Navigation within Details */}
+      {/* 2. Internal Navigation Tabs within Details */}
       <div className="border-b border-zinc-800 mb-8">
         <ul className="flex gap-8 text-sm font-bold text-zinc-400">
           {["Likes", "Following", "Followers"].map((t) => (
             <li
               key={t}
               onClick={() => setDetailTab(t)}
-              className={`pb-2 cursor-pointer border-b-2 transition-all ${detailTab === t ? "text-white border-white" : "border-transparent hover:text-zinc-200"}`}
+              className={`pb-2 cursor-pointer border-b-2 transition-all uppercase ${
+                detailTab === t
+                  ? "text-white border-white"
+                  : "border-transparent hover:text-zinc-200"
+              }`}
             >
-              {t.toString()}
+              {t}
             </li>
           ))}
         </ul>
       </div>
 
-      {/* Empty State Placeholders for Details */}
-      <div className="py-20 text-center flex flex-col items-center">
-        {detailTab === "Likes" && (
-          <p className="text-2xl font-bold text-zinc-500">
-            YOU HAVE NO LIKES YET.
-          </p>
-        )}
-        {detailTab === "Followers" && (
-          <p className="text-2xl font-bold text-zinc-500">
-            NO ONE IS FOLLOWING YOU YET.
-          </p>
-        )}
-        {detailTab === "Following" && (
-          <div className="flex flex-col items-center gap-4">
-            <div className="w-32 h-32 rounded-full bg-zinc-800 flex items-center justify-center border-2 border-white">
-              <span className="text-xs font-bold">TRAVIS SCOTT</span>
-            </div>
-            <p className="font-bold text-xl">
-              Travis Scott <span className="text-blue-500">✓</span>
-            </p>
+      <div className="py-10 space-y-8">
+        
+        {/* --- 3. SEARCH INPUT FIELD --- */}
+        {(detailTab === "Following" || detailTab === "Followers") && (
+          <div className="relative max-w-md mb-8">
+            <input
+              type="text"
+              placeholder={`Search ${detailTab.toLowerCase()}...`}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-zinc-900 border border-zinc-800 text-white px-4 py-2 rounded-md focus:outline-none focus:border-orange-500 transition-all text-sm"
+            />
+            <span className="absolute right-3 top-2.5 opacity-40">🔍</span>
           </div>
         )}
-        <button
-          onClick={() => setViewState("profile")}
-          className="mt-12 bg-white text-black px-6 py-2 rounded-full font-bold hover:bg-zinc-200 transition-all uppercase"
-        >
-          ← Back to Profile
-        </button>
+
+        {/* --- 4. LIKES TAB RENDERING --- */}
+        {detailTab === "Likes" && likesList && likesList.length > 0 ? (
+          likesList.map((track) => (
+            <div key={track.id} className="flex gap-6 bg-zinc-900/10 p-4 rounded-lg border border-zinc-900/50 group hover:bg-zinc-900/30 transition-all duration-300 text-left">
+              <div className="w-40 h-40 relative flex-shrink-0 shadow-2xl">
+                <Image src={track.cover} alt={track.title} fill className="object-cover rounded-sm" />
+                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors" />
+              </div>
+              <div className="flex-1">
+                <p className="text-zinc-500 text-sm mb-1">{track.artist}</p>
+                <h3 className="text-white font-bold text-2xl mb-4">{track.title}</h3>
+                
+                <div className="h-14 w-full bg-zinc-800/40 mt-4 rounded-md flex items-center justify-center border border-zinc-800/50">
+                  <span className="text-zinc-600 text-[10px] font-mono uppercase tracking-[0.3em]">
+                    ||| Waveform Visualization Data |||
+                  </span>
+                </div>
+
+                <div className="flex gap-6 mt-6">
+                  <button className="text-orange-500 font-bold text-sm flex items-center gap-1.5 hover:scale-105 transition-transform">
+                    🧡 7,038
+                  </button>
+                  <button className="text-zinc-500 font-bold text-sm flex items-center gap-1.5 hover:text-white transition-colors">
+                    🔁 301
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
+        ) : null}
+
+        {/* --- 5. FOLLOWING/FOLLOWERS GRID (Using Filtered Results) --- */}
+        {(detailTab === "Following" || detailTab === "Followers") && (
+          filteredUsers && filteredUsers.length > 0 ? (
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8">
+                {filteredUsers.map((user: User) =>
+                 (
+                  <div key={`${detailTab}-${user.id}`} className="flex flex-col items-center text-center group">
+                    <div className="relative w-40 h-40 mb-4 rounded-full overflow-hidden border-2 border-zinc-800 group-hover:border-orange-500 transition-all duration-300 shadow-2xl bg-zinc-900">
+                      {user.avatar ? (
+                        <Image
+                          src={user.avatar}
+                          alt={user.name}
+                          fill={true}
+                          className="w-full h-full object-cover"
+                          priority={true}
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-zinc-800" />
+                      )}
+                    </div>
+
+                    <h4 className="font-bold text-white text-sm flex items-center gap-1 mb-1 truncate w-full justify-center uppercase tracking-wider">
+                      {user.name} <span className="text-[#38bdf8] text-[10px]">✓</span>
+                    </h4>
+                    <p className="text-zinc-500 text-[11px] mb-4">
+                      👤 {user.followers} followers
+                    </p>
+
+                    <button
+                      onClick={() => toggleFollow(user.id)}
+                      className={`px-4 py-1.5 rounded text-[10px] font-bold uppercase transition-all ${
+                        user.isFollowing
+                          ? "bg-zinc-800 text-zinc-400 border border-zinc-700"
+                          : "bg-white text-black hover:bg-zinc-200"
+                      }`}
+                    >
+                      {user.isFollowing ? "Following" : "Follow"}
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Pagination Button Section */}
+              <div className="flex justify-center mt-12 mb-4">
+                <button
+                  onClick={handleLoadMore}
+                  className="px-8 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-full transition-colors border border-zinc-700 font-bold uppercase text-xs tracking-widest"
+                >
+                  {isLoading ? "Loading..." : "Load More Users"}
+                </button>
+              </div>
+            </>
+          ) : (
+            /* Empty Search Results / Empty State */
+            <div className="py-20 text-center flex flex-col items-center">
+              <p className="text-xl font-bold text-zinc-600 uppercase tracking-widest mb-12">
+                {searchQuery 
+                  ? `No results found for "${searchQuery}"` 
+                  : `You have no ${detailTab.toLowerCase()} yet.`}
+              </p>
+              <button
+                onClick={() => { setViewState("profile"); setSearchQuery(""); }}
+                className="bg-white text-black px-6 py-2 rounded-full font-bold uppercase text-sm"
+              >
+                ← Back to Profile
+              </button>
+            </div>
+          )
+        )}
       </div>
     </div>
   );
 
+
   return (
-
     <div className="min-h-screen bg-[#121212] text-white font-sans overflow-x-hidden relative">
-      {/* Conditional Rendering: Main Profile vs Details Page */}
-      <NavBar className="max-w-7xl mx-auto px-6" />
-
-       <div className="h-16" /> {/* Spacer to prevent content from being hidden behind NavBar */}
-      <div className="max-w-7xl mx-auto px-6">
-        {viewState === "details" ? (
-          renderDetailsPage()
-        ) : (
-          <>
-            {/* --- SECTION 1: VISUAL HEADER (Banner & Avatar) --- */}
-            <div className="relative w-full min-h-65 bg-[#d38b7d] p-4 md:p-6 flex flex-col md:flex-row items-center md:items-start justify-between gap-4">
-              <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-center text-center md:text-left mt-2">
-                <CoverPhoto />
-                 <AvatarUpload username={displayName} location={location} onUpload={handleAvatarUpload} avatarUrl={avatarUrl}/>
-
-                {/* User Identity Information */}
-                <div className="flex flex-col gap-1.5 items-center md:items-start">
-                  <div className="flex flex-col md:flex-row items-center gap-2 bg-black px-3 py-1 w-fit">
-                    <h1 className="text-xl md:text-3xl font-bold uppercase tracking-tight">
-                      {displayName}
-                    </h1>
-                    {accountType === "ARTIST" && (
-                      <span className="bg-zinc-800 text-zinc-400 text-[10px] md:text-[12px] px-2 py-1 rounded-sm font-black uppercase border border-zinc-700/50 shadow-sm shrink-0">
-                        Artist
-                      </span>
-                    )}
-                  </div>
-                  {location && (
-                    <div className="flex items-center gap-1 mt-0.5">
-                      <p className="text-neutral-400 text-[10px] md:text-xs bg-black px-2 py-1 w-fit font-bold uppercase">
-                        {location}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-  
+      {viewState === "details" ? (
+        renderDetailsPage()
+      ) : (
+        <>
+          {/* --- SECTION 1: VISUAL HEADER (Banner & Avatar Upload) --- */}
+          <div className="relative w-full min-h-[260px] bg-[#d38b7d] p-4 md:p-6 flex flex-col md:flex-row items-center md:items-start justify-between gap-4">
+            <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-center text-center md:text-left mt-2">
+              <CoverPhoto />
+              <AvatarUpload 
+                username={displayName} 
+                location={location} 
+                onUpload={handleAvatarUpload} 
+                avatarUrl={avatarUrl}
+              />
             </div>
+          </div>
 
+          {/* --- SECTION 2: NAVIGATION BAR --- */}
+          <div className="border-b border-zinc-800 bg-[#121212] sticky top-0 z-40 overflow-x-auto">
+            <div className="container mx-auto px-4 md:px-8 flex justify-between items-center h-12 min-w-[600px] md:min-w-full">
+              <ul className="flex gap-8 text-[14px] font-bold text-zinc-400 h-full">
+                {tabs?.map((tab: string) => (
+                  <li
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`cursor-pointer outline-none transition-colors h-full flex items-center border-b-2 ${
+                      activeTab === tab ? "text-white border-white" : "border-transparent hover:text-white"
+                    }`}
+                  >
+                    {tab}
+                  </li>
+                ))}
+              </ul>
+              <div className="flex gap-2">
+                <button onClick={() => setIsShareOpen(true)} className={BUTTON_STYLE}><FiShare size={15} /> Share</button>
+                <button onClick={() => setIsEditOpen(true)} className={BUTTON_STYLE}><GrEdit size={15} /> Edit</button>
+              </div>
+            </div>
+          </div>
 
-            {/* --- SECTION 2: NAVIGATION BAR (Sticky Tabs) --- */}
-            <div className="border-b border-zinc-800 bg-[#121212] sticky top-0 z-40 overflow-x-auto">
-              <div className="container mx-auto px-4 md:px-8 flex justify-between items-center h-12 min-w-150 md:min-w-full">
-                {/* Main Feed Navigation Tabs */}
-                <ul className="flex gap-8 text-[14px] font-bold text-zinc-400 h-full">
-                  {tabs?.map((tab: string) => (
-                    <li
-                      key={tab}
-                      onClick={() => setActiveTab(tab)}
-                      className={`cursor-pointer outline-none focus:outline-none transition-colors h-full flex items-center border-b-2 ${activeTab === tab ? "text-white border-white" : "border-transparent hover:text-white"}`}
-                    >
-                      {tab}
-                    </li>
+          {/* --- SECTION 3: MAIN CONTENT (Feed & Sidebar) --- */}
+          <div className="container mx-auto px-8 py-12 flex flex-col lg:flex-row gap-12 text-left">
+            <div className="flex-1 border-r border-zinc-900/50 pr-12 text-left">
+              {activeTab === "All" && displayTracks && displayTracks.length > 0 ? (
+                <div className="space-y-4 py-6">
+                  <p className="text-white font-bold mb-4 uppercase text-sm tracking-widest border-b border-zinc-900 pb-2">Recently Played</p>
+                  {displayTracks.map((track: Track) => (
+                    <div key={track.trackId} className="bg-zinc-900/40 p-4 rounded border border-zinc-800/50 flex justify-between items-center group hover:bg-zinc-800 transition-all cursor-pointer">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 bg-zinc-800 rounded flex items-center justify-center font-bold text-zinc-500 group-hover:text-orange-500 transition-colors text-xs">▶</div>
+                        <div>
+                          <h3 className="text-white font-bold text-sm leading-none">{track.title}</h3>
+                          <p className="text-zinc-500 text-xs mt-1">{track.artist.display_name}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4 text-zinc-500 text-xs font-bold">
+                        <span>{Math.floor(track.durationSeconds / 60)}:{(track.durationSeconds % 60).toString().padStart(2, "0")}</span>
+                        <button className={track.liked ? "text-orange-500" : "hover:text-white"}>🧡</button>
+                      </div>
+                    </div>
                   ))}
-                </ul>
-                {/* Global Action Buttons */}
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setIsShareOpen(true)}
-                    className={BUTTON_STYLE}
-                  >
-                    <FiShare size={15} /> Share
-                  </button>
-                  <button
-                    onClick={() => setIsEditOpen(true)}
-                    className={BUTTON_STYLE}
-                  >
-                    <GrEdit size={15} /> Edit
-                  </button>
                 </div>
-              </div>
+              ) : (
+                <div className="py-20 text-center flex flex-col items-center justify-center">
+                  <p className="text-zinc-500 text-xl font-bold mb-6">
+                    {activeTab === "Playlists" ? "You haven't created any playlists." : activeTab === "Reposts" ? "You haven't reposted any sounds." : "Seems a little quiet over here"}
+                  </p>
+                  <button className="bg-white text-black px-8 py-2 rounded font-bold hover:bg-zinc-200 transition-all uppercase">Upload now</button>
+                </div>
+              )}
             </div>
 
-            {/* --- SECTION 3: MAIN LAYOUT (Feed & Sidebar) --- */}
-            <div className="container mx-auto px-8 py-12 flex flex-col lg:flex-row gap-12 text-left">
-              {/* Main Content Area (Feed Section) */}
-              <div className="flex-1 text-center py-20 border-r border-zinc-900/50 pr-12 flex flex-col items-center justify-center">
-                <p className="text-zinc-500 text-xl font-bold mb-6">
-                  {activeTab === "Playlists"
-                    ? "You haven't created any playlists."
-                    : activeTab === "Reposts"
-                      ? "You haven't reposted any sounds."
-                      : "Seems a little quiet over here"}
-                </p>
-                {activeTab !== "Playlists" && activeTab !== "Reposts" && (
-                  <button className="bg-white text-black px-8 py-2 rounded font-bold hover:bg-zinc-200 transition-all uppercase">
-                    Upload now
-                  </button>
-                )}
-              </div>
+            <ProfileSidebar 
+              followingCount={followingCount}
+              followersCount={followersCount}
+              tracksCount={tracksCount}
+              displayUsers={displayUsers}
+              links={links}
+              toggleFollow={toggleFollow}
+              setViewState={setViewState}
+              setDetailTab={setDetailTab}
+              favoriteGenres={controller.favoriteGenres}
+              suggestedUsers={suggestedUsers}
+            />
+          </div>
+        </>
+      )}
 
-              {/* Sidebar Column: Contains stats, genres, and social links */}
-              <div className="w-full lg:w-[320px] space-y-10">
-                {/* Fragmented Statistics Component */}
-                <Stats
-                  followers={controller.followersCount}
-                  following={controller.followingCount}
-                  tracks={controller.tracksCount}
-                />
+      {/* --- MODALS --- */}
+      <EditProfileModal
+        isOpen={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+        data={{
+          displayName,
+          handle: controller.handle,
+          bio,
+          location,
+          website,
+          accountType,
+          favoriteGenres: controller.favoriteGenres,
+          genres: controller.genres.flat(),
+          links: controller.links,
+          isPrivate: controller.isPrivate,
+          error: controller.error,
+          isSaving: controller.isSaving,
+        }}
+        handlers={controller}
+      />
 
-                {/* Dynamic Favorite Genre Display */}
-                {favoriteGenres.length > 0 && (
-                  <div className="space-y-1 mt-6 border-t border-zinc-900 pt-4">
-                    <p className="text-zinc-500 text-[10px] font-bold uppercase mb-1">
-                      Favorite Genre
-                    </p>
-                    {favoriteGenres.map((g) => (
-                      <p key={g} className="text-sm font-bold text-white flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
-                        {g}
-                      </p>
-                    ))}
-                  </div>
-                )}
+      <ShareModal isOpen={isShareOpen} onClose={() => setIsShareOpen(false)} {...controller} />
 
-                {/* Fragmented Social Links List */}
-                <SocialLinksList links={links} />
-
-                {/* Following Preview Section */}
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center text-zinc-500 text-[13px] border-b border-zinc-900 pb-2">
-                    <p className="flex items-center gap-2 font-bold uppercase">
-                      👥 1 Following
-                    </p>
-                    <button
-                      onClick={() => {
-                        setViewState("details");
-                        setDetailTab("Following");
-                      }}
-                      className="hover:text-white transition-colors font-bold uppercase"
-                    >
-                      View all
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-3 p-2 hover:bg-zinc-900/40 rounded transition-all cursor-pointer">
-                    <div className="w-10 h-10 rounded-full bg-blue-900"></div>
-                    <p className="text-sm font-bold">
-                      Travis Scott <span className="text-blue-400">✓</span>
-                    </p>
-                  </div>
-                </div>
-              </div>
+      {showSuccessToast && (
+        <div className="fixed top-20 right-10 z-[100] animate-in slide-in-from-right duration-300">
+          <div className="bg-[#333] border border-zinc-700 p-4 flex items-center gap-4 shadow-2xl rounded-sm min-w-[300px]">
+            <div className="w-12 h-12 bg-zinc-600 flex items-center justify-center rounded-sm">
+              <span className="text-zinc-400 text-2xl">👤</span>
             </div>
-          </>
-        )}
-
-        {/* --- FRAGMENTED MODALS --- */}
-
-        {/* Modal for editing profile details */}
-        <EditProfileModal
-          isOpen={controller.isEditOpen}
-          onClose={() => controller.setIsEditOpen(false)}
-          data={{
-            displayName: controller.displayName,
-            handle: controller.handle,
-            bio: controller.bio,
-            location: controller.location,
-            website: controller.website,
-            accountType: controller.accountType,
-            favoriteGenres: controller.favoriteGenres,
-            genres: controller.genres,
-            links: controller.links,
-            isPrivate: controller.isPrivate,
-            error: controller.error,
-            isSaving: controller.isSaving,
-          }}
-          handlers={controller}
-        />
-
-        {/* Share Modal Implementation */}
-        {isShareOpen && (
-          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-            <div className="bg-[#1a1a1a] w-full max-w-125 rounded-sm border border-[#333] shadow-2xl overflow-hidden relative">
-              {/* Modal Internal Tabs */}
-              <div className="flex border-b border-[#333]">
-                <button
-                  onClick={() => setShareTab("Share")}
-                  className={`px-6 py-4 text-sm font-bold transition-all uppercase ${shareTab === "Share" ? "text-white border-b-2 border-white" : "text-zinc-500 hover:text-white"}`}
-                >
-                  Share
-                </button>
-                <button
-                  onClick={() => setShareTab("Message")}
-                  className={`px-6 py-4 text-sm font-bold transition-all uppercase ${shareTab === "Message" ? "text-white border-b-2 border-white" : "text-zinc-500 hover:text-white"}`}
-                >
-                  Message
-                </button>
-              </div>
-              <div className="p-8 space-y-8">
-                {shareTab === "Share" ? (
-                  <>
-                    {/* Social Icon Grid with Official Colors */}
-                    <div className="flex gap-4 mb-10">
-                      <div
-                        title="Twitter"
-                        className="w-12.5 h-12.5 rounded-full bg-[#1DA1F2] flex items-center justify-center cursor-pointer hover:opacity-80 transition-all shadow-lg"
-                      >
-                        <FaTwitter size={30} />
-                      </div>
-                      <div
-                        title="Facebook"
-                        className="w-12.5 h-12.5 rounded-full bg-[#1877F2] flex items-center justify-center cursor-pointer hover:opacity-80 transition-all shadow-lg "
-                      >
-                        <FaFacebook size={30} />
-                      </div>
-                      <div
-                        title="Tumblr"
-                        className="w-12.5 h-12.5 rounded-full bg-[#35465C] flex items-center justify-center cursor-pointer hover:opacity-80 transition-all shadow-lg"
-                      >
-                        <TiSocialTumbler size={50} />
-                      </div>
-                      <div
-                        title="Pinterest"
-                        className="w-12.5 h-12.5 rounded-full bg-[#E60023] flex items-center justify-center cursor-pointer hover:opacity-80 transition-all shadow-lg"
-                      >
-                        <FaPinterest size={30} />
-                      </div>
-                      <div
-                        title="Email"
-                        className="w-12.5 h-12.5 rounded-full bg-[#333] flex items-center justify-center cursor-pointer hover:opacity-80 transition-all shadow-lg border border-zinc-700"
-                      >
-                        <HiOutlineEnvelope size={30} />
-                      </div>
-                    </div>
-                    {/* Link Copy UI */}
-                    <div className="space-y-4">
-                      <div className="bg-[#111] border border-[#333] p-1 rounded flex items-center justify-between group">
-                        <input
-                          readOnly
-                          value={isShortened ? shortLink : longLink}
-                          className="bg-transparent text-[13px] text-zinc-300 w-full outline-none px-2 font-bold"
-                        />
-                        <button
-                          onClick={copyToClipboard}
-                          className={`px-4 py-1.5 rounded text-xs font-bold transition-all uppercase ${copied ? "bg-green-600" : "bg-white text-black"}`}
-                        >
-                          {copied ? "Copied!" : "Copy"}
-                        </button>
-                      </div>
-                      {/* Link Shortening Toggle */}
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="checkbox"
-                          id="shorten"
-                          checked={isShortened}
-                          onChange={() => setIsShortened(!isShortened)}
-                          className="w-5 h-5 accent-white"
-                        />
-                        <label
-                          htmlFor="shorten"
-                          className="text-sm text-white font-bold uppercase"
-                        >
-                          Shorten link
-                        </label>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  /* Direct Message UI within Modal */
-                  <div className="space-y-4 animate-in fade-in duration-300 text-left">
-                    <div>
-                      <label className="block text-xs font-bold mb-1 uppercase text-zinc-400">
-                        To <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full bg-[#111] border border-[#333] p-2 rounded outline-none focus:border-white text-sm font-bold uppercase"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold mb-1 uppercase text-zinc-400">
-                        Message <span className="text-red-500">*</span>
-                      </label>
-                      <textarea
-                        defaultValue={longLink}
-                        className="w-full bg-[#111] border border-[#333] p-2 rounded h-32 outline-none focus:border-white text-sm resize-none font-bold uppercase"
-                      />
-                    </div>
-                    <div className="flex justify-end pt-2">
-                      <button className="bg-white text-black px-6 py-1.5 rounded font-bold text-sm hover:bg-zinc-200 uppercase">
-                        Send
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-              {/* Modal Exit Button */}
-              <button
-                onClick={() => setIsShareOpen(false)}
-                className="absolute top-4 right-4 text-zinc-500 hover:text-white text-xl uppercase"
-              >
-                ×
-              </button>
+            <div>
+              <p className="text-white text-sm font-bold">Your profile has been updated successfully.</p>
             </div>
           </div>
-        )}
-
-        {/* --- NOTIFICATION LAYER --- */}
-        {/* Toast notification for successful updates */}
-        {showSuccessToast && (
-          <div className="fixed top-20 right-10 z-100 animate-in slide-in-from-right duration-300">
-            <div className="bg-[#333] border border-zinc-700 p-4 flex items-center gap-4 shadow-2xl rounded-sm min-w-75">
-              <div className="w-12 h-12 bg-zinc-600 flex items-center justify-center rounded-sm">
-                <span className="text-zinc-400 text-2xl">👤</span>
-              </div>
-              <div>
-                <p className="text-white text-sm font-bold">
-                  Your profile has been updated
-                </p>
-                <p className="text-white text-sm font-bold">successfully.</p>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
