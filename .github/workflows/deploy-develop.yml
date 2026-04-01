@@ -47,8 +47,8 @@ jobs:
             cd /home/ec2-user/dev/Frontend
             
             # Pull the new image and restart the containers
-            docker compose pull
-            docker compose up -d
+            docker-compose pull
+            docker-compose up -d
             
             # Clean up old Docker images to prevent disk space crash
             docker system prune -a -f
