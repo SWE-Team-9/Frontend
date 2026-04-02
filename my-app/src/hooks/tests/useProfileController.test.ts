@@ -111,9 +111,9 @@ it('should increment followingCount when a user is followed', async () => {
     expect(result.current.followingCount).toBe(0);
 
     // Simulate following 'usr_301'
-    await act(async () => {
-      result.current.toggleFollow('usr_301');
-    });
+    // await act(async () => {
+    //   result.current.toggleFollow(usr_301);
+    // });
 
     // Check if count is now 1
     expect(result.current.followingCount).toBe(1);

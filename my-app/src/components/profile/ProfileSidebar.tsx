@@ -22,14 +22,16 @@ interface SidebarSocialLink {
   url: string;
 }
 
-// 1. أضيفي هذا النوع الجديد للاقتراحات
 interface SuggestedUser {
   id: number;
   name: string;
-  reason: string;      // هذا هو الحقل المطلوب للاقتراحات
+  reason: string;     
   isFollowing: boolean;
   avatar: string;
 }
+/**
+ * Sidebar component properties
+ */
 
 interface ProfileSidebarProps {
   followingCount: number;
@@ -42,23 +44,12 @@ interface ProfileSidebarProps {
   toggleFollow: (id: number) => void;
   setViewState: (view: string) => void;
   setDetailTab: (tab: string) => void;
+  
 }
 
 
-/**
- * Sidebar component properties
- */
-interface ProfileSidebarProps {
-  followingCount: number;
-  followersCount: number;
-  tracksCount: number;
-  displayUsers: SidebarUser[];
-  links: SidebarSocialLink[];
-  favoriteGenres?: string[];
-  toggleFollow: (id: number) => void;
-  setViewState: (view: string) => void;
-  setDetailTab: (tab: string) => void;
-}
+
+
 
 export const ProfileSidebar = ({
   followingCount,
@@ -78,7 +69,7 @@ export const ProfileSidebar = ({
         <Stats
           followers={followersCount}
           following={followingCount}
-          tracks={tracksCount}
+         tracks={tracksCount}
         />
       </div>
 

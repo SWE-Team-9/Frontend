@@ -2,6 +2,8 @@ import { useProfileStore } from "@/src/store/useProfileStore";
 import { useState, useEffect, useCallback, useRef, useMemo} from "react";
 import { socialService } from "@/src/services/socialService";
 // import { useParams } from "next/navigation";
+import { TrackList } from '@/src/components/tracks/TrackList';
+
 import {
   getMyProfile,
   updateMyProfile,
@@ -54,7 +56,7 @@ export const useProfileController = (targetUserId?: string) => {
   const activeId = targetUserId || store.handle || "me";
 
   // ---- UI state ----
-  const [activeTab, setActiveTab] = useState("All");
+  // const [activeTab, setActiveTab] = useState("All");
   const [viewState, setViewState] = useState("profile");
   const [detailTab, setDetailTab] = useState("Following");
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -71,7 +73,7 @@ export const useProfileController = (targetUserId?: string) => {
   const [searchQuery, setSearchQuery] = useState(""); 
   const [currentPage, setCurrentPage] = useState(1); 
   const favoriteGenres = store.favoriteGenres;
-
+const [activeTab, setActiveTab] = useState("Tracks");
   // ---- Static data ----
   const tabs = [
     "All",
@@ -337,6 +339,7 @@ if (store.isLoaded || hasRequestedProfileRef.current || store.useMockData) retur
     },
   ]);
 
+  
   const [suggestedUsers, setSuggestedUsers] = useState([
     {
       id: 301,
@@ -497,11 +500,9 @@ if (store.isLoaded || hasRequestedProfileRef.current || store.useMockData) retur
       setFollowingList((prev) => {
         if (prev.some((u) => u.id === userId)) return prev;
 
-        // الحل هنا: بننشئ كائن مستخدم كامل البيانات (User) عشان نرضي TypeScript
         const newUser: User = {
           id: targetUser.id,
           name: targetUser.name,
-          // بنضيف قيم افتراضية للحقول الناقصة عشان الـ Interface يكمل
          handle: (targetUser as User).handle || `user_${targetUser.id}`,
           followers: (targetUser as User).followers || "0",
           tracks: (targetUser as User).tracks || 0,
@@ -567,5 +568,7 @@ if (store.isLoaded || hasRequestedProfileRef.current || store.useMockData) retur
     suggestedUsers,
     handleLoadMore,
     currentPage,
+    followingCount: followingList.length, 
+    followersCount: followersList.length,
   };
 };
