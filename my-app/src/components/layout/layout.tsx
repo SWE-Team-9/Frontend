@@ -1,6 +1,6 @@
 import SideBar from "@/src/components/ui/SideBar";
 import NavBar from "@/src/components/ui/NavBar";
-import { Player } from "@/src/components/player/Player";  //////////////manal//////////
+import { Player } from "@/src/components/player/player";  //////////////manal//////////
 export default function SideNavLayout({
   children,
 }: Readonly<{
@@ -16,8 +16,9 @@ export default function SideNavLayout({
             <NavBar />
             {children}
           </SideBar>
+          
         </div>
-          <Player />                              {/*///////manal//////*/}
+        <Player />                              {/*///////manal//////*/}
       </body>
     </html>
   );
