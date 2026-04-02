@@ -1,20 +1,47 @@
 "use client";
- import React from "react";
+
+import React from "react";
+import { useRouter } from "next/navigation";
+import NavBar from "@/src/components/ui/NavBar";
 import { FiShare } from "react-icons/fi";
 import { AvatarUpload } from "@/src/components/profile/AvatarUpload";
-import { CoverPhoto} from "@/src/components/profile/CoverPhoto";
+import { CoverPhoto } from "@/src/components/profile/CoverPhoto";
 import { GrEdit } from "react-icons/gr";
 import { FaFacebook, FaTwitter, FaPinterest } from "react-icons/fa";
 import { TiSocialTumbler } from "react-icons/ti";
 import { HiOutlineEnvelope } from "react-icons/hi2";
-import NavBar from "@/src/components/ui/NavBar";
-
 import { useProfileController } from "@/src/hooks/useProfileController";
 import { Stats } from "@/src/components/profile/sidebar/Stats";
 import { SocialLinksList } from "@/src/components/profile/sidebar/SocialLinksList";
 import { EditProfileModal } from "@/src/components/profile/modals/EditProfileModal";
 
+// Fetch current logged-in user ID
+import { useEffect, useState } from "react";
+import ProfileActionsMenu from "@/src/components/block-user/ProfileActionsMenu";
+import axios from "axios";
+
 export default function ProfilePage() {
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const response = await axios.get("/api/v1/auth/me");
+        setCurrentUserId(response.data.id);
+      } catch (err) {
+        console.error("Failed to fetch current user", err);
+      }
+    };
+
+    fetchCurrentUser();
+  }, []);
+
+  const router = useRouter();
+
+  const handleUploadClick = () => {
+    router.push("/upload");
+  };
+
   const BUTTON_STYLE =
     "bg-zinc-800/50 border border-zinc-700 px-4 py-1 rounded text-xs font-bold hover:bg-zinc-700 transition-colors uppercase flex items-center gap-2";
   const controller = useProfileController();
@@ -105,12 +132,11 @@ export default function ProfilePage() {
   );
 
   return (
-
     <div className="min-h-screen bg-[#121212] text-white font-sans overflow-x-hidden relative">
       {/* Conditional Rendering: Main Profile vs Details Page */}
       <NavBar className="max-w-7xl mx-auto px-6" />
-
-       <div className="h-16" /> {/* Spacer to prevent content from being hidden behind NavBar */}
+      <div className="h-16" />{" "}
+      {/* Spacer to prevent content from being hidden behind NavBar */}
       <div className="max-w-7xl mx-auto px-6">
         {viewState === "details" ? (
           renderDetailsPage()
@@ -120,7 +146,12 @@ export default function ProfilePage() {
             <div className="relative w-full min-h-65 bg-[#d38b7d] p-4 md:p-6 flex flex-col md:flex-row items-center md:items-start justify-between gap-4">
               <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-center text-center md:text-left mt-2">
                 <CoverPhoto />
-                 <AvatarUpload username={displayName} location={location} onUpload={handleAvatarUpload} avatarUrl={avatarUrl}/>
+                <AvatarUpload
+                  username={displayName}
+                  location={location}
+                  onUpload={handleAvatarUpload}
+                  avatarUrl={avatarUrl}
+                />
 
                 {/* User Identity Information */}
                 <div className="flex flex-col gap-1.5 items-center md:items-start">
@@ -143,9 +174,7 @@ export default function ProfilePage() {
                   )}
                 </div>
               </div>
-  
             </div>
-
 
             {/* --- SECTION 2: NAVIGATION BAR (Sticky Tabs) --- */}
             <div className="border-b border-zinc-800 bg-[#121212] sticky top-0 z-40 overflow-x-auto">
@@ -162,6 +191,7 @@ export default function ProfilePage() {
                     </li>
                   ))}
                 </ul>
+
                 {/* Global Action Buttons */}
                 <div className="flex gap-2">
                   <button
@@ -176,6 +206,13 @@ export default function ProfilePage() {
                   >
                     <GrEdit size={15} /> Edit
                   </button>
+                  {currentUserId !== controller.userId && (
+                    <ProfileActionsMenu
+                      userId={controller.userId}
+                      displayName={controller.displayName}
+                      isBlocked={false}
+                    />
+                  )}
                 </div>
               </div>
             </div>
@@ -192,7 +229,10 @@ export default function ProfilePage() {
                       : "Seems a little quiet over here"}
                 </p>
                 {activeTab !== "Playlists" && activeTab !== "Reposts" && (
-                  <button className="bg-white text-black px-8 py-2 rounded font-bold hover:bg-zinc-200 transition-all uppercase">
+                  <button
+                    onClick={handleUploadClick}
+                    className="bg-white text-black px-8 py-2 rounded font-bold hover:bg-zinc-200 transition-all uppercase"
+                  >
                     Upload now
                   </button>
                 )}
@@ -214,7 +254,10 @@ export default function ProfilePage() {
                       Favorite Genre
                     </p>
                     {favoriteGenres.map((g) => (
-                      <p key={g} className="text-sm font-bold text-white flex items-center gap-2">
+                      <p
+                        key={g}
+                        className="text-sm font-bold text-white flex items-center gap-2"
+                      >
                         <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
                         {g}
                       </p>

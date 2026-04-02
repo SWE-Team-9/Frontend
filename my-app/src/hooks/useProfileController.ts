@@ -74,6 +74,7 @@ export const useProfileController = () => {
 
       // Convert the backend response into our store shape
       store.setProfileData({
+        userId: profile.id,
         displayName: profile.displayName ?? "",
         handle: profile.handle ?? "",
         bio: profile.bio ?? "",

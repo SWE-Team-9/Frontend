@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { useUploadStore } from "@/src/store/uploadStore";
+import { useUploadStore } from "@/src/store/useuploadStore";
 import FileStatusBadge from "@/src/components/ui/FileStatusBadge";
 
 interface FileStatus {

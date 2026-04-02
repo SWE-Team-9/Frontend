@@ -1,14 +1,10 @@
 "use client";
-
-import { useState } from "react";
-
 interface Props {
   isBlocked: boolean;
   onClick: () => void;
 }
 
 export default function BlockButton({ isBlocked, onClick }: Props) {
-  const [open, setOpen] = useState(false);
 
   return (
     <>
