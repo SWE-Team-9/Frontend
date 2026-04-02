@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useRef } from "react";
-import { useUploadStore } from "@/src/store/uploadStore";
+import React, { useRef, useState } from "react";
+import { useUploadStore } from "@/src/store/useuploadStore";
 import { IoIosCloudUpload } from "react-icons/io";
 
 // Handles file selection via click or drag-and-drop,
@@ -13,7 +13,7 @@ interface DropzoneProps {
 
 const Dropzone: React.FC<DropzoneProps> = ({ onFilesAdded }) => {
   const { addFile } = useUploadStore();
-
+  const [isDragActive, setIsDragActive] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null); // Ref to the hidden file input element
 
   // Converts FileList to an array and adds each file to the store
@@ -23,10 +23,33 @@ const Dropzone: React.FC<DropzoneProps> = ({ onFilesAdded }) => {
     onFilesAdded?.(arr);
   };
 
+  // Drag & Drop Handlers
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragActive(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragActive(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFiles(e.dataTransfer.files);
+      e.dataTransfer.clearData();
+    }
+  };
+
   return (
     <div
       className="border-2 border-dashed border-neutral-600 rounded-lg p-10 flex flex-col items-center justify-center cursor-pointer hover:border-white transition h-96 w-full"
       onClick={() => inputRef.current?.click()}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
     >
       <input
         type="file"
