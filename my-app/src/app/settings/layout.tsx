@@ -7,7 +7,9 @@ export default function SettingsLayout({
   return (
     <div className="font-sans text-white min-h-screen max-w-7xl mx-auto">
       <NavBar className="sticky top-0 z-50" />
-      <SideBar showSidebar={false}>{children}</SideBar>
+      <main className="flex justify-center w-full px-4 py-8">
+        <div className="w-full max-w-2xl">{children}</div>
+      </main>
     </div>
   );
 }
