@@ -14,10 +14,19 @@ import { Stats } from "@/src/components/profile/sidebar/Stats";
 import { SocialLinksList } from "@/src/components/profile/sidebar/SocialLinksList";
 import { EditProfileModal } from "@/src/components/profile/modals/EditProfileModal";
 
+// related to SPRINT 2: Import the store to sync the numbers
+import { useFollowStore } from "@/src/store/followStore";
+
 export default function ProfilePage() {
   const BUTTON_STYLE =
     "bg-zinc-800/50 border border-zinc-700 px-4 py-1 rounded text-xs font-bold hover:bg-zinc-700 transition-colors uppercase flex items-center gap-2";
+  
   const controller = useProfileController();
+
+  // related to SPRINT 2: Get the real-time following list and count
+  const followingList = useFollowStore((state) => state.following);
+  const realFollowingCount = followingList.length;
+
   const {
     displayName,
     location,
@@ -85,13 +94,24 @@ export default function ProfilePage() {
           </p>
         )}
         {detailTab === "Following" && (
-          <div className="flex flex-col items-center gap-4">
-            <div className="w-32 h-32 rounded-full bg-zinc-800 flex items-center justify-center border-2 border-white">
-              <span className="text-xs font-bold">TRAVIS SCOTT</span>
-            </div>
-            <p className="font-bold text-xl">
-              Travis Scott <span className="text-blue-500">✓</span>
-            </p>
+          <div className="flex flex-col items-center gap-6">
+             {/* SPRINT 2: Map through actual following list */}
+             {followingList.length > 0 ? (
+                <div className="flex flex-wrap justify-center gap-8">
+                  {followingList.map((user) => (
+                    <div key={user.id} className="flex flex-col items-center gap-4">
+                       <div className="w-32 h-32 rounded-full bg-zinc-800 flex items-center justify-center border-2 border-white uppercase text-[10px] font-bold px-2 text-center">
+                        {user.name}
+                      </div>
+                      <p className="font-bold text-xl">
+                        {user.name} <span className="text-blue-500">✓</span>
+                      </p>
+                    </div>
+                  ))}
+                </div>
+             ) : (
+              <p className="text-2xl font-bold text-zinc-500">YOU ARE NOT FOLLOWING ANYONE YET.</p>
+             )}
           </div>
         )}
         <button
@@ -203,7 +223,7 @@ export default function ProfilePage() {
                 {/* Fragmented Statistics Component */}
                 <Stats
                   followers={controller.followersCount}
-                  following={controller.followingCount}
+                  following={realFollowingCount} //  FIXED: Using real-time store count
                   tracks={controller.tracksCount}
                 />
 
@@ -229,7 +249,8 @@ export default function ProfilePage() {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center text-zinc-500 text-[13px] border-b border-zinc-900 pb-2">
                     <p className="flex items-center gap-2 font-bold uppercase">
-                      👥 1 Following
+                      {/*  FIXED: Dynamic count string */}
+                       {realFollowingCount} Following
                     </p>
                     <button
                       onClick={() => {
@@ -241,11 +262,22 @@ export default function ProfilePage() {
                       View all
                     </button>
                   </div>
-                  <div className="flex items-center gap-3 p-2 hover:bg-zinc-900/40 rounded transition-all cursor-pointer">
-                    <div className="w-10 h-10 rounded-full bg-blue-900"></div>
-                    <p className="text-sm font-bold">
-                      Travis Scott <span className="text-blue-400">✓</span>
-                    </p>
+                  
+                  {/* FIXED: Preview of followed users from store */}
+                  <div className="space-y-2">
+                    {followingList.slice(0, 3).map((user) => (
+                       <div key={user.id} className="flex items-center gap-3 p-2 hover:bg-zinc-900/40 rounded transition-all cursor-pointer">
+                        <div className="w-10 h-10 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[8px] overflow-hidden">
+                          {user.name.split(' ')[0]}
+                        </div>
+                        <p className="text-sm font-bold">
+                          {user.name} <span className="text-blue-400">✓</span>
+                        </p>
+                      </div>
+                    ))}
+                    {followingList.length === 0 && (
+                      <p className="text-[10px] text-zinc-600 italic px-2">Not following anyone yet.</p>
+                    )}
                   </div>
                 </div>
               </div>
