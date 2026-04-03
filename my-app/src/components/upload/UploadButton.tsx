@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useUploadStore } from "@/src/store/uploadStore";
 import FileStatusBadge from "@/src/components/ui/FileStatusBadge";
+import { uploadTrack, getTrackStatus } from "@/src/services/uploadService";
 
 interface FileStatus {
   name: string;
@@ -12,7 +13,7 @@ interface FileStatus {
 }
 
 const UploadButton: React.FC = () => {
-  const { files, setFiles } = useUploadStore();
+  const { files, setFiles, metadata } = useUploadStore();
   const [fileStatuses, setFileStatuses] = useState<FileStatus[]>([]);
 
   const updateFileStatus = (
@@ -36,15 +37,12 @@ const UploadButton: React.FC = () => {
   };
 
   const pollTrackStatus = async (fileName: string, trackId: string) => {
-    const interval = 2000; // 2 seconds
+    const interval = 2000;
     let status = "PROCESSING";
 
     while (status === "PROCESSING") {
       try {
-        const res = await fetch(`/api/v1/tracks/${trackId}/status`);
-        if (!res.ok) throw new Error("Failed to get track status");
-
-        const data = await res.json();
+        const data = await getTrackStatus(trackId);
         status = data.status;
 
         if (status === "PROCESSING") {
@@ -57,7 +55,7 @@ const UploadButton: React.FC = () => {
           fileName,
           "ERROR",
           undefined,
-          err.message || "Unknown error during polling",
+          err.message || "Polling error",
         );
         break;
       }
@@ -72,29 +70,10 @@ const UploadButton: React.FC = () => {
     for (const file of files) {
       updateFileStatus(file.name, "UPLOADING");
 
-      // const formData = new FormData();
-      // formData.append("audioFile", file);
-      // formData.append("tags", JSON.stringify(["exampleTag1", "exampleTag2"]));
-      const payload = {
-        fileName: file.name,
-        tags: ["exampleTag1", "exampleTag2"], // Example tags, replace with actual tags if needed
-      };
-
       try {
-        // const res = await fetch("/api/v1/tracks", {
-        //   method: "POST",
-        //   body: formData,
-        const res = await fetch("/api/v1/tracks", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json", // Set content type to JSON since we're sending a JSON payload
-          },
-          body: JSON.stringify(payload), // convert object to JSON string
-        });
+        if (!metadata) throw new Error("Metadata missing");
+        const data = await uploadTrack(file, metadata);
 
-        if (!res.ok) throw new Error("Upload failed");
-
-        const data = await res.json();
         if (data.status === "PROCESSING" && data.trackId) {
           updateFileStatus(file.name, "PROCESSING", data.trackId);
           pollTrackStatus(file.name, data.trackId);
@@ -106,7 +85,7 @@ const UploadButton: React.FC = () => {
           file.name,
           "ERROR",
           undefined,
-          err.message || "Unknown error during upload",
+          err.message || "Upload error",
         );
       }
     }
@@ -118,7 +97,7 @@ const UploadButton: React.FC = () => {
     <div>
       <button
         onClick={handleUpload}
-        className="mt-4 w-full bg-white text-lg hover:bg-gray-200 text-black font-semibold py-2 px-4 rounded disabled:opacity-50"
+        className="mt-4 w-full bg-white text-lg transition duration-300 hover:bg-[#ff5500] text-black font-bold py-2 px-4 rounded disabled:opacity-50"
         disabled={files.length === 0}
       >
         Upload {files.length > 0 ? `(${files.length}) files` : ""}
@@ -126,8 +105,10 @@ const UploadButton: React.FC = () => {
 
       <div className="mt-4 space-y-2">
         {fileStatuses.map((f) => (
-          <div key={f.name} className="flex flex-col items-center p-3 border rounded-lg">
-            
+          <div
+            key={f.name}
+            className="flex flex-col items-center p-3 border rounded-lg"
+          >
             <div className="flex flex-col items-center gap-2">
               <span className="text-sm">{f.name}</span>
               <FileStatusBadge status={f.status} />

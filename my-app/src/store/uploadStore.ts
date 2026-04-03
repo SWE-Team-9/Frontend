@@ -1,14 +1,23 @@
 import { create } from "zustand";
 
-interface UploadState {
-  files: File[]; // Array of uploaded files
+interface Metadata {
+  title: string;
+  genre: string;
+  tags: string[];
+  releaseDate: string;
+}
+interface UploadStore {
+  files: File[];
+  metadata: Metadata | null;
   setFiles: (files: File[]) => void; // Function to set the entire files array
   addFile: (file: File) => void; // Function to add a single file to the array
   removeFile: (index: number) => void; // Function to remove a file by its index
+  setMetadata: (metadata: Metadata) => void; // Function to set the metadata for the track
 }
 
-export const useUploadStore = create<UploadState>((set) => ({
+export const useUploadStore = create<UploadStore>((set) => ({
   files: [], // Initial state: empty array of files
+  metadata: null, // Initial state: no metadata
 
   setFiles: (files) => set({ files }), // Replace the entire files array
 
@@ -19,4 +28,6 @@ export const useUploadStore = create<UploadState>((set) => ({
     set((state) => ({
       files: state.files.filter((_, i) => i !== index),
     })),
+    
+  setMetadata: (metadata) => set({ metadata }), // Set the metadata for the track
 }));
