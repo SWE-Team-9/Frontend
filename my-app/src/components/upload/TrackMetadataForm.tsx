@@ -4,6 +4,13 @@ import React, { useRef, useState } from "react";
 import UploadButton from "@/src/components/upload/UploadButton";
 import { useUploadStore } from "@/src/store/useUploadStore";
 
+interface FormErrors {
+  title?: string;
+  genre?: string;
+  tags?: string;
+  releaseDate?: string;
+}
+
 const TrackMetadataForm = () => {
   const { setMetadata } = useUploadStore();
 
@@ -12,13 +19,32 @@ const TrackMetadataForm = () => {
   const [tags, setTags] = useState("");
   const [saved, setSaved] = useState(false);
   const [releaseDate, setReleaseDate] = useState("");
-  const releaseInputRef = useRef<HTMLInputElement>(null);
   const [visibility, setVisibility] = useState<"PUBLIC" | "PRIVATE">("PRIVATE");
+  const [errors, setErrors] = useState<FormErrors>({});
+
+  const releaseInputRef = useRef<HTMLInputElement>(null);
   const handleDateClick = () => {
     releaseInputRef.current?.showPicker?.();
   };
 
+  const validate = (): boolean => {
+    const newErrors: FormErrors = {};
+
+    if (!title.trim()) newErrors.title = "Track title is required.";
+    if (!genre.trim()) newErrors.genre = "Genre is required.";
+    if (!tags.trim()) newErrors.tags = "At least one tag is required.";
+    if (!releaseDate) newErrors.releaseDate = "Release date is required.";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSaveMetadata = () => {
+    if (!validate()) {
+      setTimeout(() => setErrors({}), 3000);
+      return;
+    }
+
     setMetadata({
       title,
       genre,
@@ -28,24 +54,30 @@ const TrackMetadataForm = () => {
     });
     setSaved(true);
     setTimeout(() => {
-    setSaved(false);
-  }, 3000); // Hide message after 3 seconds
+      setSaved(false);
+    }, 3000); // Hide message after 3 seconds
   };
 
   return (
     <div className="max-w-2xl w-full bg-[#121212] p-6 rounded-xl">
-      <h1 className="text-3xl font-bold text-white mb-6">Track Info</h1>
+      <h1 className="text-3xl font-bold text-white mb-6 text-center">Track Info</h1>
 
       {/* Title */}
-      <div className="flex flex-col gap-1">
-        <label className="font-medium pb-2 text-xl">Track Title</label>
+      <div className="flex flex-col gap-1">     
+        <label className="font-medium pb-2 text-xl">Track Title</label> 
         <input
-          placeholder="Enter Track Title"
-          required
-          className="w-full mb-4 p-2 rounded border border-[#8c8c8c]"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
+        placeholder="Enter Track Title"
+        className={`w-full mb-1 p-2 rounded border ${errors.title ? "border-red-500" : "border-[#8c8c8c]"}`}
+        value={title}
+        onChange={(e) => {
+          setTitle(e.target.value);
+          if (errors.title)
+            setErrors((prev) => ({ ...prev, title: undefined }));
+        }}
+      />
+      {errors.title && (
+        <p className="text-red-500 text-sm mb-3">{errors.title}</p>
+      )}
       </div>
 
       {/* Genre */}
@@ -53,10 +85,17 @@ const TrackMetadataForm = () => {
         <label className="font-medium pb-2 text-xl">Genre</label>
         <input
           placeholder="Enter Genre"
-          className="w-full mb-4 p-2 rounded border border-[#8c8c8c]"
+          className={`w-full mb-4 p-2 rounded border ${errors.genre ? "border-red-500" : "border-[#8c8c8c]"}`}
           value={genre}
-          onChange={(e) => setGenre(e.target.value)}
+          onChange={(e) => {
+            setGenre(e.target.value);
+            if (errors.genre)
+              setErrors((prev) => ({ ...prev, genre: undefined }));
+          }}
         />
+        {errors.genre && (
+          <p className="text-red-500 text-sm mb-3">{errors.genre}</p>
+        )}
       </div>
 
       {/* Tags */}
@@ -64,10 +103,17 @@ const TrackMetadataForm = () => {
         <label className="font-medium pb-2 text-xl">Tags</label>
         <input
           placeholder="Tags (comma separated)"
-          className="w-full mb-4 p-2 rounded border border-[#8c8c8c]"
+          className={`w-full mb-4 p-2 rounded border ${errors.tags ? "border-red-500" : "border-[#8c8c8c]"}`}
           value={tags}
-          onChange={(e) => setTags(e.target.value)}
+          onChange={(e) => {
+            setTags(e.target.value);
+            if (errors.tags)
+              setErrors((prev) => ({ ...prev, tags: undefined }));
+          }}
         />
+        {errors.tags && (
+          <p className="text-red-500 text-sm mb-3">{errors.tags}</p>
+        )}  
       </div>
 
       {/* Release Date */}
@@ -77,10 +123,17 @@ const TrackMetadataForm = () => {
           ref={releaseInputRef}
           type="date"
           value={releaseDate}
-          onChange={(e) => setReleaseDate(e.target.value)}
+          onChange={(e) => {
+            setReleaseDate(e.target.value);
+            if (errors.releaseDate)
+              setErrors((prev) => ({ ...prev, releaseDate: undefined }));
+          }}
           onClick={handleDateClick} // triggers calendar popup
-          className="w-full mb-6 p-2 rounded border border-[#8c8c8c]"
+          className={`w-full mb-6 p-2 rounded border ${errors.releaseDate ? "border-red-500" : "border-[#8c8c8c]"}`}
         />
+        {errors.releaseDate && (
+          <p className="text-red-500 text-sm mb-3">{errors.releaseDate}</p>
+        )}
       </div>
 
       {/* Visibility */}
