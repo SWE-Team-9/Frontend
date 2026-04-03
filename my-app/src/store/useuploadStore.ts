@@ -5,6 +5,7 @@ interface Metadata {
   genre: string;
   tags: string[];
   releaseDate: string;
+  visibility: "PUBLIC" | "PRIVATE";
 }
 interface UploadStore {
   files: File[];

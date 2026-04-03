@@ -1,20 +1,29 @@
 "use client";
 
 import React, { useState } from "react";
-import { useUploadStore } from "@/src/store/useuploadStore";
+import { useUploadStore } from "@/src/store/useUploadStore";
 import FileStatusBadge from "@/src/components/ui/FileStatusBadge";
-import { uploadTrack, getTrackStatus } from "@/src/services/uploadService";
+// import { uploadTrack, getTrackStatus, getTrackDetails, changeTrackVisibility } from "@/src/services/uploadService";
+import {
+  uploadTrack,
+  getTrackStatus,
+  getTrackDetails,
+  changeTrackVisibility,
+} from "@/src/services/uploadService.mock"; // For testing without backend
+import { useRouter } from "next/navigation";
 
 interface FileStatus {
   name: string;
   status: "PENDING" | "UPLOADING" | "PROCESSING" | "DONE" | "ERROR";
   trackId?: string;
   errorMessage?: string;
+  resolvedTrackId?: string; // store it for redirect
 }
 
 const UploadButton: React.FC = () => {
   const { files, setFiles, metadata } = useUploadStore();
   const [fileStatuses, setFileStatuses] = useState<FileStatus[]>([]);
+  const router = useRouter();
 
   const updateFileStatus = (
     fileName: string,
@@ -30,6 +39,7 @@ const UploadButton: React.FC = () => {
               status,
               trackId: trackId ?? f.trackId,
               errorMessage: errorMessage ?? f.errorMessage,
+              resolvedTrackId: trackId ?? f.resolvedTrackId,
             }
           : f,
       ),
@@ -48,7 +58,15 @@ const UploadButton: React.FC = () => {
         if (status === "PROCESSING") {
           await new Promise((r) => setTimeout(r, interval));
         } else {
-          updateFileStatus(fileName, "DONE");
+          // Fetch full track details (non-critical — we proceed regardless)
+          try {
+            await getTrackDetails(trackId);
+          } catch {
+            // ignore — still mark done and redirect
+          }
+
+          updateFileStatus(fileName, "DONE", trackId);
+          router.push(`/tracks/${trackId}`); // always redirect after done
         }
       } catch (err: any) {
         updateFileStatus(
@@ -75,6 +93,8 @@ const UploadButton: React.FC = () => {
         const data = await uploadTrack(file, metadata);
 
         if (data.status === "PROCESSING" && data.trackId) {
+          // Set the visibility the user chose before polling starts
+          await changeTrackVisibility(data.trackId, metadata.visibility);
           updateFileStatus(file.name, "PROCESSING", data.trackId);
           pollTrackStatus(file.name, data.trackId);
         } else {

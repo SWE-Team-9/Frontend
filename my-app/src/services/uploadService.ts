@@ -23,7 +23,7 @@ export interface TrackDetails {
 }
 
 // ===============================
-//  UPLOAD TRACK
+//  UPLOAD TRACK ✔️
 // ===============================
 export const uploadTrack = async (
   file: File,
@@ -55,7 +55,7 @@ export const uploadTrack = async (
 };
 
 // ===============================
-//  GET TRACK DETAILS
+//  GET TRACK DETAILS ✔️
 // ===============================
 export const getTrackDetails = async (
   trackId: string
@@ -70,7 +70,7 @@ export const getTrackDetails = async (
 };
 
 // ===============================
-//  GET TRACK STATUS
+//  GET TRACK STATUS ✔️
 // ===============================
 export const getTrackStatus = async (trackId: string) => {
   const res = await fetch(`/api/v1/tracks/${trackId}/status`);
@@ -83,7 +83,7 @@ export const getTrackStatus = async (trackId: string) => {
 };
 
 // ===============================
-//  UPDATE TRACK METADATA
+//  UPDATE TRACK METADATA (Edit Track) 
 // ===============================
 export const updateTrackMetadata = async (
   trackId: string,
@@ -141,7 +141,7 @@ export const getUserTracks = async (
 };
 
 // ===============================
-//  CHANGE TRACK VISIBILITY
+//  CHANGE TRACK VISIBILITY ✔️
 // ===============================
 export const changeTrackVisibility = async (
   trackId: string,

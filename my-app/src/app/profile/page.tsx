@@ -206,7 +206,7 @@ export default function ProfilePage() {
                   >
                     <GrEdit size={15} /> Edit
                   </button>
-                  {currentUserId !== controller.userId && (
+                  {currentUserId !== controller.userId && ( // Only show Block menu if viewing someone else's profile
                     <ProfileActionsMenu
                       userId={controller.userId}
                       displayName={controller.displayName}

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useState } from "react";
-import { useUploadStore } from "@/src/store/useuploadStore";
+import { useUploadStore } from "@/src/store/useUploadStore";
 import { IoIosCloudUpload } from "react-icons/io";
 
 // Handles file selection via click or drag-and-drop,

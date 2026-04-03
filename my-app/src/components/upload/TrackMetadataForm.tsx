@@ -2,7 +2,7 @@
 
 import React, { useRef, useState } from "react";
 import UploadButton from "@/src/components/upload/UploadButton";
-import { useUploadStore } from "@/src/store/useuploadStore";
+import { useUploadStore } from "@/src/store/useUploadStore";
 
 const TrackMetadataForm = () => {
   const { setMetadata } = useUploadStore();
@@ -10,9 +10,11 @@ const TrackMetadataForm = () => {
   const [title, setTitle] = useState("");
   const [genre, setGenre] = useState("");
   const [tags, setTags] = useState("");
+  const [saved, setSaved] = useState(false);
   const [releaseDate, setReleaseDate] = useState("");
   const releaseInputRef = useRef<HTMLInputElement>(null);
-   const handleDateClick = () => {
+  const [visibility, setVisibility] = useState<"PUBLIC" | "PRIVATE">("PRIVATE");
+  const handleDateClick = () => {
     releaseInputRef.current?.showPicker?.();
   };
 
@@ -22,7 +24,12 @@ const TrackMetadataForm = () => {
       genre,
       tags: tags.split(",").map((t) => t.trim()),
       releaseDate,
+      visibility,
     });
+    setSaved(true);
+    setTimeout(() => {
+    setSaved(false);
+  }, 3000); // Hide message after 3 seconds
   };
 
   return (
@@ -64,17 +71,46 @@ const TrackMetadataForm = () => {
       </div>
 
       {/* Release Date */}
-     <div className="flex flex-col gap-1">
-      <label className="font-medium pb-2 text-xl">Release Date</label>
-      <input
-        ref={releaseInputRef}
-        type="date"
-        value={releaseDate}
-        onChange={(e) => setReleaseDate(e.target.value)}
-        onClick={handleDateClick} // triggers calendar popup
-        className="w-full mb-6 p-2 rounded border border-[#8c8c8c]"
-      />
-    </div>
+      <div className="flex flex-col gap-1">
+        <label className="font-medium pb-2 text-xl">Release Date</label>
+        <input
+          ref={releaseInputRef}
+          type="date"
+          value={releaseDate}
+          onChange={(e) => setReleaseDate(e.target.value)}
+          onClick={handleDateClick} // triggers calendar popup
+          className="w-full mb-6 p-2 rounded border border-[#8c8c8c]"
+        />
+      </div>
+
+      {/* Visibility */}
+      <div className="flex flex-col gap-1">
+        <label className="font-medium pb-2 text-xl">Visibility</label>
+        <div className="flex gap-3 mb-6">
+          <button
+            type="button"
+            onClick={() => setVisibility("PUBLIC")}
+            className={`flex-1 py-2 rounded border font-bold transition duration-300 ${
+              visibility === "PUBLIC"
+                ? "bg-white text-black border-white"
+                : "bg-transparent text-[#8c8c8c] border-[#8c8c8c]"
+            }`}
+          >
+            Public
+          </button>
+          <button
+            type="button"
+            onClick={() => setVisibility("PRIVATE")}
+            className={`flex-1 py-2 rounded border font-bold transition duration-300 ${
+              visibility === "PRIVATE"
+                ? "bg-white text-black border-white"
+                : "bg-transparent text-[#8c8c8c] border-[#8c8c8c]"
+            }`}
+          >
+            Private
+          </button>
+        </div>
+      </div>
 
       {/* Save Info */}
       <button
@@ -83,6 +119,11 @@ const TrackMetadataForm = () => {
       >
         Save Info
       </button>
+      {saved && (
+        <p className="text-green-500 font-semibold text-center">
+          Track Info Saved Successfully!
+        </p>
+      )}
 
       {/* Upload Button */}
       <UploadButton />

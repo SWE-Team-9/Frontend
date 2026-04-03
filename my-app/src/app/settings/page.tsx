@@ -13,7 +13,7 @@ import {
 } from "@/src/services/authService";
 import AuthInput from "@/src/components/auth/AuthInput";
 import BlockedUsersList from "@/src/components/block-user/BlockedUsersList";
-import { useBlockStore } from "@/src/store/useblockStore";
+import { useBlockStore } from "@/src/store/useBlockStore";
 import BlockButton from "@/src/components/block-user/BlockButton";
 
 // ─── Validation helpers ──────────────────────────────────────────────────────

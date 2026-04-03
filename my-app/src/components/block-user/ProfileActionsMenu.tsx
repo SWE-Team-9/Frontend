@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useBlockStore } from "@/src/store/useblockStore";
+import { useBlockStore } from "@/src/store/useBlockStore";
 import { MdMoreVert } from "react-icons/md";
 import ConfirmModal from "@/src/components/block-user/ConfirmModal";
 

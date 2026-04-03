@@ -2,7 +2,7 @@
 
 import React from "react";
 import Dropzone from "@/src/components/upload/Dropzone";
-import { useUploadStore } from "@/src/store/useuploadStore";
+import { useUploadStore } from "@/src/store/useUploadStore";
 import { MdDeleteForever } from "react-icons/md";
 
 interface Props {

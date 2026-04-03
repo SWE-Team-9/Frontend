@@ -179,8 +179,6 @@ const NavBar: React.FC<NavBarProps> = ({
             />
           </div>
 
-          {/* <FaSoundcloud size={48} className="text-white shrink-0" /> */}
-
           <button
             className="md:hidden text-white"
             onClick={() => toggleMenu("mobile")}
@@ -207,7 +205,7 @@ const NavBar: React.FC<NavBarProps> = ({
             <input
               type="text"
               placeholder="Search"
-              className="bg-neutral-800 text-white text-sm px-4 py-1 rounded-md outline-none w-32 sm:w-48 md:w-72 lg:w-96"
+              className="bg-neutral-800 text-white text-sm px-4 py-1 rounded-md outline-none w-32 sm:w-48 md:w-72 lg:w-86"
             />
             <FiSearch
               className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none"
@@ -237,15 +235,17 @@ const NavBar: React.FC<NavBarProps> = ({
               className="relative flex items-center gap-1 cursor-pointer"
               onClick={() => toggleMenu("profile")}
             >
-              {/* <Image
+              <Image
                 src={profileImageSrc}
+                width={24}
+                height={24}
                 alt={displayLabel || "Profile"}
                 className="w-6 h-6 rounded-full object-cover"
                 onError={(e) => {
                   e.currentTarget.onerror = null;
                   e.currentTarget.src = "/images/profile.png";
                 }}
-              /> */}
+              />
               {/* Show the user's display name (or handle / email prefix) when logged in */}
               {displayLabel && (
                 <span className="hidden lg:block text-white text-sm font-medium max-w-24 truncate">
