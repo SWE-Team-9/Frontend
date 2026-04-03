@@ -2,7 +2,7 @@
 
 import React, { useRef, useState } from "react";
 import UploadButton from "@/src/components/upload/UploadButton";
-import { useUploadStore } from "@/src/store/uploadStore";
+import { useUploadStore } from "@/src/store/useuploadStore";
 
 const TrackMetadataForm = () => {
   const { setMetadata } = useUploadStore();
