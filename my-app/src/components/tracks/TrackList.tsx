@@ -8,6 +8,7 @@ interface TrackListProps {
   tracks: Track[];
   setTracks: React.Dispatch<React.SetStateAction<Track[]>>;
 }
+
 /**
  * TrackList: The main management container for an artist's uploaded audio.
  * It handles the data flow, loading states, and management actions (Edit/Delete).
@@ -24,43 +25,41 @@ export const TrackList: React.FC<TrackListProps > = ({ tracks, setTracks }) => {
 
   /**
    * SECTION 2: Data Loading Logic
-   * Uses Manual Mock data to bypass server errors (404) during development.
+   * Integrated with real API call based on Page 4 of the documentation[cite: 64].
    */
   const loadTracks = async () => {
     try {
       setIsLoading(true);
+      
+      // Fetch data based on real userId [cite: 64]
+      const data = await trackService.fetchArtistTracks('usr_123'); 
+      
+      // setTracks matches the API response structure [cite: 78]
+      setTracks(data.tracks); 
 
-      // --- MANUAL MOCK DATA: Matching Module 4 Requirements ---
+    } catch (error) {
+      console.error("API Error:", error);
+      
+      // Fallback to manual mock if API fails during development
       const manualMock: Track[] = [
         { 
           trackId: 'trk_001', 
           title: 'Recording 2026-03-15 1013', 
-          status: 'FINISHED', 
+          status: 'PROCESSING', 
           visibility: 'PUBLIC', 
           artist: { avatarUrl: '' } 
         },
         { 
           trackId: 'trk_002', 
           title: 'Second Track Demo', 
-          status: 'PROCESSING', 
+          status: 'FINISHED', 
           visibility: 'PRIVATE', 
           artist: { avatarUrl: '' } 
         }
       ];
-
-      // Force mock data into state
-      setTracks(manualMock); 
-
-      /* // REAL API CALL: Uncomment this when the backend endpoint is ready
-      // const data = await trackService.fetchArtistTracks('usr_123'); 
-      setTracks(data.tracks); 
-      */
-
-    } catch (error) {
-      console.error("Failed to load tracks:", error);
+      setTracks(manualMock);
     } finally {
-      // Simulate a small delay for better UX
-      setTimeout(() => setIsLoading(false), 500);
+      setIsLoading(false);
     }
   };
 
@@ -81,12 +80,22 @@ export const TrackList: React.FC<TrackListProps > = ({ tracks, setTracks }) => {
     setIsDeleteModalOpen(true);
   };
 
-  // 3. Final confirmation function
-  const confirmDelete = () => {
+  // 3. Final confirmation function linked to real API [cite: 60]
+  const confirmDelete = async () => {
     if (trackToDelete) {
-      setTracks(prev => prev.filter(t => t.trackId !== trackToDelete.id));
-      setIsDeleteModalOpen(false);
-      setTrackToDelete(null);
+      try {
+        // 1. Notify the server first (Page 3 in PDF) [cite: 60]
+        await trackService.deleteTrack(trackToDelete.id);
+        
+        // 2. If successful, remove from UI and update counter
+        setTracks(prev => prev.filter(t => t.trackId !== trackToDelete.id));
+        
+        setIsDeleteModalOpen(false);
+        setTrackToDelete(null);
+        console.log("Track deleted from server and UI");
+      } catch (error) {
+        alert("Failed to delete track from server. Please try again.");
+      }
     }
   };
 

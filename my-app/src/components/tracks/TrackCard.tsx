@@ -41,9 +41,21 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, onEdit, onDelete })
           <span className="text-zinc-500 text-xs flex-shrink-0">in 1 day</span>
         </div>
 
-        {/* B. Middle: THE WAVEFORM PLACEHOLDER */}
+        {/* B. Middle: THE WAVEFORM OR LOADING STATUS */}
         <div className="w-full h-16 bg-zinc-800/50 rounded flex items-center justify-center border border-dashed border-zinc-700 relative">
-          <p className="text-zinc-600 text-xs italic">[ Waveform Placeholder  ]</p>
+          
+          {/* Check track status for conditional rendering */}
+          {track.status === 'PROCESSING' ? (
+            // Orange Spinner code for processing state
+            <div className="flex items-center gap-2 text-orange-500 animate-pulse">
+              <span className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" />
+              <p className="text-xs font-bold uppercase italic">Track is being processed...</p>
+            </div>
+          ) : (
+            // Placeholder for finished state (Assigned to Manal)
+            <p className="text-zinc-600 text-xs italic">[ Waveform Display  ]</p>
+          )}
+          
           <span className="absolute bottom-1 right-2 text-zinc-500 text-[10px]">2:19</span>
         </div>
 
@@ -84,7 +96,7 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, onEdit, onDelete })
           <div className="relative">
             <Menu as="div" className="relative inline-block text-left">
               <Menu.Button className="p-2.5 rounded bg-[#2a2a2a] text-zinc-400 hover:text-white hover:bg-[#3a3a3a]">
-                <MoreHorizontal className="w-4 h-4" />
+                < MoreHorizontal className="w-4 h-4" />
               </Menu.Button>
               <Transition
                 as={React.Fragment}
