@@ -102,13 +102,15 @@ body {
 /* Day names (Mon, Tue...) */
 .react-datepicker__day-name {
   font-weight: bold !important;
+  color: white !important;
 }
 
 /* Days */
 .react-datepicker__day {
-  color: #eee;
+  color: #eee !important;
   border-radius: 6px;
   transition: all 0.2s ease;
+  font-weight: 500 !important;
 }
 
 /* Hover */

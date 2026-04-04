@@ -5,6 +5,7 @@ import {
   updateMyProfile,
   updateMyLinks,
   uploadProfileImage,
+  getProfileByHandle,
 } from "@/src/services/profileService";
 
 // ─────────────────────────────────────────────────────────────
@@ -15,8 +16,9 @@ import {
 
 type AccountType = "ARTIST" | "LISTENER";
 
-export const useProfileController = () => {
+export const useProfileController = (handle?: string) => {
   const store = useProfileStore();
+  const isOwner = !handle || handle === store.handle;
 
   // ---- UI state ----
   const [activeTab, setActiveTab] = useState("All");
@@ -50,8 +52,8 @@ export const useProfileController = () => {
   // ---- Profile links for the share modal ----
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const longLink = store.handle
-    ? `${origin}/profile/${store.handle}`
-    : `${origin}/profile`;
+    ? `${origin}/profiles/${store.handle}`
+    : `${origin}/profiles`;
   const shortLink = longLink; // no shortener yet
 
   // ──────────────────────────────────────────
@@ -63,7 +65,9 @@ export const useProfileController = () => {
 
     try {
       setIsLoading(true);
-      const profile = await getMyProfile();
+      const profile = handle
+      ? await getProfileByHandle(handle) // viewing another user's profile
+      : await getMyProfile();            // fallback: current user
 
       // Convert the backend response into our store shape
       store.setProfileData({
@@ -93,7 +97,6 @@ export const useProfileController = () => {
         isLoaded: true,
       });
     } catch {
-      // If the profile fetch fails (not logged in, etc.), just ignore
       hasRequestedProfileRef.current = false;
       console.log("Could not load profile — user may not be logged in.");
     } finally {
@@ -102,8 +105,10 @@ export const useProfileController = () => {
   }, [store]);
 
   useEffect(() => {
-    loadProfile();
-  }, [loadProfile]);
+  store.resetProfile(); // clear old profile data
+  hasRequestedProfileRef.current = false;
+  loadProfile();
+}, [handle]); // run whenever the handle in URL changes
 
   // ──────────────────────────────
   //  SAVE changes to the backend

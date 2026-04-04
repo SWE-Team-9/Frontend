@@ -2,7 +2,7 @@
 import Image from "next/image";
 import DropdownMenu from "@/src/components/ui/DropdownMenu";
 import NavBarItem from "@/src/components/ui/NavBarItem";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { MdPerson, MdPersonAddAlt1, MdStars, MdBarChart } from "react-icons/md";
 import { BsPersonCheckFill } from "react-icons/bs";
 import { ImHeart } from "react-icons/im";
@@ -62,7 +62,7 @@ const NavBar: React.FC<NavBarProps> = ({
   ],
 
   profileMenu = [
-    { label: "Profile", icon: MdPerson, href: "/profile" },
+    { label: "Profile", icon: MdPerson, href: "/profiles" },
     { label: "Likes", icon: ImHeart },
     { label: "Playlists", icon: FiList },
     { label: "Stations", icon: IoRadio },
@@ -139,10 +139,24 @@ const NavBar: React.FC<NavBarProps> = ({
     router.push("/");
   };
 
-  // Inject the logout action into the "Sign out" menu item
-  const moreMenuWithLogout = moreMenu.map((item) =>
-    item.label === "Sign out" ? { ...item, onClick: handleLogout } : item,
-  );
+ 
+  // Update Profile Menu to use the handle
+  const dynamicProfileMenu = useMemo(() => {
+    return profileMenu.map((item) => {
+      if (item.label === "Profile" && user?.handle) {
+        return { ...item, href: `/profiles/${user.handle}` };
+      }
+      return item;
+    });
+  }, [profileMenu, user?.handle]);
+
+  // Inject Logout handler
+  const moreMenuWithLogout = useMemo(() => {
+    return moreMenu.map((item) =>
+      item.label === "Sign out" ? { ...item, onClick: handleLogout } : item,
+    );
+  }, [moreMenu, handleLogout]);
+
 
   useEffect(() => {
     // Close menus when clicking outside
@@ -253,7 +267,7 @@ const NavBar: React.FC<NavBarProps> = ({
                 </span>
               )}
               <FiChevronDown className="text-neutral-400" />
-              {openMenu === "profile" && <DropdownMenu items={profileMenu} />}
+              {openMenu === "profile" && <DropdownMenu items={dynamicProfileMenu} />}
             </button>
           )}
 
