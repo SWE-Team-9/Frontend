@@ -1,15 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import { useUploadStore } from "@/src/store/useUploadStore";
+import { useUploadStore } from "@/src/store/useuploadStore";
 import FileStatusBadge from "@/src/components/ui/FileStatusBadge";
-// import { uploadTrack, getTrackStatus, getTrackDetails, changeTrackVisibility } from "@/src/services/uploadService";
 import {
   uploadTrack,
   getTrackStatus,
   getTrackDetails,
   changeTrackVisibility,
-} from "@/src/services/uploadService.mock"; // For testing without backend
+} from "@/src/services/uploadService";
 import { useRouter } from "next/navigation";
 
 interface FileStatus {

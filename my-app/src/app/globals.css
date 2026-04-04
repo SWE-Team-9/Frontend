@@ -74,3 +74,73 @@ body {
 *::-webkit-scrollbar-thumb:hover {
   background-color: #52525b;
 }
+
+
+
+/* Main calendar container */
+.custom-calendar.react-datepicker {
+  background-color: #333333;
+  border: 1px solid #444;
+  border-radius: 12px;
+  padding: 10px;
+  font-family: inherit;
+  color: white;
+}
+
+/* Header */
+.react-datepicker__header {
+  background-color: #333333 !important;
+  border-bottom: 1px solid #444;
+}
+
+/* Month text */
+.react-datepicker__current-month {
+  color: white !important;
+  font-weight: bold !important;
+}
+
+/* Day names (Mon, Tue...) */
+.react-datepicker__day-name {
+  font-weight: bold !important;
+}
+
+/* Days */
+.react-datepicker__day {
+  color: #eee;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+/* Hover */
+.react-datepicker__day:hover {
+  background-color: #ff5500aa !important;
+  color: white;
+}
+
+/* Selected day */
+.react-datepicker__day--selected {
+  background-color: #ff5500 !important;
+  color: white !important;
+}
+
+/* Today */
+.react-datepicker__day--today {
+  border: 3px solid #ff5500;
+}
+
+/* Disabled days */
+.react-datepicker__day--disabled {
+  color: #777;
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Navigation arrows */
+.react-datepicker__navigation-icon::before {
+  border-color: #ff5500 !important;
+}
+
+/* Popper (calendar dropdown container) */
+.custom-datepicker-popper {
+  z-index: 50;
+}

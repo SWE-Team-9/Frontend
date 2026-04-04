@@ -2,7 +2,7 @@
 
 import React from "react";
 import Dropzone from "@/src/components/upload/Dropzone";
-import { useUploadStore } from "@/src/store/useUploadStore";
+import { useUploadStore } from "@/src/store/useuploadStore";
 import { MdDeleteForever } from "react-icons/md";
 
 interface Props {
@@ -18,20 +18,20 @@ const UploadForm: React.FC<Props> = ({ onNext }) => {
         Upload your audio files
       </h1>
 
-      <Dropzone />
+      <Dropzone disabled={files.length >= 1} />
 
       {files.length > 0 && (
         <ul className="mt-4 space-y-2 text-gray-200">
           {files.map((file, idx) => (
             <li
               key={idx}
-              className="flex justify-between items-center bg-neutral-600 p-2 rounded"
+              className="flex justify-between items-center bg-[#8c8c8c] p-2 rounded"
             >
               <span>{file.name}</span>
               <button onClick={() => removeFile(idx)}>
                 <MdDeleteForever
-                  size={28}
-                  className="text-red-500 hover:text-red-700 font-bold"
+                  size={30}
+                  className="text-red-700 hover:text-red-500 transition duration-100 font-bold"
                 />
               </button>
             </li>

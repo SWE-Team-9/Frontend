@@ -1,4 +1,8 @@
+import api from "@/src/services/api";
+
 export type TrackStatus = "PROCESSING" | "FINISHED";
+
+const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 
 export interface UploadResponse {
   trackId: string;
@@ -10,17 +14,41 @@ export interface UploadResponse {
   description: string;
 }
 
+export interface TrackFile {
+  id: string;
+  role: "ORIGINAL" | "STREAM";
+  mimeType: string;
+  format: string;
+  size: number | null;
+  status: "READY" | "PROCESSING";
+}
+
 export interface TrackDetails {
   trackId: string;
   title: string;
-  artist: string;
-  artistAvatarUrl: string;
-  genre: string;
+  slug: string;
+  description: string | null;
+  artist: string | null;
+  artistId: string | null;
+  artistHandle: string | null;
+  artistAvatarUrl: string | null;
+  genre: string | null;
   tags: string[];
-  releaseDate: string;
+  releaseDate: string | null;
+  durationMs: number | null;
+  waveformData: number[] | null;
   visibility: "PUBLIC" | "PRIVATE";
+  accessLevel: string;
   status: TrackStatus;
-  waveformData: number[];
+  license: string;
+  allowComments: boolean;
+  downloadable: boolean;
+  coverArtUrl: string | null;
+  secretToken: string | null;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  files: TrackFile[];
 }
 
 // ===============================
@@ -36,6 +64,19 @@ export const uploadTrack = async (
     description: string;
   }
 ): Promise<UploadResponse> => {
+  if (USE_MOCK) {
+    await new Promise((r) => setTimeout(r, 1500));
+    return {
+      trackId: "trk_mock_001",
+      title: metadata.title,
+      artistId: "user_123",
+      status: "PROCESSING",
+      visibility: "PRIVATE",
+      waveformData: null,
+      description: metadata.description,
+    };
+  }
+
   const formData = new FormData();
 
   formData.append("title", metadata.title);
@@ -45,16 +86,8 @@ export const uploadTrack = async (
   formData.append("audioFile", file);
   formData.append("description", metadata.description);
 
-  const res = await fetch("/api/v1/tracks", {
-    method: "POST",
-    body: formData,
-  });
-
-  if (!res.ok) {
-    throw new Error("Upload failed");
-  }
-
-  return res.json();
+  const res = await api.post("/tracks", formData); // protected endpoint, cookies sent automatically
+  return res.data;
 };
 
 // ===============================
@@ -63,19 +96,59 @@ export const uploadTrack = async (
 export const getTrackDetails = async (
   trackId: string
 ): Promise<TrackDetails> => {
-  const res = await fetch(`/api/v1/tracks/${trackId}`);
+  if (USE_MOCK) {
+  await new Promise((r) => setTimeout(r, 500));
+  return {
+    trackId,
+    title: "Mock Track",
+    slug: "mock-track",
+    description: "This is a mock description for testing purposes.",
+    artist: "Mock Artist",
+    artistId: "usr_mock_456",
+    artistHandle: "mockartist",
+    artistAvatarUrl: "",
+    genre: "Pop",
+    tags: ["pop", "test"],
+    releaseDate: "2026-03-01T00:00:00.000Z",
+    durationMs: 215000,
+    visibility: "PRIVATE",
+    accessLevel: "PUBLIC",
+    status: "FINISHED",
+    license: "ALL_RIGHTS_RESERVED",
+    allowComments: true,
+    downloadable: false,
+    coverArtUrl: "",
+    secretToken: null,
+    publishedAt: "2026-03-06T12:00:00.000Z",
+    createdAt: "2026-03-06T11:00:00.000Z",
+    updatedAt: "2026-03-06T12:00:00.000Z",
+    waveformData: Array.from({ length: 100 }, () => Math.random()),
+    files: [
+      {
+        id: "file_001",
+        role: "ORIGINAL",
+        mimeType: "audio/mpeg",
+        format: "mp3",
+        size: 8500000,
+        status: "READY",
+      },
+    ],
+  };
+}
 
-  if (!res.ok) {
-    throw new Error("Failed to fetch track details");
-  }
-
-  return res.json();
+  const res = await api.get(`/tracks/${trackId}`); // protected endpoint, cookies sent automatically
+  return res.data;
 };
 
 // ===============================
 //  GET TRACK STATUS ✔️
 // ===============================
 export const getTrackStatus = async (trackId: string) => {
+  if (USE_MOCK) {
+    await new Promise((r) => setTimeout(r, 2000));
+    return { trackId, status: "FINISHED" };
+  }
+
   const res = await fetch(`/api/v1/tracks/${trackId}/status`);
 
   if (!res.ok) {
@@ -94,20 +167,24 @@ export const updateTrackMetadata = async (
     title?: string;
     genre?: string;
     tags?: string[];
+    releaseDate?: string;       
+    description?: string;
   }
 ) => {
+
+  if (USE_MOCK) {
+    await new Promise((r) => setTimeout(r, 800));
+    return { trackId, ...data };
+  }
   const res = await fetch(`/api/v1/tracks/${trackId}`, {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: {"Content-Type": "application/json",},
     body: JSON.stringify(data),
   });
 
   if (!res.ok) {
     throw new Error("Failed to update track");
   }
-
   return res.json();
 };
 
@@ -115,13 +192,13 @@ export const updateTrackMetadata = async (
 //  DELETE TRACK
 // ===============================
 export const deleteTrack = async (trackId: string) => {
-  const res = await fetch(`/api/v1/tracks/${trackId}`, {
-    method: "DELETE",
-  });
-
-  if (!res.ok) {
-    throw new Error("Failed to delete track");
+  if (USE_MOCK) {
+    await new Promise((r) => setTimeout(r, 500));
+    return;
   }
+
+  const res = await api.delete(`/tracks/${trackId}`); // protected endpoint, cookies sent automatically
+  return res.data;
 };
 
 // ===============================
@@ -150,19 +227,13 @@ export const changeTrackVisibility = async (
   trackId: string,
   visibility: "PUBLIC" | "PRIVATE"
 ) => {
-  const res = await fetch(`/api/v1/tracks/${trackId}/visibility`, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ visibility }),
-  });
-
-  if (!res.ok) {
-    throw new Error("Failed to change visibility");
+  if (USE_MOCK) {
+    await new Promise((r) => setTimeout(r, 500));
+    return { trackId, visibility };
   }
 
-  return res.json();
+  const res = await api.patch(`/tracks/${trackId}/visibility`, {visibility}); // protected endpoint, cookies sent automatically
+   return res.data;
 };
 
 // ===============================

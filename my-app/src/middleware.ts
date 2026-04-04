@@ -1,4 +1,3 @@
-
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
@@ -14,7 +13,7 @@ export const config = {
 
 
 
-//####### This file is currently not in use. It is intended to be used for authentication middleware ####### 
+// // ####### Authentication middleware ####### 
 // import { NextResponse } from "next/server";
 // import type { NextRequest } from "next/server";
 
