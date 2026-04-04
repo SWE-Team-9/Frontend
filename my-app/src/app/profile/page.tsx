@@ -177,7 +177,7 @@ export default function ProfilePage() {
             </div>
 
             {/* --- SECTION 2: NAVIGATION BAR (Sticky Tabs) --- */}
-            <div className="border-b border-zinc-800 bg-[#121212] sticky top-0 z-40 overflow-x-auto">
+            <div className="border-b border-zinc-800 bg-[#121212] sticky top-0 z-40 overflow-visible">
               <div className="container mx-auto px-4 md:px-8 flex justify-between items-center h-12 min-w-150 md:min-w-full">
                 {/* Main Feed Navigation Tabs */}
                 <ul className="flex gap-8 text-[14px] font-bold text-zinc-400 h-full">
@@ -206,6 +206,7 @@ export default function ProfilePage() {
                   >
                     <GrEdit size={15} /> Edit
                   </button>
+
                   {currentUserId !== controller.userId && ( // Only show Block menu if viewing someone else's profile
                     <ProfileActionsMenu
                       userId={controller.userId}
@@ -231,7 +232,7 @@ export default function ProfilePage() {
                 {activeTab !== "Playlists" && activeTab !== "Reposts" && (
                   <button
                     onClick={handleUploadClick}
-                    className="bg-white text-black px-8 py-2 rounded font-bold hover:bg-zinc-200 transition-all uppercase"
+                    className="bg-white text-black px-8 py-2 rounded hover:bg-[#ff5500] transition duration-300 cursor-pointer font-bold text-lg uppercase"
                   >
                     Upload now
                   </button>

@@ -157,7 +157,7 @@ function ChangePasswordSection() {
         <button
           type="submit"
           disabled={loading}
-          className="mt-2 h-10 bg-white cursor-pointer text-black font-bold rounded-sm text-sm"
+          className="mt-2 h-10 bg-white hover:bg-[#ff5500] transition duration-300 cursor-pointer text-black font-bold text-lg rounded-sm"
         >
           {loading ? "Saving…" : "Update Password"}
         </button>
@@ -251,7 +251,7 @@ function ChangeEmailSection({ currentEmail }: { currentEmail: string }) {
         <button
           type="submit"
           disabled={loading}
-          className="mt-2 h-10 bg-white cursor-pointer text-black font-bold rounded-sm text-sm"
+          className="mt-2 h-10 bg-white hover:bg-[#ff5500] transition duration-300 cursor-pointer text-black font-bold text-lg rounded-sm"
         >
           {loading ? "Sending…" : "Send Confirmation Email"}
         </button>
@@ -452,7 +452,7 @@ function SessionsSection() {
       <button
         onClick={handleLogoutAll}
         disabled={logoutAllLoading}
-        className="mt-4 h-10 w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-sm text-sm transition-colors"
+        className="mt-4 h-10 w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-sm text-lg transition-colors"
       >
         {logoutAllLoading ? "Signing out…" : "Sign out from all devices"}
       </button>

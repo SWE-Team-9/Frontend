@@ -11,10 +11,7 @@ interface Props {
   isBlocked: boolean;
 }
 
-export default function ProfileActionsMenu({
-  userId,
-  displayName,
-}: Props) {
+export default function ProfileActionsMenu({ userId, displayName }: Props) {
   const {
     blockUser,
     unblockUser,
@@ -60,7 +57,7 @@ export default function ProfileActionsMenu({
   };
 
   return (
-    <div className="relative" ref={menuRef}>
+    <div className="relative overflow-visible" ref={menuRef}>
       {/* 3-dot button */}
       <button
         onClick={() => setOpen((prev) => !prev)}
@@ -71,20 +68,21 @@ export default function ProfileActionsMenu({
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute right-0 mt-2 w-40 bg-zinc-900 border border-zinc-700 rounded-lg shadow-lg z-50">
+        <div className="absolute right-0 top-full mt-2 min-w-40 bg-zinc-900 border border-zinc-700 rounded-lg shadow-lg z-999">
+          {" "}
           <button
             disabled={loading}
             onClick={() => {
               setOpen(false);
               setConfirmOpen(true);
             }}
-            className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-zinc-800 rounded-lg"
+            className="w-full text-center font-bold text-md px-4 py-2 text-red-400 hover:bg-zinc-800 rounded-lg"
           >
             {loading
               ? "Processing..."
               : isBlocked
-              ? "Unblock User"
-              : "Block User"}
+                ? "Unblock User"
+                : "Block User"}
           </button>
         </div>
       )}

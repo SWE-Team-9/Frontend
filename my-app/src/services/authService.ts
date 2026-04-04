@@ -173,7 +173,6 @@ export const confirmEmailChange = async (token: string) => {
 // ================= GET CURRENT USER =================
 export const getCurrentUser = async () => {
     if (USE_MOCK) {
-    // Return a fake user
     const mockUser = {
       id: "123",
       email: "demo@example.com",

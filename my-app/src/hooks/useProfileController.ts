@@ -8,16 +8,9 @@ import {
 } from "@/src/services/profileService";
 
 // ─────────────────────────────────────────────────────────────
-// useProfileController
-//
-// This hook is the "brain" of the profile page. It:
-//   1. Fetches the user's profile from the backend on first load
-//   2. Provides all the UI state (which tab is active, modals, etc.)
-//   3. Saves changes back to the backend when the user clicks Save
-//
-// BEGINNER TIP:
-//   A "controller" hook keeps UI logic out of the page component
-//   so the page only deals with displaying things.
+//  Fetches the user's profile from the backend on first load
+//  Provides all the UI state (which tab is active, modals, etc.)
+//  Saves changes back to the backend when the user clicks Save
 // ─────────────────────────────────────────────────────────────
 
 type AccountType = "ARTIST" | "LISTENER";

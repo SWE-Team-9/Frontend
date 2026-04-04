@@ -66,7 +66,7 @@ const Dropzone: React.FC<DropzoneProps> = ({ onFilesAdded }) => {
         Drag and drop audio files here or click to select
       </p>
       <p className="text-center text-sm text-gray-500 mt-1">
-        Supported: WAV, MP3 (Max 4GB)
+        Supported: WAV, MP3 (Max 250 MB)
       </p>
     </div>
   );

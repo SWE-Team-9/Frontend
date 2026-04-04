@@ -247,7 +247,7 @@ export const EditProfileModal = ({
           <button
             type="button"
             onClick={onClose}
-            className="text-white font-bold uppercase text-sm px-4"
+            className="text-white font-bold uppercase px-4 hover:bg-zinc-600 text-lg transition duration-300 py-1.5 rounded cursor-pointer"
           >
             Cancel
           </button>
@@ -255,7 +255,7 @@ export const EditProfileModal = ({
             type="button"
             onClick={handlers.handleSave}
             disabled={data.isSaving}
-            className="bg-white text-black px-6 py-1.5 rounded font-bold uppercase text-[11px] hover:bg-zinc-200 shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
+            className="bg-white hover:bg-[#ff5500] transition duration-300 cursor-pointer font-bold text-lg text-black px-6 py-1.5 rounded uppercase shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {data.isSaving ? "Saving..." : "Save Changes"}
           </button>

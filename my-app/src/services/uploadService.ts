@@ -7,6 +7,7 @@ export interface UploadResponse {
   status: TrackStatus;
   visibility: "PUBLIC" | "PRIVATE";
   waveformData: number[] | null;
+  description: string;
 }
 
 export interface TrackDetails {
@@ -32,6 +33,7 @@ export const uploadTrack = async (
     genre: string;
     tags: string[];
     releaseDate: string;
+    description: string;
   }
 ): Promise<UploadResponse> => {
   const formData = new FormData();
@@ -41,6 +43,7 @@ export const uploadTrack = async (
   formData.append("releaseDate", metadata.releaseDate);
   formData.append("tags", JSON.stringify(metadata.tags));
   formData.append("audioFile", file);
+  formData.append("description", metadata.description);
 
   const res = await fetch("/api/v1/tracks", {
     method: "POST",
