@@ -1,5 +1,4 @@
 "use client";
-
 import React from "react";
 import { FiShare } from "react-icons/fi";
 import { GrEdit } from "react-icons/gr";
@@ -12,8 +11,6 @@ import { ShareModal } from "@/src/components/profile/modals/ShareModal";
 import { ProfileSidebar } from "@/src/components/profile/ProfileSidebar";
 import { AvatarUpload } from "@/src/components/profile/AvatarUpload";
 import { CoverPhoto } from "@/src/components/profile/CoverPhoto";
-
-
 interface User {
   id: number;
   name: string;
@@ -23,6 +20,13 @@ interface User {
   isFollowing: boolean;
   avatar: string;
 }
+import { useProfileController } from "@/src/hooks/useProfileController";
+import { Stats } from "@/src/components/profile/sidebar/Stats";
+import { SocialLinksList } from "@/src/components/profile/sidebar/SocialLinksList";
+import { EditProfileModal } from "@/src/components/profile/modals/EditProfileModal";
+import { UserCard } from "@/src/components/user/UserCard";
+// SPRINT 2: Stores for real-time syncing
+import { useFollowStore } from "@/src/store/followStore";
 
 export default function ProfilePage() {
   const params = useParams();
@@ -31,8 +35,14 @@ export default function ProfilePage() {
   const BUTTON_STYLE =
     "bg-zinc-800/50 border border-zinc-700 px-4 py-1 rounded text-xs font-bold hover:bg-zinc-700 transition-colors uppercase flex items-center gap-2";
 
-  const controller = useProfileController(profileId);
 
+  const controller = useProfileController(profileId); // parameter
+
+  // SPRINT 2: Follow Logic identifiers
+  const following = useFollowStore((state) => state.following || []); 
+  const realFollowingCount = following.length;
+
+  // SPRINT 2: Like Logic identifiers
   const {
     displayName,
     bio,
@@ -89,10 +99,9 @@ export default function ProfilePage() {
             <li
               key={t}
               onClick={() => setDetailTab(t)}
+
               className={`pb-2 cursor-pointer border-b-2 transition-all uppercase ${
-                detailTab === t
-                  ? "text-white border-white"
-                  : "border-transparent hover:text-zinc-200"
+                detailTab === t ? "text-white border-white" : "border-transparent hover:text-zinc-200"
               }`}
             >
               {t}
@@ -117,14 +126,13 @@ export default function ProfilePage() {
           </div>
         )}
 
-{/* --- 4. LIKES TAB RENDERING (Module 3: Social Graph Clean Version) --- */}
+        {/* --- 4. LIKES TAB RENDERING (Module 3: Social Graph Clean Version) --- */}
         {detailTab === "Likes" && (
           <div className="py-24 text-center flex flex-col items-center justify-center border border-zinc-900/50 rounded-lg bg-zinc-900/10 w-full animate-in fade-in zoom-in duration-500">
             <div className="w-24 h-24 bg-zinc-800/40 rounded-full flex items-center justify-center mb-8 border border-zinc-800 shadow-inner">
                <span className="text-4xl opacity-80">🧡</span>
             </div>
-            
-            {/* العنوان بـ Font واضح وكبير */}
+          
             <h3 className="text-white text-2xl font-bold mb-4 uppercase tracking-[0.2em]">
               No Liked Tracks Yet
             </h3>
@@ -167,7 +175,7 @@ export default function ProfilePage() {
                       {user.name} <span className="text-[#38bdf8] text-[10px]">✓</span>
                     </h4>
                     <p className="text-zinc-500 text-[11px] mb-4">
-                      👤 {user.followers} followers
+                      {user.followers} followers
                     </p>
 
                     <button
