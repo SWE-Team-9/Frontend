@@ -12,14 +12,22 @@ function formatTime(seconds: number) {
 export function ProgressBar() {
   // currentTime and duration now come from audio element events via the store
   // duration has its own store field with a 0 fallback — no more currentTrack?.duration
-  const { currentTime, duration, setCurrentTime } = usePlayerStore();
+  const {
+    currentTime,
+    duration,
+    seekTo,
+    accessState,
+    isProcessing,
+    isResolvingPlayback,
+  } = usePlayerStore();
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (accessState === "BLOCKED" || isProcessing || isResolvingPlayback) return;
     if (duration <= 0) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const ratio = (e.clientX - rect.left) / rect.width;
-    setCurrentTime(Math.max(0, Math.min(1, ratio)) * duration);
+    seekTo(Math.max(0, Math.min(1, ratio)) * duration);
   };
 
   return (
@@ -28,7 +36,7 @@ export function ProgressBar() {
         {formatTime(currentTime)}
       </span>
       <div
-        className="flex-1 h-1 bg-[#333] rounded-full relative cursor-pointer group"
+        className="flex-1 h-1 bg-[#8c8c8c] rounded-full relative cursor-pointer group"
         onClick={handleClick}
       >
         <div
