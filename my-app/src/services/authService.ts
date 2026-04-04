@@ -10,6 +10,7 @@ import { useProfileStore } from "@/src/store/useProfileStore";
 // ─────────────────────────────────────────────────────────────
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 
 export type SocialProvider = "google"; 
 
@@ -171,6 +172,28 @@ export const confirmEmailChange = async (token: string) => {
 
 // ================= GET CURRENT USER =================
 export const getCurrentUser = async () => {
+    if (USE_MOCK) {
+    const mockUser = {
+      id: "123",
+      email: "demo@example.com",
+      display_name: "Demo User",
+      handle: "demo",
+      avatar_url: null,
+      is_verified: true,
+    };
+
+    useAuthStore.getState().setUser({
+      id: mockUser.id,
+      email: mockUser.email,
+      displayName: mockUser.display_name,
+      handle: mockUser.handle,
+      avatarUrl: mockUser.avatar_url,
+      isVerified: mockUser.is_verified,
+    });
+
+    return mockUser;
+  }
+  
   // GET /auth/me  →  returns user object
   const response = await api.get("/auth/me");
   const user = response.data;

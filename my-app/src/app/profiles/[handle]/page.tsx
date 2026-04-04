@@ -1,23 +1,61 @@
 "use client";
- import React from "react";
+
+import React, { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import NavBar from "@/src/components/ui/NavBar";
 import { FiShare } from "react-icons/fi";
 import { AvatarUpload } from "@/src/components/profile/AvatarUpload";
-import { CoverPhoto} from "@/src/components/profile/CoverPhoto";
+import { CoverPhoto } from "@/src/components/profile/CoverPhoto";
 import { GrEdit } from "react-icons/gr";
 import { FaFacebook, FaTwitter, FaPinterest } from "react-icons/fa";
 import { TiSocialTumbler } from "react-icons/ti";
 import { HiOutlineEnvelope } from "react-icons/hi2";
-import NavBar from "@/src/components/ui/NavBar";
-
 import { useProfileController } from "@/src/hooks/useProfileController";
 import { Stats } from "@/src/components/profile/sidebar/Stats";
 import { SocialLinksList } from "@/src/components/profile/sidebar/SocialLinksList";
 import { EditProfileModal } from "@/src/components/profile/modals/EditProfileModal";
+import ProfileActionsMenu from "@/src/components/block-user/ProfileActionsMenu";
+import api from "@/src/services/api";
 
-export default function ProfilePage() {
+export default function ProfilePage({
+  params,
+}: {
+  params: Promise<{ handle: string }>;
+}) {
+  // 1. Unwrap the params promise using React.use() (Next.js 15 requirement)
+  const resolvedParams = React.use(params);
+  const handle = resolvedParams.handle;
+
+  const [currentUserHandle, setCurrentUserHandle] = React.useState<string | null>(null);
+
+  const controller = useProfileController(handle);
+  
+  // 2. Logic to determine if the logged-in user is viewing their own page
+  const isOwner = currentUserHandle === handle;
+
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const { data } = await api.get("/auth/me");
+        setCurrentUserHandle(data.handle);
+      } catch {
+        setCurrentUserHandle(null); // silent fail
+      }
+    };
+
+    fetchCurrentUser();
+  }, []);
+
+  const router = useRouter();
+
+  const handleUploadClick = () => {
+    router.push("/upload");
+  };
+
   const BUTTON_STYLE =
     "bg-zinc-800/50 border border-zinc-700 px-4 py-1 rounded text-xs font-bold hover:bg-zinc-700 transition-colors uppercase flex items-center gap-2";
-  const controller = useProfileController();
+
+  // Destructure all values from the improved controller
   const {
     displayName,
     location,
@@ -66,7 +104,7 @@ export default function ProfilePage() {
               onClick={() => setDetailTab(t)}
               className={`pb-2 cursor-pointer border-b-2 transition-all ${detailTab === t ? "text-white border-white" : "border-transparent hover:text-zinc-200"}`}
             >
-              {t.toString()}
+              {t}
             </li>
           ))}
         </ul>
@@ -105,24 +143,25 @@ export default function ProfilePage() {
   );
 
   return (
-
     <div className="min-h-screen bg-[#121212] text-white font-sans overflow-x-hidden relative">
-      {/* Conditional Rendering: Main Profile vs Details Page */}
       <NavBar className="max-w-7xl mx-auto px-6" />
-
-       <div className="h-16" /> {/* Spacer to prevent content from being hidden behind NavBar */}
+      <div className="h-16" />
       <div className="max-w-7xl mx-auto px-6">
         {viewState === "details" ? (
           renderDetailsPage()
         ) : (
           <>
-            {/* --- SECTION 1: VISUAL HEADER (Banner & Avatar) --- */}
+            {/* --- SECTION 1: VISUAL HEADER --- */}
             <div className="relative w-full min-h-65 bg-[#d38b7d] p-4 md:p-6 flex flex-col md:flex-row items-center md:items-start justify-between gap-4">
               <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-center text-center md:text-left mt-2">
                 <CoverPhoto />
-                 <AvatarUpload username={displayName} location={location} onUpload={handleAvatarUpload} avatarUrl={avatarUrl}/>
+                <AvatarUpload
+                  username={displayName}
+                  location={location}
+                  onUpload={handleAvatarUpload}
+                  avatarUrl={avatarUrl}
+                />
 
-                {/* User Identity Information */}
                 <div className="flex flex-col gap-1.5 items-center md:items-start">
                   <div className="flex flex-col md:flex-row items-center gap-2 bg-black px-3 py-1 w-fit">
                     <h1 className="text-xl md:text-3xl font-bold uppercase tracking-tight">
@@ -143,26 +182,23 @@ export default function ProfilePage() {
                   )}
                 </div>
               </div>
-  
             </div>
 
-
             {/* --- SECTION 2: NAVIGATION BAR (Sticky Tabs) --- */}
-            <div className="border-b border-zinc-800 bg-[#121212] sticky top-0 z-40 overflow-x-auto">
+            <div className="border-b border-zinc-800 bg-[#121212] sticky top-0 z-40 overflow-visible">
               <div className="container mx-auto px-4 md:px-8 flex justify-between items-center h-12 min-w-150 md:min-w-full">
-                {/* Main Feed Navigation Tabs */}
                 <ul className="flex gap-8 text-[14px] font-bold text-zinc-400 h-full">
                   {tabs?.map((tab: string) => (
                     <li
                       key={tab}
                       onClick={() => setActiveTab(tab)}
-                      className={`cursor-pointer outline-none focus:outline-none transition-colors h-full flex items-center border-b-2 ${activeTab === tab ? "text-white border-white" : "border-transparent hover:text-white"}`}
+                      className={`cursor-pointer transition-colors h-full flex items-center border-b-2 ${activeTab === tab ? "text-white border-white" : "border-transparent hover:text-white"}`}
                     >
                       {tab}
                     </li>
                   ))}
                 </ul>
-                {/* Global Action Buttons */}
+
                 <div className="flex gap-2">
                   <button
                     onClick={() => setIsShareOpen(true)}
@@ -170,19 +206,28 @@ export default function ProfilePage() {
                   >
                     <FiShare size={15} /> Share
                   </button>
-                  <button
-                    onClick={() => setIsEditOpen(true)}
-                    className={BUTTON_STYLE}
-                  >
-                    <GrEdit size={15} /> Edit
-                  </button>
+                  {isOwner && (
+                    <button
+                      onClick={() => setIsEditOpen(true)}
+                      className={BUTTON_STYLE}
+                    >
+                      <GrEdit size={15} /> Edit
+                    </button>
+                  )}
+
+                  {!isOwner && (
+                    <ProfileActionsMenu
+                      userId={controller.userId}
+                      displayName={controller.displayName}
+                      isBlocked={false}
+                    />
+                  )}
                 </div>
               </div>
             </div>
 
             {/* --- SECTION 3: MAIN LAYOUT (Feed & Sidebar) --- */}
             <div className="container mx-auto px-8 py-12 flex flex-col lg:flex-row gap-12 text-left">
-              {/* Main Content Area (Feed Section) */}
               <div className="flex-1 text-center py-20 border-r border-zinc-900/50 pr-12 flex flex-col items-center justify-center">
                 <p className="text-zinc-500 text-xl font-bold mb-6">
                   {activeTab === "Playlists"
@@ -192,29 +237,32 @@ export default function ProfilePage() {
                       : "Seems a little quiet over here"}
                 </p>
                 {activeTab !== "Playlists" && activeTab !== "Reposts" && (
-                  <button className="bg-white text-black px-8 py-2 rounded font-bold hover:bg-zinc-200 transition-all uppercase">
+                  <button
+                    onClick={handleUploadClick}
+                    className="bg-white text-black px-8 py-2 rounded hover:bg-[#ff5500] transition duration-300 cursor-pointer font-bold text-lg uppercase"
+                  >
                     Upload now
                   </button>
                 )}
               </div>
 
-              {/* Sidebar Column: Contains stats, genres, and social links */}
               <div className="w-full lg:w-[320px] space-y-10">
-                {/* Fragmented Statistics Component */}
                 <Stats
                   followers={controller.followersCount}
                   following={controller.followingCount}
                   tracks={controller.tracksCount}
                 />
 
-                {/* Dynamic Favorite Genre Display */}
                 {favoriteGenres.length > 0 && (
                   <div className="space-y-1 mt-6 border-t border-zinc-900 pt-4">
                     <p className="text-zinc-500 text-[10px] font-bold uppercase mb-1">
                       Favorite Genre
                     </p>
                     {favoriteGenres.map((g) => (
-                      <p key={g} className="text-sm font-bold text-white flex items-center gap-2">
+                      <p
+                        key={g}
+                        className="text-sm font-bold text-white flex items-center gap-2"
+                      >
                         <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
                         {g}
                       </p>
@@ -222,10 +270,8 @@ export default function ProfilePage() {
                   </div>
                 )}
 
-                {/* Fragmented Social Links List */}
                 <SocialLinksList links={links} />
 
-                {/* Following Preview Section */}
                 <div className="space-y-4">
                   <div className="flex justify-between items-center text-zinc-500 text-[13px] border-b border-zinc-900 pb-2">
                     <p className="flex items-center gap-2 font-bold uppercase">
@@ -253,9 +299,8 @@ export default function ProfilePage() {
           </>
         )}
 
-        {/* --- FRAGMENTED MODALS --- */}
+        {/* --- MODALS & NOTIFICATIONS --- */}
 
-        {/* Modal for editing profile details */}
         <EditProfileModal
           isOpen={controller.isEditOpen}
           onClose={() => controller.setIsEditOpen(false)}
@@ -276,11 +321,9 @@ export default function ProfilePage() {
           handlers={controller}
         />
 
-        {/* Share Modal Implementation */}
         {isShareOpen && (
           <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
             <div className="bg-[#1a1a1a] w-full max-w-125 rounded-sm border border-[#333] shadow-2xl overflow-hidden relative">
-              {/* Modal Internal Tabs */}
               <div className="flex border-b border-[#333]">
                 <button
                   onClick={() => setShareTab("Share")}
@@ -298,40 +341,23 @@ export default function ProfilePage() {
               <div className="p-8 space-y-8">
                 {shareTab === "Share" ? (
                   <>
-                    {/* Social Icon Grid with Official Colors */}
                     <div className="flex gap-4 mb-10">
-                      <div
-                        title="Twitter"
-                        className="w-12.5 h-12.5 rounded-full bg-[#1DA1F2] flex items-center justify-center cursor-pointer hover:opacity-80 transition-all shadow-lg"
-                      >
+                      <div className="w-12.5 h-12.5 rounded-full bg-[#1DA1F2] flex items-center justify-center cursor-pointer hover:opacity-80 transition-all shadow-lg">
                         <FaTwitter size={30} />
                       </div>
-                      <div
-                        title="Facebook"
-                        className="w-12.5 h-12.5 rounded-full bg-[#1877F2] flex items-center justify-center cursor-pointer hover:opacity-80 transition-all shadow-lg "
-                      >
+                      <div className="w-12.5 h-12.5 rounded-full bg-[#1877F2] flex items-center justify-center cursor-pointer hover:opacity-80 transition-all shadow-lg ">
                         <FaFacebook size={30} />
                       </div>
-                      <div
-                        title="Tumblr"
-                        className="w-12.5 h-12.5 rounded-full bg-[#35465C] flex items-center justify-center cursor-pointer hover:opacity-80 transition-all shadow-lg"
-                      >
+                      <div className="w-12.5 h-12.5 rounded-full bg-[#35465C] flex items-center justify-center cursor-pointer hover:opacity-80 transition-all shadow-lg">
                         <TiSocialTumbler size={50} />
                       </div>
-                      <div
-                        title="Pinterest"
-                        className="w-12.5 h-12.5 rounded-full bg-[#E60023] flex items-center justify-center cursor-pointer hover:opacity-80 transition-all shadow-lg"
-                      >
+                      <div className="w-12.5 h-12.5 rounded-full bg-[#E60023] flex items-center justify-center cursor-pointer hover:opacity-80 transition-all shadow-lg">
                         <FaPinterest size={30} />
                       </div>
-                      <div
-                        title="Email"
-                        className="w-12.5 h-12.5 rounded-full bg-[#333] flex items-center justify-center cursor-pointer hover:opacity-80 transition-all shadow-lg border border-zinc-700"
-                      >
+                      <div className="w-12.5 h-12.5 rounded-full bg-[#333] flex items-center justify-center cursor-pointer hover:opacity-80 transition-all shadow-lg border border-zinc-700">
                         <HiOutlineEnvelope size={30} />
                       </div>
                     </div>
-                    {/* Link Copy UI */}
                     <div className="space-y-4">
                       <div className="bg-[#111] border border-[#333] p-1 rounded flex items-center justify-between group">
                         <input
@@ -346,7 +372,6 @@ export default function ProfilePage() {
                           {copied ? "Copied!" : "Copy"}
                         </button>
                       </div>
-                      {/* Link Shortening Toggle */}
                       <div className="flex items-center gap-3">
                         <input
                           type="checkbox"
@@ -355,17 +380,13 @@ export default function ProfilePage() {
                           onChange={() => setIsShortened(!isShortened)}
                           className="w-5 h-5 accent-white"
                         />
-                        <label
-                          htmlFor="shorten"
-                          className="text-sm text-white font-bold uppercase"
-                        >
+                        <label htmlFor="shorten" className="text-sm text-white font-bold uppercase">
                           Shorten link
                         </label>
                       </div>
                     </div>
                   </>
                 ) : (
-                  /* Direct Message UI within Modal */
                   <div className="space-y-4 animate-in fade-in duration-300 text-left">
                     <div>
                       <label className="block text-xs font-bold mb-1 uppercase text-zinc-400">
@@ -393,7 +414,6 @@ export default function ProfilePage() {
                   </div>
                 )}
               </div>
-              {/* Modal Exit Button */}
               <button
                 onClick={() => setIsShareOpen(false)}
                 className="absolute top-4 right-4 text-zinc-500 hover:text-white text-xl uppercase"
@@ -404,8 +424,6 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {/* --- NOTIFICATION LAYER --- */}
-        {/* Toast notification for successful updates */}
         {showSuccessToast && (
           <div className="fixed top-20 right-10 z-100 animate-in slide-in-from-right duration-300">
             <div className="bg-[#333] border border-zinc-700 p-4 flex items-center gap-4 shadow-2xl rounded-sm min-w-75">
@@ -413,9 +431,7 @@ export default function ProfilePage() {
                 <span className="text-zinc-400 text-2xl">👤</span>
               </div>
               <div>
-                <p className="text-white text-sm font-bold">
-                  Your profile has been updated
-                </p>
+                <p className="text-white text-sm font-bold">Your profile has been updated</p>
                 <p className="text-white text-sm font-bold">successfully.</p>
               </div>
             </div>

@@ -1,17 +1,5 @@
 
-// import { NextResponse } from "next/server";
-// import type { NextRequest } from "next/server";
-
-// export function middleware(_request: NextRequest) {
-//   // Temporary bypass while backend auth is unavailable
-//   return NextResponse.next();
-// }
-
-// export const config = {
-//   matcher: ["/discover/:path*", "/profile/:path*", "/settings/:path*"],
-// };
-
-//####### This file is currently not in use. It is intended to be used for authentication middleware ####### 
+// ####### This file is currently not in use. It is intended to be used for authentication middleware ####### 
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
@@ -28,7 +16,6 @@ export function middleware(request: NextRequest) {
   if (!isProtected) {
     return NextResponse.next();
   }
-
   // The backend sets an httpOnly `access_token` cookie.
   // Middleware runs server-side so it CAN read httpOnly cookies from the
   // incoming request headers — this does NOT expose them to browser JS.
