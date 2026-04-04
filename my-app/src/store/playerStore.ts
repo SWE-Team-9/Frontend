@@ -1,5 +1,9 @@
 import { create } from "zustand";
-
+import {
+  getPlaybackState,
+  getPlaybackSource,
+  getPreviewSource,
+} from "@/src/services/playerService";
 
 export interface Track {
   trackId: string;
@@ -11,6 +15,7 @@ export interface Track {
   plays?: number;
   accessState?: "PLAYABLE" | "BLOCKED" | "PREVIEW";
   streamUrl?: string;
+  previewUrl?: string;
 }
 
 let _audio: HTMLAudioElement | null = null;
@@ -19,7 +24,7 @@ export function getAudioElement(): HTMLAudioElement | null {
   if (typeof window === "undefined") return null;
   if (!_audio) {
     _audio = new Audio();
-    _audio.preload = "metadata";
+    _audio.preload = "auto";
   }
   return _audio;
 }
@@ -85,10 +90,14 @@ interface PlayerState {
   duration: number;         //  sourced from audio element
   trackIndex: number;
   tracks: Track[];
-  isProcessing: boolean;    //  true when API returns 409
-  accessState: "PLAYABLE" | "BLOCKED" | "PREVIEW" | null; 
+  isProcessing: boolean;
+  isResolvingPlayback: boolean;
+  accessState: "PLAYABLE" | "BLOCKED" | "PREVIEW" | null;
+  accessReason: string | null;
   streamError: string | null;
+  isPlayerVisible: boolean;
 
+  resetPlaybackStatus: () => void;
   play: () => void;
   pause: () => void;
   toggle: () => void;
@@ -100,34 +109,67 @@ interface PlayerState {
   setDuration: (duration: number) => void;
   //  fetch streamUrl from backend, then start playback
   fetchAndPlay: (track: Track) => Promise<void>;
+  seekTo: (time: number) => void;
 }
 
 export const usePlayerStore = create<PlayerState>((set, get) => ({
-  currentTrack: mockTracks[0],
+  currentTrack: null,
   isPlaying: false,
   volume: 75,
   currentTime: 0,
-  duration: mockTracks[0]?.duration ?? 0,  
-  trackIndex: 0,
+  duration: 0,
+  trackIndex: -1,
   tracks: mockTracks,
   isProcessing: false,
+  isResolvingPlayback: false,
   accessState: null,
+  accessReason: null,
   streamError: null,
+  isPlayerVisible: false,
+
+  resetPlaybackStatus: () =>
+    set({
+      isProcessing: false,
+      isResolvingPlayback: false,
+      accessState: null,
+      accessReason: null,
+      streamError: null,
+    }),
 
   play: () => {
+    const { currentTrack, accessState } = get();
     const audio = getAudioElement();
-    if (audio) audio.play().catch(() => {});
-    set({ isPlaying: true });
+
+    if (!audio || !currentTrack) return;
+    if (accessState === "BLOCKED") return;
+    if (!audio.src) return;
+
+    if (!audio.src) {
+      set({
+        isPlaying: false,
+        streamError: "No audio source available",
+      });
+      return;
+    }
+    console.log("🎵 Trying to play:", audio.src);
+    audio.play()
+      .then(() => set({ isPlaying: true }))
+      .catch(() => set({ isPlaying: false }));
   },
 
   pause: () => {
     const audio = getAudioElement();
-    if (audio) audio.pause();
+    if (!audio) return;
+
+    audio.pause();
     set({ isPlaying: false });
   },
 
   toggle: () => {
-    const { isPlaying } = get();
+    const { isPlaying, currentTrack } = get();
+
+    if (!currentTrack) return;
+
     if (isPlaying) {
       get().pause();
     } else {
@@ -137,92 +179,288 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
   // Use fetchAndPlay for real API; setTrack is kept for mock/offline use
   setTrack: (track: Track) => {
-    const index = get().tracks.findIndex((t) => t.trackId === track.trackId); 
+    const index = get().tracks.findIndex((t) => t.trackId === track.trackId);
+
     set({
       currentTrack: track,
       trackIndex: index,
-      isPlaying: true,
+      isPlaying: false,
       currentTime: 0,
-      duration: track.duration ?? 0,  
+      duration: track.duration ?? 0,
       accessState: track.accessState ?? null,
+      accessReason: null,
+      streamError: null,
+      isProcessing: false,
+      isResolvingPlayback: false,
+      isPlayerVisible: true,
     });
   },
 
   //  fetch streamUrl, handle 409 and accessState
   fetchAndPlay: async (track: Track) => {
+    const { currentTrack } = get();
+
+    if (currentTrack?.trackId === track.trackId && get().isPlaying) {
+      return;
+    }
+    const audio = getAudioElement();
+
     set({
+      currentTrack: track,
+      isPlayerVisible: true,
+      isPlaying: false,
+      currentTime: 0,
+      duration: track.duration ?? 0,
       isProcessing: false,
-      streamError: null,
+      isResolvingPlayback: true,
       accessState: null,
+      accessReason: null,
+      streamError: null,
     });
 
     try {
-      const res = await fetch(`/api/v1/player/tracks/${track.trackId}/source`);
+      const stateData = await getPlaybackState(track.trackId);
+      const accessState = stateData.accessState as "PLAYABLE" | "BLOCKED" | "PREVIEW";
+      const accessReason =
+        typeof stateData.reason === "string" ? stateData.reason : null;
 
-      
-      if (res.status === 409) {
-        set({ isProcessing: true, currentTrack: track });
-        return;
-      }
-
-      if (!res.ok) {
-        set({ streamError: `Failed to load track (${res.status})` });
-        return;
-      }
-
-      const data = await res.json();
-      const streamUrl: string = data.streamUrl;
-      const accessState: "PLAYABLE" | "BLOCKED" | "PREVIEW" = data.accessState;
-
-      //  respect accessState
+      // 2) Blocked: do not continue
       if (accessState === "BLOCKED") {
-        set({ accessState: "BLOCKED", currentTrack: track });
+        if (audio) {
+          audio.pause();
+          audio.removeAttribute("src");
+          audio.load();
+        }
+
+        set({
+          accessState: "BLOCKED",
+          accessReason,
+          isResolvingPlayback: false,
+          isPlaying: false,
+        });
+        return;
+      }
+
+      // 3) Load the appropriate URL
+      let playbackUrl = "";
+      let previewUrl: string | undefined;
+      let streamUrl: string | undefined;
+
+      if (accessState === "PLAYABLE") {
+        let sourceData;
+        try {
+          sourceData = await getPlaybackSource(track.trackId);
+        } catch (error: unknown) {
+          const status =
+            typeof error === "object" &&
+              error !== null &&
+              "response" in error &&
+              typeof (error as { response?: { status?: number } }).response?.status === "number"
+              ? (error as { response?: { status?: number } }).response?.status
+              : undefined;
+
+          if (status === 409) {
+            if (audio) {
+              audio.pause();
+              audio.removeAttribute("src");
+              audio.load();
+            }
+
+            set({
+              isProcessing: true,
+              isResolvingPlayback: false,
+              isPlaying: false,
+            });
+            return;
+          }
+
+          set({
+            isResolvingPlayback: false,
+            streamError: `Failed to load track source (${status ?? "unknown"})`,
+          });
+          return;
+        }
+
+        if (!sourceData.streamUrl) {
+          set({
+            isResolvingPlayback: false,
+            streamError: "No stream URL returned from server",
+          });
+          return;
+        }
+
+        streamUrl = sourceData.streamUrl;
+        playbackUrl = sourceData.streamUrl;
+      }
+      if (accessState === "PREVIEW") {
+        let previewData;
+        try {
+          previewData = await getPreviewSource(track.trackId);
+        } catch (error: unknown) {
+          const status =
+            typeof error === "object" &&
+              error !== null &&
+              "response" in error &&
+              typeof (error as { response?: { status?: number } }).response?.status === "number"
+              ? (error as { response?: { status?: number } }).response?.status
+              : undefined;
+
+          set({
+            isResolvingPlayback: false,
+            streamError: `Failed to load preview (${status ?? "unknown"})`,
+          });
+          return;
+        }
+
+        if (!previewData.previewUrl) {
+          set({
+            isResolvingPlayback: false,
+            streamError: "No preview URL returned from server",
+          });
+          return;
+        }
+
+        previewUrl = previewData.previewUrl;
+        playbackUrl = previewData.previewUrl;
+      }
+
+      if (!playbackUrl) {
+        set({
+          isResolvingPlayback: false,
+          streamError: "No playback URL returned for this track",
+        });
         return;
       }
 
       const index = get().tracks.findIndex((t) => t.trackId === track.trackId);
-      const enrichedTrack: Track = { ...track, streamUrl, accessState };
+      const enrichedTrack: Track = {
+        ...track,
+        accessState,
+        streamUrl,
+        previewUrl,
+      };
 
       set({
         currentTrack: enrichedTrack,
         trackIndex: index,
-        isPlaying: false,
-        currentTime: 0,
-        duration: track.duration ?? 0,
         accessState,
+        accessReason,
         isProcessing: false,
+        isResolvingPlayback: false,
         streamError: null,
+        currentTime: 0,
+      });
+
+      if (!audio) {
+        set({
+          streamError: "Audio player is unavailable in this browser",
+          isPlaying: false,
+        });
+        return;
+      }
+
+      audio.pause();
+      audio.src = playbackUrl;
+      audio.preload = "auto";
+      audio.load();
+      audio.currentTime = 0;
+      audio.volume = get().volume / 100;
+
+      try {
+        await audio.play();
+        set({ isPlaying: true });
+      } catch {
+        set({
+          isPlaying: false,
+          streamError: "Playback failed",
+        });
+      }
+      // } catch {
+      //   set({
+      //     isResolvingPlayback: false,
+      //     isProcessing: false,
+      //     isPlaying: false,
+      //     streamError: "Network error loading track",
+      //   });
+      // }
+      //////////////////////////////////mock////////////////////////////////////////////////////////////
+    } catch {
+      const { currentTrack, isPlaying } = get();
+
+      // 🚨 prevent infinite restart loop
+      if (currentTrack?.trackId === track.trackId && isPlaying) {
+        return;
+      }
+      console.warn("⚠️ Backend unavailable — using mock playback");
+
+      // fallback to mock playback
+      const index = get().tracks.findIndex((t) => t.trackId === track.trackId);
+
+      const fallbackTrack: Track = {
+        ...track,
+        accessState: "PLAYABLE",
+        streamUrl:
+          "/Audio/Scarborough_Fair.mp3",
+      };
+
+      set({
+        currentTrack: fallbackTrack,
+        trackIndex: index,
+        accessState: "PLAYABLE",
+        accessReason: null,
+        isProcessing: false,
+        isResolvingPlayback: false,
+        streamError: null,
+        currentTime: 0,
       });
 
       const audio = getAudioElement();
-      if (audio) {
-        audio.src = streamUrl;
-        audio.load();
-        //  volume is 0–100 in store → normalize to 0–1 for audio element
-        audio.volume = get().volume / 100;
-        audio.play().catch(() => set({ isPlaying: false }));
-        set({ isPlaying: true });
-      }
-    } catch {
-      set({ streamError: "Network error loading track" });
+      if (!audio) return;
+
+      audio.pause();
+      audio.src = fallbackTrack.streamUrl!;
+      audio.preload = "auto";
+      audio.load();
+      audio.currentTime = 0;
+      audio.volume = get().volume / 100;
+
+      audio
+        .play()
+        .then(() => set({ isPlaying: true }))
+        .catch(() =>
+          set({
+            isPlaying: false,
+            streamError: "Playback failed",
+          })
+        );
     }
+    //////////////////////////////////mock////////////////////////////////////////////////////////////
+
   },
 
   nextTrack: () => {
     const { tracks, trackIndex } = get();
-    const nextIndex = (trackIndex + 1) % tracks.length;
+    if (!tracks.length) return;
+
+    const nextIndex = trackIndex < 0 ? 0 : (trackIndex + 1) % tracks.length;
     get().fetchAndPlay(tracks[nextIndex]);
   },
 
   previousTrack: () => {
     const { tracks, trackIndex, currentTime } = get();
+    const audio = getAudioElement();
+
+    if (!tracks.length) return;
+
     if (currentTime > 3) {
-      const audio = getAudioElement();
       if (audio) audio.currentTime = 0;
       set({ currentTime: 0 });
       return;
     }
-    const prevIndex = (trackIndex - 1 + tracks.length) % tracks.length;
+
+    const prevIndex =
+      trackIndex <= 0 ? tracks.length - 1 : trackIndex - 1;
+
     get().fetchAndPlay(tracks[prevIndex]);
   },
 
@@ -234,11 +472,13 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   //  seek on the actual audio element, not just the store
-  setCurrentTime: (time: number) => {
+  setCurrentTime: (time: number) => set({ currentTime: time }),
+  seekTo: (time: number) => {
     const audio = getAudioElement();
-    if (audio && isFinite(time)) audio.currentTime = time;
+    if (audio && isFinite(time)) {
+      audio.currentTime = time;
+    }
     set({ currentTime: time });
   },
-
   setDuration: (duration: number) => set({ duration }),
 }));
