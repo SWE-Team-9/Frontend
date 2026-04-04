@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import {
@@ -212,7 +213,7 @@ export default function TrackDetailPage() {
         {/* Artist row */}
         <div className="flex items-center gap-3 mb-6 pb-6 border-b border-[#2a2a2a]">
           {track.artistAvatarUrl ? (
-            <img
+            <Image
               src={track.artistAvatarUrl}
               alt={track.artist ?? "Artist"}
               className="w-10 h-10 rounded-full object-cover"

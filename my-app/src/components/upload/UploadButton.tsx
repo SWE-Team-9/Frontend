@@ -67,12 +67,12 @@ const UploadButton: React.FC = () => {
           updateFileStatus(fileName, "DONE", trackId);
           router.push(`/tracks/${trackId}`); // always redirect after done
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         updateFileStatus(
           fileName,
           "ERROR",
           undefined,
-          err.message || "Polling error",
+          (err as Error).message || "Polling error",
         );
         break;
       }
@@ -99,12 +99,12 @@ const UploadButton: React.FC = () => {
         } else {
           updateFileStatus(file.name, "DONE");
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         updateFileStatus(
           file.name,
           "ERROR",
           undefined,
-          err.message || "Upload error",
+          (err as Error).message || "Upload error",
         );
       }
     }

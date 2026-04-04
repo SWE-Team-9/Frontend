@@ -1,5 +1,5 @@
 import React from "react";
-import { useBlockStore } from "@/src/store/useBlockStore";
+import { useBlockStore } from "@/src/store/useblockStore";
 import Image from "next/image";
 
 interface BlockedUsersListProps {
