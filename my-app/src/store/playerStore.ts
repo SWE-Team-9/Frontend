@@ -102,6 +102,7 @@ interface PlayerState {
   pause: () => void;
   toggle: () => void;
   setTrack: (track: Track) => void;
+  setTracks: (tracks: Track[]) => void;
   nextTrack: () => void;
   previousTrack: () => void;
   setVolume: (volume: number) => void;
@@ -126,6 +127,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   accessReason: null,
   streamError: null,
   isPlayerVisible: false,
+
 
   resetPlaybackStatus: () =>
     set({
@@ -195,6 +197,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       isPlayerVisible: true,
     });
   },
+
+  setTracks: (tracks) => set({ tracks }),
 
   //  fetch streamUrl, handle 409 and accessState
   fetchAndPlay: async (track: Track) => {
