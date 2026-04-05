@@ -95,7 +95,7 @@ export default function RecentlyPlayedCard({ track }: RecentlyPlayedCardProps) {
                     )}
                 </button>
 
-                <div className="absolute bottom-3 right-3 z-20 flex items-center gap-2 opacity-0 transition duration-200 group-hover:opacity-100">
+                <div className="absolute bottom-3 right-3 z-30 flex items-center gap-2 opacity-0 transition duration-200 group-hover:opacity-100">
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
@@ -110,7 +110,7 @@ export default function RecentlyPlayedCard({ track }: RecentlyPlayedCardProps) {
                         />
                     </button>
 
-                    <div ref={menuRef} className="relative">
+                    <div ref={menuRef} className="relative flex items-center">
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
