@@ -21,7 +21,7 @@ export const useProfileController = (handle?: string) => {
   const isOwner = !handle || handle === store.handle;
 
   // ---- UI state ----
-  const [activeTab, setActiveTab] = useState("All");
+  const [activeTab, setActiveTab] = useState("Tracks");
   const [viewState, setViewState] = useState("profile");
   const [detailTab, setDetailTab] = useState("Following");
   const [isEditOpen, setIsEditOpen] = useState(false);

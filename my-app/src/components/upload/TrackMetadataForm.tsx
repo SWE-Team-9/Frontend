@@ -125,7 +125,15 @@ const TrackMetadataForm = () => {
           </div>
 
           {/* Release Date */}
-          <DatePickerInput />
+          <DatePickerInput
+            value={releaseDate}
+            onChange={(val) => {
+              setReleaseDate(val);
+              if (errors.releaseDate) setErrors((prev) => ({ ...prev, releaseDate: undefined }));
+            }}
+          />
+          {errors.releaseDate && <p className="text-red-500 text-sm mt-1 mb-3">{errors.releaseDate}</p>}
+          {!errors.releaseDate && <div className="mb-4" />}
 
           {/* Visibility */}
           <div className="flex flex-col gap-1">
