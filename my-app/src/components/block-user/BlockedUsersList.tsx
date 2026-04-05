@@ -32,7 +32,7 @@ const BlockedUsersList: React.FC<BlockedUsersListProps> = ({
                 : blockUser(user.id)
             }
             disabled={loadingUserId === user.id}
-            className="px-3 py-1 text-sm rounded bg-zinc-800 hover:bg-zinc-700 transition-colors disabled:opacity-50"
+            className="px-3 py-1 text-md text-[#ff5500] rounded bg-zinc-800 hover:bg-zinc-700 transition-colors disabled:opacity-50"
           >
             {loadingUserId === user.id
               ? "Processing…"

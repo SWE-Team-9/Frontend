@@ -508,7 +508,7 @@ export default function SettingsPage() {
             onClick={() => setActiveTab(tab.id)}
             className={`pb-3 text-sm font-bold uppercase tracking-wider transition-colors ${
               activeTab === tab.id
-                ? "text-white border-b-2 border-white"
+                ? "text-[#ff5500] border-b-2 border-[#ff5500]"
                 : "text-zinc-400 hover:text-white"
             }`}
           >

@@ -23,7 +23,7 @@ const DeleteTrackModal: React.FC<DeleteTrackModalProps> = ({
         <h2 className="text-white text-xl font-bold mb-2">Delete Track</h2>
         <p className="text-zinc-400 text-sm mb-6">
           Are you sure you want to delete{" "}
-          <span className="text-white font-semibold">"{trackTitle}"</span>?
+          <span className="text-white font-semibold"> {`"${trackTitle}"`}</span>?
           This action cannot be undone.
         </p>
 
