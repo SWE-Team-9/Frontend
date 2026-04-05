@@ -84,6 +84,7 @@ export default function LibraryHistoryPage() {
           {clearing ? "Clearing..." : "Clear all history"}
         </button>
 
+
         <input
           type="text"
           placeholder="Filter"
