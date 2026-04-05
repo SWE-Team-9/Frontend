@@ -16,7 +16,7 @@ export default function SideNavLayout({
             <NavBar />
             {children}
           </SideBar>
-          
+
         </div>
         <Player />                              {/*///////manal//////*/}
       </body>

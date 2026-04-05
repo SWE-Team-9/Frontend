@@ -21,54 +21,54 @@ export function Player() {
     streamError,
   } = usePlayerStore();
 
-useEffect(() => {
-  const audio = getAudioElement();
-  if (!audio) return;
+  useEffect(() => {
+    const audio = getAudioElement();
+    if (!audio) return;
 
-  const onTimeUpdate = () =>
-    usePlayerStore.getState().setCurrentTime(audio.currentTime);
+    const onTimeUpdate = () =>
+      usePlayerStore.getState().setCurrentTime(audio.currentTime);
 
-  const onLoadedMetadata = () =>
-    usePlayerStore.getState().setDuration(audio.duration ?? 0);
+    const onLoadedMetadata = () =>
+      usePlayerStore.getState().setDuration(audio.duration ?? 0);
 
-  const onEnded = () => usePlayerStore.getState().nextTrack();
-  const onPlay = () => usePlayerStore.setState({ isPlaying: true });
-  const onPause = () => usePlayerStore.setState({ isPlaying: false });
-  const onError = () =>
-    usePlayerStore.setState({
-      isPlaying: false,
-      streamError: "Audio playback failed.",
-    });
+    const onEnded = () => usePlayerStore.getState().nextTrack();
+    const onPlay = () => usePlayerStore.setState({ isPlaying: true });
+    const onPause = () => usePlayerStore.setState({ isPlaying: false });
+    const onError = () =>
+      usePlayerStore.setState({
+        isPlaying: false,
+        streamError: "Audio playback failed.",
+      });
 
-  const onWaiting = () => console.log("Buffering...");
-  const onPlaying = () => console.log("Playing smoothly");
+    const onWaiting = () => console.log("Buffering...");
+    const onPlaying = () => console.log("Playing smoothly");
 
-  audio.addEventListener("timeupdate", onTimeUpdate);
-  audio.addEventListener("loadedmetadata", onLoadedMetadata);
-  audio.addEventListener("ended", onEnded);
-  audio.addEventListener("play", onPlay);
-  audio.addEventListener("pause", onPause);
-  audio.addEventListener("error", onError);
-  audio.addEventListener("waiting", onWaiting);
-  audio.addEventListener("playing", onPlaying);
+    audio.addEventListener("timeupdate", onTimeUpdate);
+    audio.addEventListener("loadedmetadata", onLoadedMetadata);
+    audio.addEventListener("ended", onEnded);
+    audio.addEventListener("play", onPlay);
+    audio.addEventListener("pause", onPause);
+    audio.addEventListener("error", onError);
+    audio.addEventListener("waiting", onWaiting);
+    audio.addEventListener("playing", onPlaying);
 
-  return () => {
-    audio.removeEventListener("timeupdate", onTimeUpdate);
-    audio.removeEventListener("loadedmetadata", onLoadedMetadata);
-    audio.removeEventListener("ended", onEnded);
-    audio.removeEventListener("play", onPlay);
-    audio.removeEventListener("pause", onPause);
-    audio.removeEventListener("error", onError);
-    audio.removeEventListener("waiting", onWaiting);
-    audio.removeEventListener("playing", onPlaying);
-  };
-}, []);
+    return () => {
+      audio.removeEventListener("timeupdate", onTimeUpdate);
+      audio.removeEventListener("loadedmetadata", onLoadedMetadata);
+      audio.removeEventListener("ended", onEnded);
+      audio.removeEventListener("play", onPlay);
+      audio.removeEventListener("pause", onPause);
+      audio.removeEventListener("error", onError);
+      audio.removeEventListener("waiting", onWaiting);
+      audio.removeEventListener("playing", onPlaying);
+    };
+  }, []);
 
-useEffect(() => {
-  const audio = getAudioElement();
-  if (!audio) return;
-  audio.volume = volume / 100;
-}, [volume]);
+  useEffect(() => {
+    const audio = getAudioElement();
+    if (!audio) return;
+    audio.volume = volume / 100;
+  }, [volume]);
 
   if (!isPlayerVisible || !currentTrack) return null;
 

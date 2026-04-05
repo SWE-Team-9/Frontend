@@ -30,9 +30,8 @@ export function PlayerControls() {
     <div className="flex items-center gap-3">
       <button
         onClick={() => setShuffle((s) => !s)}
-        className={`hidden sm:flex p-1.5 rounded transition-colors ${
-          shuffle ? "text-[#f50]" : "text-[#999] hover:text-white"
-        }`}
+        className={`hidden sm:flex p-1.5 rounded transition-colors ${shuffle ? "text-[#f50]" : "text-[#999] hover:text-white"
+          }`}
       >
         <MdShuffle size={18} />
       </button>
@@ -63,9 +62,8 @@ export function PlayerControls() {
 
       <button
         onClick={() => setRepeat((r) => !r)}
-        className={`hidden sm:flex p-1.5 rounded transition-colors ${
-          repeat ? "text-[#f50]" : "text-[#999] hover:text-white"
-        }`}
+        className={`hidden sm:flex p-1.5 rounded transition-colors ${repeat ? "text-[#f50]" : "text-[#999] hover:text-white"
+          }`}
       >
         <MdRepeat size={18} />
       </button>
