@@ -151,12 +151,6 @@ export const getTrackStatus = async (trackId: string) => {
 
   const res = await api.get(`/tracks/${trackId}/status`);
   return res.data;
-
-  // const res = await fetch(`/api/v1/tracks/${trackId}/status`);
-  // if (!res.ok) {
-  //   throw new Error("Failed to get track status");
-  // }
-  // return res.json(); // { trackId, status }
 };
 
 // ===============================
