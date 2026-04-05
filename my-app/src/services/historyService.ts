@@ -2,6 +2,8 @@ import api from "@/src/services/api";
 import { getTrackDetails } from "@/src/services/trackService";
 import { ListeningHistoryItem, RecentlyPlayedItem } from "@/src/types/history";
 
+const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
+
 interface RecentTrackResponseItem {
   trackId: string;
   title: string;
@@ -36,7 +38,155 @@ interface ListeningHistoryResponse {
   history: ListeningHistoryResponseItem[];
 }
 
+// ===============================
+//  MOCK DATA
+// ===============================
+
+const MOCK_RECENTLY_PLAYED: RecentlyPlayedItem[] = [
+  {
+    trackId: "trk_001",
+    title: "Layali",
+    artist: "Ahmed Hassan",
+    coverArtUrl: "https://images.unsplash.com/photo-1614149162883-504ce4d13909?w=400&h=400&fit=crop",
+    lastPlayedAt: "2026-03-07T17:15:00Z",
+    lastPositionSeconds: 97,
+  },
+  {
+    trackId: "trk_002",
+    title: "Neon Pulse",
+    artist: "Synthwave Ghost",
+    coverArtUrl: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=400&fit=crop",
+    lastPlayedAt: "2026-03-07T15:42:00Z",
+    lastPositionSeconds: 120,
+  },
+  {
+    trackId: "trk_003",
+    title: "Midnight Circuit",
+    artist: "Electric Void",
+    coverArtUrl: "https://images.unsplash.com/photo-1500829243541-74b677fecc30?w=400&h=400&fit=crop",
+    lastPlayedAt: "2026-03-07T14:00:00Z",
+    lastPositionSeconds: 200,
+  },
+  {
+    trackId: "trk_004",
+    title: "Coastal Drive",
+    artist: "Lo-Fi Horizon",
+    coverArtUrl: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&h=400&fit=crop",
+    lastPlayedAt: "2026-03-06T22:30:00Z",
+    lastPositionSeconds: 56,
+  },
+  {
+    trackId: "trk_005",
+    title: "Urban Echoes",
+    artist: "City Pulse Collective",
+    coverArtUrl: "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=400&h=400&fit=crop",
+    lastPlayedAt: "2026-03-06T20:00:00Z",
+    lastPositionSeconds: 275,
+  },
+  {
+    trackId: "trk_006",
+    title: "Digital Rain",
+    artist: "Neon Frequencies",
+    coverArtUrl: "https://images.unsplash.com/photo-1598387993441-a364f854c3e1?w=400&h=400&fit=crop",
+    lastPlayedAt: "2026-03-06T18:15:00Z",
+    lastPositionSeconds: 341,
+  },
+];
+
+const MOCK_LISTENING_HISTORY: ListeningHistoryItem[] = [
+  {
+    trackId: "trk_001",
+    title: "Layali",
+    artist: "Ahmed Hassan",
+    coverArtUrl: "https://images.unsplash.com/photo-1614149162883-504ce4d13909?w=400&h=400&fit=crop",
+    playedAt: "2026-03-07T17:15:00Z",
+    positionSeconds: 97,
+    durationSeconds: 240,
+    isCompleted: false,
+  },
+  {
+    trackId: "trk_002",
+    title: "Neon Pulse",
+    artist: "Synthwave Ghost",
+    coverArtUrl: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=400&fit=crop",
+    playedAt: "2026-03-07T15:42:00Z",
+    positionSeconds: 237,
+    durationSeconds: 237,
+    isCompleted: true,
+  },
+  {
+    trackId: "trk_003",
+    title: "Midnight Circuit",
+    artist: "Electric Void",
+    coverArtUrl: "https://images.unsplash.com/photo-1500829243541-74b677fecc30?w=400&h=400&fit=crop",
+    playedAt: "2026-03-07T14:00:00Z",
+    positionSeconds: 200,
+    durationSeconds: 312,
+    isCompleted: false,
+  },
+  {
+    trackId: "trk_004",
+    title: "Coastal Drive",
+    artist: "Lo-Fi Horizon",
+    coverArtUrl: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&h=400&fit=crop",
+    playedAt: "2026-03-06T22:30:00Z",
+    positionSeconds: 198,
+    durationSeconds: 198,
+    isCompleted: true,
+  },
+  {
+    trackId: "trk_005",
+    title: "Urban Echoes",
+    artist: "City Pulse Collective",
+    coverArtUrl: "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=400&h=400&fit=crop",
+    playedAt: "2026-03-06T20:00:00Z",
+    positionSeconds: 56,
+    durationSeconds: 275,
+    isCompleted: false,
+  },
+  {
+    trackId: "trk_006",
+    title: "Digital Rain",
+    artist: "Neon Frequencies",
+    coverArtUrl: "https://images.unsplash.com/photo-1598387993441-a364f854c3e1?w=400&h=400&fit=crop",
+    playedAt: "2026-03-06T18:15:00Z",
+    positionSeconds: 341,
+    durationSeconds: 341,
+    isCompleted: true,
+  },
+  {
+    trackId: "trk_002",
+    title: "Neon Pulse",
+    artist: "Synthwave Ghost",
+    coverArtUrl: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=400&fit=crop",
+    playedAt: "2026-03-06T12:00:00Z",
+    positionSeconds: 100,
+    durationSeconds: 237,
+    isCompleted: false,
+  },
+  {
+    trackId: "trk_001",
+    title: "Layali",
+    artist: "Ahmed Hassan",
+    coverArtUrl: "https://images.unsplash.com/photo-1614149162883-504ce4d13909?w=400&h=400&fit=crop",
+    playedAt: "2026-03-05T21:00:00Z",
+    positionSeconds: 240,
+    durationSeconds: 240,
+    isCompleted: true,
+  },
+];
+
+// ===============================
+//  GET RECENTLY PLAYED
+// ===============================
+
 export async function getRecentlyPlayed(limit = 6, page = 1): Promise<RecentlyPlayedItem[]> {
+  if (USE_MOCK) {
+    await new Promise((r) => setTimeout(r, 600));
+    const start = (page - 1) * limit;
+    return MOCK_RECENTLY_PLAYED.slice(start, start + limit);
+  }
+
   const { data } = await api.get<RecentlyPlayedResponse>(
     `/player/history/recent?page=${page}&limit=${limit}`
   );
@@ -59,7 +209,17 @@ export async function getRecentlyPlayed(limit = 6, page = 1): Promise<RecentlyPl
   });
 }
 
+// ===============================
+//  GET LISTENING HISTORY
+// ===============================
+
 export async function getListeningHistory(limit = 20, page = 1): Promise<ListeningHistoryItem[]> {
+  if (USE_MOCK) {
+    await new Promise((r) => setTimeout(r, 700));
+    const start = (page - 1) * limit;
+    return MOCK_LISTENING_HISTORY.slice(start, start + limit);
+  }
+
   const { data } = await api.get<ListeningHistoryResponse>(
     `/player/history?page=${page}&limit=${limit}`
   );
@@ -84,7 +244,16 @@ export async function getListeningHistory(limit = 20, page = 1): Promise<Listeni
   });
 }
 
+// ===============================
+//  CLEAR LISTENING HISTORY
+// ===============================
+
 export async function clearListeningHistory() {
+  if (USE_MOCK) {
+    await new Promise((r) => setTimeout(r, 500));
+    return;
+  }
+
   const { data } = await api.delete(`/player/history`);
   return data;
 }

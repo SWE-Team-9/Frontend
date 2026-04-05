@@ -26,9 +26,8 @@ export default function LibraryOverviewPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#121212] px-6 pt-24 pb-8 text-white">
+    <div className="min-h-screen bg-[#121212] px-6 py-8 text-white">
       <LibraryTabs />
-
 
       {loading ? (
         <div className="text-zinc-400">Loading...</div>

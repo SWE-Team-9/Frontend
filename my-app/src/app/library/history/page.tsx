@@ -72,7 +72,7 @@ export default function LibraryHistoryPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#121212] px-6 pt-24 pb-8 text-white">
+    <div className="min-h-screen bg-[#121212] px-6 py-8 text-white">
       <LibraryTabs />
 
       <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-end">
@@ -83,7 +83,6 @@ export default function LibraryHistoryPage() {
         >
           {clearing ? "Clearing..." : "Clear all history"}
         </button>
-
 
         <input
           type="text"
