@@ -1,10 +1,14 @@
 import React from 'react';
-import { Menu, Transition } from '@headlessui/react';
+import { Menu, MenuButton, MenuItems, MenuItem, Transition } from '@headlessui/react';
 import { Track } from '../../types/track';
+
+
 import { 
   Play, MoreHorizontal, Heart, BarChart2, 
   Trash2, Edit2, ListPlus, Share2, Link2, Repeat 
 } from 'lucide-react';
+
+import { TrackActionButtons } from "./TrackActionButtons";
 
 interface TrackCardProps {
   track: Track;
@@ -48,17 +52,20 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, onEdit, onDelete })
         </div>
 
         {/* C. Bottom: Action Buttons */}
-        <div className="flex items-center gap-2 mt-2">
-          {/* Quick Actions (Module 3/Social assignment) */}
-          <button className="p-2.5 rounded bg-[#2a2a2a] text-zinc-400 hover:text-white hover:bg-[#3a3a3a]">
-            <Heart className="w-4 h-4" /> {/* Like */}
-          </button>
-          <button className="p-2.5 rounded bg-[#2a2a2a] text-zinc-400 hover:text-white hover:bg-[#3a3a3a]">
-            <Share2 className="w-4 h-4" /> {/* Repost */}
-          </button>
-          <button className="p-2.5 rounded bg-[#2a2a2a] text-zinc-400 hover:text-white hover:bg-[#3a3a3a]">
-            <Link2 className="w-4 h-4" /> {/* Copy Link */}
-          </button>
+        <div
+        onClick={(e) => e.stopPropagation()}
+        className="flex items-center gap-2 mt-2"
+        >
+          <TrackActionButtons
+         trackId={track.trackId}
+        title={track.title}
+        likesCount={track.likesCount ?? 0}
+        liked={track.liked ?? false}
+        repostsCount={track.repostsCount ?? 0}
+        reposted={track.reposted ?? false}
+        size="full"
+         />
+        </div>
           
           {/* MANAGEMENT BUTTONS (YOUR FOCUS AREA) */}
           
@@ -82,10 +89,10 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, onEdit, onDelete })
 
           {/* Dropdown Menu for additional actions */}
           <div className="relative">
-            <Menu as="div" className="relative inline-block text-left">
-              <Menu.Button className="p-2.5 rounded bg-[#2a2a2a] text-zinc-400 hover:text-white hover:bg-[#3a3a3a]">
+            <Menu className="relative inline-block text-left">
+              <MenuButton className="p-2.5 rounded bg-[#2a2a2a] text-zinc-400 hover:text-white hover:bg-[#3a3a3a]">
                 <MoreHorizontal className="w-4 h-4" />
-              </Menu.Button>
+              </MenuButton>
               <Transition
                 as={React.Fragment}
                 enter="transition ease-out duration-100"
@@ -95,35 +102,35 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, onEdit, onDelete })
                 leaveFrom="transform opacity-100 scale-100"
                 leaveTo="transform opacity-0 scale-95"
               >
-                <Menu.Items className="absolute left-0 mt-2 w-56 origin-top-left divide-y divide-zinc-800 rounded-md bg-[#181818] border border-zinc-800 shadow-xl focus:outline-none z-50">
+                <MenuItems className="absolute left-0 mt-2 w-56 origin-top-left divide-y divide-zinc-800 rounded-md bg-[#181818] border border-zinc-800 shadow-xl focus:outline-none z-50">
                    <div className="px-1 py-1">
-                     <Menu.Item>
-                       {({ active }) => (
+                     <MenuItem>
+                       {({ active }: { active: boolean }) => (  
                          <button className={`${active ? 'bg-zinc-800' : ''} text-zinc-300 group flex w-full items-center rounded-md px-2 py-2 text-sm`}>
                            <ListPlus className="mr-2 h-4 w-4" /> Add to Playlist
                          </button>
                        )}
-                     </Menu.Item>
-                     <Menu.Item>
-                       {({ active }) => (
+                     </MenuItem>
+                     <MenuItem>
+                      {({ active }: { active: boolean }) => (  
                          <button className={`${active ? 'bg-zinc-800' : ''} text-zinc-300 group flex w-full items-center rounded-md px-2 py-2 text-sm`}>
                            <Repeat className="mr-2 h-4 w-4" /> Station
                          </button>
                        )}
-                     </Menu.Item>
-                     <Menu.Item>
-                       {({ active }) => (
+                     </MenuItem>
+                     <MenuItem>
+                       {({ active }: { active: boolean }) => (  
                          <button className={`${active ? 'bg-zinc-800' : ''} text-zinc-300 group flex w-full items-center rounded-md px-2 py-2 text-sm`}>
                            <BarChart2 className="mr-2 h-4 w-4" /> Your Insights
                          </button>
                        )}
-                     </Menu.Item>
+                     </MenuItem>
                    </div>
 
                    <div className="px-1 py-1">
                      {/* Secondary Edit Option inside Menu */}
-                     <Menu.Item>
-                       {({ active }) => (
+                     <MenuItem>
+                       {({ active }: { active: boolean }) => (
                          <button 
                            onClick={() => onEdit(track)}
                            className={`${active ? 'bg-zinc-800 text-white' : 'text-zinc-400'} group flex w-full items-center rounded-md px-2 py-2 text-sm`}
@@ -131,11 +138,11 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, onEdit, onDelete })
                            <Edit2 className="mr-2 h-4 w-4" /> Edit Metadata
                          </button>
                        )}
-                     </Menu.Item>
+                     </MenuItem>
 
                      {/* Secondary Delete Option inside Menu */}
-                     <Menu.Item>
-                       {({ active }) => (
+                     <MenuItem>
+                       {({ active }: { active: boolean }) => (
                          <button 
                            onClick={() => onDelete(track.trackId)}
                            className={`${active ? 'bg-red-900/40 text-red-200' : 'text-red-500'} group flex w-full items-center rounded-md px-2 py-2 text-sm`}
@@ -143,15 +150,14 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, onEdit, onDelete })
                            <Trash2 className="mr-2 h-4 w-4" /> Delete Track
                          </button>
                        )}
-                     </Menu.Item>
+                     </MenuItem>
                    </div>
-                </Menu.Items>
+                </MenuItems>
               </Transition>
             </Menu>
           </div>
         </div>
 
       </div>
-    </div>
   );
 };

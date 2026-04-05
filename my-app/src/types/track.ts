@@ -25,6 +25,11 @@ export interface Track {
     avatarUrl: string; 
   };
   waveformData?: number[] | null; 
+
+  likesCount?: number;
+  liked?: boolean;
+  repostsCount?: number;
+  reposted?: boolean;
 }
 
 
