@@ -120,7 +120,8 @@ body {
 }
 
 /* Selected day */
-.react-datepicker__day--selected {
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected {
   background-color: #ff5500 !important;
   color: white !important;
 }

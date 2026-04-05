@@ -16,21 +16,23 @@ import { SocialLinksList } from "@/src/components/profile/sidebar/SocialLinksLis
 import { EditProfileModal } from "@/src/components/profile/modals/EditProfileModal";
 import ProfileActionsMenu from "@/src/components/block-user/ProfileActionsMenu";
 import api from "@/src/services/api";
+import TrackList from "@/src/components/tracks/TrackList";
 
 export default function ProfilePage({
   params,
 }: {
   params: Promise<{ handle: string }>;
 }) {
-  // 1. Unwrap the params promise using React.use() (Next.js 15 requirement)
   const resolvedParams = React.use(params);
   const handle = resolvedParams.handle;
 
-  const [currentUserHandle, setCurrentUserHandle] = React.useState<string | null>(null);
+  const [currentUserHandle, setCurrentUserHandle] = React.useState<
+    string | null
+  >(null);
 
   const controller = useProfileController(handle);
-  
-  // 2. Logic to determine if the logged-in user is viewing their own page
+
+  // Logic to determine if the logged-in user is viewing their own page
   const isOwner = currentUserHandle === handle;
 
   useEffect(() => {
@@ -84,6 +86,51 @@ export default function ProfilePage({
     handleAvatarUpload,
     avatarUrl,
   } = controller;
+
+  const renderFeedContent = () => {
+    if (activeTab === "Tracks") {
+      return (
+        <div className="flex-1 border-r border-zinc-900/50 pr-12">
+          <TrackList userId={controller.userId} />
+        </div>
+      );
+    }
+
+    if (activeTab === "Playlists") {
+      return (
+        <div className="flex-1 text-center py-20 border-r border-zinc-900/50 pr-12 flex flex-col items-center justify-center">
+          <p className="text-zinc-500 text-xl font-bold">
+            You haven&apos;t created any playlists.
+          </p>
+        </div>
+      );
+    }
+
+    if (activeTab === "Playlists") {
+      return (
+        <div className="flex-1 text-center py-20 border-r border-zinc-900/50 pr-12 flex flex-col items-center justify-center">
+          <p className="text-zinc-500 text-xl font-bold">
+            You haven&apos;t created any playlists.
+          </p>
+        </div>
+      );
+    }
+
+    // Default — All or any other tab
+    return (
+      <div className="flex-1 text-center py-20 border-r border-zinc-900/50 pr-12 flex flex-col items-center justify-center">
+        <p className="text-zinc-500 text-xl font-bold mb-6">
+          Seems a little quiet over here
+        </p>
+        <button
+          onClick={handleUploadClick}
+          className="bg-white text-black px-8 py-2 rounded hover:bg-[#ff5500] transition duration-300 cursor-pointer font-bold text-lg uppercase"
+        >
+          Upload now
+        </button>
+      </div>
+    );
+  };
 
   const renderDetailsPage = () => (
     <div className="container mx-auto px-8 py-10 animate-in fade-in duration-500">
@@ -228,23 +275,7 @@ export default function ProfilePage({
 
             {/* --- SECTION 3: MAIN LAYOUT (Feed & Sidebar) --- */}
             <div className="container mx-auto px-8 py-12 flex flex-col lg:flex-row gap-12 text-left">
-              <div className="flex-1 text-center py-20 border-r border-zinc-900/50 pr-12 flex flex-col items-center justify-center">
-                <p className="text-zinc-500 text-xl font-bold mb-6">
-                  {activeTab === "Playlists"
-                    ? "You haven't created any playlists."
-                    : activeTab === "Reposts"
-                      ? "You haven't reposted any sounds."
-                      : "Seems a little quiet over here"}
-                </p>
-                {activeTab !== "Playlists" && activeTab !== "Reposts" && (
-                  <button
-                    onClick={handleUploadClick}
-                    className="bg-white text-black px-8 py-2 rounded hover:bg-[#ff5500] transition duration-300 cursor-pointer font-bold text-lg uppercase"
-                  >
-                    Upload now
-                  </button>
-                )}
-              </div>
+              {renderFeedContent()}
 
               <div className="w-full lg:w-[320px] space-y-10">
                 <Stats
@@ -275,7 +306,7 @@ export default function ProfilePage({
                 <div className="space-y-4">
                   <div className="flex justify-between items-center text-zinc-500 text-[13px] border-b border-zinc-900 pb-2">
                     <p className="flex items-center gap-2 font-bold uppercase">
-                      👥 1 Following
+                      1 Following
                     </p>
                     <button
                       onClick={() => {
@@ -289,9 +320,7 @@ export default function ProfilePage({
                   </div>
                   <div className="flex items-center gap-3 p-2 hover:bg-zinc-900/40 rounded transition-all cursor-pointer">
                     <div className="w-10 h-10 rounded-full bg-blue-900"></div>
-                    <p className="text-sm font-bold">
-                      Travis Scott <span className="text-blue-400">✓</span>
-                    </p>
+                    <p className="text-sm font-bold">Travis Scott</p>
                   </div>
                 </div>
               </div>
@@ -380,7 +409,10 @@ export default function ProfilePage({
                           onChange={() => setIsShortened(!isShortened)}
                           className="w-5 h-5 accent-white"
                         />
-                        <label htmlFor="shorten" className="text-sm text-white font-bold uppercase">
+                        <label
+                          htmlFor="shorten"
+                          className="text-sm text-white font-bold uppercase"
+                        >
                           Shorten link
                         </label>
                       </div>
@@ -427,11 +459,10 @@ export default function ProfilePage({
         {showSuccessToast && (
           <div className="fixed top-20 right-10 z-100 animate-in slide-in-from-right duration-300">
             <div className="bg-[#333] border border-zinc-700 p-4 flex items-center gap-4 shadow-2xl rounded-sm min-w-75">
-              <div className="w-12 h-12 bg-zinc-600 flex items-center justify-center rounded-sm">
-                <span className="text-zinc-400 text-2xl">👤</span>
-              </div>
               <div>
-                <p className="text-white text-sm font-bold">Your profile has been updated</p>
+                <p className="text-white text-sm font-bold">
+                  Your profile has been updated
+                </p>
                 <p className="text-white text-sm font-bold">successfully.</p>
               </div>
             </div>

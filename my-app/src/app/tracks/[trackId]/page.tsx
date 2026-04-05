@@ -149,6 +149,14 @@ export default function TrackDetailPage() {
     }
   };
 
+  const handleViewOnProfile = () => {
+    if (track?.artistHandle) {
+      router.push(`/profiles/${track.artistHandle}`);
+    } else {
+      router.push("/profile");
+    }
+  };
+
   if (loading)
     return (
       <main className="min-h-screen bg-[#121212] flex items-center justify-center">
@@ -501,7 +509,7 @@ export default function TrackDetailPage() {
 
               {track.artistHandle && (
                 <button
-                  onClick={() => router.push(`/profiles/${track.artistHandle}`)}
+                  onClick={handleViewOnProfile}
                   className="border border-[#8c8c8c] text-[#8c8c8c] font-bold py-2 px-6 rounded hover:border-[#ff5500] hover:text-[#ff5500] transition"
                 >
                   View on Profile
