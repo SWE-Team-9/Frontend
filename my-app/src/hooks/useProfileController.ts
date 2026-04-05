@@ -1,7 +1,6 @@
 import { useProfileStore } from "@/src/store/useProfileStore";
-import { useState, useEffect, useCallback, useRef, useMemo} from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { socialService } from "@/src/services/socialService";
-// import { useParams } from "next/navigation";
 import {
   getMyProfile,
   updateMyProfile,
@@ -10,7 +9,7 @@ import {
 } from "@/src/services/profileService";
 
 /**
- * Interface representing the UI User structure
+ * UI User structure for consistency
  */
 interface User {
   id: number;
@@ -23,7 +22,7 @@ interface User {
 }
 
 /**
- * Interface representing the Raw Server/Mock response
+ * Raw Server/Mock response mapping
  */
 interface ServerUser {
   id: string | number;
@@ -38,15 +37,8 @@ interface ServerUser {
   avatar?: string;
 }
 
-
-
-
 type AccountType = "ARTIST" | "LISTENER";
 
-/**
- * Custom Hook to control profile logic and state management
- * @param targetUserId Optional parameter to fetch a specific user profile
- */
 export const useProfileController = (targetUserId?: string) => {
   const store = useProfileStore();
 
@@ -72,61 +64,25 @@ export const useProfileController = (targetUserId?: string) => {
   const [currentPage, setCurrentPage] = useState(1); 
   const favoriteGenres = store.favoriteGenres;
 
-  // ---- Static data ----
-  const tabs = [
-    "All",
-    "Popular tracks",
-    "Tracks",
-    "Albums",
-    "Playlists",
-    "Reposts",
-  ];
-  const genres = [
-    "None",
-    "electronic",
-    "hip-hop",
-    "pop",
-    "rock",
-    "alternative",
-    "ambient",
-    "classical",
-    "jazz",
-    "r-b-soul",
-    "metal",
-    "folk-singer-songwriter",
-    "country",
-    "reggaeton",
-    "dancehall",
-    "drum-bass",
-    "house",
-    "techno",
-    "deep-house",
-    "trance",
-    "lo-fi",
-    "indie",
-    "punk",
-    "blues",
-    "latin",
-    "afrobeat",
-    "trap",
-    "experimental",
-    "world",
-    "gospel",
-    "spoken-word",
-  ];
+  // ---- Dynamic Data Lists ----
+  const [followingList, setFollowingList] = useState<User[]>([]);
+  const [followersList, setFollowersList] = useState<User[]>([]);
+  const [suggestedUsers, setSuggestedUsers] = useState<any[]>([]);
+  const [likesList, setLikesList] = useState<any[]>([]);
 
-  // ---- Profile links for the share modal ----
+  const tabs = ["All", "Popular tracks", "Tracks", "Albums", "Playlists", "Reposts"];
+  const genres = ["None", "electronic", "hip-hop", "pop", "rock", "alternative", "ambient", "classical", "jazz", "r-b-soul", "metal", "folk-singer-songwriter", "country", "reggaeton", "dancehall", "drum-bass", "house", "techno", "deep-house", "trance", "lo-fi", "indie", "punk", "blues", "latin", "afrobeat", "trap", "experimental", "world", "gospel", "spoken-word"];
+
   const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const longLink = store.handle
-    ? `${origin}/profile/${store.handle}`
-    : `${origin}/profile`;
+  const longLink = store.handle ? `${origin}/profile/${store.handle}` : `${origin}/profile`;
   const shortLink = longLink;
 
   /**
-   * Fetch profile data from backend on initial load
+   * Load Profile Data
    */
   const loadProfile = useCallback(async () => {
-if (store.isLoaded || hasRequestedProfileRef.current || store.useMockData) return;    hasRequestedProfileRef.current = true;
+    if (store.isLoaded || hasRequestedProfileRef.current) return;
+    hasRequestedProfileRef.current = true;
 
     try {
       setIsLoading(true);
@@ -146,20 +102,18 @@ if (store.isLoaded || hasRequestedProfileRef.current || store.useMockData) retur
         followersCount: profile.followersCount ?? 0,
         followingCount: profile.followingCount ?? 0,
         tracksCount: profile.tracksCount ?? 0,
-        links:
-          profile.externalLinks && profile.externalLinks.length > 0
-            ? profile.externalLinks.map((l, i) => ({
-                id: Date.now() + i,
-                platform: l.platform,
-                url: l.url,
-              }))
-            : [{ id: 1, platform: "", url: "" }],
+        links: profile.externalLinks && profile.externalLinks.length > 0
+          ? profile.externalLinks.map((l: any, i: number) => ({
+              id: Date.now() + i,
+              platform: l.platform,
+              url: l.url,
+            }))
+          : [{ id: 1, platform: "", url: "" }],
         isLoaded: true,
       });
-    } catch {
-      // If the profile fetch fails (not logged in, etc.), just ignore
+    } catch (err) {
       hasRequestedProfileRef.current = false;
-      console.log("Could not load profile — user may not be logged in.");
+      console.log("Profile load failed or user not logged in.");
     } finally {
       setIsLoading(false);
     }
@@ -170,17 +124,46 @@ if (store.isLoaded || hasRequestedProfileRef.current || store.useMockData) retur
   }, [loadProfile]);
 
   /**
-   * Save profile updates to the backend
+   * Fetch Social Data (Followers/Following)
+   */
+  useEffect(() => {
+    const fetchSocialData = async () => {
+      try {
+        setIsLoading(true);
+        const [followersRes, followingRes] = await Promise.all([
+          socialService.getFollowers(activeId),
+          socialService.getFollowing(activeId),
+        ]);
+
+        const mapServerToUI = (serverUsers: ServerUser[]): User[] =>
+          serverUsers.map((u) => ({
+            id: typeof u.id === "string" ? parseInt(u.id) : (u.id as number),
+            name: u.display_name || u.name || "Unknown User",
+            handle: u.handle || "user",
+            followers: u.followersCount?.toString() || u.followers?.toString() || "0",
+            tracks: u.tracksCount || 0,
+            isFollowing: u.isFollowing ?? false,
+            avatar: u.avatar_url || u.avatar || "https://ui-avatars.com/api/?name=User",
+          }));
+
+        if (followersRes.data?.data) setFollowersList(mapServerToUI(followersRes.data.data));
+        if (followingRes.data?.data) setFollowingList(mapServerToUI(followingRes.data.data));
+      } catch (err) {
+        console.error("Social Graph Error:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchSocialData();
+  }, [activeId, detailTab]);
+
+  /**
+   * Save Profile Updates
    */
   const handleSave = async () => {
     if (!store.displayName.trim()) {
       setError("Display name is required!");
-      return;
-    }
-    if (store.useMockData) {
-      setIsEditOpen(false);
-      setShowSuccessToast(true);
-      setTimeout(() => setShowSuccessToast(false), 3000);
       return;
     }
 
@@ -207,43 +190,70 @@ if (store.isLoaded || hasRequestedProfileRef.current || store.useMockData) retur
       setIsEditOpen(false);
       setShowSuccessToast(true);
       setTimeout(() => setShowSuccessToast(false), 3000);
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { message?: string } } };
-      setError(axiosErr.response?.data?.message || "Failed to save profile.");
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Failed to save profile.");
     } finally {
       setIsSaving(false);
     }
   };
 
+  /**
+   * Handle Avatar Upload (Fixed Return Type & Error Handling)
+   */
   const handleAvatarUpload = async (file: File): Promise<string | undefined> => {
     if (isAvatarUploading) return store.avatarUrl || undefined;
-
     try {
       setIsAvatarUploading(true);
       setError("");
-
-      const result = await uploadProfileImage("avatar", file);
-      const uploadedUrl =
-        (result as { url?: string | null })?.url || undefined;
+      const result = (await uploadProfileImage("avatar", file)) as { url?: string };
+      const uploadedUrl = result?.url || undefined;
 
       if (uploadedUrl) {
         store.setProfileData({ avatarUrl: uploadedUrl });
       }
-
       return uploadedUrl;
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { message?: string } } };
-      setError(axiosErr.response?.data?.message || "Failed to upload avatar.");
-      throw err;
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Failed to upload avatar.");
+      return undefined; 
     } finally {
       setIsAvatarUploading(false);
     }
   };
 
-  // ---- Clipboard helper ----
   /**
-   * Copies the profile link to the user's clipboard
+   * Toggle Follow (Fixed String Conversion for Service)
    */
+  const toggleFollow = async (userId: number) => {
+    const allUsers = [...followersList, ...followingList, ...suggestedUsers];
+    const targetUser = allUsers.find((u) => u.id === userId);
+    if (!targetUser) return;
+
+    const nextFollowingState = !targetUser.isFollowing;
+
+    // Optimistic UI Update
+    store.setProfileData({
+      followingCount: nextFollowingState ? store.followingCount + 1 : Math.max(0, store.followingCount - 1),
+    });
+
+    const update = (list: any[]) => list.map(u => u.id === userId ? { ...u, isFollowing: nextFollowingState } : u);
+    setFollowersList(prev => update(prev));
+    setSuggestedUsers(prev => update(prev));
+
+    try {
+      if (nextFollowingState) {
+        setFollowingList(prev => [...prev, { ...targetUser, isFollowing: true }]);
+        // Fixed: Converting number ID to string for the service
+        await socialService.followUser(String(userId));
+      } else {
+        setFollowingList(prev => prev.filter(u => u.id !== userId));
+        // Fixed: Converting number ID to string for the service
+        await socialService.unfollowUser(String(userId));
+      }
+    } catch (err) {
+      console.error("Toggle Follow Error:", err);
+    }
+  };
+
   const copyToClipboard = async () => {
     const textToCopy = isShortened ? shortLink : longLink;
     try {
@@ -255,281 +265,19 @@ if (store.isLoaded || hasRequestedProfileRef.current || store.useMockData) retur
     }
   };
 
-  const setProfileData = (data: Partial<typeof store>) => {
-    store.setProfileData(data);
-  };
+  const displayUsers = useMemo(() => (detailTab === "Following" ? followingList : followersList), [detailTab, followingList, followersList]);
 
-  // ---- Mock Data for Tracks ----
-  const mockTracks = [
-    {
-      trackId: "trk_123",
-      title: "Biomedical Beat",
-      artist: { display_name: store.displayName },
-      durationSeconds: 215,
-      liked: true,
-    },
-    {
-      trackId: "trk_456",
-      title: "Next.js Rhythm",
-      artist: { display_name: store.displayName },
-      durationSeconds: 185,
-      liked: false,
-    },
-  ];
-
-  const displayTracks = store.useMockData ? mockTracks : [];
-
-  // ---- Following List State ----
-  const [followingList, setFollowingList] = useState<User[]>([
-    {
-      id: 1,
-      name: "DOJA CAT",
-      handle: "dojacat",
-      followers: "2M",
-      tracks: 164,
-      isFollowing: true,
-      avatar:
-        "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?q=80&w=500",
-    },
-    {
-      id: 2,
-      name: "Bad-Bunny",
-      handle: "badbunny",
-      followers: "3M",
-      tracks: 168,
-      isFollowing: true,
-      avatar:
-        "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?q=80&w=500",
-    },
-    {
-      id: 3,
-      name: "Travis Scott",
-      handle: "travisscott",
-      followers: "6.22M",
-      tracks: 174,
-      isFollowing: true,
-      avatar:
-        "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=500",
-    },
-  ]);
-
-  // ---- Followers List State ----
-  const [followersList, setFollowersList] = useState<User[]>([
-    {
-      id: 4,
-      name: "The Weeknd",
-      handle: "theweeknd",
-      followers: "10M",
-      tracks: 210,
-      isFollowing: false,
-      avatar:
-        "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=500",
-    },
-    {
-      id: 5,
-      name: "Drake",
-      handle: "drake",
-      followers: "15M",
-      tracks: 500,
-      isFollowing: false,
-      avatar:
-        "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=500",
-    },
-  ]);
-
-  const [suggestedUsers, setSuggestedUsers] = useState([
-    {
-      id: 301,
-      name: "Mazen LoFi",
-      reason: "Shared genres",
-      isFollowing: false,
-      avatar: "",
-    },
-  ]);
-
-  const [likesList, setLikesList] = useState([
-    {
-      id: "track_like_1",
-      title: "Super Bowl LX Halftime Show (Live)",
-      artist: "Bad Bunny, NFL",
-      duration: "13:41",
-      timestamp: "1 month ago",
-      genre: "Latin",
-      cover: "https://i1.sndcdn.com/artworks-Xy7D9X3W-t500x500.jpg",
-      isLiked: true,
-    },
-  ]);
-
-  /**
-   * Social Graph Integration: Fetches followers and following lists
-   * Uses activeId based on URL or session
-   */
-  useEffect(() => {
-    const fetchSocialData = async () => {
-      try {
-        setIsLoading(true);
-        console.log(`Fetching social data for user: ${activeId}`);
-
-        // Fetch parallel data from Service Layer using activeId
-        const [followersRes, followingRes] = await Promise.all([
-          socialService.getFollowers(activeId),
-          socialService.getFollowing(activeId),
-        ]);
-
-        /**
-         * Maps Server/Mock data structure to the UI User structure
-         */
-        const mapServerToUI = (serverUsers: ServerUser[]): User[] =>
-          serverUsers.map((u) => ({
-            // Convert ID to number if string, or keep original
-            id: typeof u.id === "string" ? parseInt(u.id) : u.id,
-            name: u.display_name || u.name || "Unknown User",
-            handle: u.handle || "user",
-            // Normalize followers count from various naming conventions
-            followers: u.followersCount?.toString() || u.followers?.toString() || "0",
-            tracks: u.tracksCount || 0,
-            isFollowing: u.isFollowing ?? false,
-            avatar:
-              u.avatar_url ||
-              u.avatar ||
-              "https://ui-avatars.com/api/?name=User",
-          }));
-
-        if (!store.useMockData) {
-          // Update state using the mapped data from mock/server response
-          if (followersRes.data && followersRes.data.data) {
-            setFollowersList(mapServerToUI(followersRes.data.data));
-          }
-          if (followingRes.data && followingRes.data.data) {
-            setFollowingList(mapServerToUI(followingRes.data.data));
-          }
-        }
-      } catch (err) {
-        console.error("API Integration Error:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchSocialData();
-  }, [detailTab, activeId, store.useMockData]);
-
-  /**
-   * Pagination Simulation: Loads more mock users into the list
-   */
-  const handleLoadMore = () => {
-    console.log(`Loading more data for page: ${currentPage + 1}...`);
-
-    // Create a new mock user instance
-    const nextUser: User = {
-      id: Date.now(),
-      name: "New Mock User",
-      handle: `user_${currentPage + 1}`,
-      followers: "1K",
-      tracks: 10,
-      isFollowing: false,
-      avatar: "https://ui-avatars.com/api/?name=New+User",
-    };
-
-    // Append user based on currently active tab
-    if (detailTab === "Following") {
-      setFollowingList((prev) => [...prev, nextUser]);
-    } else {
-      setFollowersList((prev) => [...prev, nextUser]);
-    }
-
-    setCurrentPage((prev) => prev + 1);
-    alert("Page " + (currentPage + 1) + " loaded successfully (Mock)!");
-  };
-
-  /**
-   * Memoized display list based on active tab
-   */
-  const displayUsers = useMemo(() => {
-    return detailTab === "Following" ? followingList : followersList;
-  }, [detailTab, followingList, followersList]);
-
-  /**
-   * Filters the user list based on the search query
-   */
   const filteredUsers = useMemo(() => {
-    return displayUsers.filter((user: User) =>
-      user.name.toLowerCase().includes(searchQuery.toLowerCase()),
+    return displayUsers.filter((user) =>
+      user.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [displayUsers, searchQuery]);
-
-  /**
-   * Optimistic update logic for Following/Unfollowing a user
-   */
-  /**
-   * TASK: Real-Time Follow Logic (Gehad)
-   * Synchronizes UI lists and Sidebar counts instantly
-   */
-  const toggleFollow = (userId: number) => {
-    // Find the user object from any of our current lists
-    const allKnownUsers = [...followersList, ...followingList, ...suggestedUsers];
-    const targetUser = allKnownUsers.find((u) => u.id === userId);
-
-    if (!targetUser) return;
-
-    const isCurrentlyFollowing = targetUser.isFollowing;
-    const nextFollowingState = !isCurrentlyFollowing;
-
-    // 1. Update Sidebar Count (Optimistic Update)
-    store.setProfileData({
-      followingCount: nextFollowingState
-        ? store.followingCount + 1
-        : Math.max(0, store.followingCount - 1),
-    });
-
-    // 2. Update Followers/Suggestions lists UI state
-    const updateListState = <T extends { id: number; isFollowing: boolean }>(list: T[]): T[] =>
-      list.map((user) =>
-        user.id === userId ? { ...user, isFollowing: nextFollowingState } : user
-      );
-
-    setFollowersList((prev) => updateListState(prev));
-    setSuggestedUsers((prev) => updateListState(prev));
-
-  // 3. Dynamic Following List Management (Add/Remove)
-    if (nextFollowingState) {
-      // If now following, add to the Following List if not already there
-      setFollowingList((prev) => {
-        if (prev.some((u) => u.id === userId)) return prev;
-
-        // الحل هنا: بننشئ كائن مستخدم كامل البيانات (User) عشان نرضي TypeScript
-        const newUser: User = {
-          id: targetUser.id,
-          name: targetUser.name,
-          // بنضيف قيم افتراضية للحقول الناقصة عشان الـ Interface يكمل
-         handle: (targetUser as User).handle || `user_${targetUser.id}`,
-          followers: (targetUser as User).followers || "0",
-          tracks: (targetUser as User).tracks || 0,
-          avatar: targetUser.avatar || "",
-          isFollowing: true,
-        };
-
-        return [...prev, newUser];
-      });
-    } else {
-      // If unfollowed, remove from the Following List immediately
-      setFollowingList((prev) => prev.filter((u) => u.id !== userId));
-    }
-
-    console.log(`Real-Time Sync: User ${userId} is now ${nextFollowingState ? "Following" : "Follow"}`);
-    // // To update your OWN followers count in sidebar (if applicable)
-    // store.setProfileData({
-    //   followersCount: nextFollowingState 
-    //     ? store.followersCount + 1 
-    //     : Math.max(0, store.followersCount - 1)
-    // });
-  };
 
   return {
     ...store,
     activeTab,
     setActiveTab,
-    setProfileData,
+    setProfileData: (data: Partial<typeof store>) => store.setProfileData(data),
     tabs,
     viewState,
     setViewState,
@@ -555,7 +303,7 @@ if (store.isLoaded || hasRequestedProfileRef.current || store.useMockData) retur
     isLoading,
     isAvatarUploading,
     handleAvatarUpload,
-    displayTracks,
+    displayTracks: [], 
     toggleFollow,
     likesList,
     setLikesList,
@@ -565,7 +313,7 @@ if (store.isLoaded || hasRequestedProfileRef.current || store.useMockData) retur
     displayUsers,
     favoriteGenres,
     suggestedUsers,
-    handleLoadMore,
+    handleLoadMore: () => setCurrentPage(prev => prev + 1),
     currentPage,
   };
 };

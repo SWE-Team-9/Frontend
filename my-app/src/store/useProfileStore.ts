@@ -52,7 +52,7 @@ interface ProfileState {
 const initialProfileState = {
   displayName: "Gehad Khamis",
   handle: "",
-bio: "Biomedical Engineering Student",
+  bio: "Biomedical Engineering Student",
   location: "",
   website: "",
   avatarUrl: null,

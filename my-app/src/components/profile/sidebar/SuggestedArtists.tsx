@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getSuggestions } from "@/src/services/followService";
+import { getSuggestions } from "@/src/services/socialService";
 import { User } from "@/src/types/user";
 import { UserCard } from "@/src/components/user/UserCard"; // import
 
@@ -13,8 +13,9 @@ export default function SuggestedArtists() {
     const fetchSuggestions = async () => {
       try {
         const data = await getSuggestions();
+        const suggestions = data.data?.suggestions || [];
 
-        const mappedUsers: User[] = data.suggestions.map((u: any) => ({
+        const mappedUsers: User[] = suggestions.map((u: any) => ({
           id: u.id,
           name: u.display_name,
           avatar: u.avatar_url,
