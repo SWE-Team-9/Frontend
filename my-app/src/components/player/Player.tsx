@@ -8,6 +8,7 @@ import { VolumeControl } from "./VolumeControl";
 import { usePlayerStore, getAudioElement } from "@/src/store/playerStore";
 import { SlUserFollow } from "react-icons/sl";
 import { PiQueue } from "react-icons/pi";
+import { PlaybackToast } from "./PlaybackToast";
 
 export function Player() {
   const {
@@ -73,6 +74,7 @@ useEffect(() => {
   if (!isPlayerVisible || !currentTrack) return null;
 
   return (
+    <>
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#333] border-t border-[#222] shadow-2xl h-[60px] flex items-center">
       <div className="flex items-center w-full px-4 gap-6">
 
@@ -123,5 +125,8 @@ useEffect(() => {
 
       </div>
     </div>
+    
+     <PlaybackToast />
+  </>
   );
 }
