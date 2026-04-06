@@ -2,18 +2,6 @@ import React from "react";
 import { PrivacyToggle } from "@/src/components/ui/PrivacyToggle";
 import { SocialLinkInput } from "@/src/components/ui/SocialLinkInput";
 
-// ─────────────────────────────────────────────────────────────
-// Edit Profile Modal
-//
-// BEGINNER TIP:
-//   This component receives TWO props:
-//     - `data`     → the current values to show in the form
-//     - `handlers` → functions to call when the user types or clicks
-//   This separation keeps the modal "dumb" — it just displays
-//   things and calls handlers. The real logic lives in
-//   useProfileController.
-// ─────────────────────────────────────────────────────────────
-
 export interface SocialLink {
   id: number;
   platform: string;

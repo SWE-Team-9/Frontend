@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { TrackDetails, changeTrackVisibility, updateTrackMetadata } from "@/src/services/uploadService";
 import { Edit2, Trash2, Play, Eye, EyeOff, X, Check } from "lucide-react";
+import Image from "next/image";
 
 interface TrackCardProps {
   track: TrackDetails;
@@ -79,7 +80,7 @@ const TrackCard: React.FC<TrackCardProps> = ({ track, onDelete }) => {
       {/* Cover art */}
       <div className="w-32 h-32 bg-[#333] rounded-md shrink-0 flex items-center justify-center">
         {track.coverArtUrl ? (
-          <img src={track.coverArtUrl} alt={localTitle} className="w-full h-full object-cover rounded-md" />
+          <Image src={track.coverArtUrl} alt={localTitle} className="w-full h-full object-cover rounded-md" />
         ) : (
           <div className="w-full h-full bg-[#2a2a2a] rounded-md animate-pulse" />
         )}
