@@ -96,6 +96,8 @@ interface BackendUserProfile {
   avatar_url?: string | null;
   avatarUrl?: string | null;
   cover_photo_url?: string | null;
+  //Menna
+  coverPhotoUrl?: string | null;
   coverUrl?: string | null;
   visibility?: "PUBLIC" | "PRIVATE";
   is_private?: boolean;
@@ -105,6 +107,8 @@ interface BackendUserProfile {
   favorite_genres?: string[] | BackendFavoriteGenre[];
   favoriteGenres?: string[];
   external_links?: Record<string, string>;
+  //Menna
+  social_links?: { platform?: string; url?: string }[];
   externalLinks?: { platform: string; url: string }[];
   followers_count?: number;
   followersCount?: number;
@@ -150,7 +154,9 @@ const mapProfileResponse = (profile: BackendUserProfile): UserProfile => {
     location: profile.location ?? null,
     website: profile.website_url ?? profile.website ?? null,
     avatarUrl: profile.avatar_url ?? profile.avatarUrl ?? null,
-    coverUrl: profile.cover_photo_url ?? profile.coverUrl ?? null,
+    //Menna
+    coverUrl:
+      profile.cover_photo_url ?? profile.coverPhotoUrl ?? profile.coverUrl ?? null,
     isPrivate:
       profile.is_private ?? profile.isPrivate ?? profile.visibility === "PRIVATE",
     accountType: profile.account_tier ?? profile.accountType ?? "LISTENER",
@@ -159,10 +165,22 @@ const mapProfileResponse = (profile: BackendUserProfile): UserProfile => {
       : profile.favoriteGenres ?? [],
     externalLinks: profile.external_links
       ? Object.entries(profile.external_links).map(([platform, url]) => ({
-          platform,
+//Menna
+        platform: normalizePlatformFromBackend(platform),
           url,
         }))
-      : profile.externalLinks ?? [],
+//Menna
+        : profile.social_links
+        ? profile.social_links
+            .filter((link) => !!link.url)
+            .map((link) => ({
+              platform: normalizePlatformFromBackend(link.platform || "website"),
+              url: link.url || "",
+            }))
+        : (profile.externalLinks ?? []).map((link) => ({
+            platform: normalizePlatformFromBackend(link.platform),
+            url: link.url,
+          })),
     followersCount: profile.followers_count ?? profile.followersCount ?? 0,
     followingCount: profile.following_count ?? profile.followingCount ?? 0,
     tracksCount: profile.track_count ?? profile.tracksCount ?? 0,

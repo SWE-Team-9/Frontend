@@ -59,7 +59,11 @@ export default function ProfilePage({
 
   // Follow store
   const following = useFollowStore((state) => state.following || []);
+  //Menna
+  const followers = useFollowStore((state) => state.followers || []);
   const fetchFollowing = useFollowStore((state) => state.fetchFollowing);
+  //Menna
+  const fetchFollowers = useFollowStore((state) => state.fetchFollowers);
   const storeToggleFollow = useFollowStore((state) => state.toggleFollow);
   const checkIsFollowing = useFollowStore((state) => state.isFollowing);
   const followError = useFollowStore((state) => state.error);
@@ -68,12 +72,13 @@ export default function ProfilePage({
   const likedTracks = useLikeStore((state) => state.likedTracks || []);
   const likeError = useLikeStore((state) => state.error);
 
-  // Fetch following list when page loads
+  // Fetch follow/follower lists when page loads
   useEffect(() => {
     if (controller.userId) {
       fetchFollowing(controller.userId);
+      fetchFollowers(controller.userId); //Menna
     }
-  }, [controller.userId, fetchFollowing]);
+  }, [controller.userId, fetchFollowing, fetchFollowers]); //Menna
 
   useEffect(() => {
     const fetchCurrentUser = async () => {
@@ -125,8 +130,8 @@ export default function ProfilePage({
     avatarUrl,
   } = controller;
 
-  // Following tab → store list, Followers tab → controller's list
-  const sourceUsers = detailTab === "Following" ? following : [];
+  // Following/Followers tabs use dedicated store lists
+  const sourceUsers = detailTab === "Following" ? following : followers;
 
   const filteredUsers = (sourceUsers as FollowUserShape[]).filter((user) => {
     const name = user.display_name || user.displayName || user.name || "";
@@ -408,10 +413,10 @@ export default function ProfilePage({
 
                 <div className="flex gap-2 items-center">
                   {/* Follow button — only for visitors */}
-                  {!isOwner && (
+                  {!isOwner && controller.userId && (
                     <FollowButton
                       user={{
-                        id: controller.userId || "",
+                        id: controller.userId,
                         display_name: controller.displayName,
                         handle: controller.handle || "",
                         avatar_url: controller.avatarUrl || "",

@@ -3,6 +3,8 @@ import {
   followUser,
   unfollowUser,
   getFollowing,
+  //Menna
+  getFollowers,
   getSuggestions,
   SuggestedUser,
   FollowUser,
@@ -11,6 +13,8 @@ import { useProfileStore } from "./useProfileStore";
 
 type FollowStore = {
   following: FollowUser[];
+  //Menna
+  followers: FollowUser[];
   suggestions: SuggestedUser[];
   suggestionsLoading: boolean;
   loadingIds: Record<string, boolean>;
@@ -19,11 +23,15 @@ type FollowStore = {
   toggleFollow: (user: FollowUser) => Promise<void>;
   isFollowing: (userId: string | number | undefined) => boolean;
   fetchFollowing: (userId: string) => Promise<void>;
+  //Menna
+  fetchFollowers: (userId: string) => Promise<void>;
   fetchSuggestions: (limit?: number) => Promise<void>;
 };
 
 export const useFollowStore = create<FollowStore>((set, get) => ({
   following: [],
+  //Menna
+  followers: [],
   suggestions: [],
   suggestionsLoading: false,
   loadingIds: {},
@@ -101,6 +109,21 @@ export const useFollowStore = create<FollowStore>((set, get) => ({
       set({ error: "Could not load following list." });
     }
   },
+  //Menna
+
+  fetchFollowers: async (userId) => {
+    if (!userId) return;
+    try {
+      set({ error: null });
+      const data = await getFollowers(userId);
+      const followersList = data.followers || [];
+      useProfileStore.setState({ followersCount: followersList.length });
+      set({ followers: followersList });
+    } catch {
+      set({ error: "Could not load followers list." });
+    }
+  },
+
   fetchSuggestions: async (limit = 3) => {
     set({ suggestionsLoading: true, error: null });
     try {
