@@ -52,7 +52,7 @@ export const blockUser = async (userId: string) => {
     mockBlockedIds.add(userId);
     return { message: "User blocked successfully", blockedUserId: userId };
   }
-
+  console.log("BLOCK USER ID:", userId);
   const res = await api.post(`/social/block/${userId}`);
   return res.data;
 };
