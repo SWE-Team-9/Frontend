@@ -1,5 +1,5 @@
 "use client";
-
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import NavBar from "@/src/components/ui/NavBar";

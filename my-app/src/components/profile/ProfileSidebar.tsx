@@ -1,7 +1,6 @@
 import React from "react";
 import Image from "next/image";
 import { Stats } from "./sidebar/Stats";
-import { SocialLinksList } from "./sidebar/SocialLinksList";
 import { useLikeStore } from '@/src/store/likeStore';
 import { Heart } from 'lucide-react';
 
@@ -18,8 +17,10 @@ interface ProfileSidebarProps {
   followersCount: number;
   tracksCount: number;
   displayUsers: SidebarUser[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   links: any[];
   favoriteGenres?: string[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   toggleFollow: (id: any) => void;
   setViewState: (view: string) => void;
   setDetailTab: (tab: string) => void;

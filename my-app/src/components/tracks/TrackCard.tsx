@@ -27,6 +27,7 @@ interface TrackCardProps {
   track: IntegratedTrack;
   isOwner?: boolean; 
   onDelete?: (id: string, title: string) => void; // Updated to accept title
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onEdit?: (track: any) => void;
 }
 

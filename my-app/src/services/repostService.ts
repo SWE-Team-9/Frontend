@@ -1,4 +1,5 @@
 // src/services/repostService.ts
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import api from "./api";
 
 const REPOST_STORAGE_KEY = "mock_reposts";

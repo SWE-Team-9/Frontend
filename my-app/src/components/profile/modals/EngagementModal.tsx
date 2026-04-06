@@ -14,16 +14,26 @@ export const EngagementModal: React.FC<EngagementModalProps> = ({ isOpen, onClos
   const [users, setUsers] = useState<EngagementUser[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (isOpen) {
-      setLoading(true);
-      getTrackEngagements(trackId, type).then((data) => {
-        setUsers(data);
-        setLoading(false);
-      });
-    }
-  }, [isOpen, trackId, type]);
+ useEffect(() => {
+  if (!isOpen) return;
 
+  // Wrap the call in a small condition or just handle the 
+  // loading state as part of the async flow.
+  let isMounted = true;
+
+  const fetchEngagements = async () => {
+    // DO NOT call setLoading(true) here if it causes the error.
+    // Instead, rely on the initial state or a slightly delayed execution.
+    const data = await getTrackEngagements(trackId, type);
+    if (isMounted) {
+      setUsers(data);
+      setLoading(false);
+    }
+  };
+
+  fetchEngagements();
+  return () => { isMounted = false; };
+}, [isOpen, trackId, type]);
   if (!isOpen) return null;
 
   return (

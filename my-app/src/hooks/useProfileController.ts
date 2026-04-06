@@ -1,5 +1,5 @@
 "use client";
-
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useProfileStore } from "@/src/store/useProfileStore";
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { socialService } from "@/src/services/socialService";

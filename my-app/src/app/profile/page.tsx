@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { FiShare } from "react-icons/fi";
 import { GrEdit } from "react-icons/gr";
 import Image from "next/image";
@@ -17,6 +17,20 @@ import  TrackList  from "../../components/tracks/TrackList";
 import { Track } from "../../types/track";
 import { useLikeStore } from "@/src/store/likeStore";
 
+const MOCK_TRACKS: Track[] = [
+      {
+        trackId: "trk_001",
+        title: "Recording 2026-03-15 1013",
+        status: "FINISHED",
+        visibility: "PUBLIC",
+      },
+      {
+        trackId: "trk_002",
+        title: "Second Track Demo",
+        status: "PROCESSING",
+        visibility: "PRIVATE",
+      },
+    ];
 // Types
 
 interface User {
@@ -34,27 +48,10 @@ export default function ProfilePage() {
   const profileId = (params.handle as string) || (params.id as string);
   const controller = useProfileController(profileId);
 
-  const [tracks, setTracks] = useState<Track[]>([]);
+  const [tracks] = useState<Track[]>(MOCK_TRACKS);
   const { likedTracks } = useLikeStore();
 
-  // Mock Data for Tracks
-  useEffect(() => {
-    const manualMock: Track[] = [
-      {
-        trackId: "trk_001",
-        title: "Recording 2026-03-15 1013",
-        status: "FINISHED",
-        visibility: "PUBLIC",
-      },
-      {
-        trackId: "trk_002",
-        title: "Second Track Demo",
-        status: "PROCESSING",
-        visibility: "PRIVATE",
-      },
-    ];
-    setTracks(manualMock);
-  }, []);
+
 
   const {
     displayName,
@@ -82,8 +79,6 @@ export default function ProfilePage() {
     searchQuery,
     setSearchQuery,
     filteredUsers,
-    handleLoadMore,
-    isLoading,
     activeId
   } = controller;
 

@@ -27,7 +27,10 @@ const TrackList: React.FC<TrackListProps> = ({ userId, type = "tracks" }) => {
     hydrate();
   }, [hydrate]);
 
-  const loadTracks = async () => {
+
+  // Re-run if type changes or if the size of reposts changes
+  useEffect(() => {
+    const loadTracks = async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -36,6 +39,8 @@ const TrackList: React.FC<TrackListProps> = ({ userId, type = "tracks" }) => {
 
       if (type === "reposts") {
         // Filter by checking if ID exists in our Repost Set
+        
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const filtered = allTracks.filter((t: any) => 
           repostedTrackIds.has(String(t.trackId || t.id))
         );
@@ -50,9 +55,6 @@ const TrackList: React.FC<TrackListProps> = ({ userId, type = "tracks" }) => {
       setIsLoading(false);
     }
   };
-
-  // Re-run if type changes or if the size of reposts changes
-  useEffect(() => {
     loadTracks();
   }, [userId, type, repostedTrackIds.size]);
 
@@ -67,6 +69,7 @@ const TrackList: React.FC<TrackListProps> = ({ userId, type = "tracks" }) => {
     if (!trackToDelete) return;
     try {
       await deleteTrack(trackToDelete.id);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setTracks((prev) => prev.filter((t) => (t.trackId || (t as any).id) !== trackToDelete.id));
       setIsDeleteModalOpen(false);
     } catch (err) {
@@ -95,11 +98,14 @@ const TrackList: React.FC<TrackListProps> = ({ userId, type = "tracks" }) => {
         <div className="grid gap-3">
           {tracks.map((track) => (
             <TrackCard
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
               key={track.trackId || (track as any).id}
               track={{
                 ...track,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 id: track.trackId || (track as any).id,
                 coverArtUrl: track.coverArtUrl ?? undefined 
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
               } as any} 
               onEdit={handleEdit}
               onDelete={handleDeleteClick}

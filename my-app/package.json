@@ -30,6 +30,7 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^20",
     "@types/react": "^19",
+    "@types/react-datepicker": "^6.2.0",
     "@types/react-dom": "^19",
     "@types/react-google-recaptcha": "^2.1.9",
     "eslint": "^9",
