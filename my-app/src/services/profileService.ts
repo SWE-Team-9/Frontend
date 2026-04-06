@@ -1,5 +1,7 @@
 import api from "@/src/services/api";
 
+const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
+
 export interface UserProfile {
   id: string;
   handle: string;
@@ -21,11 +23,6 @@ export interface UserProfile {
 interface BackendFavoriteGenre {
   slug?: string;
   name?: string;
-}
-
-interface BackendSocialLink {
-  platform: string;
-  url: string;
 }
 
 const BACKEND_PLATFORM_TO_UI: Record<string, string> = {
@@ -94,28 +91,24 @@ interface BackendUserProfile {
   website_url?: string | null;
   avatar_url?: string | null;
   cover_photo_url?: string | null;
-
-
   visibility?: "PUBLIC" | "PRIVATE";
   account_tier?: "LISTENER" | "ARTIST";
-  
   favorite_genres?: string[] | BackendFavoriteGenre[];
   external_links?: Record<string, string>;
-
   followers_count?: number;
   following_count?: number;
   track_count?: number;
 }
-
+// Maps backend profile response to frontend UserProfile structure
 const mapProfileResponse = (profile: BackendUserProfile): UserProfile => {
   const favoriteGenresFromBackend = Array.isArray(profile.favorite_genres)
-  ? profile.favorite_genres
-      .map((g) => {
-        if (typeof g === "string") return g; 
-        return g.slug || g.name || ""; 
-      })
-      .filter(Boolean)
-  : [];
+    ? profile.favorite_genres
+        .map((g) => {
+          if (typeof g === "string") return g;
+          return g.slug || g.name || "";
+        })
+        .filter(Boolean)
+    : [];
 
   return {
     id: profile.id || profile.user_id || "",
@@ -126,18 +119,15 @@ const mapProfileResponse = (profile: BackendUserProfile): UserProfile => {
     website: profile.website_url ?? null,
     avatarUrl: profile.avatar_url ?? null,
     coverUrl: profile.cover_photo_url ?? null,
-
     isPrivate: profile.visibility === "PRIVATE",
     accountType: profile.account_tier ?? "LISTENER",
     favoriteGenres: favoriteGenresFromBackend,
-
-     externalLinks: profile.external_links
+    externalLinks: profile.external_links
       ? Object.entries(profile.external_links).map(([platform, url]) => ({
           platform,
           url,
         }))
       : [],
-
     followersCount: profile.followers_count ?? 0,
     followingCount: profile.following_count ?? 0,
     tracksCount: profile.track_count ?? 0,
@@ -152,31 +142,30 @@ export const getMyProfile = async (): Promise<UserProfile> => {
 
 // ====== GET someone else's profile by handle ======
 export const getProfileByHandle = async (handle: string): Promise<UserProfile> => {
-  // test
-  return {
-    id: "usr_mock1",
-    handle: "test-user",
-    displayName: "Test User",
-    bio: "Mock user",
-    location: "Cairo",
-    website: null,
-    avatarUrl: null,
-    coverUrl: null,
-    isPrivate: false,
-    accountType: "ARTIST",
-    favoriteGenres: [],
-    externalLinks: [],
-    followersCount: 0,
-    followingCount: 0,
-    tracksCount: 0,
-  };
+  if (USE_MOCK) {
+    await new Promise((r) => setTimeout(r, 500));
+    return {
+      id: "usr_mock1",
+      handle: "test-user",
+      displayName: "Test User",
+      bio: "Mock user",
+      location: "Cairo",
+      website: null,
+      avatarUrl: null,
+      coverUrl: null,
+      isPrivate: false,
+      accountType: "ARTIST",
+      favoriteGenres: [],
+      externalLinks: [],
+      followersCount: 0,
+      followingCount: 0,
+      tracksCount: 0,
+    };
+  }
+
+  const response = await api.get(`/api/v1/profiles/${handle}`);
+  return mapProfileResponse(response.data as BackendUserProfile);
 };
-
-// real
-//   const response = await api.get(`/profiles/${handle}`);
-//   return mapProfileResponse(response.data as BackendUserProfile);
-// };
-
 
 // ====== UPDATE my profile ======
 export interface UpdateProfileData {
@@ -217,7 +206,7 @@ export const checkHandle = async (handle: string) => {
   const response = await api.get("/profiles/check-handle", {
     params: { handle },
   });
-  return response.data; // { available: boolean, handle, reason? }
+  return response.data;
 };
 
 // ====== UPLOAD avatar or cover image ======
@@ -230,5 +219,5 @@ export const uploadProfileImage = async (
   const response = await api.post(`/profiles/me/${type}`, formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
-  return response.data; // { url, key }
+  return response.data;
 };

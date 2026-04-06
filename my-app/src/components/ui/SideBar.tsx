@@ -1,6 +1,7 @@
 "use client";
 import Box from "@/src/components/ui/Box";
 import SideBarItem from "@/src/components/ui/SideBarItem";
+import SuggestedArtists from "@/src/components/profile/sidebar/SuggestedArtists";
 
 interface SideBarProps {
   children: React.ReactNode; 
@@ -23,8 +24,9 @@ const SideBar: React.FC<SideBarProps> = ({ children , showSidebar = true}) => {
           </div>
         </Box>  
         <Box className="flex-1">
-          <div className="px-5 py-4">
+          <div className="px-5 py-4 pb-4">
             <SideBarItem label="ARTISTS YOU SHOULD FOLLOW" href="/artists" />
+            <SuggestedArtists />
           </div>
         </Box>
         <Box className="flex-1">

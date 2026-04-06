@@ -1,11 +1,10 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useState } from "react";
 import UploadButton from "@/src/components/upload/UploadButton";
 import { useUploadStore } from "@/src/store/useuploadStore";
 import DatePickerInput from "@/src/components/ui/DatePickerInput";
-
-
+import { WaveformDisplay } from "@/src/components/tracks/WaveformDisplay";
 
 const MAX_DESCRIPTION = 5000;
 
@@ -28,11 +27,6 @@ const TrackMetadataForm = () => {
   const [visibility, setVisibility] = useState<"PUBLIC" | "PRIVATE">("PRIVATE");
   const [description, setDescription] = useState("");
   const [errors, setErrors] = useState<FormErrors>({});
-
-  const releaseInputRef = useRef<HTMLInputElement>(null);
-  const handleDateClick = () => {
-    releaseInputRef.current?.showPicker?.();
-  };
 
   const validate = (): boolean => {
     const newErrors: FormErrors = {};
@@ -69,13 +63,13 @@ const TrackMetadataForm = () => {
 
   return (
     <div className="max-w-5xl w-full bg-[#121212] p-6 rounded-xl">
-      <h1 className="text-5xl font-bold text-white mb-6 text-center pb-4">Track Info</h1>
+      <h1 className="text-5xl font-bold text-white mb-6 text-center pb-4">
+        Track Info
+      </h1>
 
       <div className="flex flex-col md:flex-row gap-8">
-
         {/* Left column — metadata fields */}
         <div className="flex flex-col flex-1">
-
           {/* Title */}
           <div className="flex flex-col gap-1">
             <label className="font-medium pb-2 text-xl">Track Title</label>
@@ -85,10 +79,13 @@ const TrackMetadataForm = () => {
               value={title}
               onChange={(e) => {
                 setTitle(e.target.value);
-                if (errors.title) setErrors((prev) => ({ ...prev, title: undefined }));
+                if (errors.title)
+                  setErrors((prev) => ({ ...prev, title: undefined }));
               }}
             />
-            {errors.title && <p className="text-red-500 text-sm mb-3">{errors.title}</p>}
+            {errors.title && (
+              <p className="text-red-500 text-sm mb-3">{errors.title}</p>
+            )}
             {!errors.title && <div className="mb-4" />}
           </div>
 
@@ -101,10 +98,13 @@ const TrackMetadataForm = () => {
               value={genre}
               onChange={(e) => {
                 setGenre(e.target.value);
-                if (errors.genre) setErrors((prev) => ({ ...prev, genre: undefined }));
+                if (errors.genre)
+                  setErrors((prev) => ({ ...prev, genre: undefined }));
               }}
             />
-            {errors.genre && <p className="text-red-500 text-sm mb-3">{errors.genre}</p>}
+            {errors.genre && (
+              <p className="text-red-500 text-sm mb-3">{errors.genre}</p>
+            )}
             {!errors.genre && <div className="mb-4" />}
           </div>
 
@@ -117,10 +117,13 @@ const TrackMetadataForm = () => {
               value={tags}
               onChange={(e) => {
                 setTags(e.target.value);
-                if (errors.tags) setErrors((prev) => ({ ...prev, tags: undefined }));
+                if (errors.tags)
+                  setErrors((prev) => ({ ...prev, tags: undefined }));
               }}
             />
-            {errors.tags && <p className="text-red-500 text-sm mb-3">{errors.tags}</p>}
+            {errors.tags && (
+              <p className="text-red-500 text-sm mb-3">{errors.tags}</p>
+            )}
             {!errors.tags && <div className="mb-4" />}
           </div>
 
@@ -129,10 +132,15 @@ const TrackMetadataForm = () => {
             value={releaseDate}
             onChange={(val) => {
               setReleaseDate(val);
-              if (errors.releaseDate) setErrors((prev) => ({ ...prev, releaseDate: undefined }));
+              if (errors.releaseDate)
+                setErrors((prev) => ({ ...prev, releaseDate: undefined }));
             }}
           />
-          {errors.releaseDate && <p className="text-red-500 text-sm mt-1 mb-3">{errors.releaseDate}</p>}
+          {errors.releaseDate && (
+            <p className="text-red-500 text-sm mt-1 mb-3">
+              {errors.releaseDate}
+            </p>
+          )}
           {!errors.releaseDate && <div className="mb-4" />}
 
           {/* Visibility */}
@@ -177,13 +185,16 @@ const TrackMetadataForm = () => {
             maxLength={MAX_DESCRIPTION}
             onChange={(e) => {
               setDescription(e.target.value);
-              if (errors.description) setErrors((prev) => ({ ...prev, description: undefined }));
+              if (errors.description)
+                setErrors((prev) => ({ ...prev, description: undefined }));
             }}
           />
           {/* Character counter */}
           <p
             className={`text-sm mt-1 text-right ${
-              description.length > MAX_DESCRIPTION ? "text-red-500" : "text-[#8c8c8c]"
+              description.length > MAX_DESCRIPTION
+                ? "text-red-500"
+                : "text-[#8c8c8c]"
             }`}
           >
             {description.length} / {MAX_DESCRIPTION}
@@ -191,6 +202,16 @@ const TrackMetadataForm = () => {
           {errors.description && (
             <p className="text-red-500 text-sm mt-1">{errors.description}</p>
           )}
+        </div>
+      </div>
+      
+      {/* Waveform Preview */}
+      <div className="mt-6">
+        <label className="font-medium pb-2 text-xl block mb-2 text-white">
+          Waveform Preview
+        </label>
+        <div className="w-full h-20 rounded overflow-hidden">
+          <WaveformDisplay />
         </div>
       </div>
 
