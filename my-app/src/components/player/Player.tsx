@@ -25,15 +25,6 @@ export function Player() {
     const audio = getAudioElement();
     if (!audio) return;
 
-    const onTimeUpdate = () =>
-      usePlayerStore.getState().setCurrentTime(audio.currentTime);
-
-    const onLoadedMetadata = () =>
-      usePlayerStore.getState().setDuration(audio.duration ?? 0);
-
-    const onEnded = () => usePlayerStore.getState().nextTrack();
-    const onPlay = () => usePlayerStore.setState({ isPlaying: true });
-    const onPause = () => usePlayerStore.setState({ isPlaying: false });
     const onError = () =>
       usePlayerStore.setState({
         isPlaying: false,
@@ -43,21 +34,11 @@ export function Player() {
     const onWaiting = () => console.log("Buffering...");
     const onPlaying = () => console.log("Playing smoothly");
 
-    audio.addEventListener("timeupdate", onTimeUpdate);
-    audio.addEventListener("loadedmetadata", onLoadedMetadata);
-    audio.addEventListener("ended", onEnded);
-    audio.addEventListener("play", onPlay);
-    audio.addEventListener("pause", onPause);
     audio.addEventListener("error", onError);
     audio.addEventListener("waiting", onWaiting);
     audio.addEventListener("playing", onPlaying);
 
     return () => {
-      audio.removeEventListener("timeupdate", onTimeUpdate);
-      audio.removeEventListener("loadedmetadata", onLoadedMetadata);
-      audio.removeEventListener("ended", onEnded);
-      audio.removeEventListener("play", onPlay);
-      audio.removeEventListener("pause", onPause);
       audio.removeEventListener("error", onError);
       audio.removeEventListener("waiting", onWaiting);
       audio.removeEventListener("playing", onPlaying);
@@ -75,15 +56,12 @@ export function Player() {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#333] border-t border-[#222] shadow-2xl h-[60px] flex items-center">
       <div className="flex items-center w-full px-4 gap-6">
-
-        {/* Left Section: Controls & Progress */}
         <div className="flex items-center gap-4 flex-1">
           <PlayerControls />
 
           <div className="flex flex-col flex-1 max-w-2xl relative">
             <ProgressBar />
 
-            {/* Status Messages - Absolutely positioned so they don't break the bar layout */}
             <div className="absolute -top-4 left-0 w-full flex justify-center pointer-events-none gap-2">
               {isResolvingPlayback && !streamError && (
                 <p className="text-[9px] text-zinc-400">Loading track...</p>
@@ -109,18 +87,19 @@ export function Player() {
           </div>
         </div>
 
-        {/* Right Section: Volume & Track Info */}
         <div className="flex items-center gap-4 shrink-0">
           <VolumeControl />
           <TrackInfo />
 
-          {/* will add follow and queue buttons */}
           <div className="flex items-center gap-3 ml-2 text-zinc-400">
-            <button className="hover:text-white transition-colors"><SlUserFollow /></button>
-            <button className="hover:text-white transition-colors"><PiQueue /></button>
+            <button className="hover:text-white transition-colors">
+              <SlUserFollow />
+            </button>
+            <button className="hover:text-white transition-colors">
+              <PiQueue />
+            </button>
           </div>
         </div>
-
       </div>
     </div>
   );
