@@ -37,6 +37,9 @@ export default function HistoryTrackRow({ track }: HistoryTrackRowProps) {
       trackId: track.trackId,
       title: track.title,
       artist: track.artist,
+      artistId: track.artistId,
+      artistHandle: track.artistHandle,
+      artistAvatarUrl: track.artistAvatarUrl ?? null,
       cover: track.coverArtUrl || FALLBACK_IMAGE,
     });
   };
