@@ -62,8 +62,8 @@ export const useProfileController = (handle?: string) => {
   //  FETCH profile from backend on first load
   // ──────────────────────────────────────────
   const loadProfile = useCallback(async () => {
-    if (store.isLoaded || hasRequestedProfileRef.current) return; // already loaded or already requested
-    hasRequestedProfileRef.current = true;
+  if (store.isLoaded || hasRequestedProfileRef.current) return;
+  hasRequestedProfileRef.current = true;
 
     try {
       setIsLoading(true);
@@ -105,7 +105,7 @@ export const useProfileController = (handle?: string) => {
     } finally {
       setIsLoading(false);
     }
-  }, [handle, store]);
+  }, [handle]);
 
   useEffect(() => {
   store.resetProfile(); // clear old profile data

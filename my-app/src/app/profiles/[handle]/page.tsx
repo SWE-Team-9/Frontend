@@ -197,7 +197,9 @@ export default function ProfilePage({
       )}
 
       <div className="py-10 flex flex-col items-center">
-        {followError && <p className="mb-4 text-sm text-red-400">{followError}</p>}
+        {followError && (
+          <p className="mb-4 text-sm text-red-400">{followError}</p>
+        )}
         {likeError && <p className="mb-4 text-sm text-red-400">{likeError}</p>}
 
         {/* ── LIKES TAB ── */}
@@ -459,10 +461,9 @@ export default function ProfilePage({
                 {/* Stats — followingCount is live from the store */}
                 <Stats
                   followers={controller.followersCount}
-                  following={following.length}
+                  following={controller.followingCount}
                   tracks={controller.tracksCount}
                 />
-
                 {/* Favorite genres */}
                 {favoriteGenres?.length > 0 && (
                   <div className="space-y-1 border-t border-zinc-900 pt-4">
@@ -486,9 +487,7 @@ export default function ProfilePage({
                 {/* Following preview — live from store */}
                 <div className="space-y-4">
                   <div className="flex justify-between items-center text-zinc-500 text-[13px] border-b border-zinc-900 pb-2">
-                    <p className="font-bold uppercase">
-                      {following.length} Following
-                    </p>
+                    <p className="font-bold uppercase">{controller.followingCount} Following</p>
                     <button
                       onClick={() => {
                         setViewState("details");
