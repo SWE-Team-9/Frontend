@@ -49,6 +49,9 @@ const UploadButton: React.FC = () => {
     const interval = 2000;
     let status = "PROCESSING";
 
+    // Wait before first poll so the backend has time to commit the track record
+    await new Promise((r) => setTimeout(r, interval));
+
     while (status === "PROCESSING") {
       try {
         const data = await getTrackStatus(trackId);
@@ -57,7 +60,6 @@ const UploadButton: React.FC = () => {
         if (status === "PROCESSING") {
           await new Promise((r) => setTimeout(r, interval));
         } else {
-          // Fetch full track details (non-critical — we proceed regardless)
           try {
             await getTrackDetails(trackId);
           } catch {
@@ -65,7 +67,7 @@ const UploadButton: React.FC = () => {
           }
 
           updateFileStatus(fileName, "DONE", trackId);
-          router.push(`/tracks/${trackId}`); // always redirect after done
+          router.push(`/tracks/${trackId}`);
         }
       } catch (err: unknown) {
         updateFileStatus(

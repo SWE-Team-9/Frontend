@@ -1,6 +1,5 @@
 import api from "@/src/services/api";
 
-
 export type TrackStatus = "PROCESSING" | "FINISHED";
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
@@ -124,7 +123,7 @@ export const getTrackDetails = async (
       createdAt: "2026-03-06T11:00:00.000Z",
       updatedAt: "2026-03-06T12:00:00.000Z",
       waveformData: Array.from({ length: 120 }, () =>
-        Math.min(1, Math.max(0.08, 0.2 + Math.random() * 0.8))
+        Math.min(1, Math.max(0.08, 0.2 + Math.random() * 0.8)),
       ),
       files: [
         {
@@ -152,8 +151,21 @@ export const getTrackStatus = async (trackId: string) => {
     return { trackId, status: "FINISHED" };
   }
 
-  const res = await api.get(`/tracks/${trackId}/status`);
-  return res.data;
+  try {
+    const res = await api.get(`/tracks/${trackId}/status`);
+    return res.data;
+  } catch (err: unknown) {
+    // Track not yet available in DB (created but not committed) — treat as still processing
+    if (
+      typeof err === "object" &&
+      err !== null &&
+      "response" in err &&
+      (err as { response?: { status?: number } }).response?.status === 404
+    ) {
+      return { trackId, status: "PROCESSING" as const };
+    }
+    throw err;
+  }
 };
 
 // ===============================
