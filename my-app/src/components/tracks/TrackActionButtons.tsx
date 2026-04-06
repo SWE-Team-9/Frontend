@@ -4,16 +4,18 @@ import { BiRepost } from "react-icons/bi";
 import { RiShareForwardLine } from "react-icons/ri";
 import { IoCopyOutline } from "react-icons/io5";
 
+// Import your store
+import { useLikeStore } from '@/src/store/likeStore'; 
+
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 export interface TrackActionButtonsProps {
-  trackId: string;
+  trackId: string; // Coming from props as string
   title: string;
   likesCount: number;
   liked: boolean;
   repostsCount: number;
   reposted: boolean;
-  /** compact = icon only  |  full = icon + count label */
   size?: "compact" | "full";
 }
 
@@ -26,7 +28,6 @@ function fmtCount(n: number): string {
 }
 
 // ─── Shared button shell ──────────────────────────────────────────────────────
-// Mimics the SoundCloud bordered square button
 
 interface SCButtonProps {
   active?: boolean;
@@ -35,17 +36,20 @@ interface SCButtonProps {
   children: React.ReactNode;
   count?: number;
   size?: "compact" | "full";
+  disabled?: boolean;
 }
 
-function SCButton({ active, onClick, label, children, count, size = "full" }: SCButtonProps) {
+function SCButton({ active, onClick, label, children, count, size = "full", disabled }: SCButtonProps) {
   return (
     <button
       onClick={onClick}
+      disabled={disabled}
       aria-label={label}
       aria-pressed={active}
       className={`
         group flex items-center gap-1.5 h-[30px] px-2.5 rounded
         border transition-all duration-150 select-none
+        ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
         ${active
           ? "border-[#ff5500] bg-[#ff5500]/10 text-[#ff5500]"
           : "border-[#333] bg-transparent text-[#aaa] hover:border-[#555] hover:text-white"
@@ -56,7 +60,6 @@ function SCButton({ active, onClick, label, children, count, size = "full" }: SC
         {children}
       </span>
 
-      {/* Show count label only in "full" size and when count > 0 */}
       {size === "full" && typeof count === "number" && count > 0 && (
         <span className={`text-[11px] font-medium tabular-nums leading-none ${active ? "text-[#ff5500]" : "text-[#777] group-hover:text-[#aaa]"}`}>
           {fmtCount(count)}
@@ -66,59 +69,62 @@ function SCButton({ active, onClick, label, children, count, size = "full" }: SC
   );
 }
 
-// ─── LikeButton ───────────────────────────────────────────────────────────────
+// ─── LikeButton (Wired to Store) ───────────────────────────────────────────────
 
 export function LikeButton({
+  trackId,
+  title,
   liked,
   likesCount,
   size = "full",
-}: Pick<TrackActionButtonsProps, "liked" | "likesCount"> & { size?: "compact" | "full" }) {
-  const [isLiked, setIsLiked] = useState(liked);
-  const [count, setCount]     = useState(likesCount);
+}: { trackId: string; title: string; liked: boolean; likesCount: number; size?: "compact" | "full" }) {
+  
+  const { toggleLike, likedTracks, loadingIds } = useLikeStore();
+  
+  // 🛠️ SYNCED: Store uses strings for UI state tracking (loadingIds)
+  const isCurrentlyLiked = likedTracks.some((t) => t.id === trackId);
+  const isLoading = loadingIds.includes(trackId);
 
-  const toggle = () => {
-    setIsLiked((prev) => {
-      setCount((c) => prev ? c - 1 : c + 1);
-      return !prev;
+  const handleToggle = () => {
+    // 🛠️ SYNCED: Pass the ID as a string. The store will handle the numeric conversion for the API.
+    toggleLike({ 
+      id: trackId, 
+      title: title, 
+      likesCount: likesCount 
     });
   };
 
   return (
-    <SCButton active={isLiked} onClick={toggle} label={isLiked ? "Unlike" : "Like"} count={count} size={size}>
-      {isLiked ? <AiFillHeart size={15} /> : <AiOutlineHeart size={15} />}
+    <SCButton 
+      active={isCurrentlyLiked}
+      onClick={handleToggle} 
+      disabled={isLoading}
+      label={isCurrentlyLiked ? "Unlike" : "Like"}
+      count={likesCount} 
+      
+    >
+      {isCurrentlyLiked ? <AiFillHeart size={15} /> : <AiOutlineHeart size={15} />}
     </SCButton>
   );
 }
 
-// ─── RepostButton ─────────────────────────────────────────────────────────────
+// ─── RepostButton (Static for now) ───────────────────────────────────────────
 
 export function RepostButton({
-  reposted,
   repostsCount,
   size = "full",
-}: Pick<TrackActionButtonsProps, "reposted" | "repostsCount"> & { size?: "compact" | "full" }) {
-  const [isReposted, setIsReposted] = useState(reposted);
-  const [count, setCount]           = useState(repostsCount);
-
-  const toggle = () => {
-    setIsReposted((prev) => {
-      setCount((c) => prev ? c - 1 : c + 1);
-      return !prev;
-    });
-  };
-
+}: { repostsCount: number; size?: "compact" | "full" }) {
   return (
-    <SCButton active={isReposted} onClick={toggle} label={isReposted ? "Remove repost" : "Repost"} count={count} size={size}>
+    <SCButton label="Repost" count={repostsCount} size={size}>
       <BiRepost size={18} />
     </SCButton>
   );
 }
 
-// ─── ShareButton ──────────────────────────────────────────────────────────────
+// ─── Share & Copy Link Buttons ───────────────────────────────────────────────
 
 export function ShareButton({ title }: { title: string }) {
   const [copied, setCopied] = useState(false);
-
   const handleShare = () => {
     if (navigator.share) {
       navigator.share({ title, url: window.location.href }).catch(() => {});
@@ -128,7 +134,6 @@ export function ShareButton({ title }: { title: string }) {
       setTimeout(() => setCopied(false), 1500);
     }
   };
-
   return (
     <SCButton active={copied} onClick={handleShare} label="Share">
       <RiShareForwardLine size={15} />
@@ -136,17 +141,13 @@ export function ShareButton({ title }: { title: string }) {
   );
 }
 
-// ─── CopyLinkButton ───────────────────────────────────────────────────────────
-
 export function CopyLinkButton() {
   const [copied, setCopied] = useState(false);
-
   const handleCopy = () => {
     navigator.clipboard.writeText(window.location.href).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
-
   return (
     <SCButton active={copied} onClick={handleCopy} label={copied ? "Copied!" : "Copy link"}>
       <IoCopyOutline size={14} />
@@ -154,20 +155,25 @@ export function CopyLinkButton() {
   );
 }
 
-// ─── TrackActionButtons (composite) ──────────────────────────────────────────
-// Drop this into your TrackCard:
-//   <TrackActionButtons trackId={track.trackId} title={track.title}
-//     likesCount={track.likesCount} liked={track.liked}
-//     repostsCount={track.repostsCount} reposted={track.reposted} />
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 export function TrackActionButtons({
-  trackId, title, likesCount, liked, repostsCount, reposted, size = "full",
+  trackId, title, likesCount, liked, repostsCount, size = "full",
 }: TrackActionButtonsProps) {
   return (
     <div className="flex items-center gap-1.5" data-track-id={trackId}>
-      <LikeButton    liked={liked}       likesCount={likesCount}     size={size} />
-      <RepostButton  reposted={reposted} repostsCount={repostsCount} size={size} />
-      <ShareButton   title={title} />
+      <LikeButton 
+        trackId={trackId} 
+        title={title}
+        liked={liked} 
+        likesCount={likesCount} 
+        size={size} 
+      />
+      <RepostButton 
+        repostsCount={repostsCount} 
+        size={size} 
+      />
+      <ShareButton title={title} />
       <CopyLinkButton />
     </div>
   );

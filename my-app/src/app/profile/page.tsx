@@ -1,21 +1,23 @@
 "use client";
 
-// import React from "react";
+import React, { useState, useEffect } from "react";
 import { FiShare } from "react-icons/fi";
 import { GrEdit } from "react-icons/gr";
-import { useProfileController } from "../../hooks/useProfileController";
 import Image from "next/image";
 import { useParams } from "next/navigation";
+
+// Internal Components
+import { useProfileController } from "../../hooks/useProfileController";
 import { EditProfileModal } from "../../components/profile/modals/EditProfileModal";
-import { ProfileHeader } from "../../components/profile/ProfileHeader";
-import { ShareModal } from "@/src/components/profile/modals/ShareModal";
-import { ProfileSidebar } from "@/src/components/profile/ProfileSidebar";
-import { AvatarUpload } from "@/src/components/profile/AvatarUpload";
-import { CoverPhoto } from "@/src/components/profile/CoverPhoto";
-import { TrackList } from "@/src/components/tracks/TrackList";
-import { TrackCard } from "@/src/components/tracks/TrackCard";
-import { Track } from "@/src/types/track";
-import React, { useState, useEffect } from "react";
+import { ShareModal } from "../../components/profile/modals/ShareModal";
+import { ProfileSidebar } from "../../components/profile/ProfileSidebar";
+import { AvatarUpload } from "../../components/profile/AvatarUpload";
+import { CoverPhoto } from "../../components/profile/CoverPhoto";
+import { TrackList } from "../../components/tracks/TrackList";
+import { Track } from "../../types/track";
+import { useLikeStore } from "@/src/store/likeStore";
+
+// Types
 
 interface User {
   id: number;
@@ -28,8 +30,15 @@ interface User {
 }
 
 export default function ProfilePage() {
-  const [tracks, setTracks] = React.useState<Track[]>([]);
-  React.useEffect(() => {
+  const params = useParams();
+  const profileId = (params.handle as string) || (params.id as string);
+  const controller = useProfileController(profileId);
+
+  const [tracks, setTracks] = useState<Track[]>([]);
+  const { likedTracks } = useLikeStore();
+
+  // Mock Data for Tracks
+  useEffect(() => {
     const manualMock: Track[] = [
       {
         trackId: "trk_001",
@@ -46,14 +55,6 @@ export default function ProfilePage() {
     ];
     setTracks(manualMock);
   }, []);
-
-  const params = useParams();
-  const profileId = (params.handle as string) || (params.id as string);
-
-  const BUTTON_STYLE =
-    "bg-zinc-800/50 border border-zinc-700 px-4 py-1 rounded text-xs font-bold hover:bg-zinc-700 transition-colors uppercase flex items-center gap-2";
-
-  const controller = useProfileController(profileId);
 
   const {
     displayName,
@@ -81,25 +82,24 @@ export default function ProfilePage() {
     searchQuery,
     setSearchQuery,
     filteredUsers,
-    suggestedUsers,
     handleLoadMore,
     isLoading,
   } = controller;
 
-  /**
-   * Sub-render function for the Details View (Likes, Following, Followers)
-   */
+  const BUTTON_STYLE =
+    "bg-zinc-800/50 border border-zinc-700 px-4 py-1 rounded text-xs font-bold hover:bg-zinc-700 transition-colors uppercase flex items-center gap-2";
+
   const renderDetailsPage = () => (
     <div className="container mx-auto px-8 py-10 animate-in fade-in duration-500">
-      {/* 1. Detail View Header (Avatar and Title) */}
       <div className="flex items-center gap-6 mb-12">
-        <div className="w-32 h-32 rounded-full bg-gradient-to-br from-zinc-700 to-zinc-500 shadow-xl"></div>
+        <div className="w-32 h-32 rounded-full bg-gradient-to-br from-zinc-700 to-zinc-500 shadow-xl overflow-hidden">
+           {avatarUrl && <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" />}
+        </div>
         <h2 className="text-3xl font-bold uppercase">
           {detailTab} BY {displayName}
         </h2>
       </div>
 
-      {/* 2. Internal Navigation Tabs within Details */}
       <div className="border-b border-zinc-800 mb-8">
         <ul className="flex gap-8 text-sm font-bold text-zinc-400">
           {["Likes", "Following", "Followers"].map((t) => (
@@ -107,9 +107,7 @@ export default function ProfilePage() {
               key={t}
               onClick={() => setDetailTab(t)}
               className={`pb-2 cursor-pointer border-b-2 transition-all uppercase ${
-                detailTab === t
-                  ? "text-white border-white"
-                  : "border-transparent hover:text-zinc-200"
+                detailTab === t ? "text-white border-white" : "border-transparent hover:text-zinc-200"
               }`}
             >
               {t}
@@ -119,7 +117,6 @@ export default function ProfilePage() {
       </div>
 
       <div className="py-10 space-y-8">
-        {/* --- 3. SEARCH INPUT FIELD --- */}
         {(detailTab === "Following" || detailTab === "Followers") && (
           <div className="relative max-w-md mb-8">
             <input
@@ -129,147 +126,107 @@ export default function ProfilePage() {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-zinc-900 border border-zinc-800 text-white px-4 py-2 rounded-md focus:outline-none focus:border-orange-500 transition-all text-sm"
             />
-            <span className="absolute right-3 top-2.5 opacity-40">🔍</span>
           </div>
         )}
-        {/* --- 4. LIKES TAB RENDERING (Module 3: Social Graph Clean Version) --- */}
+
         {detailTab === "Likes" && (
-          <div className="py-24 text-center flex flex-col items-center justify-center border border-zinc-900/50 rounded-lg bg-zinc-900/10 w-full animate-in fade-in zoom-in duration-500">
-            <div className="w-24 h-24 bg-zinc-800/40 rounded-full flex items-center justify-center mb-8 border border-zinc-800 shadow-inner">
-              <span className="text-4xl opacity-80">🧡</span>
+  <div className="w-full">
+    {likedTracks.length > 0 ? (
+      /* 1. THE ACTUAL LIST */
+      <div className="grid grid-cols-1 gap-4">
+        {likedTracks.map((track) => (
+          <div 
+            key={track.id} 
+            className="flex items-center justify-between p-4 bg-zinc-900/40 rounded-lg border border-zinc-800 hover:border-zinc-700 transition-all"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-zinc-800 rounded shadow-md" />
+              <div>
+                <h4 className="text-white font-bold">{track.title}</h4>
+                <p className="text-zinc-500 text-sm">Artist Name</p>
+              </div>
             </div>
-
-            <h3 className="text-white text-2xl font-bold mb-4 uppercase tracking-[0.2em]">
-              No Liked Tracks Yet
-            </h3>
-
-            <p className="text-zinc-500 text-sm max-w-md mx-auto leading-relaxed mb-10 px-6">
-              You havenot liked any tracks yet. Start following artists and
-              exploring their profiles to build your favorite music collection.
-            </p>
-
-            <button
-              onClick={() => {
-                setViewState("profile");
-                setDetailTab("Following");
-              }}
-              className="bg-white text-black px-10 py-3 rounded-full font-bold hover:bg-zinc-200 transition-all uppercase text-xs tracking-widest shadow-2xl active:scale-95"
-            >
-              Explore Artists
-            </button>
+            {/* Optional: Add a remove button or play button here */}
           </div>
-        )}
-        ;{/* --- 5. FOLLOWING/FOLLOWERS GRID (Using Filtered Results) --- */}
-        {(detailTab === "Following" || detailTab === "Followers") &&
-          (filteredUsers && filteredUsers.length > 0 ? (
-            <>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8">
-                {filteredUsers.map((user: User) => (
-                  <div
-                    key={`${detailTab}-${user.id}`}
-                    className="flex flex-col items-center text-center group"
-                  >
-                    <div className="relative w-40 h-40 mb-4 rounded-full overflow-hidden border-2 border-zinc-800 group-hover:border-orange-500 transition-all duration-300 shadow-2xl bg-zinc-900">
-                      {user.avatar ? (
-                        <Image
-                          src={user.avatar}
-                          alt={user.name}
-                          fill={true}
-                          className="w-full h-full object-cover"
-                          priority={true}
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-zinc-800" />
-                      )}
-                    </div>
+        ))}
+      </div>
+    ) : (
+      /* 2. THE EMPTY STATE (Your existing code) */
+      <div className="py-24 text-center flex flex-col items-center justify-center border border-zinc-900/50 rounded-lg bg-zinc-900/10 w-full">
+        <h3 className="text-white text-2xl font-bold mb-4 uppercase tracking-[0.2em]">
+          No Liked Tracks Yet
+        </h3>
+        <button
+          onClick={() => setViewState("profile")}
+          className="bg-white text-black px-10 py-3 rounded-full font-bold hover:bg-zinc-200 transition-all uppercase text-xs tracking-widest"
+        >
+          Explore Artists
+        </button>
+      </div>
+    )}
+  </div>
+)}
 
-                    <h4 className="font-bold text-white text-sm flex items-center gap-1 mb-1 truncate w-full justify-center uppercase tracking-wider">
-                      {user.name}{" "}
-                      <span className="text-[#38bdf8] text-[10px]">✓</span>
-                    </h4>
-                    <p className="text-zinc-500 text-[11px] mb-4">
-                      👤 {user.followers} followers
-                    </p>
-
-                    <button
-                      onClick={() => toggleFollow(user.id)}
-                      className={`px-4 py-1.5 rounded text-[10px] font-bold uppercase transition-all ${
-                        user.isFollowing
-                          ? "bg-zinc-800 text-zinc-400 border border-zinc-700"
-                          : "bg-white text-black hover:bg-zinc-200"
-                      }`}
-                    >
-                      {user.isFollowing ? "Following" : "Follow"}
-                    </button>
+        {(detailTab === "Following" || detailTab === "Followers") && (
+          filteredUsers.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8">
+              {filteredUsers.map((user: User) => (
+                <div key={`${detailTab}-${user.id}`} className="flex flex-col items-center text-center group">
+                  <div className="relative w-40 h-40 mb-4 rounded-full overflow-hidden border-2 border-zinc-800 group-hover:border-orange-500 transition-all shadow-2xl bg-zinc-900">
+                    {user.avatar ? (
+                      <Image src={user.avatar} alt={user.name} fill className="object-cover" />
+                    ) : (
+                      <div className="w-full h-full bg-zinc-800" />
+                    )}
                   </div>
-                ))}
-              </div>
-
-              {/* Pagination Button Section */}
-              <div className="flex justify-center mt-12 mb-4">
-                <button
-                  onClick={handleLoadMore}
-                  className="px-8 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-full transition-colors border border-zinc-700 font-bold uppercase text-xs tracking-widest"
-                >
-                  {isLoading ? "Loading..." : "Load More Users"}
-                </button>
-              </div>
-            </>
+                  <h4 className="font-bold text-white text-sm uppercase mb-1">{user.name}</h4>
+                  <p className="text-zinc-500 text-[11px] mb-4">{user.followers} followers</p>
+                  <button
+                    onClick={() => toggleFollow(user.id)}
+                    className={`px-4 py-1.5 rounded text-[10px] font-bold uppercase transition-all ${
+                      user.isFollowing ? "bg-zinc-800 text-zinc-400 border border-zinc-700" : "bg-white text-black hover:bg-zinc-200"
+                    }`}
+                  >
+                    {user.isFollowing ? "Following" : "Follow"}
+                  </button>
+                </div>
+              ))}
+            </div>
           ) : (
-            /* Empty Search Results / Empty State */
-            <div className="py-20 text-center flex flex-col items-center">
-              <p className="text-xl font-bold text-zinc-600 uppercase tracking-widest mb-12">
-                {searchQuery
-                  ? `No results found for "${searchQuery}"`
-                  : `You have no ${detailTab.toLowerCase()} yet.`}
-              </p>
-              <button
-                onClick={() => {
-                  setViewState("profile");
-                  setSearchQuery("");
-                }}
-                className="bg-white text-black px-6 py-2 rounded-full font-bold uppercase text-sm"
-              >
+            <div className="py-20 text-center">
+              <p className="text-xl font-bold text-zinc-600 uppercase mb-8">Nothing found.</p>
+              <button onClick={() => setViewState("profile")} className="bg-white text-black px-6 py-2 rounded-full font-bold uppercase text-sm">
                 ← Back to Profile
               </button>
             </div>
-          ))}
+          )
+        )}
       </div>
     </div>
   );
 
   return (
     <div className="min-h-screen bg-[#121212] text-white font-sans overflow-x-hidden relative">
-      {/* --- 1. CONDITIONAL RENDERING: DETAILS VS MAIN PROFILE --- */}
       {viewState === "details" ? (
         renderDetailsPage()
       ) : (
         <>
-          {/* --- SECTION 1: VISUAL HEADER (Banner & Avatar) --- */}
           <div className="relative w-full min-h-[260px] bg-[#d38b7d] p-4 md:p-6 flex flex-col md:flex-row items-center md:items-start justify-between gap-4">
             <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-center text-center md:text-left mt-2">
               <CoverPhoto />
-              <AvatarUpload
-                username={displayName}
-                location={location}
-                onUpload={handleAvatarUpload}
-                avatarUrl={avatarUrl}
-              />
+              <AvatarUpload username={displayName} location={location} onUpload={handleAvatarUpload} avatarUrl={avatarUrl} />
             </div>
           </div>
 
-          {/* --- SECTION 2: NAVIGATION BAR (Sticky Tabs) --- */}
-          <div className="border-b border-zinc-800 bg-[#121212] sticky top-0 z-40 overflow-x-auto">
-            <div className="container mx-auto px-4 md:px-8 flex justify-between items-center h-12 min-w-[600px] md:min-w-full">
+          <div className="border-b border-zinc-800 bg-[#121212] sticky top-0 z-40">
+            <div className="container mx-auto px-4 md:px-8 flex justify-between items-center h-12">
               <ul className="flex gap-8 text-[14px] font-bold text-zinc-400 h-full">
                 {tabs?.map((tab: string) => (
                   <li
                     key={tab}
                     onClick={() => setActiveTab(tab)}
-                    className={`cursor-pointer outline-none transition-colors h-full flex items-center border-b-2 ${
-                      activeTab === tab
-                        ? "text-white border-white"
-                        : "border-transparent hover:text-white"
+                    className={`cursor-pointer h-full flex items-center border-b-2 transition-colors ${
+                      activeTab === tab ? "text-white border-white" : "border-transparent hover:text-white"
                     }`}
                   >
                     {tab}
@@ -277,79 +234,46 @@ export default function ProfilePage() {
                 ))}
               </ul>
               <div className="flex gap-2">
-                <button
-                  onClick={() => setIsShareOpen(true)}
-                  className={BUTTON_STYLE}
-                >
-                  <FiShare size={15} /> Share
-                </button>
-                <button
-                  onClick={() => setIsEditOpen(true)}
-                  className={BUTTON_STYLE}
-                >
-                  <GrEdit size={15} /> Edit
-                </button>
+                <button onClick={() => setIsShareOpen(true)} className={BUTTON_STYLE}><FiShare size={15} /> Share</button>
+                <button onClick={() => setIsEditOpen(true)} className={BUTTON_STYLE}><GrEdit size={15} /> Edit</button>
               </div>
             </div>
           </div>
 
-          {/* --- SECTION 3: MAIN LAYOUT (Updated for Module 4) --- */}
           <div className="container mx-auto px-8 py-12 flex flex-col lg:flex-row gap-12 text-left">
-            {/* Main Feed Area */}
-            <div className="flex-1 border-r border-zinc-900/50 pr-12 text-left">
-              {/* 1. Show TrackList when "Tracks" or "All" is active */}
+            <div className="flex-1 border-r border-zinc-900/50 pr-12">
               {activeTab === "Tracks" || activeTab === "All" ? (
                 <TrackList tracks={tracks} setTracks={setTracks} />
               ) : (
-                /* 2. Show Empty State for other tabs (Playlists, Albums, etc.) */
-                <div className="py-20 text-center flex flex-col items-center justify-center">
-                  <div className="w-20 h-20 bg-zinc-900 rounded-full flex items-center justify-center mb-6 border border-zinc-800">
-                    <span className="text-3xl">
-                      {activeTab === "Playlists"
-                        ? "📁"
-                        : activeTab === "Albums"
-                          ? "💿"
-                          : "🎵"}
-                    </span>
-                  </div>
-                  <p className="text-zinc-500 text-xl font-bold mb-2 uppercase tracking-widest">
-                    Nothing to show here yet
-                  </p>
-                  <p className="text-zinc-600 text-sm mb-8">
-                    {`It seems there are no ${activeTab.toLowerCase()} to display at the moment.`}
-                  </p>
-                  <button
-                    onClick={() => setActiveTab("Tracks")} // Change to Tracks tab to see the list
-                    className="bg-white text-black px-8 py-2 rounded-full font-bold hover:bg-zinc-200 transition-all uppercase text-xs tracking-tighter"
-                  >
-                    Explore Tracks
-                  </button>
+                <div className="py-20 text-center">
+                  <p className="text-zinc-500 text-xl font-bold uppercase tracking-widest">Nothing to show here yet</p>
                 </div>
               )}
             </div>
 
-            {/* Profile Sidebar Area */}
             <ProfileSidebar
               followersCount={controller.followersCount}
-              followingCount={
-                controller.displayUsers.filter((u) => u.isFollowing).length
-              }
-              // followersCount={controller.followersList.length}
+              followingCount={displayUsers.filter((u) => u.isFollowing).length}
               tracksCount={tracks.length}
-              displayUsers={displayUsers}
+              // Map displayUsers to satisfy the SidebarUser interface
+              displayUsers={displayUsers.map(u => ({
+                id: u.id,
+                name: u.name,
+                avatar: u.avatar || "/Blossom.png",
+                isFollowing: u.isFollowing,
+                followers: u.followers?.toString() || "0",
+                tracks: u.tracks || 0
+              }))}
               links={links}
               toggleFollow={toggleFollow}
               setViewState={setViewState}
               setDetailTab={setDetailTab}
               favoriteGenres={controller.favoriteGenres}
-              suggestedUsers={suggestedUsers}
             />
           </div>
         </>
       )}
-      {/* --- SECTION 4: MODALS & NOTIFICATIONS --- */}
 
-      {/* Edit Profile Modal */}
       <EditProfileModal
         isOpen={isEditOpen}
         onClose={() => setIsEditOpen(false)}
@@ -370,26 +294,11 @@ export default function ProfilePage() {
         handlers={controller}
       />
 
-      {/* Share Modal */}
-      <ShareModal
-        isOpen={isShareOpen}
-        onClose={() => setIsShareOpen(false)}
-        {...controller}
-      />
+      <ShareModal isOpen={isShareOpen} onClose={() => setIsShareOpen(false)} {...controller} />
 
-      {/* Success Notification Toast */}
       {showSuccessToast && (
-        <div className="fixed top-20 right-10 z-[100] animate-in slide-in-from-right duration-300">
-          <div className="bg-[#333] border border-zinc-700 p-4 flex items-center gap-4 shadow-2xl rounded-sm min-w-[300px]">
-            <div className="w-12 h-12 bg-zinc-600 flex items-center justify-center rounded-sm">
-              <span className="text-zinc-400 text-2xl">👤</span>
-            </div>
-            <div>
-              <p className="text-white text-sm font-bold">
-                Your profile has been updated successfully.
-              </p>
-            </div>
-          </div>
+        <div className="fixed top-20 right-10 z-[100] bg-[#333] border border-zinc-700 p-4 rounded-sm shadow-2xl animate-in slide-in-from-right">
+          <p className="text-white text-sm font-bold">Your profile has been updated successfully.</p>
         </div>
       )}
     </div>
