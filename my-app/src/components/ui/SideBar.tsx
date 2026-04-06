@@ -24,7 +24,7 @@ const SideBar: React.FC<SideBarProps> = ({ children , showSidebar = true}) => {
           </div>
         </Box>  
         <Box className="flex-1">
-          <div className="px-5 py-4">
+          <div className="px-5 py-4 pb-4">
             <SideBarItem label="ARTISTS YOU SHOULD FOLLOW" href="/artists" />
             <SuggestedArtists />
           </div>

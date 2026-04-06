@@ -1,5 +1,6 @@
 import api from "@/src/services/api";
 
+
 export type TrackStatus = "PROCESSING" | "FINISHED";
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
@@ -122,7 +123,9 @@ export const getTrackDetails = async (
       publishedAt: "2026-03-06T12:00:00.000Z",
       createdAt: "2026-03-06T11:00:00.000Z",
       updatedAt: "2026-03-06T12:00:00.000Z",
-      waveformData: Array.from({ length: 100 }, () => Math.random()),
+      waveformData: Array.from({ length: 120 }, () =>
+        Math.min(1, Math.max(0.08, 0.2 + Math.random() * 0.8))
+      ),
       files: [
         {
           id: "file_001",

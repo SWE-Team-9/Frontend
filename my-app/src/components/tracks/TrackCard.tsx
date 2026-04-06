@@ -1,9 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import { TrackDetails, changeTrackVisibility, updateTrackMetadata } from "@/src/services/uploadService";
+import {
+  TrackDetails,
+  changeTrackVisibility,
+  updateTrackMetadata,
+} from "@/src/services/uploadService";
 import { Edit2, Trash2, Play, Eye, EyeOff, X, Check } from "lucide-react";
 import Image from "next/image";
+import { WaveformDisplay } from "@/src/components/tracks/WaveformDisplay";
 
 interface TrackCardProps {
   track: TrackDetails;
@@ -12,7 +17,9 @@ interface TrackCardProps {
 }
 
 const TrackCard: React.FC<TrackCardProps> = ({ track, onDelete }) => {
-  const [visibility, setVisibility] = useState<"PUBLIC" | "PRIVATE">(track.visibility);
+  const [visibility, setVisibility] = useState<"PUBLIC" | "PRIVATE">(
+    track.visibility,
+  );
   const [isTogglingVisibility, setIsTogglingVisibility] = useState(false);
 
   const [isEditing, setIsEditing] = useState(false);
@@ -22,9 +29,11 @@ const TrackCard: React.FC<TrackCardProps> = ({ track, onDelete }) => {
   const [editGenre, setEditGenre] = useState(track.genre ?? "");
   const [editTags, setEditTags] = useState(track.tags?.join(", ") ?? "");
   const [editReleaseDate, setEditReleaseDate] = useState(
-    track.releaseDate?.split("T")[0] ?? ""
+    track.releaseDate?.split("T")[0] ?? "",
   );
-  const [editDescription, setEditDescription] = useState(track.description ?? "");
+  const [editDescription, setEditDescription] = useState(
+    track.description ?? "",
+  );
 
   const [localTitle, setLocalTitle] = useState(track.title);
   const [localGenre, setLocalGenre] = useState(track.genre ?? "");
@@ -60,13 +69,21 @@ const TrackCard: React.FC<TrackCardProps> = ({ track, onDelete }) => {
       await updateTrackMetadata(track.trackId, {
         title: editTitle,
         genre: editGenre,
-        tags: editTags.split(",").map((t) => t.trim()).filter(Boolean),
+        tags: editTags
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean),
         releaseDate: editReleaseDate,
         description: editDescription,
       });
       setLocalTitle(editTitle);
       setLocalGenre(editGenre);
-      setLocalTags(editTags.split(",").map((t) => t.trim()).filter(Boolean));
+      setLocalTags(
+        editTags
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean),
+      );
       setIsEditing(false);
     } catch (err) {
       console.error("Failed to save track", err);
@@ -80,7 +97,11 @@ const TrackCard: React.FC<TrackCardProps> = ({ track, onDelete }) => {
       {/* Cover art */}
       <div className="w-32 h-32 bg-[#333] rounded-md shrink-0 flex items-center justify-center">
         {track.coverArtUrl ? (
-          <Image src={track.coverArtUrl} alt={localTitle} className="w-full h-full object-cover rounded-md" />
+          <Image
+            src={track.coverArtUrl}
+            alt={localTitle}
+            className="w-full h-full object-cover rounded-md"
+          />
         ) : (
           <div className="w-full h-full bg-[#2a2a2a] rounded-md animate-pulse" />
         )}
@@ -92,7 +113,9 @@ const TrackCard: React.FC<TrackCardProps> = ({ track, onDelete }) => {
           /* ── EDIT MODE ── */
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-zinc-500 uppercase tracking-widest">Title</label>
+              <label className="text-xs text-zinc-500 uppercase tracking-widest">
+                Title
+              </label>
               <input
                 value={editTitle}
                 onChange={(e) => setEditTitle(e.target.value)}
@@ -102,7 +125,9 @@ const TrackCard: React.FC<TrackCardProps> = ({ track, onDelete }) => {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1">
-                <label className="text-xs text-zinc-500 uppercase tracking-widest">Genre</label>
+                <label className="text-xs text-zinc-500 uppercase tracking-widest">
+                  Genre
+                </label>
                 <input
                   value={editGenre}
                   onChange={(e) => setEditGenre(e.target.value)}
@@ -111,7 +136,9 @@ const TrackCard: React.FC<TrackCardProps> = ({ track, onDelete }) => {
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-xs text-zinc-500 uppercase tracking-widest">Release Date</label>
+                <label className="text-xs text-zinc-500 uppercase tracking-widest">
+                  Release Date
+                </label>
                 <input
                   type="date"
                   value={editReleaseDate}
@@ -122,7 +149,9 @@ const TrackCard: React.FC<TrackCardProps> = ({ track, onDelete }) => {
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-zinc-500 uppercase tracking-widest">Tags (comma separated)</label>
+              <label className="text-xs text-zinc-500 uppercase tracking-widest">
+                Tags (comma separated)
+              </label>
               <input
                 value={editTags}
                 onChange={(e) => setEditTags(e.target.value)}
@@ -132,7 +161,9 @@ const TrackCard: React.FC<TrackCardProps> = ({ track, onDelete }) => {
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-zinc-500 uppercase tracking-widest">Description</label>
+              <label className="text-xs text-zinc-500 uppercase tracking-widest">
+                Description
+              </label>
               <textarea
                 value={editDescription}
                 onChange={(e) => setEditDescription(e.target.value)}
@@ -171,8 +202,12 @@ const TrackCard: React.FC<TrackCardProps> = ({ track, onDelete }) => {
                   <Play className="w-5 h-5 fill-black" />
                 </button>
                 <div className="truncate">
-                  <h4 className="text-white text-lg font-bold truncate">{localTitle}</h4>
-                  {localGenre && <p className="text-zinc-400 text-sm">{localGenre}</p>}
+                  <h4 className="text-white text-lg font-bold truncate">
+                    {localTitle}
+                  </h4>
+                  {localGenre && (
+                    <p className="text-zinc-400 text-sm">{localGenre}</p>
+                  )}
                 </div>
               </div>
 
@@ -188,14 +223,18 @@ const TrackCard: React.FC<TrackCardProps> = ({ track, onDelete }) => {
             </div>
 
             {/* Waveform / status */}
-            <div className="w-full h-14 bg-zinc-800/50 rounded flex items-center justify-center border border-dashed border-zinc-700">
+            <div className="w-full h-14 rounded overflow-hidden">
               {track.status === "PROCESSING" ? (
-                <div className="flex items-center gap-2 text-[#ff5500] animate-pulse">
-                  <span className="w-2 h-2 bg-[#ff5500] rounded-full animate-bounce" />
-                  <p className="text-xs font-bold uppercase italic">Processing...</p>
+                <div className="w-full h-full bg-zinc-800/50 border border-dashed border-zinc-700 rounded flex items-center justify-center">
+                  <div className="flex items-center gap-2 text-[#ff5500] animate-pulse">
+                    <span className="w-2 h-2 bg-[#ff5500] rounded-full animate-bounce" />
+                    <p className="text-xs font-bold uppercase italic">
+                      Processing...
+                    </p>
+                  </div>
                 </div>
               ) : (
-                <p className="text-zinc-600 text-xs italic">Waveform ready</p>
+                <WaveformDisplay />
               )}
             </div>
 
@@ -203,7 +242,10 @@ const TrackCard: React.FC<TrackCardProps> = ({ track, onDelete }) => {
             {localTags.length > 0 && (
               <div className="flex flex-wrap gap-1">
                 {localTags.map((tag) => (
-                  <span key={tag} className="text-xs bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded">
+                  <span
+                    key={tag}
+                    className="text-xs bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded"
+                  >
                     #{tag}
                   </span>
                 ))}
@@ -217,7 +259,11 @@ const TrackCard: React.FC<TrackCardProps> = ({ track, onDelete }) => {
                 disabled={isTogglingVisibility}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#2a2a2a] text-zinc-400 hover:text-white hover:bg-[#3a3a3a] text-xs font-medium transition disabled:opacity-50"
               >
-                {visibility === "PUBLIC" ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                {visibility === "PUBLIC" ? (
+                  <Eye className="w-3.5 h-3.5" />
+                ) : (
+                  <EyeOff className="w-3.5 h-3.5" />
+                )}
                 {visibility === "PUBLIC" ? "Make Private" : "Make Public"}
               </button>
 
