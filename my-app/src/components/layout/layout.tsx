@@ -1,6 +1,7 @@
 import SideBar from "@/src/components/ui/SideBar";
 import NavBar from "@/src/components/ui/NavBar";
 
+
 export default function SideNavLayout({
   children,
 }: Readonly<{

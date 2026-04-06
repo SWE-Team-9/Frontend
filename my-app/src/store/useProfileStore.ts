@@ -47,7 +47,7 @@ const initialProfileState = {
   userId: "",
   displayName: "",
   handle: "",
-  bio: "",
+bio: "Biomedical Engineering Student",
   location: "",
   website: "",
   avatarUrl: null,
