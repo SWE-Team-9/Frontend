@@ -83,7 +83,7 @@ export const uploadTrack = async (
   formData.append("title", metadata.title);
   formData.append("genre", metadata.genre);
   formData.append("releaseDate", metadata.releaseDate);
-  formData.append("tags", JSON.stringify(metadata.tags));
+  metadata.tags.forEach((tag) => formData.append("tags", tag));
   formData.append("audioFile", file);
   formData.append("description", metadata.description);
 

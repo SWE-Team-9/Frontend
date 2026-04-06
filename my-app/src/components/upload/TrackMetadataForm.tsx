@@ -33,7 +33,12 @@ const TrackMetadataForm = () => {
 
     if (!title.trim()) newErrors.title = "Track title is required.";
     if (!genre.trim()) newErrors.genre = "Genre is required.";
-    if (!tags.trim()) newErrors.tags = "At least one tag is required.";
+    const tagList = tags
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
+    if (tagList.length === 0) newErrors.tags = "At least one tag is required.";
+    else if (tagList.length > 10) newErrors.tags = "Maximum 10 tags allowed.";
     if (!releaseDate) newErrors.releaseDate = "Release date is required.";
     if (!description.trim()) newErrors.description = "Description is required.";
     else if (description.length > MAX_DESCRIPTION)
@@ -49,10 +54,14 @@ const TrackMetadataForm = () => {
       return;
     }
 
+    const tagList = tags
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
     setMetadata({
       title,
       genre,
-      tags: tags.split(",").map((t) => t.trim()),
+      tags: tagList,
       releaseDate,
       visibility,
       description,
@@ -204,7 +213,7 @@ const TrackMetadataForm = () => {
           )}
         </div>
       </div>
-      
+
       {/* Waveform Preview */}
       <div className="mt-6">
         <label className="font-medium pb-2 text-xl block mb-2 text-white">
