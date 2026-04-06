@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import AuthProvider from "@/src/components/providers/AuthProvider";
 import { Player } from "@/src/components/player/Player";
+import PlayerAudioSync from "@/src/components/player/PlayerAudioSync";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,7 +35,9 @@ export default function RootLayout({
           <div className="pb-24">
             {children}
           </div>
+
           <Player />
+          <PlayerAudioSync />
         </AuthProvider>
       </body>
     </html>
