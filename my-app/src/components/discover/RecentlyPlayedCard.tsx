@@ -8,13 +8,16 @@ import { usePlayerStore } from "@/src/store/playerStore";
 import { useEffect, useRef, useState } from "react";
 
 interface RecentlyPlayedItem {
-    trackId: string;
-    title: string;
-    artist: string;
-    coverArtUrl?: string | null;
-    liked?: boolean;
-    lastPlayedAt: string;
-    lastPositionSeconds: number;
+  trackId: string;
+  title: string;
+  artist: string;
+  artistId: string;
+  artistHandle?: string;
+  artistAvatarUrl?: string | null;
+  coverArtUrl?: string | null;
+  liked?: boolean;
+  lastPlayedAt: string;
+  lastPositionSeconds: number;
 }
 
 interface RecentlyPlayedCardProps {
@@ -61,10 +64,13 @@ export default function RecentlyPlayedCard({ track }: RecentlyPlayedCardProps) {
         }
 
         fetchAndPlay({
-            trackId: track.trackId,
-            title: track.title,
-            cover: track.coverArtUrl || FALLBACK_IMAGE,
-            artist: track.artist,
+        trackId: track.trackId,
+        title: track.title,
+        cover: track.coverArtUrl || FALLBACK_IMAGE,
+        artist: track.artist,
+        artistId: track.artistId,
+        artistHandle: track.artistHandle,
+        artistAvatarUrl: track.artistAvatarUrl ?? null,
         });
     };
 

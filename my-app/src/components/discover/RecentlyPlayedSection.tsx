@@ -5,16 +5,7 @@ import RecentlyPlayedCard from "./RecentlyPlayedCard";
 import { getRecentlyPlayed } from "@/src/services/playerService";
 import { getTrackDetails } from "@/src/services/trackService";
 import { usePlayerStore } from "@/src/store/playerStore";
-
-export interface RecentlyPlayedItem {
-    trackId: string;
-    title: string;
-    artist: string;
-    coverArtUrl?: string | null;
-    liked?: boolean;
-    lastPlayedAt: string;
-    lastPositionSeconds: number;
-}
+import { RecentlyPlayedItem } from "@/src/types/history";
 
 export default function RecentlyPlayedSection() {
     const [tracks, setTracks] = useState<RecentlyPlayedItem[]>([]);
@@ -41,6 +32,9 @@ export default function RecentlyPlayedSection() {
                         trackId: item.trackId,
                         title: details?.title || item.title,
                         artist: details?.artist || item.artist.display_name,
+                        artistId: details?.artistId || item.artist.id,
+                        artistHandle: details?.artistHandle,
+                        artistAvatarUrl: details?.artistAvatarUrl ?? null,
                         coverArtUrl: details?.coverArtUrl || null,
                         liked: false,
                         lastPlayedAt: item.lastPlayedAt,
@@ -55,6 +49,9 @@ export default function RecentlyPlayedSection() {
                         trackId: track.trackId,
                         title: track.title,
                         artist: track.artist,
+                        artistId: track.artistId,
+                        artistHandle: track.artistHandle,
+                        artistAvatarUrl: track.artistAvatarUrl ?? null,
                         cover: track.coverArtUrl || "/images/track-placeholder.png",
                     }))
                 );
