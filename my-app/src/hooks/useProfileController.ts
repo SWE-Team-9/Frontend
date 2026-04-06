@@ -1,5 +1,6 @@
 import { useProfileStore } from "@/src/store/useProfileStore";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { socialService } from "@/src/services/followService";
 import {
   getMyProfile,
   updateMyProfile,
@@ -8,17 +9,38 @@ import {
   getProfileByHandle,
 } from "@/src/services/profileService";
 
-// ─────────────────────────────────────────────────────────────
-//  Fetches the user's profile from the backend on first load
-//  Provides all the UI state (which tab is active, modals, etc.)
-//  Saves changes back to the backend when the user clicks Save
-// ─────────────────────────────────────────────────────────────
+/** --- Interfaces --- **/
+interface User {
+  id: number;
+  name: string;
+  handle: string;
+  followers: string;
+  tracks: number;
+  isFollowing: boolean;
+  avatar: string;
+}
+
+interface ServerUser {
+  id: string | number;
+  display_name?: string;
+  name?: string;
+  handle?: string;
+  followersCount?: number;
+  followers?: string | number;
+  tracksCount?: number;
+  isFollowing?: boolean;
+  avatar_url?: string;
+  avatar?: string;
+}
 
 type AccountType = "ARTIST" | "LISTENER";
 
 export const useProfileController = (handle?: string) => {
   const store = useProfileStore();
+  
+  // Determine if the user is looking at their own profile
   const isOwner = !handle || handle === store.handle;
+  const activeId = handle || store.handle || "me";
 
   // ---- UI state ----
   const [activeTab, setActiveTab] = useState("Tracks");
@@ -35,13 +57,13 @@ export const useProfileController = (handle?: string) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isAvatarUploading, setIsAvatarUploading] = useState(false);
   const hasRequestedProfileRef = useRef(false);
+  const [searchQuery, setSearchQuery] = useState(""); 
+  const [currentPage, setCurrentPage] = useState(1); 
 
-  // ---- Static data ----
+  // ---- Static Data ----
   const tabs = ["All", "Popular tracks", "Tracks", "Albums", "Playlists", "Reposts"];
-  // These values MUST match the backend's ALLOWED_GENRES list exactly (lowercase, with dashes)
   const genres = [
-    "None",
-    "electronic", "hip-hop", "pop", "rock", "alternative",
+    "None", "electronic", "hip-hop", "pop", "rock", "alternative",
     "ambient", "classical", "jazz", "r-b-soul", "metal",
     "folk-singer-songwriter", "country", "reggaeton", "dancehall",
     "drum-bass", "house", "techno", "deep-house", "trance",
@@ -49,27 +71,30 @@ export const useProfileController = (handle?: string) => {
     "afrobeat", "trap", "experimental", "world", "gospel", "spoken-word",
   ];
 
-  // ---- Profile links for the share modal ----
+  // ---- Social Lists State ----
+  const [followingList, setFollowingList] = useState<User[]>([]);
+  const [followersList, setFollowersList] = useState<User[]>([]);
+  const [suggestedUsers, setSuggestedUsers] = useState([
+    { id: 301, name: "Mazen LoFi", reason: "Shared genres", isFollowing: false, avatar: "" },
+  ]);
+
+  // ---- Profile links ----
   const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const longLink = store.handle
-    ? `${origin}/profiles/${store.handle}`
-    : `${origin}/profiles`;
-  const shortLink = longLink; // no shortener yet
+  const profileBase = handle ? `profiles/${handle}` : "profile";
+  const longLink = `${origin}/${profileBase}`;
+  const shortLink = longLink;
 
   // ──────────────────────────────────────────
-  //  FETCH profile from backend on first load
+  //  FETCH Profile Logic
   // ──────────────────────────────────────────
   const loadProfile = useCallback(async () => {
-    if (store.isLoaded || hasRequestedProfileRef.current) return; // already loaded or already requested
+    if (hasRequestedProfileRef.current) return;
     hasRequestedProfileRef.current = true;
 
     try {
       setIsLoading(true);
-      const profile = handle
-      ? await getProfileByHandle(handle) // viewing another user's profile
-      : await getMyProfile();            // fallback: current user
+      const profile = handle ? await getProfileByHandle(handle) : await getMyProfile();
 
-      // Convert the backend response into our store shape
       store.setProfileData({
         userId: profile.id,
         displayName: profile.displayName ?? "",
@@ -85,46 +110,70 @@ export const useProfileController = (handle?: string) => {
         followersCount: profile.followersCount ?? 0,
         followingCount: profile.followingCount ?? 0,
         tracksCount: profile.tracksCount ?? 0,
-        // Convert backend links → our local links (add an id for React keys)
-        links:
-          profile.externalLinks && profile.externalLinks.length > 0
-            ? profile.externalLinks.map((l, i) => ({
-                id: Date.now() + i,
-                platform: l.platform,
-                url: l.url,
-              }))
-            : [{ id: 1, platform: "", url: "" }],
+        links: profile.externalLinks?.length > 0
+          ? profile.externalLinks.map((l: any, i: number) => ({
+              id: Date.now() + i,
+              platform: l.platform,
+              url: l.url,
+            }))
+          : [{ id: 1, platform: "", url: "" }],
         isLoaded: true,
       });
-    } catch {
-      hasRequestedProfileRef.current = false;
-      console.log("Could not load profile — user may not be logged in.");
+    } catch (err) {
+      console.error("Could not load profile:", err);
     } finally {
       setIsLoading(false);
     }
-  }, [store]);
+  }, [handle, store]);
 
   useEffect(() => {
-  store.resetProfile(); // clear old profile data
-  hasRequestedProfileRef.current = false;
-  loadProfile();
-}, [handle]); // run whenever the handle in URL changes
+    store.resetProfile(); 
+    hasRequestedProfileRef.current = false;
+    loadProfile();
+  }, [handle]);
 
-  // ──────────────────────────────
-  //  SAVE changes to the backend
-  // ──────────────────────────────
+  // ──────────────────────────────────────────
+  //  Social Data (Followers/Following)
+  // ──────────────────────────────────────────
+  useEffect(() => {
+    const fetchSocialData = async () => {
+      if (store.useMockData) return;
+      try {
+        const [followersRes, followingRes] = await Promise.all([
+          socialService.getFollowers(activeId),
+          socialService.getFollowing(activeId),
+        ]);
+
+        const mapServerToUI = (serverUsers: ServerUser[]): User[] =>
+          serverUsers.map((u) => ({
+            id: typeof u.id === "string" ? parseInt(u.id) : u.id,
+            name: u.display_name || u.name || "Unknown User",
+            handle: u.handle || "user",
+            followers: u.followersCount?.toString() || u.followers?.toString() || "0",
+            tracks: u.tracksCount || 0,
+            isFollowing: u.isFollowing ?? false,
+            avatar: u.avatar_url || u.avatar || "https://ui-avatars.com/api/?name=User",
+          }));
+
+        if (followersRes && Array.isArray(followersRes)) setFollowersList(mapServerToUI(followersRes));
+        if (followingRes && Array.isArray(followingRes)) setFollowingList(mapServerToUI(followingRes));
+      } catch (err) {
+        console.error("API Integration Error:", err);
+      }
+    };
+    fetchSocialData();
+  }, [activeId, store.useMockData]);
+
+  // ──────────────────────────────────────────
+  //  Actions (Save, Follow, Upload)
+  // ──────────────────────────────────────────
   const handleSave = async () => {
-    // Simple validation
     if (!store.displayName.trim()) {
       setError("Display name is required!");
       return;
     }
-
     try {
       setIsSaving(true);
-      setError("");
-
-      // 1. Update basic profile fields
       await updateMyProfile({
         display_name: store.displayName,
         bio: store.bio || undefined,
@@ -135,96 +184,81 @@ export const useProfileController = (handle?: string) => {
         account_type: store.accountType,
       });
 
-      // 2. Update social links (skip empty ones)
       const validLinks = store.links
         .filter((l) => l.url.trim() !== "")
         .map((l) => ({ platform: l.platform || "website", url: l.url }));
 
       await updateMyLinks(validLinks);
-
       setIsEditOpen(false);
       setShowSuccessToast(true);
       setTimeout(() => setShowSuccessToast(false), 3000);
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { message?: string } } };
-      setError(axiosErr.response?.data?.message || "Failed to save profile.");
+    } catch (err) {
+      setError("Failed to save profile.");
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleAvatarUpload = async (file: File): Promise<string | undefined> => {
-    if (isAvatarUploading) return store.avatarUrl || undefined;
+  const toggleFollow = (userId: number) => {
+    const allUsers = [...followersList, ...followingList, ...suggestedUsers];
+    const targetUser = allUsers.find((u) => u.id === userId);
+    if (!targetUser) return;
 
-    try {
-      setIsAvatarUploading(true);
-      setError("");
+    const nextState = !targetUser.isFollowing;
 
-      const result = await uploadProfileImage("avatar", file);
-      const uploadedUrl =
-        (result as { url?: string | null })?.url || undefined;
+    // Update Sidebar Optimistically
+    store.setProfileData({
+      followingCount: nextState ? store.followingCount + 1 : Math.max(0, store.followingCount - 1),
+    });
 
-      if (uploadedUrl) {
-        store.setProfileData({ avatarUrl: uploadedUrl });
-      }
+    const updateList = (list: any[]) =>
+      list.map((u) => (u.id === userId ? { ...u, isFollowing: nextState } : u));
 
-      return uploadedUrl;
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { message?: string } } };
-      setError(axiosErr.response?.data?.message || "Failed to upload avatar.");
-      throw err;
-    } finally {
-      setIsAvatarUploading(false);
+    setFollowersList(prev => updateList(prev));
+    setSuggestedUsers(prev => updateList(prev));
+    
+    if (nextState) {
+        setFollowingList(prev => [...prev, { ...targetUser, isFollowing: true } as User]);
+    } else {
+        setFollowingList(prev => prev.filter(u => u.id !== userId));
     }
   };
 
-  // ---- Clipboard helper ----
   const copyToClipboard = async () => {
-    const textToCopy = isShortened ? shortLink : longLink;
     try {
-      await navigator.clipboard.writeText(textToCopy);
+      await navigator.clipboard.writeText(isShortened ? shortLink : longLink);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error("Failed to copy!", err);
-    }
+    } catch (err) { console.error(err); }
   };
 
-  // ---- setProfileData wrapper ----
-  const setProfileData = (data: Partial<typeof store>) => {
-    store.setProfileData(data);
-  };
+  const displayUsers = useMemo(() => (detailTab === "Following" ? followingList : followersList), [detailTab, followingList, followersList]);
+  const filteredUsers = useMemo(() => displayUsers.filter(u => u.name.toLowerCase().includes(searchQuery.toLowerCase())), [displayUsers, searchQuery]);
 
-  // ---- Return everything the page needs ----
   return {
     ...store,
-    activeTab,
-    setActiveTab,
-    setProfileData,
-    tabs,
-    viewState,
-    setViewState,
-    detailTab,
-    setDetailTab,
-    isEditOpen,
-    setIsEditOpen,
-    isShareOpen,
-    setIsShareOpen,
-    shareTab,
-    setShareTab,
-    isShortened,
-    setIsShortened,
-    copied,
-    copyToClipboard,
-    error,
-    handleSave,
-    genres,
+    isOwner,
+    activeTab, setActiveTab,
+    viewState, setViewState,
+    detailTab, setDetailTab,
+    isEditOpen, setIsEditOpen,
+    isShareOpen, setIsShareOpen,
+    shareTab, setShareTab,
+    isShortened, setIsShortened,
+    copied, copyToClipboard,
+    error, handleSave,
+    genres, tabs,
     showSuccessToast,
-    longLink,
-    shortLink,
-    isSaving,
-    isLoading,
+    longLink, shortLink,
+    isSaving, isLoading,
     isAvatarUploading,
-    handleAvatarUpload,
+    handleAvatarUpload: (file: File) => uploadProfileImage("avatar", file),
+    toggleFollow,
+    searchQuery, setSearchQuery,
+    filteredUsers,
+    displayUsers,
+    suggestedUsers,
+    followingCount: followingList.length,
+    followersCount: followersList.length,
   };
 };
