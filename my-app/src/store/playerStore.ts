@@ -14,6 +14,9 @@ export interface Track {
   trackId: string;
   title: string;
   artist: string;
+  artistId: string;
+  artistHandle?: string;
+  artistAvatarUrl?: string | null;
   cover: string;
   duration?: number;
   genre?: string;
@@ -39,7 +42,12 @@ export const mockTracks: Track[] = [
     trackId: "trk_001",
     title: "Neon Pulse",
     artist: "Synthwave Ghost",
-    cover: "https://images.unsplash.com/photo-1614149162883-504ce4d13909?w=200&h=200&fit=crop",
+    artistId: "usr_2",
+    artistHandle: "synthwaveghost",
+    artistAvatarUrl:
+      "https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=100&h=100&fit=crop",
+    cover:
+      "https://images.unsplash.com/photo-1614149162883-504ce4d13909?w=200&h=200&fit=crop",
     duration: 237,
     genre: "Synthwave",
     plays: 184932,
@@ -49,7 +57,11 @@ export const mockTracks: Track[] = [
     trackId: "trk_002",
     title: "Midnight Circuit",
     artist: "Electric Void",
-    cover: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=200&h=200&fit=crop",
+    artistId: "usr_3",
+    artistHandle: "electricvoid",
+    artistAvatarUrl: null,
+    cover:
+      "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=200&h=200&fit=crop",
     duration: 312,
     genre: "Electronic",
     plays: 92841,
@@ -59,7 +71,11 @@ export const mockTracks: Track[] = [
     trackId: "trk_003",
     title: "Coastal Drive",
     artist: "Lo-Fi Horizon",
-    cover: "https://images.unsplash.com/photo-1500829243541-74b677fecc30?w=200&h=200&fit=crop",
+    artistId: "usr_4",
+    artistHandle: "lofihorizon",
+    artistAvatarUrl: null,
+    cover:
+      "https://images.unsplash.com/photo-1500829243541-74b677fecc30?w=200&h=200&fit=crop",
     duration: 198,
     genre: "Lo-Fi",
     plays: 421008,
@@ -69,7 +85,11 @@ export const mockTracks: Track[] = [
     trackId: "trk_004",
     title: "Urban Echoes",
     artist: "City Pulse Collective",
-    cover: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=200&h=200&fit=crop",
+    artistId: "usr_5",
+    artistHandle: "citypulsecollective",
+    artistAvatarUrl: null,
+    cover:
+      "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=200&h=200&fit=crop",
     duration: 275,
     genre: "Hip-Hop",
     plays: 310245,
@@ -79,7 +99,11 @@ export const mockTracks: Track[] = [
     trackId: "trk_005",
     title: "Digital Rain",
     artist: "Neon Frequencies",
-    cover: "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=200&h=200&fit=crop",
+    artistId: "usr_6",
+    artistHandle: "neonfrequencies",
+    artistAvatarUrl: null,
+    cover:
+      "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=200&h=200&fit=crop",
     duration: 341,
     genre: "Ambient",
     plays: 67293,
@@ -175,25 +199,25 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     }
   },
 
-recordPlayEvent: async (trackId: string) => {
-  const { hasRecordedPlay } = get();
-  console.log("[playerStore] recordPlayEvent called", { trackId, hasRecordedPlay });
+  recordPlayEvent: async (trackId: string) => {
+    const { hasRecordedPlay } = get();
+    console.log("[playerStore] recordPlayEvent called", { trackId, hasRecordedPlay });
 
-  if (hasRecordedPlay) {
-    console.log("[playerStore] recordPlayEvent skipped");
-    return;
-  }
+    if (hasRecordedPlay) {
+      console.log("[playerStore] recordPlayEvent skipped");
+      return;
+    }
 
-  try {
-    console.log("[playerStore] sending play event for", trackId);
-    await markTrackPlayed(trackId);
-    set({ hasRecordedPlay: true });
-    console.log("[playerStore] play event saved for", trackId);
-  } catch (error) {
-    console.error("Failed to record play event:", error);
-  }
-},
-  
+    try {
+      console.log("[playerStore] sending play event for", trackId);
+      await markTrackPlayed(trackId);
+      set({ hasRecordedPlay: true });
+      console.log("[playerStore] play event saved for", trackId);
+    } catch (error) {
+      console.error("Failed to record play event:", error);
+    }
+  },
+
 
   persistProgress: async () => {
     const { currentTrack, currentTime } = get();
@@ -245,8 +269,8 @@ recordPlayEvent: async (trackId: string) => {
     } catch (error) {
       console.error("Failed to persist player session:", error);
     }
-  },  
- 
+  },
+
   hydratePlayerSession: async () => {
     try {
       console.log("[playerStore] hydratePlayerSession started");
@@ -267,6 +291,9 @@ recordPlayEvent: async (trackId: string) => {
             trackId: item.trackId,
             title: item.title,
             artist: "Unknown Artist",
+            artistId: "usr_unknown",
+            artistHandle: undefined,
+            artistAvatarUrl: null,
             cover: "/images/track-placeholder.png",
           } as Track;
         });
@@ -433,9 +460,9 @@ recordPlayEvent: async (trackId: string) => {
         } catch (error: unknown) {
           const status =
             typeof error === "object" &&
-            error !== null &&
-            "response" in error &&
-            typeof (error as { response?: { status?: number } }).response?.status === "number"
+              error !== null &&
+              "response" in error &&
+              typeof (error as { response?: { status?: number } }).response?.status === "number"
               ? (error as { response?: { status?: number } }).response?.status
               : undefined;
 
