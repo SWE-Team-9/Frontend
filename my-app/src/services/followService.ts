@@ -87,7 +87,7 @@ export const followUser = async (userId: string): Promise<FollowActionResponse> 
     };
   }
 
-  const res = await api.post(`/api/v1/social/follow/${userId}`);
+  const res = await api.post(`/social/follow/${userId}`);
   return res.data;
 };
 
@@ -109,7 +109,7 @@ export const unfollowUser = async (userId: string): Promise<FollowActionResponse
     };
   }
 
-  const res = await api.delete(`/api/v1/social/follow/${userId}`);
+  const res = await api.delete(`/social/follow/${userId}`);
   return res.data;
 };
 
@@ -131,7 +131,7 @@ export const getFollowers = async (
     };
   }
 
-  const res = await api.get(`/api/v1/social/${userId}/followers`, {
+  const res = await api.get(`/social/${userId}/followers`, {
     params: { page, limit },
   });
   return res.data;
@@ -155,7 +155,7 @@ export const getFollowing = async (
     };
   }
 
-  const res = await api.get(`/api/v1/social/${userId}/following`, {
+  const res = await api.get(`/social/${userId}/following`, {
     params: { page, limit },
   });
   return res.data;
@@ -174,7 +174,7 @@ export const getSuggestions = async (
     };
   }
 
-  const res = await api.get(`/api/v1/social/suggestions`, {
+  const res = await api.get(`/social/suggestions`, {
     params: { limit },
   });
   return res.data;

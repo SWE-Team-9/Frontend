@@ -399,7 +399,7 @@ export default function ProfilePage({
 
                 <div className="flex gap-2 items-center">
                   {/* Follow button — only for visitors */}
-                  {!isOwner && controller.userId && (
+                  {!isOwner && (
                     <FollowButton
                       user={{
                         id: controller.userId,
