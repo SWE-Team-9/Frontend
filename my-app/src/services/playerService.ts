@@ -42,6 +42,54 @@ export interface RecentlyPlayedResponse {
     tracks: RecentTrackResponseItem[];
 }
 
+export interface SavePlaybackProgressBody {
+    positionSeconds: number;
+    durationSeconds: number;
+    isCompleted: boolean;
+}
+
+export interface SavePlaybackProgressResponse {
+    message: string;
+    trackId: string;
+    positionSeconds: number;
+}
+
+export interface MarkTrackPlayedResponse {
+    message: string;
+    trackId: string;
+    playCount: number;
+}
+
+export interface ResumePositionResponse {
+    trackId: string;
+    resumePositionSeconds: number;
+}
+
+export interface QueueTrackItem {
+    trackId: string;
+    title: string;
+}
+
+export interface PlayerSessionResponse {
+    currentTrack: QueueTrackItem | null;
+    positionSeconds: number;
+    isPlaying: boolean;
+    volume: number;
+    queue: QueueTrackItem[];
+}
+
+export interface UpdatePlayerSessionBody {
+    currentTrackId: string | null;
+    positionSeconds: number;
+    isPlaying: boolean;
+    volume: number;
+    queueTrackIds: string[];
+}
+
+export interface UpdatePlayerSessionResponse {
+    message: string;
+}
+
 // ===============================
 //  MOCK DATA
 // ===============================
@@ -91,21 +139,67 @@ const MOCK_RECENT_TRACKS: RecentTrackResponseItem[] = [
     },
 ];
 
+let MOCK_PLAYER_SESSION: PlayerSessionResponse = {
+    currentTrack: null,
+    positionSeconds: 0,
+    isPlaying: false,
+    volume: 0.75,
+    queue: [],
+};
+
+const MOCK_RESUME_POSITIONS: Record<string, number> = {
+    trk_001: 97,
+    trk_002: 120,
+    trk_003: 200,
+    trk_004: 56,
+    trk_005: 275,
+    trk_006: 341,
+};
+
 // ===============================
 //  PLAYBACK STATE / SOURCE
 // ===============================
 
 export async function getPlaybackState(trackId: string): Promise<PlaybackStateResponse> {
+    if (USE_MOCK) {
+        await new Promise((r) => setTimeout(r, 150));
+        return {
+            trackId,
+            accessState: "PLAYABLE",
+            reason: null,
+        };
+    }
+
     const { data } = await api.get(`/player/tracks/${trackId}/state`);
     return data;
 }
 
 export async function getPlaybackSource(trackId: string): Promise<PlaybackSourceResponse> {
+    if (USE_MOCK) {
+        await new Promise((r) => setTimeout(r, 150));
+        return {
+            trackId,
+            streamUrl: "/Audio/Scarborough_Fair.mp3",
+            accessState: "PLAYABLE",
+            expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        };
+    }
+
     const { data } = await api.get(`/player/tracks/${trackId}/source`);
     return data;
 }
 
 export async function getPreviewSource(trackId: string): Promise<PreviewSourceResponse> {
+    if (USE_MOCK) {
+        await new Promise((r) => setTimeout(r, 150));
+        return {
+            trackId,
+            previewUrl: "/Audio/Scarborough_Fair.mp3",
+            previewDurationSeconds: 30,
+            accessState: "PREVIEW",
+        };
+    }
+
     const { data } = await api.get(`/player/tracks/${trackId}/preview`);
     return data;
 }
@@ -130,5 +224,98 @@ export async function getRecentlyPlayed(limit = 6, page = 1): Promise<RecentlyPl
     const { data } = await api.get<RecentlyPlayedResponse>(
         `/player/history/recent?page=${page}&limit=${limit}`
     );
+    return data;
+}
+
+
+export async function savePlaybackProgress(
+    trackId: string,
+    body: SavePlaybackProgressBody
+): Promise<SavePlaybackProgressResponse> {
+    if (USE_MOCK) {
+        await new Promise((r) => setTimeout(r, 200));
+
+        MOCK_RESUME_POSITIONS[trackId] = body.isCompleted ? 0 : body.positionSeconds;
+
+        if (MOCK_PLAYER_SESSION.currentTrack?.trackId === trackId) {
+            MOCK_PLAYER_SESSION.positionSeconds = body.isCompleted ? 0 : body.positionSeconds;
+        }
+
+        return {
+            message: "Playback progress saved successfully",
+            trackId,
+            positionSeconds: body.positionSeconds,
+        };
+    }
+
+    const { data } = await api.post(`/player/tracks/${trackId}/progress`, body);
+    return data;
+}
+
+export async function markTrackPlayed(trackId: string): Promise<MarkTrackPlayedResponse> {
+    if (USE_MOCK) {
+        await new Promise((r) => setTimeout(r, 200));
+        return {
+            message: "Play event recorded successfully",
+            trackId,
+            playCount: Math.floor(Math.random() * 5000) + 1,
+        };
+    }
+
+    const { data } = await api.post(`/player/tracks/${trackId}/play`);
+    return data;
+}
+
+export async function getResumePosition(trackId: string): Promise<ResumePositionResponse> {
+    if (USE_MOCK) {
+        await new Promise((r) => setTimeout(r, 150));
+        return {
+            trackId,
+            resumePositionSeconds: MOCK_RESUME_POSITIONS[trackId] ?? 0,
+        };
+    }
+
+    const { data } = await api.get(`/player/tracks/${trackId}/resume`);
+    return data;
+}
+
+export async function getPlayerSession(): Promise<PlayerSessionResponse> {
+    if (USE_MOCK) {
+        await new Promise((r) => setTimeout(r, 200));
+        return MOCK_PLAYER_SESSION;
+    }
+
+    const { data } = await api.get(`/player/session`);
+    return data;
+}
+
+export async function updatePlayerSession(
+    body: UpdatePlayerSessionBody
+): Promise<UpdatePlayerSessionResponse> {
+    if (USE_MOCK) {
+        await new Promise((r) => setTimeout(r, 200));
+
+        MOCK_PLAYER_SESSION = {
+            currentTrack: body.currentTrackId
+                ? {
+                    trackId: body.currentTrackId,
+                    title: `Mock Track ${body.currentTrackId}`,
+                }
+                : null,
+            positionSeconds: body.positionSeconds,
+            isPlaying: body.isPlaying,
+            volume: body.volume,
+            queue: body.queueTrackIds.map((id) => ({
+                trackId: id,
+                title: `Mock Track ${id}`,
+            })),
+        };
+
+        return {
+            message: "Player session updated successfully",
+        };
+    }
+
+    const { data } = await api.put(`/player/session`, body);
     return data;
 }
