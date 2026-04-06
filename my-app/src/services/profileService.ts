@@ -99,6 +99,23 @@ interface BackendUserProfile {
   following_count?: number;
   track_count?: number;
 }
+
+type ProfileApiResponse =
+  | BackendUserProfile
+  | {
+      data?: BackendUserProfile;
+      profile?: BackendUserProfile;
+      user?: BackendUserProfile;
+    };
+
+const extractProfilePayload = (payload: ProfileApiResponse): BackendUserProfile => {
+  if (payload && typeof payload === "object") {
+    if ("profile" in payload && payload.profile) return payload.profile;
+    if ("data" in payload && payload.data) return payload.data;
+    if ("user" in payload && payload.user) return payload.user;
+  }
+  return payload as BackendUserProfile;
+};
 // Maps backend profile response to frontend UserProfile structure
 const mapProfileResponse = (profile: BackendUserProfile): UserProfile => {
   const favoriteGenresFromBackend = Array.isArray(profile.favorite_genres)
@@ -137,7 +154,7 @@ const mapProfileResponse = (profile: BackendUserProfile): UserProfile => {
 // ====== GET my own profile ======
 export const getMyProfile = async (): Promise<UserProfile> => {
   const response = await api.get("/profiles/me");
-  return mapProfileResponse(response.data as BackendUserProfile);
+  return mapProfileResponse(extractProfilePayload(response.data as ProfileApiResponse));
 };
 
 // ====== GET someone else's profile by handle ======
@@ -163,8 +180,8 @@ export const getProfileByHandle = async (handle: string): Promise<UserProfile> =
     };
   }
 
-  const response = await api.get(`/api/v1/profiles/${handle}`);
-  return mapProfileResponse(response.data as BackendUserProfile);
+  const response = await api.get(`/profiles/${handle}`);
+  return mapProfileResponse(extractProfilePayload(response.data as ProfileApiResponse));
 };
 
 // ====== UPDATE my profile ======

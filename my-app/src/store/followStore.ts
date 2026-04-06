@@ -94,7 +94,7 @@ export const useFollowStore = create<FollowStore>((set, get) => ({
       console.error("Fetch following error:", error);
     }
   },
-  fetchSuggestions: async (limit = 10) => {
+  fetchSuggestions: async (limit = 3) => {
     set({ suggestionsLoading: true });
     try {
       const data = await getSuggestions(limit);

@@ -38,6 +38,7 @@ export const useProfileController = (handle?: string) => {
 
   // ---- Static data ----
   const tabs = ["All", "Popular tracks", "Tracks", "Albums", "Playlists", "Reposts"];
+  
   // These values MUST match the backend's ALLOWED_GENRES list exactly (lowercase, with dashes)
   const genres = [
     "None",
@@ -102,7 +103,7 @@ export const useProfileController = (handle?: string) => {
     } finally {
       setIsLoading(false);
     }
-  }, [store]);
+  }, [handle, store]);
 
   useEffect(() => {
   store.resetProfile(); // clear old profile data

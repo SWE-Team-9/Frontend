@@ -17,7 +17,7 @@ export default function FollowButton({ user }: FollowButtonProps) {
     <button
       onClick={() => toggleFollow(user)}
       disabled={loading}
-      className={`px-3 py-1 text-xs font-bold rounded transition-all min-w-[80px] ${
+      className={`px-3 py-1 text-xs font-bold rounded transition-all min-w-20 ${
         following
           ? "bg-zinc-800 text-zinc-400 border border-zinc-700 hover:text-white"
           : "bg-white text-black hover:bg-zinc-200"

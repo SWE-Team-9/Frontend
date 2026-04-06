@@ -16,11 +16,11 @@ export const WaveformDisplay: React.FC<WaveformDisplayProps> = ({ data }) => {
     // Dark container background to match professional audio player aesthetics
     <div className="w-full h-full flex items-center px-2 bg-[#0f0f0f] rounded-md">
 
-      <div className="w-full h-[75%] flex items-end gap-[1px]">
+      <div className="w-full h-[75%] flex items-end gap-px">
         {mockData.map((val, i) => (
 
           // flex-grow distributes bars evenly across the full width
-          <div key={i} className="flex-grow h-full flex items-end">
+          <div key={i} className="grow h-full flex items-end">
 
             <div
               className="bg-gray-300 rounded-t-[1px] transition-all"
