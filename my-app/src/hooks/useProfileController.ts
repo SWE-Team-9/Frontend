@@ -5,28 +5,25 @@ import {
   updateMyProfile,
   updateMyLinks,
   uploadProfileImage,
+  getProfileByHandle,
 } from "@/src/services/profileService";
 
 // ─────────────────────────────────────────────────────────────
-// useProfileController
-//
-// This hook is the "brain" of the profile page. It:
-//   1. Fetches the user's profile from the backend on first load
-//   2. Provides all the UI state (which tab is active, modals, etc.)
-//   3. Saves changes back to the backend when the user clicks Save
-//
-// BEGINNER TIP:
-//   A "controller" hook keeps UI logic out of the page component
-//   so the page only deals with displaying things.
+//  Fetches the user's profile from the backend on first load
+//  Provides all the UI state (which tab is active, modals, etc.)
+//  Saves changes back to the backend when the user clicks Save
 // ─────────────────────────────────────────────────────────────
 
 type AccountType = "ARTIST" | "LISTENER";
 
-export const useProfileController = () => {
+export const useProfileController = (handle?: string) => {
   const store = useProfileStore();
+  const isOwner = !handle || handle === store.handle;
+  const [userId, setUserId] = useState<string | null>(null);
+
 
   // ---- UI state ----
-  const [activeTab, setActiveTab] = useState("All");
+  const [activeTab, setActiveTab] = useState("Tracks");
   const [viewState, setViewState] = useState("profile");
   const [detailTab, setDetailTab] = useState("Following");
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -41,9 +38,9 @@ export const useProfileController = () => {
   const [isAvatarUploading, setIsAvatarUploading] = useState(false);
   const hasRequestedProfileRef = useRef(false);
 
-  // ---- Static data ----
+ 
   const tabs = ["All", "Popular tracks", "Tracks", "Albums", "Playlists", "Reposts"];
-  // These values MUST match the backend's ALLOWED_GENRES list exactly (lowercase, with dashes)
+  
   const genres = [
     "None",
     "electronic", "hip-hop", "pop", "rock", "alternative",
@@ -57,8 +54,8 @@ export const useProfileController = () => {
   // ---- Profile links for the share modal ----
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const longLink = store.handle
-    ? `${origin}/profile/${store.handle}`
-    : `${origin}/profile`;
+    ? `${origin}/profiles/${store.handle}`
+    : `${origin}/profiles`;
   const shortLink = longLink; // no shortener yet
 
   // ──────────────────────────────────────────
@@ -70,10 +67,14 @@ export const useProfileController = () => {
 
     try {
       setIsLoading(true);
-      const profile = await getMyProfile();
+      const profile = handle
+      ? await getProfileByHandle(handle) // viewing another user's profile
+      : await getMyProfile();            // fallback: current user
+      setUserId(profile.id);
 
       // Convert the backend response into our store shape
       store.setProfileData({
+        userId: profile.id,
         displayName: profile.displayName ?? "",
         handle: profile.handle ?? "",
         bio: profile.bio ?? "",
@@ -99,17 +100,18 @@ export const useProfileController = () => {
         isLoaded: true,
       });
     } catch {
-      // If the profile fetch fails (not logged in, etc.), just ignore
       hasRequestedProfileRef.current = false;
-      console.log("Could not load profile — user may not be logged in.");
+      setError("Could not load profile. Please refresh and try again.");
     } finally {
       setIsLoading(false);
     }
-  }, [store]);
+  }, [handle, store]);
 
   useEffect(() => {
-    loadProfile();
-  }, [loadProfile]);
+  store.resetProfile(); // clear old profile data
+  hasRequestedProfileRef.current = false;
+  loadProfile();
+}, [handle]); // run whenever the handle in URL changes
 
   // ──────────────────────────────
   //  SAVE changes to the backend
@@ -186,8 +188,8 @@ export const useProfileController = () => {
       await navigator.clipboard.writeText(textToCopy);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error("Failed to copy!", err);
+    } catch {
+      setError("Could not copy link. Please copy it manually.");
     }
   };
 
@@ -199,6 +201,8 @@ export const useProfileController = () => {
   // ---- Return everything the page needs ----
   return {
     ...store,
+    userId,
+    isOwner,
     activeTab,
     setActiveTab,
     setProfileData,

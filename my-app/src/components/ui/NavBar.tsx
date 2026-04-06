@@ -2,7 +2,7 @@
 import Image from "next/image";
 import DropdownMenu from "@/src/components/ui/DropdownMenu";
 import NavBarItem from "@/src/components/ui/NavBarItem";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { MdPerson, MdPersonAddAlt1, MdStars, MdBarChart } from "react-icons/md";
 import { BsPersonCheckFill } from "react-icons/bs";
 import { ImHeart } from "react-icons/im";
@@ -62,7 +62,7 @@ const NavBar: React.FC<NavBarProps> = ({
   ],
 
   profileMenu = [
-    { label: "Profile", icon: MdPerson, href: "/profile" },
+    { label: "Profile", icon: MdPerson, href: "/profiles" },
     { label: "Likes", icon: ImHeart },
     { label: "Playlists", icon: FiList },
     { label: "Stations", icon: IoRadio },
@@ -139,10 +139,24 @@ const NavBar: React.FC<NavBarProps> = ({
     router.push("/");
   };
 
-  // Inject the logout action into the "Sign out" menu item
-  const moreMenuWithLogout = moreMenu.map((item) =>
-    item.label === "Sign out" ? { ...item, onClick: handleLogout } : item,
-  );
+ 
+  // Update Profile Menu to use the handle
+  const dynamicProfileMenu = useMemo(() => {
+    return profileMenu.map((item) => {
+      if (item.label === "Profile" && user?.handle) {
+        return { ...item, href: `/profiles/${user.handle}` };
+      }
+      return item;
+    });
+  }, [profileMenu, user?.handle]);
+
+  // Inject Logout handler
+  const moreMenuWithLogout = useMemo(() => {
+    return moreMenu.map((item) =>
+      item.label === "Sign out" ? { ...item, onClick: handleLogout } : item,
+    );
+  }, [moreMenu, handleLogout]);
+
 
   useEffect(() => {
     // Close menus when clicking outside
@@ -179,8 +193,6 @@ const NavBar: React.FC<NavBarProps> = ({
             />
           </div>
 
-          {/* <FaSoundcloud size={48} className="text-white shrink-0" /> */}
-
           <button
             className="md:hidden text-white"
             onClick={() => toggleMenu("mobile")}
@@ -207,7 +219,7 @@ const NavBar: React.FC<NavBarProps> = ({
             <input
               type="text"
               placeholder="Search"
-              className="bg-neutral-800 text-white text-sm px-4 py-1 rounded-md outline-none w-32 sm:w-48 md:w-72 lg:w-96"
+              className="bg-neutral-800 text-white text-sm px-4 py-1 rounded-md outline-none w-32 sm:w-48 md:w-72 lg:w-86"
             />
             <FiSearch
               className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none"
@@ -237,15 +249,17 @@ const NavBar: React.FC<NavBarProps> = ({
               className="relative flex items-center gap-1 cursor-pointer"
               onClick={() => toggleMenu("profile")}
             >
-              {/* <Image
+              <Image
                 src={profileImageSrc}
+                width={24}
+                height={24}
                 alt={displayLabel || "Profile"}
                 className="w-6 h-6 rounded-full object-cover"
                 onError={(e) => {
                   e.currentTarget.onerror = null;
                   e.currentTarget.src = "/images/profile.png";
                 }}
-              /> */}
+              />
               {/* Show the user's display name (or handle / email prefix) when logged in */}
               {displayLabel && (
                 <span className="hidden lg:block text-white text-sm font-medium max-w-24 truncate">
@@ -253,7 +267,7 @@ const NavBar: React.FC<NavBarProps> = ({
                 </span>
               )}
               <FiChevronDown className="text-neutral-400" />
-              {openMenu === "profile" && <DropdownMenu items={profileMenu} />}
+              {openMenu === "profile" && <DropdownMenu items={dynamicProfileMenu} />}
             </button>
           )}
 

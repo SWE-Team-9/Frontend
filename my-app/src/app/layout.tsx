@@ -5,6 +5,7 @@ import AuthProvider from "@/src/components/providers/AuthProvider";
 import { Player } from "@/src/components/player/Player";
 import PlayerAudioSync from "@/src/components/player/PlayerAudioSync";
 
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],

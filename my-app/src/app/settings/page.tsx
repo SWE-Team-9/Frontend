@@ -12,6 +12,8 @@ import {
   logoutUser,
 } from "@/src/services/authService";
 import AuthInput from "@/src/components/auth/AuthInput";
+import BlockedUsersList from "@/src/components/block-user/BlockedUsersList";
+import { useBlockStore } from "@/src/store/useblockStore";
 
 // ─── Validation helpers ──────────────────────────────────────────────────────
 // Must match backend DTO rules exactly so we surface errors before the round-trip.
@@ -20,8 +22,7 @@ import AuthInput from "@/src/components/auth/AuthInput";
 const isStrongPassword = (p: string) =>
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(p);
 
-const isValidEmail = (e: string) =>
-  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
+const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
 
 /** Validate a UUID before sending DELETE to prevent injection via crafted IDs */
 const isUUID = (s: string) =>
@@ -61,7 +62,7 @@ function StatusMessage({
   );
 }
 
-// Change password Section 
+// Change password Section
 function ChangePasswordSection() {
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
@@ -76,7 +77,7 @@ function ChangePasswordSection() {
     e.preventDefault();
     setStatus(null);
 
-    // Client-side validation 
+    // Client-side validation
     if (!current.trim()) {
       setStatus({ type: "error", msg: "Current password is required." });
       return;
@@ -155,7 +156,7 @@ function ChangePasswordSection() {
         <button
           type="submit"
           disabled={loading}
-          className="mt-2 h-10 bg-white cursor-pointer text-black font-bold rounded-sm text-sm"
+          className="mt-2 h-10 bg-white hover:bg-[#ff5500] transition duration-300 cursor-pointer text-black font-bold text-lg rounded-sm"
         >
           {loading ? "Saving…" : "Update Password"}
         </button>
@@ -212,7 +213,8 @@ function ChangeEmailSection({ currentEmail }: { currentEmail: string }) {
       const axiosErr = err as { response?: { data?: { message?: string } } };
       setStatus({
         type: "error",
-        msg: axiosErr.response?.data?.message ?? "Failed to request email change.",
+        msg:
+          axiosErr.response?.data?.message ?? "Failed to request email change.",
       });
     } finally {
       setLoading(false);
@@ -248,7 +250,7 @@ function ChangeEmailSection({ currentEmail }: { currentEmail: string }) {
         <button
           type="submit"
           disabled={loading}
-          className="mt-2 h-10 bg-white cursor-pointer text-black font-bold rounded-sm text-sm"
+          className="mt-2 h-10 bg-white hover:bg-[#ff5500] transition duration-300 cursor-pointer text-black font-bold text-lg rounded-sm"
         >
           {loading ? "Sending…" : "Send Confirmation Email"}
         </button>
@@ -312,7 +314,10 @@ function SessionsSection() {
       await revokeSession(sessionId);
       // Remove it from the list right away so the user sees the change
       setSessions((prev) => prev.filter((s) => s.id !== sessionId));
-      setActionStatus({ type: "success", msg: "Session revoked. That device has been signed out." });
+      setActionStatus({
+        type: "success",
+        msg: "Session revoked. That device has been signed out.",
+      });
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } };
       setActionStatus({
@@ -350,7 +355,9 @@ function SessionsSection() {
       const axiosErr = err as { response?: { data?: { message?: string } } };
       setActionStatus({
         type: "error",
-        msg: axiosErr.response?.data?.message ?? "Failed to sign out all sessions.",
+        msg:
+          axiosErr.response?.data?.message ??
+          "Failed to sign out all sessions.",
       });
       setLogoutAllLoading(false);
     }
@@ -358,7 +365,6 @@ function SessionsSection() {
 
   return (
     <SectionCard title="Active Sessions">
-
       {/* Refresh button row */}
       <div className="flex items-center justify-between mb-4">
         <p className="text-sm text-zinc-400">
@@ -445,7 +451,7 @@ function SessionsSection() {
       <button
         onClick={handleLogoutAll}
         disabled={logoutAllLoading}
-        className="mt-4 h-10 w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-sm text-sm transition-colors"
+        className="mt-4 h-10 w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-sm text-lg transition-colors"
       >
         {logoutAllLoading ? "Signing out…" : "Sign out from all devices"}
       </button>
@@ -454,13 +460,14 @@ function SessionsSection() {
 }
 
 // Page root
-
-type Tab = "security" | "sessions"; 
+type Tab = "security" | "sessions" | "privacy";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("security");
   const user = useAuthStore((s) => s.user);
   const router = useRouter();
+
+  const { fetchBlockedUsers, loadingUserId, blockUser, unblockUser } = useBlockStore();
 
   useEffect(() => {
     // Middleware already blocks unauthenticated access via the cookie check,
@@ -479,10 +486,18 @@ export default function SettingsPage() {
   const tabs: { id: Tab; label: string }[] = [
     { id: "security", label: "Security" },
     { id: "sessions", label: "Sessions" },
+    { id: "privacy", label: "Privacy" },
   ];
 
+  // Fetch blocked users when Privacy tab is opened
+  useEffect(() => {
+    if (activeTab === "privacy") {
+      fetchBlockedUsers();
+    }
+  }, [activeTab, fetchBlockedUsers]);
+
   return (
-    <div className="min-h-screen text-white py-10 px-4 max-w-2xl mx-auto">
+    <div className="min-h-screen text-white px-4 max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold mb-8">Account Settings</h1>
 
       {/* Tab bar */}
@@ -493,7 +508,7 @@ export default function SettingsPage() {
             onClick={() => setActiveTab(tab.id)}
             className={`pb-3 text-sm font-bold uppercase tracking-wider transition-colors ${
               activeTab === tab.id
-                ? "text-white border-b-2 border-white"
+                ? "text-[#ff5500] border-b-2 border-[#ff5500]"
                 : "text-zinc-400 hover:text-white"
             }`}
           >
@@ -512,6 +527,13 @@ export default function SettingsPage() {
 
       {/* Sessions tab: active sessions list */}
       {activeTab === "sessions" && <SessionsSection />}
+
+      {/* Privacy tab: blocked users */}
+      {activeTab === "privacy" && (
+        <SectionCard title="Blocked Users">
+          <BlockedUsersList loadingUserId={loadingUserId} />
+        </SectionCard>
+      )}
     </div>
   );
 }

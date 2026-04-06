@@ -1,12 +1,10 @@
 import axios from "axios";
 
 // ─────────────────────────────────────────────────────────────
-// Axios instance that talks to our NestJS backend.
-//
-// KEY CONCEPT — "httpOnly cookies":
-//   Our backend stores JWT tokens inside cookies that the browser
-//   sends automatically with every request. We do NOT store tokens
-//   in localStorage. The `withCredentials: true` flag tells axios
+//   Our backend stores JWT tokens inside cookies that 
+//   the browser sends automatically with every request. 
+//   We do NOT store tokens in localStorage.
+//   The `withCredentials: true` flag tells axios
 //   to include those cookies on every call.
 // ─────────────────────────────────────────────────────────────
 
