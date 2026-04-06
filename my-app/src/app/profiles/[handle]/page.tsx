@@ -353,6 +353,14 @@ export default function ProfilePage({
     );
   };
 
+  if (controller.isLoading) {
+    return (
+      <div className="min-h-screen bg-[#121212] text-white flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-2 border-white border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
   // ─── PAGE ──────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-[#121212] text-white font-sans overflow-x-hidden relative">
