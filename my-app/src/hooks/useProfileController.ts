@@ -66,7 +66,7 @@ export const useProfileController = (targetUserId?: string) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const favoriteGenres = store.favoriteGenres;
-
+  const resetProfile = useProfileStore((state) => state.resetProfile);
   // ---- Static data ----
   const tabs = ["All", "Popular tracks", "Tracks", "Albums", "Playlists", "Reposts"];
   const genres = ["None", "electronic", "hip-hop", "pop", "rock", "alternative", "ambient", "classical", "jazz", "r-b-soul", "metal", "folk-singer-songwriter", "country", "reggaeton", "dancehall", "drum-bass", "house", "techno", "deep-house", "trance", "lo-fi", "indie", "punk", "blues", "latin", "afrobeat", "trap", "experimental", "world", "gospel", "spoken-word"];
@@ -111,6 +111,7 @@ export const useProfileController = (targetUserId?: string) => {
   };
 
   const loadProfile = useCallback(async () => {
+    
     if (store.isLoaded || hasRequestedProfileRef.current || store.useMockData) return;
     hasRequestedProfileRef.current = true;
 
@@ -147,13 +148,15 @@ export const useProfileController = (targetUserId?: string) => {
     } finally {
       setIsLoading(false);
     }
-  }, [handle, store]);
+  }, [handle]);
 
   useEffect(() => {
-    store.resetProfile();
+    if (!hasRequestedProfileRef.current) {
+    resetProfile(); 
     hasRequestedProfileRef.current = false;
     loadProfile();
-  }, [handle, loadProfile]);
+  }
+  }, [handle, loadProfile, resetProfile]);
 
   const handleSave = async () => {
     if (!store.displayName.trim()) {
@@ -302,6 +305,7 @@ export const useProfileController = (targetUserId?: string) => {
   return {
     ...store,
     isOwner,
+    activeId,
     activeTab, setActiveTab,
     viewState, setViewState,
     detailTab, setDetailTab,

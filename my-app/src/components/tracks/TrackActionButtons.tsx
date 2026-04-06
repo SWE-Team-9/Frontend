@@ -2,7 +2,7 @@ import { useState } from "react";
 import { AiOutlineHeart, AiFillHeart } from "react-icons/ai";
 import { BiRepost } from "react-icons/bi";
 import { RiShareForwardLine } from "react-icons/ri";
-import { IoCopyOutline } from "react-icons/io5";
+import { EngagementModal } from "@/src/components/profile/modals/EngagementModal";
 import { useLikeStore } from '@/src/store/likeStore'; 
 import { useRepostStore } from '@/src/store/repostStore';
 
@@ -119,19 +119,50 @@ export function LikeButton({
 export function TrackActionButtons({
   trackId, title, artistName, coverArt, likesCount, liked, repostsCount, size = "full",
 }: TrackActionButtonsProps) {
+  const [modalType, setModalType] = useState<"likes" | "reposts" | null>(null);
+  // Pull the local interaction state from your stores
+  const isLiked = useLikeStore((state) => state.isLiked(trackId));
+  const isReposted = useRepostStore((state) => state.repostedTrackIds.has(String(trackId)));
+
+  // LOGIC: Base Count + 1 (if liked/reposted locally)
+  // This ensures the number goes up/down instantly when the user clicks!
+  const displayLikes = (likesCount || 0) + (isLiked ? 1 : 0);
+  const displayReposts = (repostsCount || 0) + (isReposted ? 1 : 0);
   return (
     <div className="flex items-center gap-1.5">
+     <div className="flex items-center gap-1">
       <LikeButton 
         trackId={trackId} title={title} artistName={artistName} coverArt={coverArt}
         liked={liked} likesCount={likesCount} size={size} 
       />
+      <span 
+          onClick={() => setModalType("likes")} 
+          className="text-xs text-zinc-500 cursor-pointer hover:text-white hover:underline"
+        >
+          {displayLikes}
+        </span>
+     </div>
+     <div className="flex items-center gap-1">
       <RepostButton 
         trackId={trackId} 
         reposted={false} 
         repostsCount={repostsCount} 
         size={size} 
       />
+      <span 
+          onClick={() => setModalType("reposts")} 
+          className="text-xs text-zinc-500 cursor-pointer hover:text-white hover:underline"
+        >
+          {displayReposts}
+      </span>
+     </div>
       <SCButton label="Share"><RiShareForwardLine size={15} /></SCButton>
+      <EngagementModal 
+        isOpen={!!modalType} 
+        onClose={() => setModalType(null)} 
+        trackId={trackId} 
+        type={modalType || "likes"} 
+      />
     </div>
   );
 }

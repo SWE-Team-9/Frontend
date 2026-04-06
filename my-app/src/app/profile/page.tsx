@@ -13,7 +13,7 @@ import { ShareModal } from "../../components/profile/modals/ShareModal";
 import { ProfileSidebar } from "../../components/profile/ProfileSidebar";
 import { AvatarUpload } from "../../components/profile/AvatarUpload";
 import { CoverPhoto } from "../../components/profile/CoverPhoto";
-import { TrackList } from "../../components/tracks/TrackList";
+import  TrackList  from "../../components/tracks/TrackList";
 import { Track } from "../../types/track";
 import { useLikeStore } from "@/src/store/likeStore";
 
@@ -84,6 +84,7 @@ export default function ProfilePage() {
     filteredUsers,
     handleLoadMore,
     isLoading,
+    activeId
   } = controller;
 
   const BUTTON_STYLE =
@@ -243,7 +244,7 @@ export default function ProfilePage() {
           <div className="container mx-auto px-8 py-12 flex flex-col lg:flex-row gap-12 text-left">
             <div className="flex-1 border-r border-zinc-900/50 pr-12">
               {activeTab === "Tracks" || activeTab === "All" ? (
-                <TrackList tracks={tracks} setTracks={setTracks} />
+                <TrackList userId={activeId} type="tracks" />
               ) : (
                 <div className="py-20 text-center">
                   <p className="text-zinc-500 text-xl font-bold uppercase tracking-widest">Nothing to show here yet</p>
