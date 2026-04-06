@@ -84,20 +84,34 @@ const normalizeUrl = (url: string): string => {
 interface BackendUserProfile {
   id?: string;
   user_id?: string;
+  userId?: string;
   handle?: string;
   display_name?: string;
+  displayName?: string;
+  name?: string;
   bio?: string | null;
   location?: string | null;
   website_url?: string | null;
+  website?: string | null;
   avatar_url?: string | null;
+  avatarUrl?: string | null;
   cover_photo_url?: string | null;
+  coverUrl?: string | null;
   visibility?: "PUBLIC" | "PRIVATE";
+  is_private?: boolean;
+  isPrivate?: boolean;
   account_tier?: "LISTENER" | "ARTIST";
+  accountType?: "LISTENER" | "ARTIST";
   favorite_genres?: string[] | BackendFavoriteGenre[];
+  favoriteGenres?: string[];
   external_links?: Record<string, string>;
+  externalLinks?: { platform: string; url: string }[];
   followers_count?: number;
+  followersCount?: number;
   following_count?: number;
+  followingCount?: number;
   track_count?: number;
+  tracksCount?: number;
 }
 
 type ProfileApiResponse =
@@ -128,26 +142,30 @@ const mapProfileResponse = (profile: BackendUserProfile): UserProfile => {
     : [];
 
   return {
-    id: profile.id || profile.user_id || "",
+    id: profile.id || profile.user_id || profile.userId || "",
     handle: profile.handle || "",
-    displayName: profile.display_name ?? "",
+    displayName:
+      profile.display_name ?? profile.displayName ?? profile.name ?? profile.handle ?? "",
     bio: profile.bio ?? null,
     location: profile.location ?? null,
-    website: profile.website_url ?? null,
-    avatarUrl: profile.avatar_url ?? null,
-    coverUrl: profile.cover_photo_url ?? null,
-    isPrivate: profile.visibility === "PRIVATE",
-    accountType: profile.account_tier ?? "LISTENER",
-    favoriteGenres: favoriteGenresFromBackend,
+    website: profile.website_url ?? profile.website ?? null,
+    avatarUrl: profile.avatar_url ?? profile.avatarUrl ?? null,
+    coverUrl: profile.cover_photo_url ?? profile.coverUrl ?? null,
+    isPrivate:
+      profile.is_private ?? profile.isPrivate ?? profile.visibility === "PRIVATE",
+    accountType: profile.account_tier ?? profile.accountType ?? "LISTENER",
+    favoriteGenres: favoriteGenresFromBackend.length
+      ? favoriteGenresFromBackend
+      : profile.favoriteGenres ?? [],
     externalLinks: profile.external_links
       ? Object.entries(profile.external_links).map(([platform, url]) => ({
           platform,
           url,
         }))
-      : [],
-    followersCount: profile.followers_count ?? 0,
-    followingCount: profile.following_count ?? 0,
-    tracksCount: profile.track_count ?? 0,
+      : profile.externalLinks ?? [],
+    followersCount: profile.followers_count ?? profile.followersCount ?? 0,
+    followingCount: profile.following_count ?? profile.followingCount ?? 0,
+    tracksCount: profile.track_count ?? profile.tracksCount ?? 0,
   };
 };
 

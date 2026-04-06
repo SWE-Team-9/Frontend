@@ -19,6 +19,8 @@ type AccountType = "ARTIST" | "LISTENER";
 export const useProfileController = (handle?: string) => {
   const store = useProfileStore();
   const isOwner = !handle || handle === store.handle;
+  const [userId, setUserId] = useState<string | null>(null);
+
 
   // ---- UI state ----
   const [activeTab, setActiveTab] = useState("Tracks");
@@ -36,10 +38,9 @@ export const useProfileController = (handle?: string) => {
   const [isAvatarUploading, setIsAvatarUploading] = useState(false);
   const hasRequestedProfileRef = useRef(false);
 
-  // ---- Static data ----
+ 
   const tabs = ["All", "Popular tracks", "Tracks", "Albums", "Playlists", "Reposts"];
   
-  // These values MUST match the backend's ALLOWED_GENRES list exactly (lowercase, with dashes)
   const genres = [
     "None",
     "electronic", "hip-hop", "pop", "rock", "alternative",
@@ -69,6 +70,7 @@ export const useProfileController = (handle?: string) => {
       const profile = handle
       ? await getProfileByHandle(handle) // viewing another user's profile
       : await getMyProfile();            // fallback: current user
+      setUserId(profile.id);
 
       // Convert the backend response into our store shape
       store.setProfileData({
@@ -99,7 +101,7 @@ export const useProfileController = (handle?: string) => {
       });
     } catch {
       hasRequestedProfileRef.current = false;
-      console.log("Could not load profile — user may not be logged in.");
+      setError("Could not load profile. Please refresh and try again.");
     } finally {
       setIsLoading(false);
     }
@@ -186,8 +188,8 @@ export const useProfileController = (handle?: string) => {
       await navigator.clipboard.writeText(textToCopy);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error("Failed to copy!", err);
+    } catch {
+      setError("Could not copy link. Please copy it manually.");
     }
   };
 
@@ -199,6 +201,8 @@ export const useProfileController = (handle?: string) => {
   // ---- Return everything the page needs ----
   return {
     ...store,
+    userId,
+    isOwner,
     activeTab,
     setActiveTab,
     setProfileData,

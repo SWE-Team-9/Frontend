@@ -7,6 +7,39 @@ import DatePickerInput from "@/src/components/ui/DatePickerInput";
 import { WaveformDisplay } from "@/src/components/tracks/WaveformDisplay";
 
 const MAX_DESCRIPTION = 5000;
+const GENRES = [
+  "None",
+  "electronic",
+  "hip-hop",
+  "pop",
+  "rock",
+  "alternative",
+  "ambient",
+  "classical",
+  "jazz",
+  "r-b-soul",
+  "metal",
+  "folk-singer-songwriter",
+  "country",
+  "reggaeton",
+  "dancehall",
+  "drum-bass",
+  "house",
+  "techno",
+  "deep-house",
+  "trance",
+  "lo-fi",
+  "indie",
+  "punk",
+  "blues",
+  "latin",
+  "afrobeat",
+  "trap",
+  "experimental",
+  "world",
+  "gospel",
+  "spoken-word",
+];
 
 interface FormErrors {
   title?: string;
@@ -20,7 +53,7 @@ const TrackMetadataForm = () => {
   const { setMetadata } = useUploadStore();
 
   const [title, setTitle] = useState("");
-  const [genre, setGenre] = useState("");
+  const [genre, setGenre] = useState("None");
   const [tags, setTags] = useState("");
   const [saved, setSaved] = useState(false);
   const [releaseDate, setReleaseDate] = useState("");
@@ -32,7 +65,8 @@ const TrackMetadataForm = () => {
     const newErrors: FormErrors = {};
 
     if (!title.trim()) newErrors.title = "Track title is required.";
-    if (!genre.trim()) newErrors.genre = "Genre is required.";
+    if (!genre.trim() || genre === "None")
+      newErrors.genre = "Genre is required.";
     const tagList = tags
       .split(",")
       .map((t) => t.trim())
@@ -101,16 +135,21 @@ const TrackMetadataForm = () => {
           {/* Genre */}
           <div className="flex flex-col gap-1">
             <label className="font-medium pb-2 text-xl">Genre</label>
-            <input
-              placeholder="Enter Genre"
-              className={`w-full focus:outline-none focus:border-[#ff5500] transition duration-300 mb-1 p-2 rounded border ${errors.genre ? "border-red-500" : "border-[#8c8c8c]"}`}
+            <select
               value={genre}
               onChange={(e) => {
                 setGenre(e.target.value);
                 if (errors.genre)
                   setErrors((prev) => ({ ...prev, genre: undefined }));
               }}
-            />
+              className={`w-full focus:outline-none focus:border-[#ff5500] transition duration-300 mb-1 p-2 rounded border bg-[#121212] text-white ${errors.genre ? "border-red-500" : "border-[#8c8c8c]"}`}
+            >
+              {GENRES.map((g) => (
+                <option key={g} value={g} className="bg-[#1a1a1a]">
+                  {g}
+                </option>
+              ))}
+            </select>
             {errors.genre && (
               <p className="text-red-500 text-sm mb-3">{errors.genre}</p>
             )}

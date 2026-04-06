@@ -10,6 +10,8 @@ export type Track = {
 type LikeStore = {
   likedTracks: Track[];
   loadingIds: number[];
+  error: string | null;
+  clearError: () => void;
   isLiked: (trackId: number) => boolean;
   toggleLike: (track: Track) => Promise<void>;
 };
@@ -17,6 +19,8 @@ type LikeStore = {
 export const useLikeStore = create<LikeStore>((set, get) => ({
   likedTracks: [],
   loadingIds: [],
+  error: null,
+  clearError: () => set({ error: null }),
 
   isLiked: (trackId) => {
     return get().likedTracks.some((t) => t.id === trackId);
@@ -25,6 +29,8 @@ export const useLikeStore = create<LikeStore>((set, get) => ({
   toggleLike: async (track) => {
     const { likedTracks, loadingIds } = get();
     const isAlreadyLiked = likedTracks.some((t) => t.id === track.id);
+
+    set({ error: null });
 
     // 🛡️ Prevent multiple clicks while one is processing
     if (loadingIds.includes(track.id)) return;
@@ -43,13 +49,13 @@ export const useLikeStore = create<LikeStore>((set, get) => ({
       } else {
         await unlikeTrack(track.id);
       }
-    } catch (error) {
+    } catch {
       // 🔴 Rollback on Failure
-      console.error("Like failed, rolling back state.");
       set((state) => ({
         likedTracks: isAlreadyLiked
           ? [...state.likedTracks, track]
           : state.likedTracks.filter((t) => t.id !== track.id),
+        error: "Could not update like state. Please try again.",
       }));
     } finally {
       // ⚪ Clear loading state

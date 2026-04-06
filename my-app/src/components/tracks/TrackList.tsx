@@ -13,6 +13,8 @@ const TrackList: React.FC<TrackListProps> = ({ userId }) => {
   const [tracks, setTracks] = useState<TrackDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [trackToDelete, setTrackToDelete] = useState<{
@@ -24,10 +26,10 @@ const TrackList: React.FC<TrackListProps> = ({ userId }) => {
     try {
       setIsLoading(true);
       setError(null);
+      setActionError(null);
       const data = await getUserTracks(userId);
       setTracks(data.tracks);
-    } catch (err) {
-      console.error("Failed to load tracks:", err);
+    } catch {
       setError("Failed to load your tracks. Please try again.");
     } finally {
       setIsLoading(false);
@@ -39,9 +41,8 @@ const TrackList: React.FC<TrackListProps> = ({ userId }) => {
   }, [userId]);
 
   const handleEdit = (track: TrackDetails) => {
-    // Edit modal integration — wire to your edit form when ready
-    console.log("Edit track:", track);
-    alert(`Edit "${track.title}" — connect this to your edit form.`);
+    setNotice(`Edit \"${track.title}\" is not available yet.`);
+    setTimeout(() => setNotice(null), 2500);
   };
 
   const handleDeleteClick = (id: string, title: string) => {
@@ -56,11 +57,11 @@ const TrackList: React.FC<TrackListProps> = ({ userId }) => {
       setTracks((prev) =>
         prev.filter((t) => t.trackId !== trackToDelete.id)
       );
+      setActionError(null);
       setIsDeleteModalOpen(false);
       setTrackToDelete(null);
-    } catch (err) {
-      console.error("Delete failed:", err);
-      alert("Failed to delete the track. Please try again.");
+    } catch {
+      setActionError("Failed to delete the track. Please try again.");
     }
   };
 
@@ -94,6 +95,9 @@ const TrackList: React.FC<TrackListProps> = ({ userId }) => {
         Your Tracks{" "}
         <span className="text-zinc-500 text-lg">({tracks.length})</span>
       </h2>
+
+      {notice && <p className="text-amber-400 text-sm">{notice}</p>}
+      {actionError && <p className="text-red-400 text-sm">{actionError}</p>}
 
       {tracks.length === 0 ? (
         <div className="py-20 text-center flex flex-col items-center border border-dashed border-zinc-800 rounded-lg">

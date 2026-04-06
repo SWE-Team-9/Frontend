@@ -14,6 +14,8 @@ type FollowStore = {
   suggestions: SuggestedUser[];
   suggestionsLoading: boolean;
   loadingIds: Record<string, boolean>;
+  error: string | null;
+  clearError: () => void;
   toggleFollow: (user: FollowUser) => Promise<void>;
   isFollowing: (userId: string | number | undefined) => boolean;
   fetchFollowing: (userId: string) => Promise<void>;
@@ -25,6 +27,8 @@ export const useFollowStore = create<FollowStore>((set, get) => ({
   suggestions: [],
   suggestionsLoading: false,
   loadingIds: {},
+  error: null,
+  clearError: () => set({ error: null }),
 
   isFollowing: (userId) => {
     if (!userId) return false;
@@ -38,6 +42,8 @@ export const useFollowStore = create<FollowStore>((set, get) => ({
 
     const { following, suggestions, loadingIds, isFollowing } = get();
     const alreadyFollowing = isFollowing(user.id);
+
+    set({ error: null });
 
     // Optimistic update: update following list and remove from suggestions if following
     if (alreadyFollowing) {
@@ -63,8 +69,7 @@ export const useFollowStore = create<FollowStore>((set, get) => ({
         const currentCount = useProfileStore.getState().followingCount;
         useProfileStore.setState({ followingCount: Math.max(0, currentCount - 1) });
       }
-    } catch (error) {
-      console.error("Follow API error:", error);
+    } catch {
       // Rollback on error
       set({
         following: alreadyFollowing
@@ -73,6 +78,7 @@ export const useFollowStore = create<FollowStore>((set, get) => ({
            suggestions: alreadyFollowing
           ? suggestions
           : [...suggestions, user as SuggestedUser],
+        error: "Could not update follow status. Please try again.",
       });
     } finally {
       set((state) => {
@@ -86,16 +92,17 @@ export const useFollowStore = create<FollowStore>((set, get) => ({
   fetchFollowing: async (userId) => {
     if (!userId) return;
     try {
+      set({ error: null });
       const data = await getFollowing(userId);
       const followingList = data.following || [];
       useProfileStore.setState({ followingCount: followingList.length });
       set({ following: followingList });
-    } catch (error) {
-      console.error("Fetch following error:", error);
+    } catch {
+      set({ error: "Could not load following list." });
     }
   },
   fetchSuggestions: async (limit = 3) => {
-    set({ suggestionsLoading: true });
+    set({ suggestionsLoading: true, error: null });
     try {
       const data = await getSuggestions(limit);
       // Filter out anyone already being followed
@@ -104,8 +111,8 @@ export const useFollowStore = create<FollowStore>((set, get) => ({
         (u) => !isFollowing(u.id),
       );
       set({ suggestions: filtered });
-    } catch (error) {
-      console.error("Fetch suggestions error:", error);
+    } catch {
+      set({ error: "Could not load suggested artists." });
     } finally {
       set({ suggestionsLoading: false });
     }

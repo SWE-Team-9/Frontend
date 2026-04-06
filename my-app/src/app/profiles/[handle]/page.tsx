@@ -62,9 +62,11 @@ export default function ProfilePage({
   const fetchFollowing = useFollowStore((state) => state.fetchFollowing);
   const storeToggleFollow = useFollowStore((state) => state.toggleFollow);
   const checkIsFollowing = useFollowStore((state) => state.isFollowing);
+  const followError = useFollowStore((state) => state.error);
 
   // Like store
   const likedTracks = useLikeStore((state) => state.likedTracks || []);
+  const likeError = useLikeStore((state) => state.error);
 
   // Fetch following list when page loads
   useEffect(() => {
@@ -190,6 +192,9 @@ export default function ProfilePage({
       )}
 
       <div className="py-10 flex flex-col items-center">
+        {followError && <p className="mb-4 text-sm text-red-400">{followError}</p>}
+        {likeError && <p className="mb-4 text-sm text-red-400">{likeError}</p>}
+
         {/* ── LIKES TAB ── */}
         {detailTab === "Likes" &&
           (likedTracks.length === 0 ? (
@@ -307,7 +312,11 @@ export default function ProfilePage({
     if (activeTab === "Tracks") {
       return (
         <div className="flex-1 border-r border-zinc-900/50 pr-12">
-          <TrackList userId={controller.userId} />
+          {controller.userId ? (
+            <TrackList userId={controller.userId} />
+          ) : (
+            <p className="text-sm text-zinc-500">Loading tracks...</p>
+          )}
         </div>
       );
     }
@@ -402,7 +411,7 @@ export default function ProfilePage({
                   {!isOwner && (
                     <FollowButton
                       user={{
-                        id: controller.userId,
+                        id: controller.userId || "",
                         display_name: controller.displayName,
                         handle: controller.handle || "",
                         avatar_url: controller.avatarUrl || "",
@@ -428,7 +437,7 @@ export default function ProfilePage({
 
                   {!isOwner && (
                     <ProfileActionsMenu
-                      userId={controller.userId}
+                      userId={controller.userId || ""}
                       displayName={controller.displayName}
                       isBlocked={false}
                     />

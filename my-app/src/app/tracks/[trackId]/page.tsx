@@ -9,6 +9,41 @@ import {
   updateTrackMetadata,
   changeTrackVisibility,
 } from "@/src/services/uploadService";
+import { WaveformDisplay } from "@/src/components/tracks/WaveformDisplay";
+
+const GENRES = [
+  "None",
+  "electronic",
+  "hip-hop",
+  "pop",
+  "rock",
+  "alternative",
+  "ambient",
+  "classical",
+  "jazz",
+  "r-b-soul",
+  "metal",
+  "folk-singer-songwriter",
+  "country",
+  "reggaeton",
+  "dancehall",
+  "drum-bass",
+  "house",
+  "techno",
+  "deep-house",
+  "trance",
+  "lo-fi",
+  "indie",
+  "punk",
+  "blues",
+  "latin",
+  "afrobeat",
+  "trap",
+  "experimental",
+  "world",
+  "gospel",
+  "spoken-word",
+];
 
 interface TrackFile {
   id: string;
@@ -76,6 +111,7 @@ export default function TrackDetailPage() {
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Edit form state
   const [editTitle, setEditTitle] = useState("");
@@ -90,7 +126,11 @@ export default function TrackDetailPage() {
   useEffect(() => {
     getTrackDetails(trackId)
       .then((data) => {
+        setError(null);
         setTrack(data as unknown as Track);
+      })
+      .catch(() => {
+        setError("Could not load track details.");
       })
       .finally(() => setLoading(false));
   }, [trackId]);
@@ -110,6 +150,7 @@ export default function TrackDetailPage() {
     if (!track) return;
     setSaving(true);
     try {
+      setError(null);
       await updateTrackMetadata(track.trackId, {
         title: editTitle,
         genre: editGenre,
@@ -142,8 +183,8 @@ export default function TrackDetailPage() {
           : prev,
       );
       setIsEditing(false);
-    } catch (err) {
-      console.error("Failed to save track", err);
+    } catch {
+      setError("Failed to save track changes. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -174,6 +215,7 @@ export default function TrackDetailPage() {
   return (
     <main className="min-h-screen bg-[#121212] flex items-start justify-center p-6 pt-12">
       <div className="w-full max-w-3xl bg-[#1a1a1a] rounded-2xl p-8 shadow-xl border border-[#2a2a2a]">
+        {error && <p className="mb-4 text-sm text-red-400">{error}</p>}
         {/* Header row */}
         <div className="flex items-start justify-between mb-6">
           <div className="flex-1">
@@ -269,11 +311,19 @@ export default function TrackDetailPage() {
               Genre
             </label>
             {isEditing ? (
-              <input
+              <select
+                value={editGenre || "None"}
+                onChange={(e) =>
+                  setEditGenre(e.target.value === "None" ? "" : e.target.value)
+                }
                 className="w-full bg-[#121212] border border-[#8c8c8c] rounded p-2 text-white text-sm focus:outline-none focus:border-white"
-                value={editGenre}
-                onChange={(e) => setEditGenre(e.target.value)}
-              />
+              >
+                {GENRES.map((g) => (
+                  <option key={g} value={g} className="bg-[#1a1a1a]">
+                    {g}
+                  </option>
+                ))}
+              </select>
             ) : (
               <p className="text-white text-sm">{track.genre ?? "—"}</p>
             )}
@@ -405,7 +455,7 @@ export default function TrackDetailPage() {
           </div>
         )}
 
-        {/* Waveform placeholder */}
+        {/* Waveform placeholder
         {track.waveformData && (
           <div className="mb-6 p-4 bg-[#121212] rounded-lg border border-[#2a2a2a]">
             <p className="text-xs text-gray-500 uppercase tracking-widest mb-1">
@@ -415,7 +465,16 @@ export default function TrackDetailPage() {
               {track.waveformData.length} data points ready
             </p>
           </div>
-        )}
+        )} */}
+        {/* Waveform Preview */}
+        <div className="mt-6">
+          <label className="font-medium pb-2 text-xl block mb-2 text-white">
+            Waveform Preview
+          </label>
+          <div className="w-full h-20 rounded overflow-hidden">
+            <WaveformDisplay />
+          </div>
+        </div>
 
         {/* Files */}
         {track.files?.length > 0 && (

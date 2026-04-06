@@ -24,6 +24,7 @@ const TrackCard: React.FC<TrackCardProps> = ({ track, onDelete }) => {
 
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [editTitle, setEditTitle] = useState(track.title);
   const [editGenre, setEditGenre] = useState(track.genre ?? "");
@@ -43,10 +44,11 @@ const TrackCard: React.FC<TrackCardProps> = ({ track, onDelete }) => {
     const newVisibility = visibility === "PUBLIC" ? "PRIVATE" : "PUBLIC";
     setIsTogglingVisibility(true);
     try {
+      setError(null);
       await changeTrackVisibility(track.trackId, newVisibility);
       setVisibility(newVisibility);
-    } catch (err) {
-      console.error("Failed to toggle visibility", err);
+    } catch {
+      setError("Could not change visibility. Please try again.");
     } finally {
       setIsTogglingVisibility(false);
     }
@@ -66,6 +68,7 @@ const TrackCard: React.FC<TrackCardProps> = ({ track, onDelete }) => {
   const handleSave = async () => {
     setIsSaving(true);
     try {
+      setError(null);
       await updateTrackMetadata(track.trackId, {
         title: editTitle,
         genre: editGenre,
@@ -85,8 +88,8 @@ const TrackCard: React.FC<TrackCardProps> = ({ track, onDelete }) => {
           .filter(Boolean),
       );
       setIsEditing(false);
-    } catch (err) {
-      console.error("Failed to save track", err);
+    } catch {
+      setError("Could not save track changes. Please try again.");
     } finally {
       setIsSaving(false);
     }
@@ -109,6 +112,7 @@ const TrackCard: React.FC<TrackCardProps> = ({ track, onDelete }) => {
 
       {/* Content */}
       <div className="grow flex flex-col gap-3 min-w-0">
+        {error && <p className="text-xs text-red-400">{error}</p>}
         {isEditing ? (
           /* ── EDIT MODE ── */
           <div className="flex flex-col gap-3">
