@@ -52,7 +52,7 @@ const NavBar: React.FC<NavBarProps> = ({
   leftRoutes = [
     { label: "Home", href: "/discover" },
     { label: "Feed", href: "/feed" },
-    { label: "Library", href: "/library" },
+    { label: "Library", href: "/library/overview" },
   ],
 
   rightRoutes = [
