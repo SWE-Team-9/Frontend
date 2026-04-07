@@ -3,6 +3,9 @@
 import Image from "next/image";
 import { FaPlay, FaPause, FaHeart } from "react-icons/fa";
 import { HiDotsHorizontal } from "react-icons/hi";
+import { BiRepost } from "react-icons/bi";
+import { FiShare } from "react-icons/fi";
+import { TbCopy } from "react-icons/tb";
 import { usePlayerStore } from "@/src/store/playerStore";
 import { ListeningHistoryItem } from "@/src/types/history";
 import { useState } from "react";
@@ -112,19 +115,18 @@ export default function HistoryTrackRow({ track }: HistoryTrackRowProps) {
             className="flex items-center gap-2 rounded bg-zinc-800 px-4 py-2 text-white transition hover:opacity-80"
           >
             <FaHeart style={{ color: liked ? ACCENT : "#ffffff" }} />
-            <span>Like</span>
           </button>
 
           <button className="rounded bg-zinc-800 px-4 py-2 text-white transition hover:opacity-80">
-            Repost
+            <BiRepost />
           </button>
 
           <button className="rounded bg-zinc-800 px-4 py-2 text-white transition hover:opacity-80">
-            Share
+            <FiShare />
           </button>
 
           <button className="rounded bg-zinc-800 px-4 py-2 text-white transition hover:opacity-80">
-            Copy
+            <TbCopy />
           </button>
 
           <button className="rounded bg-zinc-800 px-4 py-2 text-white transition hover:opacity-80">
