@@ -6,6 +6,7 @@ import { HiDotsHorizontal } from "react-icons/hi";
 import { usePlayerStore } from "@/src/store/playerStore";
 import { ListeningHistoryItem } from "@/src/types/history";
 import { useState } from "react";
+import { WaveformDisplay } from "@/src/components/tracks/WaveformDisplay";
 
 const FALLBACK_IMAGE = "/images/track-placeholder.png";
 const ACCENT = "#ff5500";
@@ -79,7 +80,9 @@ export default function HistoryTrackRow({ track }: HistoryTrackRowProps) {
           </div>
         </div>
 
-        <div className="mb-5 h-[80px] w-full rounded-sm bg-zinc-800/70" />
+        <div className="mb-5 h-[80px] w-full">
+          <WaveformDisplay seed={track.trackId} />
+        </div>
 
         <div className="flex items-center gap-3">
           <button
