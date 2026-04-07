@@ -8,25 +8,27 @@ import {
   Eye, EyeOff, Check 
 } from 'lucide-react';
 
-import { TrackActionButtons } from "./TrackActionButtons";
+import { TrackActionButtons } from "@/src/components/tracks/TrackActionButtons";
 import { WaveformDisplay } from "@/src/components/tracks/WaveformDisplay";
 import { changeTrackVisibility, updateTrackMetadata, TrackDetails } from "@/src/services/uploadService";
 
 
-export interface IntegratedTrack extends Omit<TrackDetails, 'coverArtUrl'> {
+export interface IntegratedTrack extends Partial<Omit<TrackDetails, 'coverArtUrl'>> {
+  trackId: string;
+  title: string;
   likesCount?: number;
   liked?: boolean;
   repostsCount?: number;
   reposted?: boolean;
-  artistName?: string; 
-  coverArt?: string;   
-  coverArtUrl?: string; // Added to match your JSX usage
+  artistName?: string;
+  coverArt?: string;
+  coverArtUrl?: string;
 }
 
 interface TrackCardProps {
   track: IntegratedTrack;
   isOwner?: boolean; 
-  onDelete?: (id: string, title: string) => void; // Updated to accept title
+  onDelete?: (id: string, title: string) => void;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onEdit?: (track: any) => void;
 }
@@ -36,19 +38,20 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, isOwner, onDelete, 
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [editTitle, setEditTitle] = useState(track.title);
-  const [editGenre, setEditGenre] = useState(track.genre ?? "");
-  const [editTags, setEditTags] = useState(track.tags?.join(", ") ?? "");
-  const [editReleaseDate, setEditReleaseDate] = useState(
-    track.releaseDate?.split("T")[0] ?? "",
+  // Visibility state
+  const [visibility, setVisibility] = useState<"PUBLIC" | "PRIVATE">(
+    (track.visibility as "PUBLIC" | "PRIVATE") ?? "PUBLIC"
   );
-  const [editDescription, setEditDescription] = useState(
-    track.description ?? "",
-  );
+  const [isTogglingVisibility, setIsTogglingVisibility] = useState(false);
 
-  const [localTitle, setLocalTitle] = useState(track.title);
-  const [localGenre, setLocalGenre] = useState(track.genre ?? "");
-  const [localTags, setLocalTags] = useState(track.tags ?? []);
+  // Single edit data object (replaces individual editTitle, editGenre, etc.)
+  const [editData, setEditData] = useState({
+    title: track.title,
+    genre: track.genre ?? "",
+    tags: track.tags?.join(", ") ?? "",
+    releaseDate: track.releaseDate?.split("T")[0] ?? "",
+    description: track.description ?? "",
+  });
 
   const handleToggleVisibility = async () => {
     const newVisibility = visibility === "PUBLIC" ? "PRIVATE" : "PUBLIC";
@@ -65,11 +68,13 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, isOwner, onDelete, 
   };
 
   const enterEdit = () => {
-    setEditTitle(localTitle);
-    setEditGenre(localGenre);
-    setEditTags(localTags.join(", "));
-    setEditReleaseDate(track.releaseDate?.split("T")[0] ?? "");
-    setEditDescription(editDescription);
+    setEditData({
+      title: track.title,
+      genre: track.genre ?? "",
+      tags: track.tags?.join(", ") ?? "",
+      releaseDate: track.releaseDate?.split("T")[0] ?? "",
+      description: track.description ?? "",
+    });
     setIsEditing(true);
   };
 
@@ -81,7 +86,7 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, isOwner, onDelete, 
       setError(null);
       await updateTrackMetadata(track.trackId, {
         ...editData,
-        tags: editData.tags.split(",").map(t => t.trim()).filter(Boolean)
+        tags: editData.tags.split(",").map((t) => t.trim()).filter(Boolean),
       });
       setIsEditing(false);
     } catch {
@@ -94,7 +99,7 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, isOwner, onDelete, 
   return (
     <div className="bg-[#1e1e1e] p-5 rounded-lg flex gap-6 items-start hover:bg-[#252525] transition-colors relative group">
       
-      {/* 1. Artwork */}
+      {/* Artwork */}
       <div className="w-40 h-40 bg-[#333] rounded-md shrink-0 relative overflow-hidden">
         {(track.coverArtUrl || track.coverArt) ? (
           <Image 
@@ -111,29 +116,49 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, isOwner, onDelete, 
       {/* Content */}
       <div className="grow flex flex-col gap-3 min-w-0">
         {error && <p className="text-xs text-red-400">{error}</p>}
+
         {isEditing ? (
           /* --- EDIT MODE --- */
           <div className="flex flex-col gap-3 bg-[#181818] p-4 rounded-md border border-zinc-700">
             <input 
               value={editData.title}
-              onChange={(e) => setEditData({...editData, title: e.target.value})}
+              onChange={(e) => setEditData({ ...editData, title: e.target.value })}
               className="bg-[#121212] border border-zinc-700 rounded p-2 text-white text-sm"
               placeholder="Track Title"
             />
+            <input 
+              value={editData.genre}
+              onChange={(e) => setEditData({ ...editData, genre: e.target.value })}
+              className="bg-[#121212] border border-zinc-700 rounded p-2 text-white text-sm"
+              placeholder="Genre"
+            />
+            <input 
+              value={editData.tags}
+              onChange={(e) => setEditData({ ...editData, tags: e.target.value })}
+              className="bg-[#121212] border border-zinc-700 rounded p-2 text-white text-sm"
+              placeholder="Tags (comma separated)"
+            />
+            <textarea 
+              value={editData.description}
+              onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+              className="bg-[#121212] border border-zinc-700 rounded p-2 text-white text-sm resize-none"
+              placeholder="Description"
+              rows={3}
+            />
             <div className="flex gap-2">
-               <button 
-                 onClick={handleSave} 
-                 disabled={isSaving}
-                 className="bg-white text-black px-4 py-1.5 rounded text-xs font-bold flex items-center gap-1 disabled:opacity-50"
-               >
-                 <Check className="w-3 h-3"/> {isSaving ? "Saving..." : "Save"}
-               </button>
-               <button 
-                 onClick={() => setIsEditing(false)} 
-                 className="border border-zinc-600 text-zinc-400 px-4 py-1.5 rounded text-xs"
-               >
-                 Cancel
-               </button>
+              <button 
+                onClick={handleSave} 
+                disabled={isSaving}
+                className="bg-white text-black px-4 py-1.5 rounded text-xs font-bold flex items-center gap-1 disabled:opacity-50"
+              >
+                <Check className="w-3 h-3" /> {isSaving ? "Saving..." : "Save"}
+              </button>
+              <button 
+                onClick={cancelEdit} 
+                className="border border-zinc-600 text-zinc-400 px-4 py-1.5 rounded text-xs"
+              >
+                Cancel
+              </button>
             </div>
           </div>
         ) : (
@@ -157,9 +182,13 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, isOwner, onDelete, 
 
             {/* Waveform */}
             <div className="w-full h-16 bg-zinc-800/30 rounded relative overflow-hidden">
-               {track.status === "PROCESSING" ? (
-                 <div className="flex items-center justify-center h-full text-[#ff5500] text-xs font-bold italic animate-pulse">PROCESSING...</div>
-               ) : <WaveformDisplay />}
+              {track.status === "PROCESSING" ? (
+                <div className="flex items-center justify-center h-full text-[#ff5500] text-xs font-bold italic animate-pulse">
+                  PROCESSING...
+                </div>
+              ) : (
+                <WaveformDisplay />
+              )}
             </div>
 
             {/* Bottom Actions */}
@@ -179,11 +208,20 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, isOwner, onDelete, 
               {/* Owner Actions */}
               {isOwner && (
                 <div className="flex items-center gap-2">
-                  <button onClick={handleToggleVisibility} className="p-2 rounded bg-[#2a2a2a] text-zinc-400 hover:text-white" title="Toggle Visibility">
+                  <button
+                    onClick={handleToggleVisibility}
+                    disabled={isTogglingVisibility}
+                    className="p-2 rounded bg-[#2a2a2a] text-zinc-400 hover:text-white disabled:opacity-50"
+                    title="Toggle Visibility"
+                  >
                     {visibility === "PUBLIC" ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                   </button>
                   
-                  <button onClick={() => setIsEditing(true)} className="p-2 rounded bg-[#2a2a2a] text-zinc-400 hover:text-white" title="Edit Metadata">
+                  <button
+                    onClick={enterEdit}
+                    className="p-2 rounded bg-[#2a2a2a] text-zinc-400 hover:text-white"
+                    title="Edit Metadata"
+                  >
                     <Edit2 className="w-4 h-4" />
                   </button>
 

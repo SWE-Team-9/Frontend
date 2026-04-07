@@ -13,6 +13,8 @@ export type Track = {
 type LikeStore = {
   likedTracks: Track[];
   loadingIds: string[];
+  error: string | null;
+  clearError: () => void;
   isLiked: (trackId: string) => boolean;
   toggleLike: (track: Track) => Promise<void>;
 };

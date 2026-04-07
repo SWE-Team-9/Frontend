@@ -3,7 +3,6 @@ import {
   followUser,
   unfollowUser,
   getFollowing,
-  //Menna
   getFollowers,
   getSuggestions,
   SuggestedUser,
@@ -13,7 +12,6 @@ import { useProfileStore } from "./useProfileStore";
 
 type FollowStore = {
   following: FollowUser[];
-  //Menna
   followers: FollowUser[];
   suggestions: SuggestedUser[];
   suggestionsLoading: boolean;
@@ -23,14 +21,12 @@ type FollowStore = {
   toggleFollow: (user: FollowUser) => Promise<void>;
   isFollowing: (userId: string | number | undefined) => boolean;
   fetchFollowing: (userId: string) => Promise<void>;
-  //Menna
   fetchFollowers: (userId: string) => Promise<void>;
   fetchSuggestions: (limit?: number) => Promise<void>;
 };
 
 export const useFollowStore = create<FollowStore>((set, get) => ({
   following: [],
-  //Menna
   followers: [],
   suggestions: [],
   suggestionsLoading: false,

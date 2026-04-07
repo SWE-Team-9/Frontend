@@ -39,7 +39,7 @@ function SCButton({ active, onClick, label, children, count, size = "full", disa
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`group flex items-center gap-1.5 h-[30px] px-2.5 rounded border transition-all duration-150 select-none
+      className={`group flex items-center gap-1.5 h-7.5 px-2.5 rounded border transition-all duration-150 select-none
         ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
         ${active ? "border-[#ff5500] bg-[#ff5500]/10 text-[#ff5500]" : "border-[#333] bg-transparent text-[#aaa] hover:border-[#555] hover:text-white"}
       `}

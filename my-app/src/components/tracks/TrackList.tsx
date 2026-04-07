@@ -42,8 +42,8 @@ const TrackList: React.FC<TrackListProps> = ({ userId, type = "tracks" }) => {
 
       if (type === "reposts") {
         // Filter by checking if ID exists in our Repost Set
-        const filtered = allTracks.filter((t: any) => 
-          repostedTrackIds.has(String(t.trackId || t.id))
+        const filtered = allTracks.filter((t: TrackDetails) => 
+          repostedTrackIds.has(String(t.trackId))
         );
         setTracks(filtered);
       } else {
