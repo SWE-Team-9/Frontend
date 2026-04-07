@@ -34,36 +34,60 @@ interface TrackCardProps {
 export const TrackCard: React.FC<TrackCardProps> = ({ track, isOwner, onDelete, onEdit }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [visibility, setVisibility] = useState(track.visibility);
-  const [editData, setEditData] = useState({
-    title: track.title,
-    genre: track.genre || "",
-    tags: track.tags?.join(", ") || "",
-    description: track.description || ""
-  });
+  const [error, setError] = useState<string | null>(null);
+
+  const [editTitle, setEditTitle] = useState(track.title);
+  const [editGenre, setEditGenre] = useState(track.genre ?? "");
+  const [editTags, setEditTags] = useState(track.tags?.join(", ") ?? "");
+  const [editReleaseDate, setEditReleaseDate] = useState(
+    track.releaseDate?.split("T")[0] ?? "",
+  );
+  const [editDescription, setEditDescription] = useState(
+    track.description ?? "",
+  );
+
+  const [localTitle, setLocalTitle] = useState(track.title);
+  const [localGenre, setLocalGenre] = useState(track.genre ?? "");
+  const [localTags, setLocalTags] = useState(track.tags ?? []);
+
+  const handleToggleVisibility = async () => {
+    const newVisibility = visibility === "PUBLIC" ? "PRIVATE" : "PUBLIC";
+    setIsTogglingVisibility(true);
+    try {
+      setError(null);
+      await changeTrackVisibility(track.trackId, newVisibility);
+      setVisibility(newVisibility);
+    } catch {
+      setError("Could not change visibility. Please try again.");
+    } finally {
+      setIsTogglingVisibility(false);
+    }
+  };
+
+  const enterEdit = () => {
+    setEditTitle(localTitle);
+    setEditGenre(localGenre);
+    setEditTags(localTags.join(", "));
+    setEditReleaseDate(track.releaseDate?.split("T")[0] ?? "");
+    setEditDescription(editDescription);
+    setIsEditing(true);
+  };
+
+  const cancelEdit = () => setIsEditing(false);
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
+      setError(null);
       await updateTrackMetadata(track.trackId, {
         ...editData,
         tags: editData.tags.split(",").map(t => t.trim()).filter(Boolean)
       });
       setIsEditing(false);
-    } catch (err) { 
-      console.error(err); 
-    } finally { 
-      setIsSaving(false); 
-    }
-  };
-
-  const handleToggleVisibility = async () => {
-    const newVis = visibility === "PUBLIC" ? "PRIVATE" : "PUBLIC";
-    try {
-      await changeTrackVisibility(track.trackId, newVis);
-      setVisibility(newVis);
-    } catch (err) { 
-      console.error(err); 
+    } catch {
+      setError("Could not save track changes. Please try again.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -84,9 +108,9 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, isOwner, onDelete, 
         )}
       </div>
 
-      {/* 2. Content Section */}
-      <div className="flex-grow flex flex-col gap-3 min-w-0">
-        
+      {/* Content */}
+      <div className="grow flex flex-col gap-3 min-w-0">
+        {error && <p className="text-xs text-red-400">{error}</p>}
         {isEditing ? (
           /* --- EDIT MODE --- */
           <div className="flex flex-col gap-3 bg-[#181818] p-4 rounded-md border border-zinc-700">

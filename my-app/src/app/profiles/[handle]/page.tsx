@@ -44,14 +44,26 @@ export default function ProfilePage({
   const isOwner = currentUserHandle === handle;
 
   const following = useFollowStore((state) => state.following || []);
+ 
+  const followers = useFollowStore((state) => state.followers || []);
   const fetchFollowing = useFollowStore((state) => state.fetchFollowing);
-  const likedTracks = useLikeStore((state) => state.likedTracks || []);
 
+  const fetchFollowers = useFollowStore((state) => state.fetchFollowers);
+  const storeToggleFollow = useFollowStore((state) => state.toggleFollow);
+  const checkIsFollowing = useFollowStore((state) => state.isFollowing);
+  const followError = useFollowStore((state) => state.error);
+
+  const likedTracks = useLikeStore((state) => state.likedTracks || []);
+  const likeError = useLikeStore((state) => state.error);
+
+
+  // Fetch follow/follower lists when page loads
   useEffect(() => {
     if (controller.userId) {
       fetchFollowing(controller.userId);
+      fetchFollowers(controller.userId); //Menna
     }
-  }, [controller.userId, fetchFollowing]);
+  }, [controller.userId, fetchFollowing, fetchFollowers]); //Menna
 
   useEffect(() => {
     const fetchCurrentUser = async () => {
@@ -117,6 +129,9 @@ export default function ProfilePage({
         avatar: u.avatar || "/images/profile.png"
       }));
     }
+
+//   // Following/Followers tabs use dedicated store lists
+//   const sourceUsers = detailTab === "Following" ? following : followers;
 
     const results = usersToShow.filter(user =>
       user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -221,7 +236,24 @@ export default function ProfilePage({
     if (activeTab === "Tracks"|| activeTab === "All") {
       return (
         <div className="flex-1 border-r border-zinc-900/50 pr-12">
-          <TrackList userId={controller.userId }type="tracks" />
+
+<!--           <TrackList userId={controller.userId }type="tracks" /> -->
+
+          {controller.userId ? (
+            <TrackList userId={controller.userId} />
+          ) : (
+            <p className="text-sm text-zinc-500">Loading tracks...</p>
+          )}
+        </div>
+      );
+    }
+
+    if (activeTab === "Playlists") {
+      return (
+        <div className="flex-1 text-center py-20 border-r border-zinc-900/50 pr-12 flex flex-col items-center justify-center">
+          <p className="text-zinc-500 text-xl font-bold">
+            You haven&apos;t created any playlists.
+          </p>
         </div>
       );
     }
@@ -246,6 +278,15 @@ export default function ProfilePage({
     );
   };
 
+  if (controller.isLoading) {
+    return (
+      <div className="min-h-screen bg-[#121212] text-white flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-2 border-white border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  // ─── PAGE ──────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-[#121212] text-white font-sans overflow-x-hidden relative">
       <NavBar className="max-w-7xl mx-auto px-6" />
@@ -285,7 +326,38 @@ export default function ProfilePage({
                 </ul>
                 <div className="flex gap-2 items-center">
                   {!isOwner && controller.userId && (
-                    <FollowButton user={{ id: controller.userId, display_name: controller.displayName, handle: controller.handle || "", avatar_url: controller.avatarUrl || "" }} />
+                    <FollowButton
+                      user={{
+                        id: controller.userId,
+                        display_name: controller.displayName,
+                        handle: controller.handle || "",
+                        avatar_url: controller.avatarUrl || "",
+                      }}
+                    />
+                  )}
+
+                  <button
+                    onClick={() => setIsShareOpen(true)}
+                    className={BUTTON_STYLE}
+                  >
+                    <FiShare size={15} /> Share
+                  </button>
+
+                  {isOwner && (
+                    <button
+                      onClick={() => setIsEditOpen(true)}
+                      className={BUTTON_STYLE}
+                    >
+                      <GrEdit size={15} /> Edit
+                    </button>
+                  )}
+
+                  {!isOwner && (
+                    <ProfileActionsMenu
+                      userId={controller.userId || ""}
+                      displayName={controller.displayName}
+                      isBlocked={false}
+                    />
                   )}
                   <button onClick={() => setIsShareOpen(true)} className={BUTTON_STYLE}><FiShare size={15} /> Share</button>
                   {isOwner && <button onClick={() => setIsEditOpen(true)} className={BUTTON_STYLE}><GrEdit size={15} /> Edit</button>}
@@ -297,13 +369,46 @@ export default function ProfilePage({
               {renderFeedContent()}
 
               <div className="w-full lg:w-[320px] space-y-10">
-                <Stats followers={controller.followersCount} following={following.length} tracks={controller.tracksCount} />
+                {/* Stats — followingCount is live from the store */}
+                <Stats
+                  followers={controller.followersCount}
+                  following={controller.followingCount}
+                  tracks={controller.tracksCount}
+                />
+                {/* Favorite genres */}
+                {favoriteGenres?.length > 0 && (
+                  <div className="space-y-1 border-t border-zinc-900 pt-4">
+                    <p className="text-zinc-500 text-[10px] font-bold uppercase mb-1">
+                      Favorite Genre
+                    </p>
+                    {favoriteGenres.map((g) => (
+                      <p
+                        key={g}
+                        className="text-sm font-bold text-white flex items-center gap-2"
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                        {g}
+                      </p>
+                    ))}
+                  </div>
+                )}
+
                 <SocialLinksList links={links} />
 
                 <div className="space-y-4">
                   <div className="flex justify-between items-center text-zinc-500 text-[13px] border-b border-zinc-900 pb-2">
                     <p className="font-bold uppercase">{likedTracks.length} Likes</p>
                     <button onClick={() => { setViewState("details"); setDetailTab("Likes"); }} className="hover:text-white font-bold uppercase">View all</button>
+                    <p className="font-bold uppercase">{controller.followingCount} Following</p>
+                    <button
+                      onClick={() => {
+                        setViewState("details");
+                        setDetailTab("Following");
+                      }}
+                      className="hover:text-white transition-colors font-bold uppercase"
+                    >
+                      View all
+                    </button>
                   </div>
                   {likedTracks.slice(0, 3).map((track: any) => (
                     <div key={track.trackId || track.id} className="flex items-center gap-3 p-2 hover:bg-zinc-900/40 rounded transition-all">

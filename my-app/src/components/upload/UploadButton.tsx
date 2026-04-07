@@ -5,7 +5,6 @@ import { useUploadStore } from "@/src/store/useuploadStore";
 import FileStatusBadge from "@/src/components/ui/FileStatusBadge";
 import {
   uploadTrack,
-  getTrackStatus,
   getTrackDetails,
   changeTrackVisibility,
 } from "@/src/services/uploadService";
@@ -46,27 +45,36 @@ const UploadButton: React.FC = () => {
   };
 
   const pollTrackStatus = async (fileName: string, trackId: string) => {
-    const interval = 2000;
-    let status = "PROCESSING";
+    const interval = 3000;
+    const maxAttempts = 20; // 1 minute max
+    let attempts = 0;
 
-    while (status === "PROCESSING") {
+    await new Promise((r) => setTimeout(r, interval));
+
+    while (attempts < maxAttempts) {
+      attempts++;
       try {
-        const data = await getTrackStatus(trackId);
-        status = data.status;
+        const data = await getTrackDetails(trackId);
 
-        if (status === "PROCESSING") {
-          await new Promise((r) => setTimeout(r, interval));
-        } else {
-          // Fetch full track details (non-critical — we proceed regardless)
-          try {
-            await getTrackDetails(trackId);
-          } catch {
-            // ignore — still mark done and redirect
-          }
-
+        if (data.status === "FINISHED") {
           updateFileStatus(fileName, "DONE", trackId);
-          router.push(`/tracks/${trackId}`); // always redirect after done
+          router.push(`/tracks/${trackId}`);
+          return;
         }
+
+        if (data.status === "PROCESSING") {
+          await new Promise((r) => setTimeout(r, interval));
+          continue;
+        }
+
+        // Any other status (FAILED etc.) — stop polling
+        updateFileStatus(
+          fileName,
+          "ERROR",
+          undefined,
+          `Track processing failed: ${data.status}`,
+        );
+        return;
       } catch (err: unknown) {
         updateFileStatus(
           fileName,
@@ -74,9 +82,17 @@ const UploadButton: React.FC = () => {
           undefined,
           (err as Error).message || "Polling error",
         );
-        break;
+        return;
       }
     }
+
+    // Timed out
+    updateFileStatus(
+      fileName,
+      "ERROR",
+      undefined,
+      "Processing timed out. Please check your track.",
+    );
   };
 
   const handleUpload = async () => {

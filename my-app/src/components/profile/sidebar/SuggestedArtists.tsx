@@ -2,11 +2,11 @@
 
 import { useEffect} from "react";
 import { useFollowStore } from "@/src/store/followStore";
-import { getSuggestions, SuggestedUser } from "@/src/services/followService";
 import { UserCard } from "@/src/components/user/UserCard";
 
 export default function SuggestedArtists() {
-  const { suggestions, suggestionsLoading, fetchSuggestions } = useFollowStore();
+  const { suggestions, suggestionsLoading, fetchSuggestions, error } =
+    useFollowStore();
 
   useEffect(() => {
     fetchSuggestions();
@@ -21,6 +21,8 @@ export default function SuggestedArtists() {
       {!suggestionsLoading && suggestions.length === 0 && (
         <p className="text-sm text-zinc-500">No suggestions available</p>
       )}
+
+      {error && <p className="text-sm text-red-400">{error}</p>}
 
       {suggestions.map((user) => (
         <UserCard

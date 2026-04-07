@@ -52,8 +52,8 @@ export const blockUser = async (userId: string) => {
     mockBlockedIds.add(userId);
     return { message: "User blocked successfully", blockedUserId: userId };
   }
-
-  const res = await api.post(`/api/v1/social/block/${userId}`);
+  console.log("BLOCK USER ID:", userId);
+  const res = await api.post(`/social/block/${userId}`);
   return res.data;
 };
 
@@ -67,7 +67,7 @@ export const unblockUser = async (userId: string) => {
     return { message: "User unblocked successfully", blockedUserId: userId };
   }
 
-  const res = await api.delete(`/api/v1/social/block/${userId}`);
+  const res = await api.delete(`/social/block/${userId}`);
   return res.data;
 };
 
@@ -93,7 +93,7 @@ export const getBlockedUsers = async (
   }
 
   const res = await api.get(
-    `/api/v1/social/blocked-users?page=${page}&limit=${limit}`,
+    `/social/blocked-users?page=${page}&limit=${limit}`,
   );
   return res.data;
 };

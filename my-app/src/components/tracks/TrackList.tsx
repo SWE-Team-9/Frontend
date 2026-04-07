@@ -18,6 +18,8 @@ const TrackList: React.FC<TrackListProps> = ({ userId, type = "tracks" }) => {
   
   // Get repost state from store
   const { repostedTrackIds, hydrate } = useRepostStore();
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [trackToDelete, setTrackToDelete] = useState<{ id: string; title: string } | null>(null);
@@ -34,13 +36,12 @@ const TrackList: React.FC<TrackListProps> = ({ userId, type = "tracks" }) => {
     try {
       setIsLoading(true);
       setError(null);
+      setActionError(null);
       const data = await getUserTracks(userId);
       const allTracks = data.tracks || [];
 
       if (type === "reposts") {
         // Filter by checking if ID exists in our Repost Set
-        
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const filtered = allTracks.filter((t: any) => 
           repostedTrackIds.has(String(t.trackId || t.id))
         );
@@ -58,7 +59,10 @@ const TrackList: React.FC<TrackListProps> = ({ userId, type = "tracks" }) => {
     loadTracks();
   }, [userId, type, repostedTrackIds.size]);
 
-  const handleEdit = (track: TrackDetails) => console.log("Edit:", track);
+  const handleEdit = (track: TrackDetails) => {
+    setNotice(`Edit \"${track.title}\" is not available yet.`);
+    setTimeout(() => setNotice(null), 2500);
+  };
 
   const handleDeleteClick = (id: string, title: string) => {
     setTrackToDelete({ id, title });
@@ -69,11 +73,14 @@ const TrackList: React.FC<TrackListProps> = ({ userId, type = "tracks" }) => {
     if (!trackToDelete) return;
     try {
       await deleteTrack(trackToDelete.id);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setTracks((prev) => prev.filter((t) => (t.trackId || (t as any).id) !== trackToDelete.id));
+      setTracks((prev) =>
+        prev.filter((t) => t.trackId !== trackToDelete.id)
+      );
+      setActionError(null);
       setIsDeleteModalOpen(false);
-    } catch (err) {
-      alert("Delete failed.");
+      setTrackToDelete(null);
+    } catch {
+      setActionError("Failed to delete the track. Please try again.");
     }
   };
 
@@ -89,6 +96,9 @@ const TrackList: React.FC<TrackListProps> = ({ userId, type = "tracks" }) => {
         {type === "reposts" ? "Reposts" : "Tracks"} 
         <span className="text-zinc-500 text-lg"> ({tracks.length})</span>
       </h2>
+
+      {notice && <p className="text-amber-400 text-sm">{notice}</p>}
+      {actionError && <p className="text-red-400 text-sm">{actionError}</p>}
 
       {tracks.length === 0 ? (
         <div className="py-20 text-center flex flex-col items-center border border-dashed border-zinc-800 rounded-lg">

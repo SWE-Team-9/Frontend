@@ -20,6 +20,8 @@ type LikeStore = {
 export const useLikeStore = create<LikeStore>((set, get) => ({
   likedTracks: [],
   loadingIds: [],
+  error: null,
+  clearError: () => set({ error: null }),
 
   isLiked: (trackId) => {
     return get().likedTracks.some((t) => t.id === trackId);
@@ -30,8 +32,6 @@ export const useLikeStore = create<LikeStore>((set, get) => ({
     const isAlreadyLiked = likedTracks.some((t) => t.id === track.id);
 
     if (loadingIds.includes(track.id)) return;
-
-    // 🟢 Optimistic Update
     set({
       loadingIds: [...loadingIds, track.id],
       likedTracks: isAlreadyLiked
@@ -40,7 +40,7 @@ export const useLikeStore = create<LikeStore>((set, get) => ({
     });
 
     try {
-      // 🛠️ FIX: Convert string ID to Number for the service call
+      // Convert string ID to Number for the service call
       const numericId = Number(track.id); 
 
       if (!isAlreadyLiked) {
@@ -50,14 +50,14 @@ export const useLikeStore = create<LikeStore>((set, get) => ({
       }
     } catch (error) {
       console.error("Like failed, rolling back state.");
-      // 🔴 Rollback
+   
       set((state) => ({
         likedTracks: isAlreadyLiked
           ? [...state.likedTracks, track]
           : state.likedTracks.filter((t) => t.id !== track.id),
+        error: "Could not update like state. Please try again.",
       }));
     } finally {
-      // ⚪ Clear loading
       set((state) => ({
         loadingIds: state.loadingIds.filter((id) => id !== track.id),
       }));

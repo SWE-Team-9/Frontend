@@ -84,21 +84,56 @@ const normalizeUrl = (url: string): string => {
 interface BackendUserProfile {
   id?: string;
   user_id?: string;
+  userId?: string;
   handle?: string;
   display_name?: string;
+  displayName?: string;
+  name?: string;
   bio?: string | null;
   location?: string | null;
   website_url?: string | null;
+  website?: string | null;
   avatar_url?: string | null;
+  avatarUrl?: string | null;
   cover_photo_url?: string | null;
+  //Menna
+  coverPhotoUrl?: string | null;
+  coverUrl?: string | null;
   visibility?: "PUBLIC" | "PRIVATE";
+  is_private?: boolean;
+  isPrivate?: boolean;
   account_tier?: "LISTENER" | "ARTIST";
+  accountType?: "LISTENER" | "ARTIST";
   favorite_genres?: string[] | BackendFavoriteGenre[];
+  favoriteGenres?: string[];
   external_links?: Record<string, string>;
+  //Menna
+  social_links?: { platform?: string; url?: string }[];
+  externalLinks?: { platform: string; url: string }[];
   followers_count?: number;
+  followersCount?: number;
   following_count?: number;
+  followingCount?: number;
   track_count?: number;
+  tracksCount?: number;
 }
+
+type ProfileApiResponse =
+  | BackendUserProfile
+  | {
+      data?: BackendUserProfile;
+      profile?: BackendUserProfile;
+      user?: BackendUserProfile;
+    };
+
+const extractProfilePayload = (payload: ProfileApiResponse): BackendUserProfile => {
+  if (payload && typeof payload === "object") {
+    if ("profile" in payload && payload.profile) return payload.profile;
+    if ("data" in payload && payload.data) return payload.data;
+    if ("user" in payload && payload.user) return payload.user;
+  }
+  return payload as BackendUserProfile;
+};
 // Maps backend profile response to frontend UserProfile structure
 const mapProfileResponse = (profile: BackendUserProfile): UserProfile => {
   const favoriteGenresFromBackend = Array.isArray(profile.favorite_genres)
@@ -111,33 +146,51 @@ const mapProfileResponse = (profile: BackendUserProfile): UserProfile => {
     : [];
 
   return {
-    id: profile.id || profile.user_id || "",
+    id: profile.id || profile.user_id || profile.userId || "",
     handle: profile.handle || "",
-    displayName: profile.display_name ?? "",
+    displayName:
+      profile.display_name ?? profile.displayName ?? profile.name ?? profile.handle ?? "",
     bio: profile.bio ?? null,
     location: profile.location ?? null,
-    website: profile.website_url ?? null,
-    avatarUrl: profile.avatar_url ?? null,
-    coverUrl: profile.cover_photo_url ?? null,
-    isPrivate: profile.visibility === "PRIVATE",
-    accountType: profile.account_tier ?? "LISTENER",
-    favoriteGenres: favoriteGenresFromBackend,
+    website: profile.website_url ?? profile.website ?? null,
+    avatarUrl: profile.avatar_url ?? profile.avatarUrl ?? null,
+    //Menna
+    coverUrl:
+      profile.cover_photo_url ?? profile.coverPhotoUrl ?? profile.coverUrl ?? null,
+    isPrivate:
+      profile.is_private ?? profile.isPrivate ?? profile.visibility === "PRIVATE",
+    accountType: profile.account_tier ?? profile.accountType ?? "LISTENER",
+    favoriteGenres: favoriteGenresFromBackend.length
+      ? favoriteGenresFromBackend
+      : profile.favoriteGenres ?? [],
     externalLinks: profile.external_links
       ? Object.entries(profile.external_links).map(([platform, url]) => ({
-          platform,
+//Menna
+        platform: normalizePlatformFromBackend(platform),
           url,
         }))
-      : [],
-    followersCount: profile.followers_count ?? 0,
-    followingCount: profile.following_count ?? 0,
-    tracksCount: profile.track_count ?? 0,
+//Menna
+        : profile.social_links
+        ? profile.social_links
+            .filter((link) => !!link.url)
+            .map((link) => ({
+              platform: normalizePlatformFromBackend(link.platform || "website"),
+              url: link.url || "",
+            }))
+        : (profile.externalLinks ?? []).map((link) => ({
+            platform: normalizePlatformFromBackend(link.platform),
+            url: link.url,
+          })),
+    followersCount: profile.followers_count ?? profile.followersCount ?? 0,
+    followingCount: profile.following_count ?? profile.followingCount ?? 0,
+    tracksCount: profile.track_count ?? profile.tracksCount ?? 0,
   };
 };
 
 // ====== GET my own profile ======
 export const getMyProfile = async (): Promise<UserProfile> => {
   const response = await api.get("/profiles/me");
-  return mapProfileResponse(response.data as BackendUserProfile);
+  return mapProfileResponse(extractProfilePayload(response.data as ProfileApiResponse));
 };
 
 // ====== GET someone else's profile by handle ======
@@ -163,8 +216,8 @@ export const getProfileByHandle = async (handle: string): Promise<UserProfile> =
     };
   }
 
-  const response = await api.get(`/api/v1/profiles/${handle}`);
-  return mapProfileResponse(response.data as BackendUserProfile);
+  const response = await api.get(`/profiles/${handle}`);
+  return mapProfileResponse(extractProfilePayload(response.data as ProfileApiResponse));
 };
 
 // ====== UPDATE my profile ======

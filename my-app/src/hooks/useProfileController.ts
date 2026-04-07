@@ -41,12 +41,15 @@ export const useProfileController = (targetUserId?: string) => {
   const store = useProfileStore();
   const params = useParams();
   
-  // FIX: Extract handle from params or props
+  // Extract handle from params or props
   const handle = (params?.handle as string) || "";
 
-  // FIX: Merge activeId and isOwner logic
+  // Merge activeId and isOwner logic
   const isOwner = !handle || handle === store.handle;
-  const activeId = targetUserId || handle || store.handle || "me";
+
+//   const activeId = targetUserId || handle || store.handle || "me";
+
+  const [userId, setUserId] = useState<string | null>(null);
 
   // ---- UI state ----
   const [activeTab, setActiveTab] = useState("Tracks");
@@ -71,7 +74,7 @@ export const useProfileController = (targetUserId?: string) => {
   const tabs = ["All", "Popular tracks", "Tracks", "Albums", "Playlists", "Reposts"];
   const genres = ["None", "electronic", "hip-hop", "pop", "rock", "alternative", "ambient", "classical", "jazz", "r-b-soul", "metal", "folk-singer-songwriter", "country", "reggaeton", "dancehall", "drum-bass", "house", "techno", "deep-house", "trance", "lo-fi", "indie", "punk", "blues", "latin", "afrobeat", "trap", "experimental", "world", "gospel", "spoken-word"];
 
-  // ---- Social Lists State (FIXED: Only declare once) ----
+  // ---- Social Lists State ----
   const [followingList, setFollowingList] = useState<User[]>([]);
   const [followersList, setFollowersList] = useState<User[]>([]);
   const [suggestedUsers, setSuggestedUsers] = useState<User[]>([]);
@@ -111,13 +114,15 @@ export const useProfileController = (targetUserId?: string) => {
   };
 
   const loadProfile = useCallback(async () => {
-    
-    if (store.isLoaded || hasRequestedProfileRef.current || store.useMockData) return;
-    hasRequestedProfileRef.current = true;
+  if (store.isLoaded || hasRequestedProfileRef.current) return;
+  hasRequestedProfileRef.current = true;
 
     try {
       setIsLoading(true);
-      const profile = handle ? await getProfileByHandle(handle) : await getMyProfile();
+      const profile = handle
+      ? await getProfileByHandle(handle) // viewing another user's profile
+      : await getMyProfile();            // fallback: current user
+      setUserId(profile.id);
 
       store.setProfileData({
         userId: profile.id,
@@ -143,8 +148,9 @@ export const useProfileController = (targetUserId?: string) => {
           : [{ id: 1, platform: "", url: "" }],
         isLoaded: true,
       });
-    } catch (err) {
-      console.error("Could not load profile:", err);
+    } catch {
+      hasRequestedProfileRef.current = false;
+      setError("Could not load profile. Please refresh and try again.");
     } finally {
       setIsLoading(false);
     }
@@ -229,7 +235,9 @@ export const useProfileController = (targetUserId?: string) => {
       await navigator.clipboard.writeText(isShortened ? shortLink : longLink);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) { console.error(err); }
+    } catch {
+      setError("Could not copy link. Please copy it manually.");
+    }
   };
 
   const mockTracks = [
@@ -304,18 +312,29 @@ export const useProfileController = (targetUserId?: string) => {
 
   return {
     ...store,
+    userId,
     isOwner,
-    activeId,
-    activeTab, setActiveTab,
-    viewState, setViewState,
-    detailTab, setDetailTab,
-    isEditOpen, setIsEditOpen,
-    isShareOpen, setIsShareOpen,
-    shareTab, setShareTab,
-    isShortened, setIsShortened,
-    copied, copyToClipboard,
-    error, handleSave,
-    genres, tabs,
+    activeTab,
+    setActiveTab,
+    setProfileData,
+    tabs,
+    viewState,
+    setViewState,
+    detailTab,
+    setDetailTab,
+    isEditOpen,
+    setIsEditOpen,
+    isShareOpen,
+    setIsShareOpen,
+    shareTab,
+    setShareTab,
+    isShortened,
+    setIsShortened,
+    copied,
+    copyToClipboard,
+    error,
+    handleSave,
+    genres,
     showSuccessToast,
     longLink, shortLink,
     isSaving, isLoading,

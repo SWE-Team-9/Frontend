@@ -8,17 +8,11 @@ import ConfirmModal from "@/src/components/block-user/ConfirmModal";
 interface Props {
   userId: string;
   displayName: string;
-  isBlocked: boolean;
+  isBlocked?: boolean;
 }
 
 export default function ProfileActionsMenu({ userId, displayName }: Props) {
-  const {
-    blockUser,
-    unblockUser,
-    blockedUsers,
-    fetchBlockedUsers,
-    loadingUserId,
-  } = useBlockStore();
+  const { blockUser, unblockUser, blockedUsers, fetchBlockedUsers, loadingUserId, error, clearError } = useBlockStore();
 
   const loading = loadingUserId === userId;
   const isBlocked = blockedUsers.some((u) => u.id === userId);
@@ -28,21 +22,18 @@ export default function ProfileActionsMenu({ userId, displayName }: Props) {
 
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Fetch blocked users on mount if empty
   useEffect(() => {
     if (blockedUsers.length === 0) {
       fetchBlockedUsers();
     }
   }, [blockedUsers.length, fetchBlockedUsers]);
 
-  // Close dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (!menuRef.current?.contains(e.target as Node)) {
         setOpen(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
@@ -51,14 +42,13 @@ export default function ProfileActionsMenu({ userId, displayName }: Props) {
     if (isBlocked) {
       await unblockUser(userId);
     } else {
-      await blockUser(userId);
+      await blockUser(userId, { display_name: displayName });
     }
     setConfirmOpen(false);
   };
 
   return (
     <div className="relative overflow-visible" ref={menuRef}>
-      {/* 3-dot button */}
       <button
         onClick={() => setOpen((prev) => !prev)}
         className="p-2 rounded-full hover:bg-zinc-800 transition"
@@ -66,28 +56,29 @@ export default function ProfileActionsMenu({ userId, displayName }: Props) {
         <MdMoreVert size={20} />
       </button>
 
-      {/* Dropdown */}
       {open && (
         <div className="absolute right-0 top-full mt-2 min-w-40 bg-zinc-900 border border-zinc-700 rounded-lg shadow-lg z-999">
-          {" "}
           <button
             disabled={loading}
             onClick={() => {
               setOpen(false);
               setConfirmOpen(true);
             }}
-            className="w-full text-center font-bold text-md px-4 py-2 text-red-400 hover:bg-zinc-800 rounded-lg"
+            className="w-full text-center font-bold text-md px-4 py-2 text-red-400 hover:bg-zinc-800 rounded-lg disabled:opacity-50"
           >
-            {loading
-              ? "Processing..."
-              : isBlocked
-                ? "Unblock User"
-                : "Block User"}
+            {loading ? "Processing..." : isBlocked ? "Unblock User" : "Block User"}
           </button>
         </div>
       )}
 
-      {/* Confirm Modal*/}
+      {/* Inline error toast */}
+      {error && (
+        <div className="absolute right-0 top-full mt-2 min-w-48 bg-red-900/80 border border-red-600 text-red-200 text-xs font-bold px-4 py-2 rounded-lg shadow-lg z-999 flex items-center justify-between gap-2">
+          <span>{error}</span>
+          <button onClick={clearError} className="text-red-300 hover:text-white">×</button>
+        </div>
+      )}
+
       <ConfirmModal
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
