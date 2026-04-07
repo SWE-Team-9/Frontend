@@ -1,0 +1,1 @@
+export const trackStatusStore: Record<string, string> = {};

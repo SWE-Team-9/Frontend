@@ -3,7 +3,8 @@ export const likeTrack = async (trackId: number) => {
   return new Promise((resolve, reject) => {
     setTimeout(() => {
       resolve({ success: true })
-    
+      // ❗ uncomment to test failure
+      // reject("error")
     }, 500)
   })
 }

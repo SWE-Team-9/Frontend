@@ -29,6 +29,7 @@ interface ProfileState {
   followersCount: number;
   followingCount: number;
   tracksCount: number;
+  useMockData: boolean;
 
   // ---- Loading flag ----
   isLoaded: boolean;     // true once we fetched from the backend at least once
@@ -46,7 +47,7 @@ const initialProfileState = {
   userId: "",
   displayName: "",
   handle: "",
-  bio: "",
+bio: "Biomedical Engineering Student",
   location: "",
   website: "",
   avatarUrl: null,
@@ -59,6 +60,7 @@ const initialProfileState = {
   followingCount: 0,
   tracksCount: 0,
   isLoaded: false,
+  useMockData: true,
 };
 
 export const useProfileStore = create<ProfileState>()((set) => ({

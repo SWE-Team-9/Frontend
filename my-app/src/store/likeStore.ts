@@ -2,17 +2,18 @@ import { create } from "zustand";
 import { likeTrack, unlikeTrack } from "@/src/services/likeService";
 
 export type Track = {
-  id: number;
+  id: string; // We keep this as string to match your UI props
   title: string;
   likesCount: number;
+  artistName?: string; // Added
+  coverArt?: string;   // Added
+  imageUrl?: string;
 };
 
 type LikeStore = {
   likedTracks: Track[];
-  loadingIds: number[];
-  error: string | null;
-  clearError: () => void;
-  isLiked: (trackId: number) => boolean;
+  loadingIds: string[];
+  isLiked: (trackId: string) => boolean;
   toggleLike: (track: Track) => Promise<void>;
 };
 
@@ -30,27 +31,26 @@ export const useLikeStore = create<LikeStore>((set, get) => ({
     const { likedTracks, loadingIds } = get();
     const isAlreadyLiked = likedTracks.some((t) => t.id === track.id);
 
-    set({ error: null });
-
-    // 🛡️ Prevent multiple clicks while one is processing
     if (loadingIds.includes(track.id)) return;
-
-    // 🟢 Optimistic Update
     set({
       loadingIds: [...loadingIds, track.id],
       likedTracks: isAlreadyLiked
         ? likedTracks.filter((t) => t.id !== track.id)
-        : [...likedTracks, { ...track, likesCount: track.likesCount + 1 }],
+        : [...likedTracks, { ...track, likesCount: (track.likesCount || 0) + 1 }],
     });
 
     try {
+      // Convert string ID to Number for the service call
+      const numericId = Number(track.id); 
+
       if (!isAlreadyLiked) {
-        await likeTrack(track.id);
+        await likeTrack(numericId); 
       } else {
-        await unlikeTrack(track.id);
+        await unlikeTrack(numericId);
       }
-    } catch {
-      // 🔴 Rollback on Failure
+    } catch (error) {
+      console.error("Like failed, rolling back state.");
+   
       set((state) => ({
         likedTracks: isAlreadyLiked
           ? [...state.likedTracks, track]
@@ -58,7 +58,6 @@ export const useLikeStore = create<LikeStore>((set, get) => ({
         error: "Could not update like state. Please try again.",
       }));
     } finally {
-      // ⚪ Clear loading state
       set((state) => ({
         loadingIds: state.loadingIds.filter((id) => id !== track.id),
       }));
