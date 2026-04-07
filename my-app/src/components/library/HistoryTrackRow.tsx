@@ -24,9 +24,19 @@ function formatTime(seconds?: number) {
 
 export default function HistoryTrackRow({ track }: HistoryTrackRowProps) {
   const [liked, setLiked] = useState(false);
-  const { currentTrack, isPlaying, toggle, fetchAndPlay } = usePlayerStore();
+  const {
+    currentTrack,
+    isPlaying,
+    toggle,
+    fetchAndPlay,
+    currentTime,
+    duration,
+    seekTo,
+  } = usePlayerStore();
 
   const isCurrent = currentTrack?.trackId === track.trackId;
+  const waveformProgress =
+    isCurrent && duration > 0 ? currentTime / duration : 0;
 
   const handlePlay = () => {
     if (isCurrent) {
@@ -44,6 +54,14 @@ export default function HistoryTrackRow({ track }: HistoryTrackRowProps) {
       cover: track.coverArtUrl || FALLBACK_IMAGE,
     });
   };
+
+  const handleWaveformSeek = async (progress: number) => {
+    if (!isCurrent || duration <= 0) return;
+
+    const nextTime = progress * duration;
+    await seekTo(nextTime);
+  };
+
 
   return (
     <div className="mb-10 flex gap-5">
@@ -81,7 +99,11 @@ export default function HistoryTrackRow({ track }: HistoryTrackRowProps) {
         </div>
 
         <div className="mb-5 h-[80px] w-full">
-          <WaveformDisplay seed={track.trackId} />
+          <WaveformDisplay
+            seed={track.trackId}
+            progress={waveformProgress}
+            onSeek={isCurrent ? handleWaveformSeek : undefined}
+          />
         </div>
 
         <div className="flex items-center gap-3">
