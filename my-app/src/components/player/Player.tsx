@@ -10,6 +10,7 @@ import { useFollowStore } from "@/src/store/followStore";
 import { useAuthStore } from "@/src/store/useAuthStore";
 import { SlUserFollow, SlUserFollowing } from "react-icons/sl";
 import { PiQueue } from "react-icons/pi";
+import { PlaybackToast } from "./PlaybackToast";
 
 export function Player() {
   const {
@@ -67,7 +68,9 @@ export function Player() {
     fetchFollowing(authUser.id);
   }, [authUser?.id, fetchFollowing]);
 
-  if (!isPlayerVisible || !currentTrack) return null;
+  if (!isPlayerVisible || !currentTrack) {
+    return <PlaybackToast />;
+  }
 
   const artistUser = {
     id: currentTrack.artistId,
@@ -86,73 +89,76 @@ export function Player() {
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#333] border-t border-[#222] shadow-2xl h-15 flex items-center">
-      <div className="flex items-center w-full px-4 gap-6">
-        <div className="flex items-center gap-4 flex-1">
-          <PlayerControls />
+    <>
+      <PlaybackToast />
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#333] border-t border-[#222] shadow-2xl h-15 flex items-center">
+        <div className="flex items-center w-full px-4 gap-6">
+          <div className="flex items-center gap-4 flex-1">
+            <PlayerControls />
 
-          <div className="flex flex-col flex-1 max-w-2xl relative">
-            <ProgressBar />
+            <div className="flex flex-col flex-1 max-w-2xl relative">
+              <ProgressBar />
 
-            <div className="absolute -top-4 left-0 w-full flex justify-center pointer-events-none gap-2">
-              {isResolvingPlayback && !streamError && (
-                <p className="text-[9px] text-zinc-400">Loading track...</p>
-              )}
-              {isProcessing && (
-                <p className="text-[9px] text-yellow-400">
-                  Track is still processing...
-                </p>
-              )}
-              {accessState === "BLOCKED" && (
-                <p className="text-[9px] text-red-400">
-                  {accessReason || "This track is unavailable."}
-                </p>
-              )}
-              {accessState === "PREVIEW" && (
-                <p className="text-[9px] text-orange-400">Preview mode</p>
-              )}
-              {streamError && accessState !== "BLOCKED" && (
-                <p className="text-[9px] text-red-400">{streamError}</p>
-              )}
-              {!streamError && isResolvingPlayback && (
-                <p className="text-[9px] text-zinc-500">Connecting to server...</p>
-              )}
+              <div className="absolute -top-4 left-0 w-full flex justify-center pointer-events-none gap-2">
+                {isResolvingPlayback && !streamError && (
+                  <p className="text-[9px] text-zinc-400">Loading track...</p>
+                )}
+                {isProcessing && (
+                  <p className="text-[9px] text-yellow-400">
+                    Track is still processing...
+                  </p>
+                )}
+                {accessState === "BLOCKED" && (
+                  <p className="text-[9px] text-red-400">
+                    {accessReason || "This track is unavailable."}
+                  </p>
+                )}
+                {accessState === "PREVIEW" && (
+                  <p className="text-[9px] text-orange-400">Preview mode</p>
+                )}
+                {streamError && accessState !== "BLOCKED" && (
+                  <p className="text-[9px] text-red-400">{streamError}</p>
+                )}
+                {!streamError && isResolvingPlayback && (
+                  <p className="text-[9px] text-zinc-500">Connecting to server...</p>
+                )}
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-4 shrink-0">
-          <VolumeControl />
-          <TrackInfo />
+          <div className="flex items-center gap-4 shrink-0">
+            <VolumeControl />
+            <TrackInfo />
 
-          <div className="flex items-center gap-3 ml-2 text-zinc-400">
-            <button
-              type="button"
-              onClick={handleFollowClick}
-              disabled={isOwnTrack || isLoading}
-              title={
-                isOwnTrack
-                  ? "You cannot follow yourself"
-                  : followed
-                    ? "Unfollow artist"
-                    : "Follow artist"
-              }
-              className={`transition-all ${isOwnTrack
+            <div className="flex items-center gap-3 ml-2 text-zinc-400">
+              <button
+                type="button"
+                onClick={handleFollowClick}
+                disabled={isOwnTrack || isLoading}
+                title={
+                  isOwnTrack
+                    ? "You cannot follow yourself"
+                    : followed
+                      ? "Unfollow artist"
+                      : "Follow artist"
+                }
+                className={`transition-all ${isOwnTrack
                   ? "opacity-40 cursor-not-allowed"
                   : followed
                     ? "text-[#ff5500] hover:opacity-80"
                     : "hover:text-white hover:opacity-80"
-                } ${isLoading ? "opacity-60 cursor-wait" : ""}`}
-            >
-              {followed ? <SlUserFollowing /> : <SlUserFollow />}
-            </button>
+                  } ${isLoading ? "opacity-60 cursor-wait" : ""}`}
+              >
+                {followed ? <SlUserFollowing /> : <SlUserFollow />}
+              </button>
 
-            <button className="hover:text-white transition-colors">
-              <PiQueue />
-            </button>
+              <button className="hover:text-white transition-colors">
+                <PiQueue />
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
