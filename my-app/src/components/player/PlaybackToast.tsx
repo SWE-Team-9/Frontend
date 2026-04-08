@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePlayerStore } from "@/src/store/playerStore";
 import { MdOutlineCancel } from "react-icons/md";
 import { MdLocationOff } from "react-icons/md";
@@ -47,25 +47,26 @@ function getToast(
 export function PlaybackToast() {
   const { accessState, accessReason, streamError, isProcessing } =
     usePlayerStore();
-  const [visible, setVisible] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
-  const toast = getToast(accessState, accessReason, streamError, isProcessing);
+
+  const [visible, setVisible] = useState(true);
+
+  const toast = useMemo(
+    () => getToast(accessState, accessReason, streamError, isProcessing),
+    [accessState, accessReason, streamError, isProcessing]
+  );
 
   useEffect(() => {
-    if (toast) {
-      setDismissed(false);
-      setVisible(true);
-      const timer = setTimeout(() => setVisible(false), 5000);
-      return () => clearTimeout(timer);
-    } else {
-      setVisible(false);
-    }
-  }, [accessState, streamError, isProcessing]);
+    if (!toast) return;
 
-  if (!toast || !visible || dismissed) return null;
+    const timer = setTimeout(() => setVisible(false), 5000);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  if (!toast || !visible) return null;
 
   return (
     <div
+      key={`${accessState ?? "none"}-${accessReason ?? "none"}-${streamError ?? "none"}-${isProcessing ? "processing" : "idle"}`}
       className="
         fixed bottom-[68px] left-4 z-50
         flex items-start gap-3
@@ -79,6 +80,7 @@ export function PlaybackToast() {
       <span className="flex-shrink-0 mt-0.5 text-[#ccc]">
         {toast.icon}
       </span>
+
       {/* Message */}
       <div className="flex-1 min-w-0 text-sm text-[#eee]">
         <p className="font-medium leading-tight">{toast.message}</p>
@@ -95,9 +97,10 @@ export function PlaybackToast() {
           toast.sub && <p className="text-[#aaa] text-xs mt-0.5">{toast.sub}</p>
         )}
       </div>
+
       {/* Dismiss button */}
       <button
-        onClick={() => { setVisible(false); setDismissed(true); }}
+        onClick={() => setVisible(false)}
         className="text-[#666] hover:text-white flex-shrink-0 mt-0.5"
         aria-label="Dismiss"
       >

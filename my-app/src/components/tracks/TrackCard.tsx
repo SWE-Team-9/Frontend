@@ -3,9 +3,9 @@
 import React, { useState, Fragment } from 'react';
 import Image from "next/image";
 import { Menu, MenuButton, MenuItems, MenuItem, Transition } from '@headlessui/react';
-import { 
-  Play, MoreHorizontal, BarChart2, Trash2, Edit2, 
-  Eye, EyeOff, Check 
+import {
+  Play, MoreHorizontal, BarChart2, Trash2, Edit2,
+  Eye, EyeOff, Check
 } from 'lucide-react';
 
 import { TrackActionButtons } from "@/src/components/tracks/TrackActionButtons";
@@ -27,7 +27,7 @@ export interface IntegratedTrack extends Partial<Omit<TrackDetails, 'coverArtUrl
 
 interface TrackCardProps {
   track: IntegratedTrack;
-  isOwner?: boolean; 
+  isOwner?: boolean;
   onDelete?: (id: string, title: string) => void;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onEdit?: (track: any) => void;
@@ -98,15 +98,15 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, isOwner, onDelete, 
 
   return (
     <div className="bg-[#1e1e1e] p-5 rounded-lg flex gap-6 items-start hover:bg-[#252525] transition-colors relative group">
-      
+
       {/* Artwork */}
       <div className="w-40 h-40 bg-[#333] rounded-md shrink-0 relative overflow-hidden">
         {(track.coverArtUrl || track.coverArt) ? (
-          <Image 
-            src={track.coverArtUrl || track.coverArt || ""} 
-            alt={track.title} 
-            fill 
-            className="object-cover" 
+          <Image
+            src={track.coverArtUrl || track.coverArt || ""}
+            alt={track.title}
+            fill
+            className="object-cover"
           />
         ) : (
           <div className="w-full h-full bg-[#2a2a2a] animate-pulse" />
@@ -120,25 +120,25 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, isOwner, onDelete, 
         {isEditing ? (
           /* --- EDIT MODE --- */
           <div className="flex flex-col gap-3 bg-[#181818] p-4 rounded-md border border-zinc-700">
-            <input 
+            <input
               value={editData.title}
               onChange={(e) => setEditData({ ...editData, title: e.target.value })}
               className="bg-[#121212] border border-zinc-700 rounded p-2 text-white text-sm"
               placeholder="Track Title"
             />
-            <input 
+            <input
               value={editData.genre}
               onChange={(e) => setEditData({ ...editData, genre: e.target.value })}
               className="bg-[#121212] border border-zinc-700 rounded p-2 text-white text-sm"
               placeholder="Genre"
             />
-            <input 
+            <input
               value={editData.tags}
               onChange={(e) => setEditData({ ...editData, tags: e.target.value })}
               className="bg-[#121212] border border-zinc-700 rounded p-2 text-white text-sm"
               placeholder="Tags (comma separated)"
             />
-            <textarea 
+            <textarea
               value={editData.description}
               onChange={(e) => setEditData({ ...editData, description: e.target.value })}
               className="bg-[#121212] border border-zinc-700 rounded p-2 text-white text-sm resize-none"
@@ -146,15 +146,15 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, isOwner, onDelete, 
               rows={3}
             />
             <div className="flex gap-2">
-              <button 
-                onClick={handleSave} 
+              <button
+                onClick={handleSave}
                 disabled={isSaving}
                 className="bg-white text-black px-4 py-1.5 rounded text-xs font-bold flex items-center gap-1 disabled:opacity-50"
               >
                 <Check className="w-3 h-3" /> {isSaving ? "Saving..." : "Save"}
               </button>
-              <button 
-                onClick={cancelEdit} 
+              <button
+                onClick={cancelEdit}
                 className="border border-zinc-600 text-zinc-400 px-4 py-1.5 rounded text-xs"
               >
                 Cancel
@@ -174,7 +174,7 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, isOwner, onDelete, 
                   <h4 className="text-white text-xl font-bold truncate">{track.title}</h4>
                 </div>
               </div>
-              
+
               <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${visibility === 'PUBLIC' ? 'bg-green-900/30 text-green-400' : 'bg-zinc-800 text-zinc-500'}`}>
                 {visibility}
               </span>
@@ -216,7 +216,7 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, isOwner, onDelete, 
                   >
                     {visibility === "PUBLIC" ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                   </button>
-                  
+
                   <button
                     onClick={enterEdit}
                     className="p-2 rounded bg-[#2a2a2a] text-zinc-400 hover:text-white"
@@ -226,42 +226,48 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, isOwner, onDelete, 
                   </button>
 
                   {onDelete && (
-                    <button 
+                    <button
                       onClick={(e) => {
                         e.stopPropagation();
                         onDelete(track.trackId, track.title);
-                      }} 
+                      }}
                       className="p-2 rounded bg-[#2a2a2a] text-red-500 hover:bg-red-900/20 transition-colors"
                       title="Delete Track"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   )}
-                  
-                  <Menu as="div" className="relative">
-                    <MenuButton className="p-2 rounded bg-[#2a2a2a] text-zinc-400 hover:text-white">
-                      <MoreHorizontal className="w-4 h-4" />
-                    </MenuButton>
-                    <Transition 
-                      as={Fragment}
-                      enter="transition ease-out duration-100"
-                      enterFrom="transform opacity-0 scale-95"
-                      enterTo="transform opacity-100 scale-100"
-                      leave="transition ease-in duration-75"
-                      leaveFrom="transform opacity-100 scale-100"
-                      leaveTo="transform opacity-0 scale-95"
-                    >
-                      <MenuItems className="absolute right-0 bottom-full mb-2 w-48 rounded-md bg-[#181818] border border-zinc-800 z-50">
-                        <MenuItem>
-                          {({ active }) => (
-                            <button className={`${active ? 'bg-zinc-800' : ''} text-zinc-300 group flex w-full items-center px-4 py-2 text-sm`}>
-                              <BarChart2 className="mr-2 h-4 w-4" /> Insights
-                            </button>
-                          )}
-                        </MenuItem>
-                      </MenuItems>
-                    </Transition>
-                  </Menu>
+
+                  <div className="relative">
+                    <Menu>
+                      <MenuButton className="p-2 rounded bg-[#2a2a2a] text-zinc-400 hover:text-white">
+                        <MoreHorizontal className="w-4 h-4" />
+                      </MenuButton>
+
+                      <Transition
+                        as={Fragment}
+                        enter="transition ease-out duration-100"
+                        enterFrom="transform opacity-0 scale-95"
+                        enterTo="transform opacity-100 scale-100"
+                        leave="transition ease-in duration-75"
+                        leaveFrom="transform opacity-100 scale-100"
+                        leaveTo="transform opacity-0 scale-95"
+                      >
+                        <MenuItems className="absolute right-0 bottom-full mb-2 w-48 rounded-md bg-[#181818] border border-zinc-800 z-50">
+                          <MenuItem>
+                            {({ active }: { active: boolean }) => (
+                              <button
+                                className={`${active ? "bg-zinc-800" : ""} text-zinc-300 group flex w-full items-center px-4 py-2 text-sm`}
+                              >
+                                <BarChart2 className="mr-2 h-4 w-4" />
+                                Insights
+                              </button>
+                            )}
+                          </MenuItem>
+                        </MenuItems>
+                      </Transition>
+                    </Menu>
+                  </div>
                 </div>
               )}
             </div>
