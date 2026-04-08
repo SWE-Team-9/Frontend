@@ -10,13 +10,14 @@ import { usePlayerStore, type Track as PlayerTrack } from "@/src/store/playerSto
 interface TrackListProps {
   userId: string;
   type?: "tracks" | "reposts" | "all";
+  isOwner?: boolean;
 }
 
-const TrackList: React.FC<TrackListProps> = ({ userId, type = "tracks" }) => {
+const TrackList: React.FC<TrackListProps> = ({ userId, type = "tracks", isOwner = false }) => {
   const [tracks, setTracks] = useState<TrackDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Get repost state from store
   const { repostedTrackIds, hydrate } = useRepostStore();
   const [actionError, setActionError] = useState<string | null>(null);
@@ -47,34 +48,34 @@ const TrackList: React.FC<TrackListProps> = ({ userId, type = "tracks" }) => {
 
   useEffect(() => {
     setPlayerTracks(mappedPlayerTracks);
-  }, [mappedPlayerTracks, setPlayerTracks]);  
+  }, [mappedPlayerTracks, setPlayerTracks]);
 
   // Re-run if type changes or if the size of reposts changes
   useEffect(() => {
     const loadTracks = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      setActionError(null);
-      const data = await getUserTracks(userId);
-      const allTracks = data.tracks || [];
+      try {
+        setIsLoading(true);
+        setError(null);
+        setActionError(null);
+        const data = await getUserTracks(userId);
+        const allTracks = data.tracks || [];
 
-      if (type === "reposts") {
-        // Filter by checking if ID exists in our Repost Set
-        const filtered = allTracks.filter((t: TrackDetails) => 
-          repostedTrackIds.has(String(t.trackId))
-        );
-        setTracks(filtered);
-      } else {
-        setTracks(allTracks);
+        if (type === "reposts") {
+          // Filter by checking if ID exists in our Repost Set
+          const filtered = allTracks.filter((t: TrackDetails) =>
+            repostedTrackIds.has(String(t.trackId))
+          );
+          setTracks(filtered);
+        } else {
+          setTracks(allTracks);
+        }
+      } catch (err) {
+        console.error("Load tracks failed:", err);
+        setTracks([]);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err) {
-      console.error("Load tracks failed:", err);
-      setTracks([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
     loadTracks();
   }, [userId, type, repostedTrackIds.size]);
 
@@ -112,7 +113,7 @@ const TrackList: React.FC<TrackListProps> = ({ userId, type = "tracks" }) => {
   return (
     <div className="space-y-4 max-w-4xl mx-auto p-6 bg-[#121212] rounded-xl">
       <h2 className="text-2xl font-bold text-white mb-4 uppercase tracking-wider">
-        {type === "reposts" ? "Reposts" : "Tracks"} 
+        {type === "reposts" ? "Reposts" : "Tracks"}
         <span className="text-zinc-500 text-lg"> ({tracks.length})</span>
       </h2>
 
@@ -127,15 +128,16 @@ const TrackList: React.FC<TrackListProps> = ({ userId, type = "tracks" }) => {
         <div className="grid gap-3">
           {tracks.map((track) => (
             <TrackCard
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               key={track.trackId || (track as any).id}
               track={{
                 ...track,
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 id: track.trackId || (track as any).id,
-                coverArtUrl: track.coverArtUrl ?? undefined 
+                coverArtUrl: track.coverArtUrl ?? undefined,
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              } as any} 
+              } as any}
+              isOwner={isOwner}
               onEdit={handleEdit}
               onDelete={handleDeleteClick}
             />

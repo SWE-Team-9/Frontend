@@ -148,9 +148,8 @@ export default function ProfilePage({
             <li
               key={t}
               onClick={() => { setDetailTab(t); setSearchQuery(""); }}
-              className={`pb-2 cursor-pointer border-b-2 transition-all ${
-                detailTab === t ? "text-white border-white" : "border-transparent hover:text-zinc-200"
-              }`}
+              className={`pb-2 cursor-pointer border-b-2 transition-all ${detailTab === t ? "text-white border-white" : "border-transparent hover:text-zinc-200"
+                }`}
             >
               {t}
             </li>
@@ -228,11 +227,10 @@ export default function ProfilePage({
                           avatar_url: avatar ?? "",
                         })
                       }
-                      className={`px-4 py-1.5 rounded text-[10px] font-bold uppercase transition-all ${
-                        isFollowing
-                          ? "bg-zinc-800 text-zinc-400 border border-zinc-700"
-                          : "bg-white text-black hover:bg-zinc-200"
-                      }`}
+                      className={`px-4 py-1.5 rounded text-[10px] font-bold uppercase transition-all ${isFollowing
+                        ? "bg-zinc-800 text-zinc-400 border border-zinc-700"
+                        : "bg-white text-black hover:bg-zinc-200"
+                        }`}
                     >
                       {isFollowing ? "Following" : "Follow"}
                     </button>
@@ -262,7 +260,7 @@ export default function ProfilePage({
       return (
         <div className="flex-1 border-r border-zinc-900/50 pr-12">
           {controller.userId ? (
-            <TrackList userId={controller.userId ?? ""} />
+            <TrackList userId={controller.userId ?? ""} isOwner={isOwner} />
           ) : (
             <p className="text-sm text-zinc-500">Loading tracks...</p>
           )}
@@ -281,7 +279,7 @@ export default function ProfilePage({
     if (activeTab === "Reposts") {
       return (
         <div className="flex-1 border-r border-zinc-900/50 pr-12">
-          <TrackList userId={controller.userId ?? ""} type="reposts" />
+          <TrackList userId={controller.userId ?? ""} type="reposts" isOwner={isOwner} />
         </div>
       );
     }
@@ -351,9 +349,8 @@ export default function ProfilePage({
                     <li
                       key={tab}
                       onClick={() => setActiveTab(tab)}
-                      className={`cursor-pointer transition-colors h-full flex items-center border-b-2 ${
-                        activeTab === tab ? "text-white border-white" : "border-transparent hover:text-white"
-                      }`}
+                      className={`cursor-pointer transition-colors h-full flex items-center border-b-2 ${activeTab === tab ? "text-white border-white" : "border-transparent hover:text-white"
+                        }`}
                     >
                       {tab}
                     </li>
