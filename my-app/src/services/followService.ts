@@ -26,6 +26,7 @@ export interface FollowActionResponse {
 
 export interface SuggestedUser extends FollowUser {
   reason?: string;
+  accountType?: "LISTENER" | "ARTIST";
 }
 
 export interface SuggestionsResponse {

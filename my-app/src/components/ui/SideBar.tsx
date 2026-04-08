@@ -15,7 +15,7 @@ const SideBar: React.FC<SideBarProps> = ({ children , showSidebar = true}) => {
       <main className="h-full flex-1 overflow-y-auto p-2 bg-[#121212] py-16">{children}</main>
 
       {/* Sidebar */}
-      <div className={`hidden md:flex flex-col gap-y-2 bg-black h-full w-96 p-2 
+      <div className={`hidden md:flex flex-col gap-y-2 bg-[#121212] h-full w-96 p-2 
         ${showSidebar ? "visible" : "invisible"}`}> 
         
         <Box className="flex-1">

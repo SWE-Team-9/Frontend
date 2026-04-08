@@ -49,7 +49,7 @@ export const useFollowStore = create<FollowStore>((set, get) => ({
 
     set({ error: null });
 
-    // Optimistic update: update following list and remove from suggestions if following
+    // update following list and remove from suggestions if following
     if (alreadyFollowing) {
       set({
         following: following.filter((u) => u.id?.toString() !== user.id.toString()),
@@ -105,8 +105,7 @@ export const useFollowStore = create<FollowStore>((set, get) => ({
       set({ error: "Could not load following list." });
     }
   },
-  //Menna
-
+  
   fetchFollowers: async (userId) => {
     if (!userId) return;
     try {
@@ -121,19 +120,18 @@ export const useFollowStore = create<FollowStore>((set, get) => ({
   },
 
   fetchSuggestions: async (limit = 3) => {
-    set({ suggestionsLoading: true, error: null });
-    try {
-      const data = await getSuggestions(limit);
-      // Filter out anyone already being followed
-      const { isFollowing } = get();
-      const filtered = (data.suggestions || []).filter(
-        (u) => !isFollowing(u.id),
-      );
-      set({ suggestions: filtered });
-    } catch {
-      set({ error: "Could not load suggested artists." });
-    } finally {
-      set({ suggestionsLoading: false });
-    }
-  },
+  set({ suggestionsLoading: true, error: null });
+  try {
+    const data = await getSuggestions(limit);
+    const { isFollowing } = get();
+    const filtered = (data.suggestions || []).filter(
+      (u) => !isFollowing(u.id) && (!u.accountType || u.accountType === "ARTIST")
+    );
+    set({ suggestions: filtered });
+  } catch {
+    set({ error: "Could not load suggested artists." });
+  } finally {
+    set({ suggestionsLoading: false });
+  }
+},
 }));

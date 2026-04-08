@@ -154,7 +154,7 @@ body {
 }
 
 .genre-select option:hover {
-  background-color: #ff5500aa;
+  background-color: #ff5500aa !important;
 }
 
 .genre-select option:checked {

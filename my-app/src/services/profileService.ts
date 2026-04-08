@@ -96,7 +96,6 @@ interface BackendUserProfile {
   avatar_url?: string | null;
   avatarUrl?: string | null;
   cover_photo_url?: string | null;
-  //Menna
   coverPhotoUrl?: string | null;
   coverUrl?: string | null;
   visibility?: "PUBLIC" | "PRIVATE";
@@ -107,7 +106,6 @@ interface BackendUserProfile {
   favorite_genres?: string[] | BackendFavoriteGenre[];
   favoriteGenres?: string[];
   external_links?: Record<string, string>;
-  //Menna
   social_links?: { platform?: string; url?: string }[];
   externalLinks?: { platform: string; url: string }[];
   followers_count?: number;
@@ -154,7 +152,6 @@ const mapProfileResponse = (profile: BackendUserProfile): UserProfile => {
     location: profile.location ?? null,
     website: profile.website_url ?? profile.website ?? null,
     avatarUrl: profile.avatar_url ?? profile.avatarUrl ?? null,
-    //Menna
     coverUrl:
       profile.cover_photo_url ?? profile.coverPhotoUrl ?? profile.coverUrl ?? null,
     isPrivate:
@@ -165,11 +162,9 @@ const mapProfileResponse = (profile: BackendUserProfile): UserProfile => {
       : profile.favoriteGenres ?? [],
     externalLinks: profile.external_links
       ? Object.entries(profile.external_links).map(([platform, url]) => ({
-//Menna
         platform: normalizePlatformFromBackend(platform),
           url,
         }))
-//Menna
         : profile.social_links
         ? profile.social_links
             .filter((link) => !!link.url)
