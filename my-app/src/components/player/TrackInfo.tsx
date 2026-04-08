@@ -19,7 +19,7 @@ export function TrackInfo() {
         alt={currentTrack.title}
         width={48}
         height={48}
-        className="rounded object-cover shadow-lg flex-shrink-0"
+        className="rounded object-cover shadow-lg shrink-0"
         unoptimized
       />
       <div className="min-w-0 flex-1">
@@ -39,7 +39,7 @@ export function TrackInfo() {
 
       <button
         onClick={() => setLiked((l) => !l)}
-        className={`flex-shrink-0 p-1.5 transition-colors ${
+        className={`shrink-0 p-1.5 transition-colors ${
           liked ? "text-[#f50]" : "text-[#999] hover:text-white"
         }`}
       >

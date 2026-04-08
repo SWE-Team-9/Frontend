@@ -1,21 +1,3 @@
-
-// import { Track, ArtistTracksResponse } from '../types/track';
-// export const trackService = {
-//   fetchArtistTracks: async (userId: string, page = 1, limit = 20): Promise<ArtistTracksResponse> => {
-//     const response = await api.get(`/api/v1/users/${userId}/tracks`, {
-//       params: { page, limit } 
-//     });
-//     return response.data;
-//   },
-//   updateTrack: async (trackId: string, data: { title: string; genre: string; tags: string[] }) => {
-//     const response = await api.put(`/api/v1/tracks/${trackId}`, data); 
-//     return response.data;
-//   },
-//   deleteTrack: async (trackId: string) => {
-//     await api.delete(`/api/v1/tracks/${trackId}`); 
-//   }
-// };
-
 import api from "@/src/services/api";
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";

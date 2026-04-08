@@ -15,7 +15,7 @@ export const useProfileController = (handle?: string) => {
   const isOwner = !handle || handle === store.handle;
   const [userId, setUserId] = useState<string | null>(null);
 
-  // UI state variables 
+  // UI state variables
   const [activeTab, setActiveTab] = useState("Tracks");
   const [viewState, setViewState] = useState("profile");
   const [detailTab, setDetailTab] = useState("Following");
@@ -42,22 +42,46 @@ export const useProfileController = (handle?: string) => {
 
   const genres = [
     "None",
-    "electronic", "hip-hop", "pop", "rock", "alternative",
-    "ambient", "classical", "jazz", "r-b-soul", "metal",
-    "folk-singer-songwriter", "country", "reggaeton", "dancehall",
-    "drum-bass", "house", "techno", "deep-house", "trance",
-    "lo-fi", "indie", "punk", "blues", "latin",
-    "afrobeat", "trap", "experimental", "world", "gospel", "spoken-word",
+    "electronic",
+    "hip-hop",
+    "pop",
+    "rock",
+    "alternative",
+    "ambient",
+    "classical",
+    "jazz",
+    "r-b-soul",
+    "metal",
+    "folk-singer-songwriter",
+    "country",
+    "reggaeton",
+    "dancehall",
+    "drum-bass",
+    "house",
+    "techno",
+    "deep-house",
+    "trance",
+    "lo-fi",
+    "indie",
+    "punk",
+    "blues",
+    "latin",
+    "afrobeat",
+    "trap",
+    "experimental",
+    "world",
+    "gospel",
+    "spoken-word",
   ];
 
-  //  Profile share links 
+  //  Profile share links
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const longLink = store.handle
     ? `${origin}/profiles/${store.handle}`
     : `${origin}/profiles`;
   const shortLink = longLink;
 
-  //  FETCH profile from backend on first load 
+  //  FETCH profile from backend on first load
   const loadProfile = useCallback(async () => {
     if (store.isLoaded || hasRequestedProfileRef.current) return;
     hasRequestedProfileRef.current = true;
@@ -105,12 +129,17 @@ export const useProfileController = (handle?: string) => {
   }, [handle]);
 
   useEffect(() => {
+    const current = useProfileStore.getState();
+    if (current.handle === handle && current.isLoaded) {
+      hasRequestedProfileRef.current = true; // prevent re-fetch
+      return;
+    }
     store.resetProfile();
     hasRequestedProfileRef.current = false;
     loadProfile();
-  }, [handle]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [handle]);
 
-  //  SAVE changes to the backend 
+  //  SAVE changes to the backend
   const handleSave = async () => {
     if (!store.displayName.trim()) {
       setError("Display name is required!");
@@ -148,8 +177,10 @@ export const useProfileController = (handle?: string) => {
     }
   };
 
-  //  AVATAR UPLOAD 
-  const handleAvatarUpload = async (file: File): Promise<string | undefined> => {
+  //  AVATAR UPLOAD
+  const handleAvatarUpload = async (
+    file: File,
+  ): Promise<string | undefined> => {
     if (isAvatarUploading) return store.avatarUrl || undefined;
 
     try {
@@ -173,7 +204,7 @@ export const useProfileController = (handle?: string) => {
     }
   };
 
-  //  Clipboard helper 
+  //  Clipboard helper
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(isShortened ? shortLink : longLink);
@@ -184,7 +215,7 @@ export const useProfileController = (handle?: string) => {
     }
   };
 
-  //  setProfileData wrapper 
+  //  setProfileData wrapper
   const setProfileData = (data: Parameters<typeof store.setProfileData>[0]) => {
     store.setProfileData(data);
   };

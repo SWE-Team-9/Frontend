@@ -32,7 +32,7 @@ export function ProgressBar() {
 
   return (
     <div className="flex items-center gap-2 w-full">
-      <span className="text-[#999] text-xs tabular-nums w-8 text-right flex-shrink-0">
+      <span className="text-[#999] text-xs tabular-nums w-8 text-right shrink-0">
         {formatTime(currentTime)}
       </span>
       <div
@@ -46,7 +46,7 @@ export function ProgressBar() {
           <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity" />
         </div>
       </div>
-      <span className="text-[#999] text-xs tabular-nums w-8 flex-shrink-0">
+      <span className="text-[#999] text-xs tabular-nums w-8 shrink-0">
         {formatTime(duration)}
       </span>
     </div>
