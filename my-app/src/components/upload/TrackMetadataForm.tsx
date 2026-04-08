@@ -142,10 +142,10 @@ const TrackMetadataForm = () => {
                 if (errors.genre)
                   setErrors((prev) => ({ ...prev, genre: undefined }));
               }}
-              className={`w-full focus:outline-none focus:border-[#ff5500] transition duration-300 mb-1 p-2 rounded border bg-[#121212] text-white ${errors.genre ? "border-red-500" : "border-[#8c8c8c]"}`}
+             className={`genre-select w-full focus:outline-none focus:border-[#ff5500] transition duration-300 mb-1 p-2 rounded border bg-[#333333] text-white ${errors.genre ? "border-red-500" : "border-[#8c8c8c]"}`}
             >
               {GENRES.map((g) => (
-                <option key={g} value={g} className="bg-[#1a1a1a]">
+                <option key={g} value={g} className="bg-[#333333]">
                   {g}
                 </option>
               ))}

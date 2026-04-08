@@ -147,3 +147,17 @@ body {
 .custom-datepicker-popper {
   z-index: 50;
 }
+
+.genre-select option {
+  background-color: #333333;
+  color: white;
+}
+
+.genre-select option:hover {
+  background-color: #ff5500aa;
+}
+
+.genre-select option:checked {
+  background-color: #ff5500;
+  color: white;
+}
