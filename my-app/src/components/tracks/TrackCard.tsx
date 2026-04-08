@@ -4,13 +4,14 @@ import React, { useState, Fragment } from 'react';
 import Image from "next/image";
 import { Menu, MenuButton, MenuItems, MenuItem, Transition } from '@headlessui/react';
 import {
-  Play, MoreHorizontal, BarChart2, Trash2, Edit2,
+  Play, Pause, MoreHorizontal, BarChart2, Trash2, Edit2,
   Eye, EyeOff, Check
 } from 'lucide-react';
 
 import { TrackActionButtons } from "@/src/components/tracks/TrackActionButtons";
 import { WaveformDisplay } from "@/src/components/tracks/WaveformDisplay";
 import { changeTrackVisibility, updateTrackMetadata, TrackDetails } from "@/src/services/uploadService";
+import { usePlayerStore, type Track as PlayerTrack } from "@/src/store/playerStore";
 
 
 export interface IntegratedTrack extends Partial<Omit<TrackDetails, 'coverArtUrl'>> {
@@ -37,6 +38,10 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, isOwner, onDelete, 
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const currentTrack = usePlayerStore((state) => state.currentTrack);
+  const isPlaying = usePlayerStore((state) => state.isPlaying);
+  const fetchAndPlay = usePlayerStore((state) => state.fetchAndPlay);
+  const toggle = usePlayerStore((state) => state.toggle);
 
   // Visibility state
   const [visibility, setVisibility] = useState<"PUBLIC" | "PRIVATE">(
@@ -52,6 +57,20 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, isOwner, onDelete, 
     releaseDate: track.releaseDate?.split("T")[0] ?? "",
     description: track.description ?? "",
   });
+
+  const playerTrack: PlayerTrack = {
+    trackId: track.trackId,
+    title: track.title,
+    artist: track.artistName || track.artist || "Unknown Artist",
+    artistId: track.artistId || "",
+    artistHandle: track.artistHandle ?? undefined,
+    artistAvatarUrl: track.artistAvatarUrl ?? null,
+    cover: track.coverArtUrl || track.coverArt || "/images/track-placeholder.png",
+    duration: track.durationMs ? Math.floor(track.durationMs / 1000) : undefined,
+    genre: track.genre ?? undefined,
+  };
+
+  const isCurrentTrack = currentTrack?.trackId === track.trackId;
 
   const handleToggleVisibility = async () => {
     const newVisibility = visibility === "PUBLIC" ? "PRIVATE" : "PUBLIC";
@@ -93,6 +112,23 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, isOwner, onDelete, 
       setError("Could not save track changes. Please try again.");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handlePlayClick = async () => {
+    if (track.status === "PROCESSING") return;
+
+    try {
+      setError(null);
+
+      if (isCurrentTrack) {
+        await toggle();
+        return;
+      }
+
+      await fetchAndPlay(playerTrack);
+    } catch {
+      setError("Could not start playback. Please try again.");
     }
   };
 
@@ -166,8 +202,18 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, isOwner, onDelete, 
           <>
             <div className="flex justify-between items-start gap-4">
               <div className="flex items-center gap-3 min-w-0">
-                <button className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-black hover:scale-105 transition-transform shrink-0">
-                  <Play className="w-6 h-6 fill-black" />
+                <button
+                  onClick={handlePlayClick}
+                  disabled={track.status === "PROCESSING"}
+                  className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-black hover:scale-105 transition-transform shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label={isCurrentTrack && isPlaying ? "Pause track" : "Play track"}
+                  title={track.status === "PROCESSING" ? "Track is still processing" : isCurrentTrack && isPlaying ? "Pause" : "Play"}
+                >
+                  {isCurrentTrack && isPlaying ? (
+                    <Pause className="w-6 h-6 fill-black" />
+                  ) : (
+                    <Play className="w-6 h-6 fill-black" />
+                  )}
                 </button>
                 <div className="truncate">
                   <p className="text-zinc-400 text-sm">{track.artistName || "Artist"}</p>

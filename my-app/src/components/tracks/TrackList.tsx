@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { TrackDetails, getUserTracks, deleteTrack } from "@/src/services/uploadService";
 import { TrackCard } from "@/src/components/tracks/TrackCard";
 import DeleteTrackModal from "@/src/components/tracks/DeleteTrackModal";
 import { useRepostStore } from "@/src/store/repostStore";
+import { usePlayerStore, type Track as PlayerTrack } from "@/src/store/playerStore";
 
 interface TrackListProps {
   userId: string;
@@ -20,15 +21,33 @@ const TrackList: React.FC<TrackListProps> = ({ userId, type = "tracks" }) => {
   const { repostedTrackIds, hydrate } = useRepostStore();
   const [actionError, setActionError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const setPlayerTracks = usePlayerStore((state) => state.setTracks);
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [trackToDelete, setTrackToDelete] = useState<{ id: string; title: string } | null>(null);
+
+  const mappedPlayerTracks = useMemo<PlayerTrack[]>(() => {
+    return tracks.map((track) => ({
+      trackId: track.trackId,
+      title: track.title,
+      artist: track.artist || "Unknown Artist",
+      artistId: track.artistId || "",
+      artistHandle: track.artistHandle ?? undefined,
+      artistAvatarUrl: track.artistAvatarUrl ?? null,
+      cover: track.coverArtUrl || "/images/track-placeholder.png",
+      duration: track.durationMs ? Math.floor(track.durationMs / 1000) : undefined,
+      genre: track.genre ?? undefined,
+    }));
+  }, [tracks]);
 
   // Initial hydration
   useEffect(() => {
     hydrate();
   }, [hydrate]);
 
+  useEffect(() => {
+    setPlayerTracks(mappedPlayerTracks);
+  }, [mappedPlayerTracks, setPlayerTracks]);  
 
   // Re-run if type changes or if the size of reposts changes
   useEffect(() => {
