@@ -379,7 +379,7 @@ export default function ProfilePage({
                   avatarUrl={avatarUrl}
                   isOwner={isOwner}
                 />
-                <div className="flex flex-col gap-1.5 items-center md:items-start">
+                <div className="flex flex-col gap-1.5 items-center md:items-start z-100">
                   <div className="flex flex-col md:flex-row items-center gap-2 bg-black px-3 py-1 w-fit">
                     <h1 className="text-xl md:text-3xl font-bold uppercase tracking-tight">
                       {displayName}
