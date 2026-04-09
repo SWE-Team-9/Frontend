@@ -1,4 +1,3 @@
-// src/components/tracks/EngagementModal.tsx
 import React, { useEffect, useState } from "react";
 import { getTrackEngagements, EngagementUser } from "@/src/services/interactionService";
 import { IoClose } from "react-icons/io5";
@@ -37,7 +36,7 @@ export const EngagementModal: React.FC<EngagementModalProps> = ({ isOpen, onClos
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div className="bg-[#181818] w-full max-w-md rounded-xl border border-zinc-800 shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-zinc-800">
@@ -50,7 +49,7 @@ export const EngagementModal: React.FC<EngagementModalProps> = ({ isOpen, onClos
         </div>
 
         {/* List */}
-        <div className="p-2 max-h-[400px] overflow-y-auto custom-scrollbar">
+        <div className="p-2 max-h-100 overflow-y-auto custom-scrollbar">
           {loading ? (
             <div className="py-10 text-center text-zinc-500 animate-pulse">Loading {type}...</div>
           ) : users.length === 0 ? (

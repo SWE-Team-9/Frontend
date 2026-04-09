@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { useAuthStore } from "./useAuthStore";
 import {
   followUser,
   unfollowUser,
@@ -13,6 +14,8 @@ import { useProfileStore } from "./useProfileStore";
 type FollowStore = {
   following: FollowUser[];
   followers: FollowUser[];
+  profileFollowing: FollowUser[];
+  profileFollowers: FollowUser[];
   suggestions: SuggestedUser[];
   suggestionsLoading: boolean;
   loadingIds: Record<string, boolean>;
@@ -28,6 +31,8 @@ type FollowStore = {
 export const useFollowStore = create<FollowStore>((set, get) => ({
   following: [],
   followers: [],
+  profileFollowing: [],
+  profileFollowers: [],
   suggestions: [],
   suggestionsLoading: false,
   loadingIds: {},
@@ -49,7 +54,6 @@ export const useFollowStore = create<FollowStore>((set, get) => ({
 
     set({ error: null });
 
-    // update following list and remove from suggestions if following
     if (alreadyFollowing) {
       set({
         following: following.filter((u) => u.id?.toString() !== user.id.toString()),
@@ -74,12 +78,11 @@ export const useFollowStore = create<FollowStore>((set, get) => ({
         useProfileStore.setState({ followingCount: Math.max(0, currentCount - 1) });
       }
     } catch {
-      // Rollback on error
       set({
         following: alreadyFollowing
           ? [...following, user]
           : following.filter((u) => u.id?.toString() !== user.id.toString()),
-           suggestions: alreadyFollowing
+        suggestions: alreadyFollowing
           ? suggestions
           : [...suggestions, user as SuggestedUser],
         error: "Could not update follow status. Please try again.",
@@ -100,12 +103,20 @@ export const useFollowStore = create<FollowStore>((set, get) => ({
       const data = await getFollowing(userId);
       const followingList = data.following || [];
       useProfileStore.setState({ followingCount: followingList.length });
-      set({ following: followingList });
+
+      const currentUserId = useAuthStore.getState().user?.id;
+      if (userId === currentUserId) {
+        // Own profile: update both tracking list and display list
+        set({ following: followingList, profileFollowing: followingList });
+      } else {
+        // Another profile: only update display list, keep own tracking intact
+        set({ profileFollowing: followingList });
+      }
     } catch {
       set({ error: "Could not load following list." });
     }
   },
-  
+
   fetchFollowers: async (userId) => {
     if (!userId) return;
     try {
@@ -113,25 +124,31 @@ export const useFollowStore = create<FollowStore>((set, get) => ({
       const data = await getFollowers(userId);
       const followersList = data.followers || [];
       useProfileStore.setState({ followersCount: followersList.length });
-      set({ followers: followersList });
+
+      const currentUserId = useAuthStore.getState().user?.id;
+      if (userId === currentUserId) {
+        set({ followers: followersList, profileFollowers: followersList });
+      } else {
+        set({ profileFollowers: followersList });
+      }
     } catch {
       set({ error: "Could not load followers list." });
     }
   },
 
   fetchSuggestions: async (limit = 3) => {
-  set({ suggestionsLoading: true, error: null });
-  try {
-    const data = await getSuggestions(limit);
-    const { isFollowing } = get();
-    const filtered = (data.suggestions || []).filter(
-      (u) => !isFollowing(u.id) && (!u.accountType || u.accountType === "ARTIST")
-    );
-    set({ suggestions: filtered });
-  } catch {
-    set({ error: "Could not load suggested artists." });
-  } finally {
-    set({ suggestionsLoading: false });
-  }
-},
+    set({ suggestionsLoading: true, error: null });
+    try {
+      const data = await getSuggestions(limit);
+      const { isFollowing } = get();
+      const filtered = (data.suggestions || []).filter(
+        (u) => !isFollowing(u.id) && (!u.accountType || u.accountType === "ARTIST")
+      );
+      set({ suggestions: filtered });
+    } catch {
+      set({ error: "Could not load suggested artists." });
+    } finally {
+      set({ suggestionsLoading: false });
+    }
+  },
 }));

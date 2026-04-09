@@ -52,8 +52,8 @@ export default function ProfilePage({
   const isOwner = currentUserHandle === handle;
 
   // ── Follow store ──────────────────────────────────────────────────────────
-  const following = useFollowStore((state) => state.following || []);
-  const followers = useFollowStore((state) => state.followers || []);
+  const following = useFollowStore((state) => state.profileFollowing || []);
+  const followers = useFollowStore((state) => state.profileFollowers || []);
   const fetchFollowing = useFollowStore((state) => state.fetchFollowing);
   const fetchFollowers = useFollowStore((state) => state.fetchFollowers);
   const storeToggleFollow = useFollowStore((state) => state.toggleFollow);
