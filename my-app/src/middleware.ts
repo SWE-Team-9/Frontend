@@ -12,7 +12,7 @@
 
 
 
-// ####### It is intended to be used for authentication middleware ####### 
+// // ####### It is intended to be used for authentication middleware ####### 
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
