@@ -57,7 +57,7 @@ export const ProfileSidebar = ({
               const img = track.coverArt || track.imageUrl;
               return (
                 <div key={track.id} className="flex items-center gap-3 group cursor-pointer">
-                  <div className="w-10 h-10 bg-zinc-800 rounded flex-shrink-0 border border-zinc-800/50 overflow-hidden relative">
+                  <div className="w-10 h-10 bg-zinc-800 rounded shrink-0 border border-zinc-800/50 overflow-hidden relative">
                     {img ? (
                       <Image src={img} alt="" fill className="object-cover" unoptimized />
                     ) : (
@@ -66,7 +66,7 @@ export const ProfileSidebar = ({
                       </div>
                     )}
                   </div>
-                  <div className="min-w-0 flex-grow">
+                  <div className="min-w-0 grow">
                     <p className="text-zinc-200 text-[13px] truncate font-medium group-hover:text-[#f50] transition-colors">{track.title}</p>
                     <p className="text-zinc-500 text-[11px] uppercase tracking-tighter">{track.artistName || "Unknown Artist"}</p>
                   </div>
@@ -80,7 +80,7 @@ export const ProfileSidebar = ({
       {/* --- FOLLOWING LIST --- */}
       <div className="space-y-5 border-t border-zinc-900 pt-6">
         <div className="flex justify-between items-center text-zinc-500 text-[13px]">
-          <p className="font-bold uppercase tracking-tight">👤 {followingCount} Following</p>
+          <p className="font-bold uppercase tracking-tight">{followingCount} Following</p>
           <button onClick={() => { setViewState("details"); setDetailTab("Following"); }} className="hover:text-white font-bold text-xs uppercase">View all</button>
         </div>
         <div className="space-y-4">

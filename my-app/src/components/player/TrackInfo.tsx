@@ -12,6 +12,23 @@ export function TrackInfo() {
 
   if (!currentTrack) return null;
 
+  const getArtistLabel = (value: unknown): string => {
+    if (typeof value === "string") return value;
+
+    if (
+      value &&
+      typeof value === "object" &&
+      "displayName" in value &&
+      typeof (value as { displayName?: unknown }).displayName === "string"
+    ) {
+      return (value as { displayName: string }).displayName;
+    }
+
+    return "Unknown Artist";
+  };
+
+  const artistLabel = getArtistLabel(currentTrack.artist);
+
   return (
     <div className="flex items-center gap-3 min-w-0 flex-1 max-w-xs">
       <Image
@@ -27,7 +44,7 @@ export function TrackInfo() {
           {currentTrack.title}
         </p>
         <p className="text-[#999] text-xs truncate mt-0.5">
-          {currentTrack.artist}
+          {artistLabel}
         </p>
 
         {accessState === "PREVIEW" && (
@@ -39,9 +56,8 @@ export function TrackInfo() {
 
       <button
         onClick={() => setLiked((l) => !l)}
-        className={`shrink-0 p-1.5 transition-colors ${
-          liked ? "text-[#f50]" : "text-[#999] hover:text-white"
-        }`}
+        className={`shrink-0 p-1.5 transition-colors ${liked ? "text-[#f50]" : "text-[#999] hover:text-white"
+          }`}
       >
         {liked ? <FaHeart size={14} /> : <FaRegHeart size={14} />}
       </button>

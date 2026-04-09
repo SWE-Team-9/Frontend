@@ -38,8 +38,8 @@ export const EngagementModal: React.FC<EngagementModalProps> = ({ isOpen, onClos
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 backdrop-blur-sm px-4">
-      <div className="bg-[#121212] w-full max-w-md rounded-xl border border-zinc-800 shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+    <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-[#181818] w-full max-w-md rounded-xl border border-zinc-800 shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-zinc-800">
           <h3 className="text-white font-bold uppercase tracking-widest text-[10px]">
@@ -50,8 +50,8 @@ export const EngagementModal: React.FC<EngagementModalProps> = ({ isOpen, onClos
           </button>
         </div>
 
-        {/* List Content */}
-        <div className="p-2 max-h-[400px] min-h-[250px] overflow-y-auto custom-scrollbar">
+        {/* List */}
+        <div className="p-2 max-h-100 overflow-y-auto custom-scrollbar">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-24 gap-3">
               <div className="w-5 h-5 border-2 border-[#ff5500] border-t-transparent rounded-full animate-spin" />

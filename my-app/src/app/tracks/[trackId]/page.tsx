@@ -158,7 +158,7 @@ export default function TrackDetailPage() {
           .split(",")
           .map((t) => t.trim())
           .filter(Boolean),
-        releaseDate: editReleaseDate,
+        releaseDate: editReleaseDate ? new Date(editReleaseDate).toISOString() : undefined,
         description: editDescription,
       });
 

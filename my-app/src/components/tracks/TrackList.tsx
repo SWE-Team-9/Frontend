@@ -13,6 +13,21 @@ interface TrackListProps {
   isOwner?: boolean;
 }
 
+function getArtistLabel(value: unknown): string {
+  if (typeof value === "string") return value;
+
+  if (
+    value &&
+    typeof value === "object" &&
+    "displayName" in value &&
+    typeof (value as { displayName?: unknown }).displayName === "string"
+  ) {
+    return (value as { displayName: string }).displayName;
+  }
+
+  return "Unknown Artist";
+}
+
 const TrackList: React.FC<TrackListProps> = ({ userId, type = "tracks", isOwner = false }) => {
   const [tracks, setTracks] = useState<TrackDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,7 +46,7 @@ const TrackList: React.FC<TrackListProps> = ({ userId, type = "tracks", isOwner 
     return tracks.map((track) => ({
       trackId: track.trackId,
       title: track.title,
-      artist: track.artist || "Unknown Artist",
+      artist: getArtistLabel(track.artist),
       artistId: track.artistId || "",
       artistHandle: track.artistHandle ?? undefined,
       artistAvatarUrl: track.artistAvatarUrl ?? null,

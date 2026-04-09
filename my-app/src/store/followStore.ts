@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { useAuthStore } from "./useAuthStore";
 import {
   followUser,
   unfollowUser,
@@ -13,6 +14,8 @@ import { useProfileStore } from "./useProfileStore";
 type FollowStore = {
   following: FollowUser[];
   followers: FollowUser[];
+  profileFollowing: FollowUser[];
+  profileFollowers: FollowUser[];
   suggestions: SuggestedUser[];
   suggestionsLoading: boolean;
   loadingIds: Record<string, boolean>;
@@ -28,6 +31,8 @@ type FollowStore = {
 export const useFollowStore = create<FollowStore>((set, get) => ({
   following: [],
   followers: [],
+  profileFollowing: [],
+  profileFollowers: [],
   suggestions: [],
   suggestionsLoading: false,
   loadingIds: {},
@@ -36,9 +41,7 @@ export const useFollowStore = create<FollowStore>((set, get) => ({
 
   isFollowing: (userId) => {
     if (!userId) return false;
-    return get().following.some(
-      (u) => u?.id?.toString() === userId.toString(),
-    );
+    return get().following.some((u) => u?.id?.toString() === userId.toString());
   },
 
   toggleFollow: async (user) => {
@@ -49,16 +52,19 @@ export const useFollowStore = create<FollowStore>((set, get) => ({
 
     set({ error: null });
 
-    // update following list and remove from suggestions if following
     if (alreadyFollowing) {
       set({
-        following: following.filter((u) => u.id?.toString() !== user.id.toString()),
+        following: following.filter(
+          (u) => u.id?.toString() !== user.id.toString(),
+        ),
         loadingIds: { ...loadingIds, [user.id]: true },
       });
     } else {
       set({
         following: [...following, user],
-        suggestions: suggestions.filter((u) => u.id?.toString() !== user.id.toString()),
+        suggestions: suggestions.filter(
+          (u) => u.id?.toString() !== user.id.toString(),
+        ),
         loadingIds: { ...loadingIds, [user.id]: true },
       });
     }
@@ -71,15 +77,16 @@ export const useFollowStore = create<FollowStore>((set, get) => ({
       } else {
         await unfollowUser(user.id);
         const currentCount = useProfileStore.getState().followingCount;
-        useProfileStore.setState({ followingCount: Math.max(0, currentCount - 1) });
+        useProfileStore.setState({
+          followingCount: Math.max(0, currentCount - 1),
+        });
       }
     } catch {
-      // Rollback on error
       set({
         following: alreadyFollowing
           ? [...following, user]
           : following.filter((u) => u.id?.toString() !== user.id.toString()),
-           suggestions: alreadyFollowing
+        suggestions: alreadyFollowing
           ? suggestions
           : [...suggestions, user as SuggestedUser],
         error: "Could not update follow status. Please try again.",
@@ -99,39 +106,60 @@ export const useFollowStore = create<FollowStore>((set, get) => ({
       set({ error: null });
       const data = await getFollowing(userId);
       const followingList = data.following || [];
-      useProfileStore.setState({ followingCount: followingList.length });
-      set({ following: followingList });
+
+      // Only update counts if this is still the active profile
+      if (useProfileStore.getState().userId === userId) {
+        useProfileStore.setState({ followingCount: followingList.length });
+      }
+
+      const currentUserId = useAuthStore.getState().user?.id;
+      if (userId === currentUserId) {
+        set({ following: followingList, profileFollowing: followingList });
+      } else {
+        set({ profileFollowing: followingList });
+      }
     } catch {
       set({ error: "Could not load following list." });
     }
   },
-  
+
   fetchFollowers: async (userId) => {
     if (!userId) return;
     try {
       set({ error: null });
       const data = await getFollowers(userId);
       const followersList = data.followers || [];
-      useProfileStore.setState({ followersCount: followersList.length });
-      set({ followers: followersList });
+
+      // Only update counts if this is still the active profile
+      if (useProfileStore.getState().userId === userId) {
+        useProfileStore.setState({ followersCount: followersList.length });
+      }
+
+      const currentUserId = useAuthStore.getState().user?.id;
+      if (userId === currentUserId) {
+        set({ followers: followersList, profileFollowers: followersList });
+      } else {
+        set({ profileFollowers: followersList });
+      }
     } catch {
       set({ error: "Could not load followers list." });
     }
   },
 
   fetchSuggestions: async (limit = 3) => {
-  set({ suggestionsLoading: true, error: null });
-  try {
-    const data = await getSuggestions(limit);
-    const { isFollowing } = get();
-    const filtered = (data.suggestions || []).filter(
-      (u) => !isFollowing(u.id) && (!u.accountType || u.accountType === "ARTIST")
-    );
-    set({ suggestions: filtered });
-  } catch {
-    set({ error: "Could not load suggested artists." });
-  } finally {
-    set({ suggestionsLoading: false });
-  }
-},
+    set({ suggestionsLoading: true, error: null });
+    try {
+      const data = await getSuggestions(limit);
+      const { isFollowing } = get();
+      const filtered = (data.suggestions || []).filter(
+        (u) =>
+          !isFollowing(u.id) && (!u.accountType || u.accountType === "ARTIST"),
+      );
+      set({ suggestions: filtered });
+    } catch {
+      set({ error: "Could not load suggested artists." });
+    } finally {
+      set({ suggestionsLoading: false });
+    }
+  },
 }));

@@ -20,8 +20,8 @@ import { TrackCard } from "@/src/components/tracks/TrackCard";
 import Image from "next/image";
 import { useFollowStore } from "@/src/store/followStore";
 import { useLikeStore } from "@/src/store/likeStore";
-import api from "@/src/services/api";
 import TrackList from "@/src/components/tracks/TrackList";
+import Link from "next/dist/client/link";
 
 type FollowUserShape = {
   id: string;
@@ -44,16 +44,12 @@ export default function ProfilePage({
 }) {
   const resolvedParams = React.use(params);
   const handle = resolvedParams.handle;
-
-  const [currentUserHandle, setCurrentUserHandle] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-
   const controller = useProfileController(handle);
-  const isOwner = currentUserHandle === handle;
-
+  const isOwner = controller.isOwner;
   // ── Follow store ──────────────────────────────────────────────────────────
-  const following = useFollowStore((state) => state.following || []);
-  const followers = useFollowStore((state) => state.followers || []);
+  const following = useFollowStore((state) => state.profileFollowing || []);
+  const followers = useFollowStore((state) => state.profileFollowers || []);
   const fetchFollowing = useFollowStore((state) => state.fetchFollowing);
   const fetchFollowers = useFollowStore((state) => state.fetchFollowers);
   const storeToggleFollow = useFollowStore((state) => state.toggleFollow);
@@ -64,24 +60,18 @@ export default function ProfilePage({
   const likedTracks = useLikeStore((state) => state.likedTracks || []);
   const likeError = useLikeStore((state) => state.error);
 
+  // Clear stale data immediately the moment the handle changes
+  useEffect(() => {
+    useFollowStore.setState({ profileFollowing: [], profileFollowers: [] });
+  }, [handle]);
+
+  // Fetch the new profile's follow data once userId is known
   useEffect(() => {
     if (controller.userId) {
       fetchFollowing(controller.userId);
       fetchFollowers(controller.userId);
     }
   }, [controller.userId, fetchFollowing, fetchFollowers]);
-
-  useEffect(() => {
-    const fetchCurrentUser = async () => {
-      try {
-        const { data } = await api.get("/auth/me");
-        setCurrentUserHandle(data.handle);
-      } catch {
-        setCurrentUserHandle(null);
-      }
-    };
-    fetchCurrentUser();
-  }, []);
 
   const router = useRouter();
 
@@ -115,6 +105,8 @@ export default function ProfilePage({
     setIsEditOpen,
     handleAvatarUpload,
     avatarUrl,
+    coverUrl,
+    handleCoverUpload,
   } = controller;
 
   const sourceUsers = detailTab === "Following" ? following : followers;
@@ -130,7 +122,11 @@ export default function ProfilePage({
       <div className="flex items-center gap-6 mb-12">
         <div className="w-32 h-32 rounded-full bg-zinc-800 border border-zinc-700 shadow-xl overflow-hidden flex items-center justify-center shrink-0">
           {avatarUrl ? (
-            <Image src={avatarUrl} alt={displayName} className="w-full h-full object-cover" />
+            <Image
+              src={avatarUrl}
+              alt={displayName}
+              className="w-full h-full object-cover"
+            />
           ) : (
             <span className="text-4xl font-bold uppercase text-zinc-400">
               {displayName?.charAt(0)}
@@ -147,9 +143,15 @@ export default function ProfilePage({
           {["Likes", "Following", "Followers"].map((t) => (
             <li
               key={t}
-              onClick={() => { setDetailTab(t); setSearchQuery(""); }}
-              className={`pb-2 cursor-pointer border-b-2 transition-all ${detailTab === t ? "text-white border-white" : "border-transparent hover:text-zinc-200"
-                }`}
+              onClick={() => {
+                setDetailTab(t);
+                setSearchQuery("");
+              }}
+              className={`pb-2 cursor-pointer border-b-2 transition-all ${
+                detailTab === t
+                  ? "text-white border-white"
+                  : "border-transparent hover:text-zinc-200"
+              }`}
             >
               {t}
             </li>
@@ -170,13 +172,17 @@ export default function ProfilePage({
       )}
 
       <div className="py-10 flex flex-col items-center">
-        {followError && <p className="mb-4 text-sm text-red-400">{followError}</p>}
+        {followError && (
+          <p className="mb-4 text-sm text-red-400">{followError}</p>
+        )}
         {likeError && <p className="mb-4 text-sm text-red-400">{likeError}</p>}
 
         {/* ── LIKES TAB ── */}
         {detailTab === "Likes" &&
           (likedTracks.length === 0 ? (
-            <p className="text-2xl font-bold text-zinc-500 uppercase py-24">No likes yet.</p>
+            <p className="text-2xl font-bold text-zinc-500 uppercase py-24">
+              No likes yet.
+            </p>
           ) : (
             <div className="grid grid-cols-1 gap-6 w-full">
               {likedTracks.map((track) => (
@@ -201,23 +207,49 @@ export default function ProfilePage({
           (filteredUsers.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8">
               {filteredUsers.map((user) => {
-                const name = user.display_name || user.displayName || user.name || "";
-                const avatar = user.avatar_url || user.avatarUrl || user.avatar || null;
-                const followerCount = user.followersCount || user.followers_count || user.followers || 0;
+                const name =
+                  user.display_name || user.displayName || user.name || "";
+                const avatar =
+                  user.avatar_url || user.avatarUrl || user.avatar || null;
+                const followerCount =
+                  user.followersCount ||
+                  user.followers_count ||
+                  user.followers ||
+                  0;
                 const isFollowing = checkIsFollowing(user.id);
                 return (
-                  <div key={`${detailTab}-${user.id}`} className="flex flex-col items-center text-center group">
-                    <div className="relative w-40 h-40 mb-4 rounded-full overflow-hidden border-2 border-zinc-800 group-hover:border-orange-500 transition-all shadow-2xl bg-zinc-900">
-                      {avatar ? (
-                        <Image src={avatar} alt={name} fill className="object-cover" unoptimized />
-                      ) : (
-                        <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
-                          <span className="text-3xl font-bold text-zinc-500 uppercase">{name.charAt(0)}</span>
-                        </div>
-                      )}
-                    </div>
-                    <h4 className="font-bold text-white text-sm uppercase mb-1">{name}</h4>
-                    <p className="text-zinc-500 text-[11px] mb-4">{followerCount} followers</p>
+                  <div
+                    key={`${detailTab}-${user.id}`}
+                    className="flex flex-col items-center text-center group"
+                  >
+                    <Link
+                      href={user.handle ? `/profiles/${user.handle}` : "#"}
+                      className="flex flex-col items-center"
+                    >
+                      <div className="relative w-40 h-40 mb-4 rounded-full overflow-hidden border-2 border-zinc-800 group-hover:border-orange-500 transition-all shadow-2xl bg-zinc-900">
+                        {avatar ? (
+                          <Image
+                            src={avatar}
+                            alt={name}
+                            fill
+                            className="object-cover"
+                            unoptimized
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
+                            <span className="text-3xl font-bold text-zinc-500 uppercase">
+                              {name.charAt(0)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <h4 className="font-bold text-white text-sm uppercase mb-1">
+                        {name}
+                      </h4>
+                      <p className="text-zinc-500 text-[11px] mb-4">
+                        {followerCount} followers
+                      </p>
+                    </Link>
                     <button
                       onClick={() =>
                         storeToggleFollow({
@@ -227,10 +259,11 @@ export default function ProfilePage({
                           avatar_url: avatar ?? "",
                         })
                       }
-                      className={`px-4 py-1.5 rounded text-[10px] font-bold uppercase transition-all ${isFollowing
-                        ? "bg-zinc-800 text-zinc-400 border border-zinc-700"
-                        : "bg-white text-black hover:bg-zinc-200"
-                        }`}
+                      className={`px-4 py-1.5 rounded text-[10px] font-bold uppercase transition-all ${
+                        isFollowing
+                          ? "bg-zinc-800 text-zinc-400 border border-zinc-700"
+                          : "bg-white text-black hover:bg-zinc-200"
+                      }`}
                     >
                       {isFollowing ? "Following" : "Follow"}
                     </button>
@@ -240,12 +273,17 @@ export default function ProfilePage({
             </div>
           ) : (
             <div className="py-20 text-center">
-              <p className="text-xl font-bold text-zinc-600 uppercase mb-8">Nothing found.</p>
+              <p className="text-xl font-bold text-zinc-600 uppercase mb-8">
+                Nothing found.
+              </p>
             </div>
           ))}
 
         <button
-          onClick={() => { setViewState("profile"); setSearchQuery(""); }}
+          onClick={() => {
+            setViewState("profile");
+            setSearchQuery("");
+          }}
           className="mt-12 bg-white text-black px-6 py-2 rounded-full font-bold hover:bg-zinc-200 transition-all uppercase"
         >
           ← Back to Profile
@@ -271,7 +309,9 @@ export default function ProfilePage({
     if (activeTab === "Playlists") {
       return (
         <div className="flex-1 text-center py-20 border-r border-zinc-900/50 pr-12 flex flex-col items-center justify-center">
-          <p className="text-zinc-500 text-xl font-bold">You haven&apos;t created any playlists.</p>
+          <p className="text-zinc-500 text-xl font-bold">
+            You haven&apos;t created any playlists.
+          </p>
         </div>
       );
     }
@@ -279,14 +319,20 @@ export default function ProfilePage({
     if (activeTab === "Reposts") {
       return (
         <div className="flex-1 border-r border-zinc-900/50 pr-12">
-          <TrackList userId={controller.userId ?? ""} type="reposts" isOwner={isOwner} />
+          <TrackList
+            userId={controller.userId ?? ""}
+            type="reposts"
+            isOwner={isOwner}
+          />
         </div>
       );
     }
 
     return (
       <div className="flex-1 text-center py-20 border-r border-zinc-900/50 pr-12 flex flex-col items-center justify-center">
-        <p className="text-zinc-500 text-xl font-bold mb-6">Seems a little quiet over here</p>
+        <p className="text-zinc-500 text-xl font-bold mb-6">
+          Seems a little quiet over here
+        </p>
         {isOwner && (
           <button
             onClick={() => router.push("/upload")}
@@ -321,11 +367,23 @@ export default function ProfilePage({
             {/* ── SECTION 1: VISUAL HEADER ── */}
             <div className="relative w-full min-h-65 bg-[#d38b7d] p-4 md:p-6 flex flex-col md:flex-row items-center md:items-start justify-between gap-4">
               <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-center text-center md:text-left mt-2">
-                <CoverPhoto />
-                <AvatarUpload username={displayName} location={location} onUpload={handleAvatarUpload} avatarUrl={avatarUrl} />
-                <div className="flex flex-col gap-1.5 items-center md:items-start">
+                <CoverPhoto
+                  isOwner={isOwner}
+                  coverUrl={coverUrl}
+                  onUpload={handleCoverUpload}
+                />
+                <AvatarUpload
+                  username={displayName}
+                  location={location}
+                  onUpload={handleAvatarUpload}
+                  avatarUrl={avatarUrl}
+                  isOwner={isOwner}
+                />
+                <div className="flex flex-col gap-1.5 items-center md:items-start z-100">
                   <div className="flex flex-col md:flex-row items-center gap-2 bg-black px-3 py-1 w-fit">
-                    <h1 className="text-xl md:text-3xl font-bold uppercase tracking-tight">{displayName}</h1>
+                    <h1 className="text-xl md:text-3xl font-bold uppercase tracking-tight">
+                      {displayName}
+                    </h1>
                     {accountType === "ARTIST" && (
                       <span className="bg-zinc-800 text-zinc-400 text-[10px] md:text-[12px] px-2 py-1 rounded-sm font-black uppercase border border-zinc-700/50 shadow-sm shrink-0">
                         Artist
@@ -349,8 +407,11 @@ export default function ProfilePage({
                     <li
                       key={tab}
                       onClick={() => setActiveTab(tab)}
-                      className={`cursor-pointer transition-colors h-full flex items-center border-b-2 ${activeTab === tab ? "text-white border-white" : "border-transparent hover:text-white"
-                        }`}
+                      className={`cursor-pointer transition-colors h-full flex items-center border-b-2 ${
+                        activeTab === tab
+                          ? "text-white border-white"
+                          : "border-transparent hover:text-white"
+                      }`}
                     >
                       {tab}
                     </li>
@@ -369,17 +430,23 @@ export default function ProfilePage({
                     />
                   )}
 
-                  <button onClick={() => setIsShareOpen(true)} className={BUTTON_STYLE}>
+                  <button
+                    onClick={() => setIsShareOpen(true)}
+                    className={BUTTON_STYLE}
+                  >
                     <FiShare size={15} /> Share
                   </button>
 
                   {isOwner && (
-                    <button onClick={() => setIsEditOpen(true)} className={BUTTON_STYLE}>
+                    <button
+                      onClick={() => setIsEditOpen(true)}
+                      className={BUTTON_STYLE}
+                    >
                       <GrEdit size={15} /> Edit
                     </button>
                   )}
 
-                  {!isOwner && (
+                  {controller.userId && !isOwner && (
                     <ProfileActionsMenu
                       userId={controller.userId || ""}
                       displayName={controller.displayName}
@@ -403,9 +470,14 @@ export default function ProfilePage({
 
                 {favoriteGenres?.length > 0 && (
                   <div className="space-y-1 border-t border-zinc-900 pt-4">
-                    <p className="text-zinc-500 text-[10px] font-bold uppercase mb-1">Favorite Genre</p>
+                    <p className="text-zinc-500 text-[10px] font-bold uppercase mb-1">
+                      Favorite Genre
+                    </p>
                     {favoriteGenres.map((g) => (
-                      <p key={g} className="text-sm font-bold text-white flex items-center gap-2">
+                      <p
+                        key={g}
+                        className="text-sm font-bold text-white flex items-center gap-2"
+                      >
                         <span className="w-1.5 h-1.5 rounded-full bg-white" />
                         {g}
                       </p>
@@ -418,32 +490,51 @@ export default function ProfilePage({
                 {/* ── Likes preview ── */}
                 <div className="space-y-4">
                   <div className="flex justify-between items-center text-zinc-500 text-[13px] border-b border-zinc-900 pb-2">
-                    <p className="font-bold uppercase">{likedTracks.length} Likes</p>
+                    <p className="font-bold uppercase">
+                      {likedTracks.length} Likes
+                    </p>
                     <button
-                      onClick={() => { setViewState("details"); setDetailTab("Likes"); }}
+                      onClick={() => {
+                        setViewState("details");
+                        setDetailTab("Likes");
+                      }}
                       className="hover:text-white transition-colors font-bold uppercase"
                     >
                       View all
                     </button>
                   </div>
                   {likedTracks.length === 0 ? (
-                    <p className="text-xs text-zinc-600 font-bold uppercase">No liked tracks yet</p>
+                    <p className="text-xs text-zinc-600 font-bold uppercase">
+                      No liked tracks yet
+                    </p>
                   ) : (
                     likedTracks.slice(0, 3).map((track) => (
                       <div
                         key={track.id}
                         className="flex items-center gap-3 p-2 hover:bg-zinc-900/40 rounded transition-all cursor-pointer"
-                        onClick={() => { setViewState("details"); setDetailTab("Likes"); }}
+                        onClick={() => {
+                          setViewState("details");
+                          setDetailTab("Likes");
+                        }}
                       >
                         <div className="w-10 h-10 bg-zinc-800 rounded relative overflow-hidden shrink-0">
                           {(track.coverArt || track.imageUrl) && (
-                            <Image src={track.coverArt || track.imageUrl || ""} alt={track.title} fill className="object-cover" />
+                            <Image
+                              src={track.coverArt || track.imageUrl || ""}
+                              alt={track.title}
+                              fill
+                              className="object-cover"
+                            />
                           )}
                         </div>
                         <div className="overflow-hidden">
-                          <p className="text-sm font-bold truncate">{track.title}</p>
+                          <p className="text-sm font-bold truncate">
+                            {track.title}
+                          </p>
                           {track.artistName && (
-                            <p className="text-[10px] text-zinc-500 uppercase truncate">{track.artistName}</p>
+                            <p className="text-[10px] text-zinc-500 uppercase truncate">
+                              {track.artistName}
+                            </p>
                           )}
                         </div>
                       </div>
@@ -454,22 +545,32 @@ export default function ProfilePage({
                 {/* ── Following preview ── */}
                 <div className="space-y-4">
                   <div className="flex justify-between items-center text-zinc-500 text-[13px] border-b border-zinc-900 pb-2">
-                    <p className="font-bold uppercase">{controller.followingCount} Following</p>
+                    <p className="font-bold uppercase">
+                      {controller.followingCount} Following
+                    </p>
                     <button
-                      onClick={() => { setViewState("details"); setDetailTab("Following"); }}
+                      onClick={() => {
+                        setViewState("details");
+                        setDetailTab("Following");
+                      }}
                       className="hover:text-white transition-colors font-bold uppercase"
                     >
                       View all
                     </button>
                   </div>
                   {following.length === 0 ? (
-                    <p className="text-xs text-zinc-600 font-bold uppercase">Not following anyone yet</p>
+                    <p className="text-xs text-zinc-600 font-bold uppercase">
+                      Not following anyone yet
+                    </p>
                   ) : (
                     (following as FollowUserShape[]).slice(0, 3).map((u) => (
                       <div
                         key={u.id}
                         className="flex items-center gap-3 p-2 hover:bg-zinc-900/40 rounded transition-all cursor-pointer"
-                        onClick={() => { setViewState("details"); setDetailTab("Following"); }}
+                        onClick={() => {
+                          setViewState("details");
+                          setDetailTab("Following");
+                        }}
                       >
                         <div className="w-10 h-10 rounded-full bg-zinc-700 shrink-0 overflow-hidden border border-zinc-800">
                           {u.avatar_url || u.avatarUrl ? (
@@ -480,7 +581,9 @@ export default function ProfilePage({
                             />
                           ) : (
                             <span className="w-full h-full flex items-center justify-center text-xs font-bold text-zinc-400 uppercase">
-                              {(u.display_name || u.displayName || "?").charAt(0)}
+                              {(u.display_name || u.displayName || "?").charAt(
+                                0,
+                              )}
                             </span>
                           )}
                         </div>
@@ -577,7 +680,10 @@ export default function ProfilePage({
                           onChange={() => setIsShortened(!isShortened)}
                           className="w-5 h-5 accent-white"
                         />
-                        <label htmlFor="shorten" className="text-sm text-white font-bold uppercase">
+                        <label
+                          htmlFor="shorten"
+                          className="text-sm text-white font-bold uppercase"
+                        >
                           Shorten link
                         </label>
                       </div>
@@ -589,7 +695,10 @@ export default function ProfilePage({
                       <label className="block text-xs font-bold mb-1 uppercase text-zinc-400">
                         To <span className="text-red-500">*</span>
                       </label>
-                      <input type="text" className="w-full bg-[#111] border border-[#333] p-2 rounded outline-none focus:border-white text-sm font-bold uppercase" />
+                      <input
+                        type="text"
+                        className="w-full bg-[#111] border border-[#333] p-2 rounded outline-none focus:border-white text-sm font-bold uppercase"
+                      />
                     </div>
                     <div>
                       <label className="block text-xs font-bold mb-1 uppercase text-zinc-400">
@@ -601,12 +710,17 @@ export default function ProfilePage({
                       />
                     </div>
                     <div className="flex justify-end pt-2">
-                      <button className="bg-white text-black px-6 py-1.5 rounded font-bold text-sm hover:bg-zinc-200 uppercase">Send</button>
+                      <button className="bg-white text-black px-6 py-1.5 rounded font-bold text-sm hover:bg-zinc-200 uppercase">
+                        Send
+                      </button>
                     </div>
                   </div>
                 )}
               </div>
-              <button onClick={() => setIsShareOpen(false)} className="absolute top-4 right-4 text-zinc-500 hover:text-white text-xl">
+              <button
+                onClick={() => setIsShareOpen(false)}
+                className="absolute top-4 right-4 text-zinc-500 hover:text-white text-xl"
+              >
                 ×
               </button>
             </div>
@@ -617,7 +731,9 @@ export default function ProfilePage({
         {showSuccessToast && (
           <div className="fixed top-20 right-10 z-100 animate-in slide-in-from-right duration-300">
             <div className="bg-[#333] border border-zinc-700 p-4 flex items-center gap-4 shadow-2xl rounded-sm min-w-75">
-              <p className="text-white text-sm font-bold">Your profile has been updated successfully.</p>
+              <p className="text-white text-sm font-bold">
+                Your profile has been updated successfully.
+              </p>
             </div>
           </div>
         )}
