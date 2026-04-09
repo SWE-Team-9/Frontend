@@ -165,16 +165,12 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, isOwner, onDelete, 
 
       {/* Artwork */}
       <div className="w-40 h-40 bg-[#333] rounded-md shrink-0 relative overflow-hidden">
-        {(track.coverArtUrl || track.coverArt) ? (
-          <Image
-            src={track.coverArtUrl || track.coverArt || FALLBACK_IMAGE}
-            alt={track.title}
-            fill
-            className="object-cover"
-          />
-        ) : (
-          <div className="w-full h-full bg-[#2a2a2a] animate-pulse" />
-        )}
+        <Image
+          src={track.coverArtUrl || track.coverArt || FALLBACK_IMAGE}
+          alt={track.title}
+          fill
+          className="object-cover"
+        />
       </div>
 
       {/* Content */}
