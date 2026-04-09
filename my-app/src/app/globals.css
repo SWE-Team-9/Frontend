@@ -153,11 +153,15 @@ body {
   color: white;
 }
 
-.genre-select option:hover {
-  background-color: #ff5500aa !important;
+.genre-select option:hover,
+.genre-select option:focus,
+.genre-select option:active {
+    background: #ff5500aa !important;
+    background-color: #ff5500aa !important;
+    color: white !important;
 }
 
 .genre-select option:checked {
-  background-color: #ff5500;
-  color: white;
+    background-color: #ff5500 !important;
+    color: white !important;
 }

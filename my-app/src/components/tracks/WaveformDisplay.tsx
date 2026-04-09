@@ -78,7 +78,7 @@ export const WaveformDisplay: React.FC<WaveformDisplayProps> = ({
       role={onSeek ? "button" : undefined}
       aria-label={onSeek ? "Seek audio waveform" : undefined}
     >
-      <div className="flex h-[75%] w-full items-end gap-[1px]">
+      <div className="flex h-[75%] w-full items-end gap-px">
         {waveformData.map((val, i) => {
           const barProgress = (i + 1) / waveformData.length;
           const isPlayed = barProgress <= clampedProgress;

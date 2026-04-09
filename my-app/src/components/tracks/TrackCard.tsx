@@ -1,21 +1,43 @@
 "use client";
 
-import React, { useState, Fragment } from 'react';
+import React, { useState, Fragment } from "react";
 import Image from "next/image";
-import { Menu, MenuButton, MenuItems, MenuItem, Transition } from '@headlessui/react';
 import {
-  Play, Pause, MoreHorizontal, BarChart2, Trash2, Edit2,
-  Eye, EyeOff, Check
-} from 'lucide-react';
+  Menu,
+  MenuButton,
+  MenuItems,
+  MenuItem,
+  Transition,
+} from "@headlessui/react";
+import {
+  Play,
+  Pause,
+  MoreHorizontal,
+  BarChart2,
+  Trash2,
+  Edit2,
+  Eye,
+  EyeOff,
+  Check,
+} from "lucide-react";
 
 import { TrackActionButtons } from "@/src/components/tracks/TrackActionButtons";
 import { WaveformDisplay } from "@/src/components/tracks/WaveformDisplay";
-import { changeTrackVisibility, updateTrackMetadata, TrackDetails } from "@/src/services/uploadService";
-import { usePlayerStore, type Track as PlayerTrack } from "@/src/store/playerStore";
+import {
+  changeTrackVisibility,
+  updateTrackMetadata,
+  TrackDetails,
+} from "@/src/services/uploadService";
+import {
+  usePlayerStore,
+  type Track as PlayerTrack,
+} from "@/src/store/playerStore";
 
 const FALLBACK_IMAGE = "/images/track-placeholder.png";
 
-export interface IntegratedTrack extends Partial<Omit<TrackDetails, 'coverArtUrl'>> {
+export interface IntegratedTrack extends Partial<
+  Omit<TrackDetails, "coverArtUrl">
+> {
   trackId: string;
   title: string;
   likesCount?: number;
@@ -50,7 +72,12 @@ function getArtistLabel(value: unknown): string {
   return "Unknown Artist";
 }
 
-export const TrackCard: React.FC<TrackCardProps> = ({ track, isOwner, onDelete, onEdit }) => {
+export const TrackCard: React.FC<TrackCardProps> = ({
+  track,
+  isOwner,
+  onDelete,
+  onEdit,
+}) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,7 +91,7 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, isOwner, onDelete, 
 
   // Visibility state
   const [visibility, setVisibility] = useState<"PUBLIC" | "PRIVATE">(
-    (track.visibility as "PUBLIC" | "PRIVATE") ?? "PUBLIC"
+    (track.visibility as "PUBLIC" | "PRIVATE") ?? "PUBLIC",
   );
   const [isTogglingVisibility, setIsTogglingVisibility] = useState(false);
 
@@ -72,7 +99,6 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, isOwner, onDelete, 
   const [editData, setEditData] = useState({
     title: track.title,
     genre: track.genre ?? "",
-    tags: track.tags?.join(", ") ?? "",
     releaseDate: track.releaseDate?.split("T")[0] ?? "",
     description: track.description ?? "",
   });
@@ -84,14 +110,17 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, isOwner, onDelete, 
     artistId: track.artistId || "",
     artistHandle: track.artistHandle ?? undefined,
     artistAvatarUrl: track.artistAvatarUrl ?? null,
-    cover: track.coverArtUrl || track.coverArt || "/images/track-placeholder.png",
-    duration: track.durationMs ? Math.floor(track.durationMs / 1000) : undefined,
+    cover:
+      track.coverArtUrl || track.coverArt || "/images/track-placeholder.png",
+    duration: track.durationMs
+      ? Math.floor(track.durationMs / 1000)
+      : undefined,
     genre: track.genre ?? undefined,
   };
 
   const isCurrentTrack = currentTrack?.trackId === track.trackId;
   const waveformProgress =
-  isCurrentTrack && duration > 0 ? currentTime / duration : 0;
+    isCurrentTrack && duration > 0 ? currentTime / duration : 0;
 
   const handleToggleVisibility = async () => {
     const newVisibility = visibility === "PUBLIC" ? "PRIVATE" : "PUBLIC";
@@ -111,7 +140,6 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, isOwner, onDelete, 
     setEditData({
       title: track.title,
       genre: track.genre ?? "",
-      tags: track.tags?.join(", ") ?? "",
       releaseDate: track.releaseDate?.split("T")[0] ?? "",
       description: track.description ?? "",
     });
@@ -125,8 +153,12 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, isOwner, onDelete, 
     try {
       setError(null);
       await updateTrackMetadata(track.trackId, {
-        ...editData,
-        tags: editData.tags.split(",").map((t) => t.trim()).filter(Boolean),
+        title: editData.title,
+        genre: editData.genre,
+        description: editData.description,
+        releaseDate: editData.releaseDate
+          ? new Date(editData.releaseDate).toISOString()
+          : undefined,
       });
       setIsEditing(false);
     } catch {
@@ -162,7 +194,6 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, isOwner, onDelete, 
 
   return (
     <div className="bg-[#1e1e1e] p-5 rounded-lg flex gap-6 items-start hover:bg-[#252525] transition-colors relative group">
-
       {/* Artwork */}
       <div className="w-40 h-40 bg-[#333] rounded-md shrink-0 relative overflow-hidden">
         <Image
@@ -182,25 +213,25 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, isOwner, onDelete, 
           <div className="flex flex-col gap-3 bg-[#181818] p-4 rounded-md border border-zinc-700">
             <input
               value={editData.title}
-              onChange={(e) => setEditData({ ...editData, title: e.target.value })}
+              onChange={(e) =>
+                setEditData({ ...editData, title: e.target.value })
+              }
               className="bg-[#121212] border border-zinc-700 rounded p-2 text-white text-sm"
               placeholder="Track Title"
             />
             <input
               value={editData.genre}
-              onChange={(e) => setEditData({ ...editData, genre: e.target.value })}
+              onChange={(e) =>
+                setEditData({ ...editData, genre: e.target.value })
+              }
               className="bg-[#121212] border border-zinc-700 rounded p-2 text-white text-sm"
               placeholder="Genre"
             />
-            <input
-              value={editData.tags}
-              onChange={(e) => setEditData({ ...editData, tags: e.target.value })}
-              className="bg-[#121212] border border-zinc-700 rounded p-2 text-white text-sm"
-              placeholder="Tags (comma separated)"
-            />
             <textarea
               value={editData.description}
-              onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+              onChange={(e) =>
+                setEditData({ ...editData, description: e.target.value })
+              }
               className="bg-[#121212] border border-zinc-700 rounded p-2 text-white text-sm resize-none"
               placeholder="Description"
               rows={3}
@@ -230,8 +261,16 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, isOwner, onDelete, 
                   onClick={handlePlayClick}
                   disabled={track.status === "PROCESSING"}
                   className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-black hover:scale-105 transition-transform shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                  aria-label={isCurrentTrack && isPlaying ? "Pause track" : "Play track"}
-                  title={track.status === "PROCESSING" ? "Track is still processing" : isCurrentTrack && isPlaying ? "Pause" : "Play"}
+                  aria-label={
+                    isCurrentTrack && isPlaying ? "Pause track" : "Play track"
+                  }
+                  title={
+                    track.status === "PROCESSING"
+                      ? "Track is still processing"
+                      : isCurrentTrack && isPlaying
+                        ? "Pause"
+                        : "Play"
+                  }
                 >
                   {isCurrentTrack && isPlaying ? (
                     <Pause className="w-6 h-6 fill-black" />
@@ -243,11 +282,15 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, isOwner, onDelete, 
                   <p className="text-zinc-400 text-sm">
                     {getArtistLabel(track.artistName ?? track.artist)}
                   </p>
-                  <h4 className="text-white text-xl font-bold truncate">{track.title}</h4>
+                  <h4 className="text-white text-xl font-bold truncate">
+                    {track.title}
+                  </h4>
                 </div>
               </div>
 
-              <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${visibility === 'PUBLIC' ? 'bg-green-900/30 text-green-400' : 'bg-zinc-800 text-zinc-500'}`}>
+              <span
+                className={`text-[10px] px-2 py-0.5 rounded font-bold ${visibility === "PUBLIC" ? "bg-green-900/30 text-green-400" : "bg-zinc-800 text-zinc-500"}`}
+              >
                 {visibility}
               </span>
             </div>
@@ -290,7 +333,11 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, isOwner, onDelete, 
                     className="p-2 rounded bg-[#2a2a2a] text-zinc-400 hover:text-white disabled:opacity-50"
                     title="Toggle Visibility"
                   >
-                    {visibility === "PUBLIC" ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                    {visibility === "PUBLIC" ? (
+                      <Eye className="w-4 h-4" />
+                    ) : (
+                      <EyeOff className="w-4 h-4" />
+                    )}
                   </button>
 
                   <button
