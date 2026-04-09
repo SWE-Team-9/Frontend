@@ -34,6 +34,21 @@ interface TrackCardProps {
   onEdit?: (track: any) => void;
 }
 
+function getArtistLabel(value: unknown): string {
+  if (typeof value === "string") return value;
+
+  if (
+    value &&
+    typeof value === "object" &&
+    "displayName" in value &&
+    typeof (value as { displayName?: unknown }).displayName === "string"
+  ) {
+    return (value as { displayName: string }).displayName;
+  }
+
+  return "Unknown Artist";
+}
+
 export const TrackCard: React.FC<TrackCardProps> = ({ track, isOwner, onDelete, onEdit }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -61,7 +76,7 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, isOwner, onDelete, 
   const playerTrack: PlayerTrack = {
     trackId: track.trackId,
     title: track.title,
-    artist: track.artistName || track.artist || "Unknown Artist",
+    artist: getArtistLabel(track.artistName ?? track.artist),
     artistId: track.artistId || "",
     artistHandle: track.artistHandle ?? undefined,
     artistAvatarUrl: track.artistAvatarUrl ?? null,
@@ -216,7 +231,9 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, isOwner, onDelete, 
                   )}
                 </button>
                 <div className="truncate">
-                  <p className="text-zinc-400 text-sm">{track.artistName || "Artist"}</p>
+                  <p className="text-zinc-400 text-sm">
+                    {getArtistLabel(track.artistName ?? track.artist)}
+                  </p>
                   <h4 className="text-white text-xl font-bold truncate">{track.title}</h4>
                 </div>
               </div>
@@ -244,7 +261,7 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, isOwner, onDelete, 
                 title={track.title}
                 likesCount={track.likesCount ?? 0}
                 liked={track.liked ?? false}
-                artistName={track.artistName || "Unknown Artist"}
+                artistName={getArtistLabel(track.artistName ?? track.artist)}
                 coverArt={track.coverArt || track.coverArtUrl || ""}
                 repostsCount={track.repostsCount ?? 0}
                 reposted={track.reposted ?? false}
