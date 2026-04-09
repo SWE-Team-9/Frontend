@@ -41,9 +41,7 @@ export const useFollowStore = create<FollowStore>((set, get) => ({
 
   isFollowing: (userId) => {
     if (!userId) return false;
-    return get().following.some(
-      (u) => u?.id?.toString() === userId.toString(),
-    );
+    return get().following.some((u) => u?.id?.toString() === userId.toString());
   },
 
   toggleFollow: async (user) => {
@@ -56,13 +54,17 @@ export const useFollowStore = create<FollowStore>((set, get) => ({
 
     if (alreadyFollowing) {
       set({
-        following: following.filter((u) => u.id?.toString() !== user.id.toString()),
+        following: following.filter(
+          (u) => u.id?.toString() !== user.id.toString(),
+        ),
         loadingIds: { ...loadingIds, [user.id]: true },
       });
     } else {
       set({
         following: [...following, user],
-        suggestions: suggestions.filter((u) => u.id?.toString() !== user.id.toString()),
+        suggestions: suggestions.filter(
+          (u) => u.id?.toString() !== user.id.toString(),
+        ),
         loadingIds: { ...loadingIds, [user.id]: true },
       });
     }
@@ -75,7 +77,9 @@ export const useFollowStore = create<FollowStore>((set, get) => ({
       } else {
         await unfollowUser(user.id);
         const currentCount = useProfileStore.getState().followingCount;
-        useProfileStore.setState({ followingCount: Math.max(0, currentCount - 1) });
+        useProfileStore.setState({
+          followingCount: Math.max(0, currentCount - 1),
+        });
       }
     } catch {
       set({
@@ -102,14 +106,16 @@ export const useFollowStore = create<FollowStore>((set, get) => ({
       set({ error: null });
       const data = await getFollowing(userId);
       const followingList = data.following || [];
-      useProfileStore.setState({ followingCount: followingList.length });
+
+      // Only update counts if this is still the active profile
+      if (useProfileStore.getState().userId === userId) {
+        useProfileStore.setState({ followingCount: followingList.length });
+      }
 
       const currentUserId = useAuthStore.getState().user?.id;
       if (userId === currentUserId) {
-        // Own profile: update both tracking list and display list
         set({ following: followingList, profileFollowing: followingList });
       } else {
-        // Another profile: only update display list, keep own tracking intact
         set({ profileFollowing: followingList });
       }
     } catch {
@@ -123,7 +129,11 @@ export const useFollowStore = create<FollowStore>((set, get) => ({
       set({ error: null });
       const data = await getFollowers(userId);
       const followersList = data.followers || [];
-      useProfileStore.setState({ followersCount: followersList.length });
+
+      // Only update counts if this is still the active profile
+      if (useProfileStore.getState().userId === userId) {
+        useProfileStore.setState({ followersCount: followersList.length });
+      }
 
       const currentUserId = useAuthStore.getState().user?.id;
       if (userId === currentUserId) {
@@ -142,7 +152,8 @@ export const useFollowStore = create<FollowStore>((set, get) => ({
       const data = await getSuggestions(limit);
       const { isFollowing } = get();
       const filtered = (data.suggestions || []).filter(
-        (u) => !isFollowing(u.id) && (!u.accountType || u.accountType === "ARTIST")
+        (u) =>
+          !isFollowing(u.id) && (!u.accountType || u.accountType === "ARTIST"),
       );
       set({ suggestions: filtered });
     } catch {

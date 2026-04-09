@@ -60,9 +60,14 @@ export default function ProfilePage({
   const likedTracks = useLikeStore((state) => state.likedTracks || []);
   const likeError = useLikeStore((state) => state.error);
 
+  // Clear stale data immediately the moment the handle changes
+  useEffect(() => {
+    useFollowStore.setState({ profileFollowing: [], profileFollowers: [] });
+  }, [handle]);
+
+  // Fetch the new profile's follow data once userId is known
   useEffect(() => {
     if (controller.userId) {
-      useFollowStore.setState({ profileFollowing: [], profileFollowers: [] });
       fetchFollowing(controller.userId);
       fetchFollowers(controller.userId);
     }
@@ -217,30 +222,33 @@ export default function ProfilePage({
                     key={`${detailTab}-${user.id}`}
                     className="flex flex-col items-center text-center group"
                   >
-                  <Link href={user.handle ? `/profiles/${user.handle}` : "#"} className="flex flex-col items-center">
-                    <div className="relative w-40 h-40 mb-4 rounded-full overflow-hidden border-2 border-zinc-800 group-hover:border-orange-500 transition-all shadow-2xl bg-zinc-900">
-                      {avatar ? (
-                        <Image
-                          src={avatar}
-                          alt={name}
-                          fill
-                          className="object-cover"
-                          unoptimized
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
-                          <span className="text-3xl font-bold text-zinc-500 uppercase">
-                            {name.charAt(0)}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    <h4 className="font-bold text-white text-sm uppercase mb-1">
-                      {name}
-                    </h4>
-                    <p className="text-zinc-500 text-[11px] mb-4">
-                      {followerCount} followers
-                    </p>
+                    <Link
+                      href={user.handle ? `/profiles/${user.handle}` : "#"}
+                      className="flex flex-col items-center"
+                    >
+                      <div className="relative w-40 h-40 mb-4 rounded-full overflow-hidden border-2 border-zinc-800 group-hover:border-orange-500 transition-all shadow-2xl bg-zinc-900">
+                        {avatar ? (
+                          <Image
+                            src={avatar}
+                            alt={name}
+                            fill
+                            className="object-cover"
+                            unoptimized
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
+                            <span className="text-3xl font-bold text-zinc-500 uppercase">
+                              {name.charAt(0)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <h4 className="font-bold text-white text-sm uppercase mb-1">
+                        {name}
+                      </h4>
+                      <p className="text-zinc-500 text-[11px] mb-4">
+                        {followerCount} followers
+                      </p>
                     </Link>
                     <button
                       onClick={() =>
