@@ -57,6 +57,9 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, isOwner, onDelete, 
   const isPlaying = usePlayerStore((state) => state.isPlaying);
   const fetchAndPlay = usePlayerStore((state) => state.fetchAndPlay);
   const toggle = usePlayerStore((state) => state.toggle);
+  const currentTime = usePlayerStore((state) => state.currentTime);
+  const duration = usePlayerStore((state) => state.duration);
+  const seekTo = usePlayerStore((state) => state.seekTo);
 
   // Visibility state
   const [visibility, setVisibility] = useState<"PUBLIC" | "PRIVATE">(
@@ -86,6 +89,8 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, isOwner, onDelete, 
   };
 
   const isCurrentTrack = currentTrack?.trackId === track.trackId;
+  const waveformProgress =
+  isCurrentTrack && duration > 0 ? currentTime / duration : 0;
 
   const handleToggleVisibility = async () => {
     const newVisibility = visibility === "PUBLIC" ? "PRIVATE" : "PUBLIC";
@@ -145,6 +150,13 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, isOwner, onDelete, 
     } catch {
       setError("Could not start playback. Please try again.");
     }
+  };
+
+  const handleWaveformSeek = async (progress: number) => {
+    if (!isCurrentTrack || duration <= 0) return;
+
+    const nextTime = progress * duration;
+    await seekTo(nextTime);
   };
 
   return (
@@ -250,7 +262,11 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, isOwner, onDelete, 
                   PROCESSING...
                 </div>
               ) : (
-                <WaveformDisplay />
+                <WaveformDisplay
+                  seed={track.trackId}
+                  progress={waveformProgress}
+                  onSeek={isCurrentTrack ? handleWaveformSeek : undefined}
+                />
               )}
             </div>
 
