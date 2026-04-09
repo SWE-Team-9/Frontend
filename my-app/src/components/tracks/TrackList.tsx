@@ -34,7 +34,7 @@ const TrackList: React.FC<TrackListProps> = ({ userId, type = "tracks", isOwner 
   const [error, setError] = useState<string | null>(null);
 
   // Get repost state from store
-  const { repostedTrackIds, hydrate } = useRepostStore();
+  const { repostedTrackIds } = useRepostStore();
   const [actionError, setActionError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const setPlayerTracks = usePlayerStore((state) => state.setTracks);
@@ -55,11 +55,6 @@ const TrackList: React.FC<TrackListProps> = ({ userId, type = "tracks", isOwner 
       genre: track.genre ?? undefined,
     }));
   }, [tracks]);
-
-  // Initial hydration
-  useEffect(() => {
-    hydrate();
-  }, [hydrate]);
 
   useEffect(() => {
     setPlayerTracks(mappedPlayerTracks);

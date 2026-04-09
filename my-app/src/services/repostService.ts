@@ -1,40 +1,37 @@
 import api from "./api";
-import { TrackDetails } from "@/src/services/trackService";
 
-const REPOST_STORAGE_KEY = "mock_reposts";
+export interface RepostResponse {
+  message: string;
+  trackId: string;
+  repostsCount?: number; // Only returned on POST
+  reposted: boolean;
+}
 
 export const repostService = {
-  // Mock: Get all IDs the user has reposted
-  getRepostedIds: async (): Promise<string[]> => {
-    const stored = localStorage.getItem(REPOST_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
-  },
-
-  // Mock: Toggle Repost (Will be replaced by POST/DELETE /api/v1/...)
-  toggleRepost: async (trackId: string, isReposted: boolean) => {
-    const stored = localStorage.getItem(REPOST_STORAGE_KEY);
-    let ids: string[] = stored ? JSON.parse(stored) : [];
-
-    if (isReposted) {
-      ids = ids.filter(id => id !== trackId);
+  /**
+   * Toggles the repost state by calling the backend.
+   * Method: POST for creating, DELETE for removing.
+   */
+  toggleRepost: async (trackId: string, isCurrentlyReposted: boolean): Promise<RepostResponse> => {
+    if (isCurrentlyReposted) {
+      // DELETE /api/v1/interactions/tracks/{trackId}/repost
+      const response = await api.delete(`/interactions/tracks/${trackId}/repost`);
+      return response.data;
     } else {
-      ids.push(trackId);
+      // POST /api/v1/interactions/tracks/{trackId}/repost
+      const response = await api.post(`/interactions/tracks/${trackId}/repost`);
+      return response.data;
     }
-
-    localStorage.setItem(REPOST_STORAGE_KEY, JSON.stringify(ids));
-    
-    // Logic for when backend is ready:
-    // if (isReposted) return api.delete(`/interactions/tracks/${trackId}/repost`);
-    // return api.post(`/interactions/tracks/${trackId}/repost`);
-    
-    return { success: true, reposted: !isReposted };
   },
 
-  // Mock: Fetch tracks that match the reposted IDs
-   getRepostedTracks: async (allTracks: TrackDetails[]) => {
-    const repostedIds = await repostService.getRepostedIds();
-    return allTracks.filter((track) =>
-      repostedIds.includes(track.trackId)
-    );
+  /**
+   * Note: For 'getRepostedTracks', you will eventually want a real 
+   * GET endpoint like /api/v1/me/reposts instead of filtering local arrays.
+   */
+  getRepostedTracks: async () => {
+    // This should be updated once your backend team provides 
+    // an endpoint to fetch the user's reposted collection.
+    const response = await api.get(`/interactions/reposts`); 
+    return response.data;
   },
 };
