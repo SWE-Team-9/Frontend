@@ -13,6 +13,7 @@ import { WaveformDisplay } from "@/src/components/tracks/WaveformDisplay";
 import { changeTrackVisibility, updateTrackMetadata, TrackDetails } from "@/src/services/uploadService";
 import { usePlayerStore, type Track as PlayerTrack } from "@/src/store/playerStore";
 
+const FALLBACK_IMAGE = "/images/track-placeholder.png";
 
 export interface IntegratedTrack extends Partial<Omit<TrackDetails, 'coverArtUrl'>> {
   trackId: string;
@@ -166,7 +167,7 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, isOwner, onDelete, 
       <div className="w-40 h-40 bg-[#333] rounded-md shrink-0 relative overflow-hidden">
         {(track.coverArtUrl || track.coverArt) ? (
           <Image
-            src={track.coverArtUrl || track.coverArt || ""}
+            src={track.coverArtUrl || track.coverArt || FALLBACK_IMAGE}
             alt={track.title}
             fill
             className="object-cover"
@@ -278,7 +279,7 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, isOwner, onDelete, 
                 likesCount={track.likesCount ?? 0}
                 liked={track.liked ?? false}
                 artistName={getArtistLabel(track.artistName ?? track.artist)}
-                coverArt={track.coverArt || track.coverArtUrl || ""}
+                coverArt={track.coverArt || track.coverArtUrl || FALLBACK_IMAGE}
                 repostsCount={track.repostsCount ?? 0}
                 reposted={track.reposted ?? false}
                 size="full"
