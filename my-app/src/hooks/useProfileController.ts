@@ -16,7 +16,6 @@ export const useProfileController = (handle?: string) => {
   const authHandle = useAuthStore((state) => state.user?.handle);
   const isOwner = !handle || handle === authHandle;
   const [userId, setUserId] = useState<string | null>(null);
-  const profileRequestIdRef = useRef(0);
 
   const [activeTab, setActiveTab] = useState("Tracks");
   const [viewState, setViewState] = useState("profile");
@@ -32,6 +31,7 @@ export const useProfileController = (handle?: string) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isAvatarUploading, setIsAvatarUploading] = useState(false);
   const [isCoverUploading, setIsCoverUploading] = useState(false);
+  const hasRequestedProfileRef = useRef(false);
 
   const tabs = [
     "All",
@@ -83,16 +83,14 @@ export const useProfileController = (handle?: string) => {
   const shortLink = longLink;
 
   const loadProfile = useCallback(async () => {
-    const requestId = ++profileRequestIdRef.current;
+    if (hasRequestedProfileRef.current) return;
+    hasRequestedProfileRef.current = true;
 
     try {
       setIsLoading(true);
       const profile = handle
         ? await getProfileByHandle(handle)
         : await getMyProfile();
-
-      if (requestId !== profileRequestIdRef.current) return;
-
       setUserId(profile.id);
 
       store.setProfileData({
@@ -134,25 +132,25 @@ export const useProfileController = (handle?: string) => {
         }
       }
     } catch {
-      if (requestId !== profileRequestIdRef.current) return;
+      hasRequestedProfileRef.current = false;
       setError("Could not load profile. Please refresh and try again.");
     } finally {
-      if (requestId === profileRequestIdRef.current) {
-        setIsLoading(false);
-      }
+      setIsLoading(false);
     }
-  }, [handle, store]);
+  }, [handle]);
 
   useEffect(() => {
-    setIsLoading(true);
+    const current = useProfileStore.getState();
+    if (current.handle === handle && current.isLoaded) {
+      hasRequestedProfileRef.current = true;
+      return;
+    }
+    setIsLoading(true); 
     setUserId(null);
-    setError("");
     store.resetProfile();
+    hasRequestedProfileRef.current = false;
     loadProfile();
-    return () => {
-      profileRequestIdRef.current += 1;
-    };
-  }, [handle, loadProfile, store]);
+  }, [handle]);
 
   const handleSave = async () => {
     if (!store.displayName.trim()) {

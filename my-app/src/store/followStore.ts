@@ -16,13 +16,11 @@ type FollowStore = {
   followers: FollowUser[];
   profileFollowing: FollowUser[];
   profileFollowers: FollowUser[];
-  activeProfileUserId: string | null;
   suggestions: SuggestedUser[];
   suggestionsLoading: boolean;
   loadingIds: Record<string, boolean>;
   error: string | null;
   clearError: () => void;
-  setActiveProfileUser: (userId: string | null) => void;
   toggleFollow: (user: FollowUser) => Promise<void>;
   isFollowing: (userId: string | number | undefined) => boolean;
   fetchFollowing: (userId: string) => Promise<void>;
@@ -35,13 +33,11 @@ export const useFollowStore = create<FollowStore>((set, get) => ({
   followers: [],
   profileFollowing: [],
   profileFollowers: [],
-  activeProfileUserId: null,
   suggestions: [],
   suggestionsLoading: false,
   loadingIds: {},
   error: null,
   clearError: () => set({ error: null }),
-  setActiveProfileUser: (userId) => set({ activeProfileUserId: userId }),
 
   isFollowing: (userId) => {
     if (!userId) return false;
@@ -72,37 +68,14 @@ export const useFollowStore = create<FollowStore>((set, get) => ({
     }
 
     try {
-      const authUserId = useAuthStore.getState().user?.id;
-      const viewedProfileId = useProfileStore.getState().userId;
-
       if (!alreadyFollowing) {
         await followUser(user.id);
-        if (authUserId && viewedProfileId === authUserId) {
-          const currentCount = useProfileStore.getState().followingCount;
-          useProfileStore.setState({ followingCount: currentCount + 1 });
-        }
-        if (
-          viewedProfileId &&
-          user.id?.toString() === viewedProfileId.toString() &&
-          viewedProfileId !== authUserId
-        ) {
-          const currentFollowers = useProfileStore.getState().followersCount;
-          useProfileStore.setState({ followersCount: currentFollowers + 1 });
-        }
+        const currentCount = useProfileStore.getState().followingCount;
+        useProfileStore.setState({ followingCount: currentCount + 1 });
       } else {
         await unfollowUser(user.id);
-        if (authUserId && viewedProfileId === authUserId) {
-          const currentCount = useProfileStore.getState().followingCount;
-          useProfileStore.setState({ followingCount: Math.max(0, currentCount - 1) });
-        }
-        if (
-          viewedProfileId &&
-          user.id?.toString() === viewedProfileId.toString() &&
-          viewedProfileId !== authUserId
-        ) {
-          const currentFollowers = useProfileStore.getState().followersCount;
-          useProfileStore.setState({ followersCount: Math.max(0, currentFollowers - 1) });
-        }
+        const currentCount = useProfileStore.getState().followingCount;
+        useProfileStore.setState({ followingCount: Math.max(0, currentCount - 1) });
       }
     } catch {
       set({
@@ -129,15 +102,14 @@ export const useFollowStore = create<FollowStore>((set, get) => ({
       set({ error: null });
       const data = await getFollowing(userId);
       const followingList = data.following || [];
+      useProfileStore.setState({ followingCount: followingList.length });
 
       const currentUserId = useAuthStore.getState().user?.id;
-      const activeProfileUserId = get().activeProfileUserId;
-
       if (userId === currentUserId) {
-        set({ following: followingList });
-      }
-
-      if (activeProfileUserId === userId) {
+        // Own profile: update both tracking list and display list
+        set({ following: followingList, profileFollowing: followingList });
+      } else {
+        // Another profile: only update display list, keep own tracking intact
         set({ profileFollowing: followingList });
       }
     } catch {
@@ -151,15 +123,12 @@ export const useFollowStore = create<FollowStore>((set, get) => ({
       set({ error: null });
       const data = await getFollowers(userId);
       const followersList = data.followers || [];
+      useProfileStore.setState({ followersCount: followersList.length });
 
       const currentUserId = useAuthStore.getState().user?.id;
-      const activeProfileUserId = get().activeProfileUserId;
-
       if (userId === currentUserId) {
-        set({ followers: followersList });
-      }
-
-      if (activeProfileUserId === userId) {
+        set({ followers: followersList, profileFollowers: followersList });
+      } else {
         set({ profileFollowers: followersList });
       }
     } catch {

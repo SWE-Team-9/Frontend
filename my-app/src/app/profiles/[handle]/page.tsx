@@ -52,9 +52,6 @@ export default function ProfilePage({
   const followers = useFollowStore((state) => state.profileFollowers || []);
   const fetchFollowing = useFollowStore((state) => state.fetchFollowing);
   const fetchFollowers = useFollowStore((state) => state.fetchFollowers);
-  const setActiveProfileUser = useFollowStore(
-    (state) => state.setActiveProfileUser,
-  );
   const storeToggleFollow = useFollowStore((state) => state.toggleFollow);
   const checkIsFollowing = useFollowStore((state) => state.isFollowing);
   const followError = useFollowStore((state) => state.error);
@@ -64,26 +61,12 @@ export default function ProfilePage({
   const likeError = useLikeStore((state) => state.error);
 
   useEffect(() => {
-    if (!controller.userId) {
-      setActiveProfileUser(null);
+    if (controller.userId) {
       useFollowStore.setState({ profileFollowing: [], profileFollowers: [] });
-      return;
+      fetchFollowing(controller.userId);
+      fetchFollowers(controller.userId);
     }
-
-    setActiveProfileUser(controller.userId);
-    useFollowStore.setState({ profileFollowing: [], profileFollowers: [] });
-    void fetchFollowing(controller.userId);
-    void fetchFollowers(controller.userId);
-
-    return () => {
-      setActiveProfileUser(null);
-    };
-  }, [
-    controller.userId,
-    fetchFollowing,
-    fetchFollowers,
-    setActiveProfileUser,
-  ]);
+  }, [controller.userId, fetchFollowing, fetchFollowers]);
 
   const router = useRouter();
 
