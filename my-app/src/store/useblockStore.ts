@@ -56,6 +56,7 @@ export const useBlockStore = create<BlockState>((set, get) => ({
         blockedUsers: state.blockedUsers.filter((u) => u.id !== userId),
         error: "Failed to block user. Please try again.",
       }));
+      setTimeout(() => set({ error: null }), 3000); 
     } finally {
       set({ loadingUserId: null });
     }
@@ -72,6 +73,7 @@ export const useBlockStore = create<BlockState>((set, get) => ({
       await get().fetchBlockedUsers();
     } catch {
       set({ blockedUsers: previous, error: "Failed to unblock user. Please try again." });
+      setTimeout(() => set({ error: null }), 3000); 
     } finally {
       set({ loadingUserId: null });
     }

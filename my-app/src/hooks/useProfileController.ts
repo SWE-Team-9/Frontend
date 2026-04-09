@@ -1,4 +1,5 @@
 import { useProfileStore } from "@/src/store/useProfileStore";
+import { useAuthStore } from "@/src/store/useAuthStore";
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   getMyProfile,
@@ -15,7 +16,6 @@ export const useProfileController = (handle?: string) => {
   const isOwner = !handle || handle === store.handle;
   const [userId, setUserId] = useState<string | null>(null);
 
-  // UI state variables
   const [activeTab, setActiveTab] = useState("Tracks");
   const [viewState, setViewState] = useState("profile");
   const [detailTab, setDetailTab] = useState("Following");
@@ -29,6 +29,7 @@ export const useProfileController = (handle?: string) => {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isAvatarUploading, setIsAvatarUploading] = useState(false);
+  const [isCoverUploading, setIsCoverUploading] = useState(false);
   const hasRequestedProfileRef = useRef(false);
 
   const tabs = [
@@ -74,16 +75,14 @@ export const useProfileController = (handle?: string) => {
     "spoken-word",
   ];
 
-  //  Profile share links
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const longLink = store.handle
     ? `${origin}/profiles/${store.handle}`
     : `${origin}/profiles`;
   const shortLink = longLink;
 
-  //  FETCH profile from backend on first load
   const loadProfile = useCallback(async () => {
-    if (store.isLoaded || hasRequestedProfileRef.current) return;
+    if (hasRequestedProfileRef.current) return;
     hasRequestedProfileRef.current = true;
 
     try {
@@ -120,6 +119,17 @@ export const useProfileController = (handle?: string) => {
             : [{ id: 1, platform: "", url: "" }],
         isLoaded: true,
       });
+
+      // Sync avatar to auth store so the navbar always shows the correct photo
+      if (!handle) {
+        const authUser = useAuthStore.getState().user;
+        if (authUser) {
+          useAuthStore.getState().setUser({
+            ...authUser,
+            avatarUrl: profile.avatarUrl ?? null,
+          });
+        }
+      }
     } catch {
       hasRequestedProfileRef.current = false;
       setError("Could not load profile. Please refresh and try again.");
@@ -131,15 +141,16 @@ export const useProfileController = (handle?: string) => {
   useEffect(() => {
     const current = useProfileStore.getState();
     if (current.handle === handle && current.isLoaded) {
-      hasRequestedProfileRef.current = true; // prevent re-fetch
+      hasRequestedProfileRef.current = true;
       return;
     }
+    setIsLoading(true); 
+    setUserId(null);
     store.resetProfile();
     hasRequestedProfileRef.current = false;
     loadProfile();
   }, [handle]);
 
-  //  SAVE changes to the backend
   const handleSave = async () => {
     if (!store.displayName.trim()) {
       setError("Display name is required!");
@@ -177,10 +188,7 @@ export const useProfileController = (handle?: string) => {
     }
   };
 
-  //  AVATAR UPLOAD
-  const handleAvatarUpload = async (
-    file: File,
-  ): Promise<string | undefined> => {
+  const handleAvatarUpload = async (file: File): Promise<string | undefined> => {
     if (isAvatarUploading) return store.avatarUrl || undefined;
 
     try {
@@ -192,6 +200,12 @@ export const useProfileController = (handle?: string) => {
 
       if (uploadedUrl) {
         store.setProfileData({ avatarUrl: uploadedUrl });
+
+        // Keep navbar in sync after avatar upload
+        const authUser = useAuthStore.getState().user;
+        if (authUser) {
+          useAuthStore.getState().setUser({ ...authUser, avatarUrl: uploadedUrl });
+        }
       }
 
       return uploadedUrl;
@@ -204,7 +218,30 @@ export const useProfileController = (handle?: string) => {
     }
   };
 
-  //  Clipboard helper
+  const handleCoverUpload = async (file: File): Promise<string | undefined> => {
+    if (isCoverUploading) return store.coverUrl || undefined;
+
+    try {
+      setIsCoverUploading(true);
+      setError("");
+
+      const result = await uploadProfileImage("cover", file);
+      const uploadedUrl = (result as { url?: string | null })?.url || undefined;
+
+      if (uploadedUrl) {
+        store.setProfileData({ coverUrl: uploadedUrl });
+      }
+
+      return uploadedUrl;
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } } };
+      setError(axiosErr.response?.data?.message || "Failed to upload cover photo.");
+      throw err;
+    } finally {
+      setIsCoverUploading(false);
+    }
+  };
+
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(isShortened ? shortLink : longLink);
@@ -215,7 +252,6 @@ export const useProfileController = (handle?: string) => {
     }
   };
 
-  //  setProfileData wrapper
   const setProfileData = (data: Parameters<typeof store.setProfileData>[0]) => {
     store.setProfileData(data);
   };
@@ -251,6 +287,8 @@ export const useProfileController = (handle?: string) => {
     isSaving,
     isLoading,
     isAvatarUploading,
+    isCoverUploading,
     handleAvatarUpload,
+    handleCoverUpload,
   };
 };

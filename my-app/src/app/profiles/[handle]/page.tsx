@@ -115,6 +115,8 @@ export default function ProfilePage({
     setIsEditOpen,
     handleAvatarUpload,
     avatarUrl,
+    coverUrl,
+    handleCoverUpload,
   } = controller;
 
   const sourceUsers = detailTab === "Following" ? following : followers;
@@ -321,8 +323,8 @@ export default function ProfilePage({
             {/* ── SECTION 1: VISUAL HEADER ── */}
             <div className="relative w-full min-h-65 bg-[#d38b7d] p-4 md:p-6 flex flex-col md:flex-row items-center md:items-start justify-between gap-4">
               <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-center text-center md:text-left mt-2">
-                <CoverPhoto />
-                <AvatarUpload username={displayName} location={location} onUpload={handleAvatarUpload} avatarUrl={avatarUrl} />
+                <CoverPhoto isOwner={isOwner} coverUrl={coverUrl} onUpload={handleCoverUpload}/>
+                <AvatarUpload username={displayName} location={location} onUpload={handleAvatarUpload} avatarUrl={avatarUrl} isOwner={isOwner} />
                 <div className="flex flex-col gap-1.5 items-center md:items-start">
                   <div className="flex flex-col md:flex-row items-center gap-2 bg-black px-3 py-1 w-fit">
                     <h1 className="text-xl md:text-3xl font-bold uppercase tracking-tight">{displayName}</h1>
@@ -379,7 +381,7 @@ export default function ProfilePage({
                     </button>
                   )}
 
-                  {!isOwner && (
+                  {controller.userId && !isOwner && (
                     <ProfileActionsMenu
                       userId={controller.userId || ""}
                       displayName={controller.displayName}
