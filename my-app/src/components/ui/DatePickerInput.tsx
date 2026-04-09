@@ -8,15 +8,15 @@ interface DatePickerInputProps {
   onChange: (value: string) => void;
 }
 
-export default function DatePickerInput({ value, onChange }: DatePickerInputProps) {
+export default function DatePickerInput({
+  value,
+  onChange,
+}: DatePickerInputProps) {
   const selected = value ? new Date(value) : null;
 
   const handleChange = (d: Date | null) => {
     if (d) {
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, "0");
-      const dd = String(d.getDate()).padStart(2, "0");
-      onChange(`${yyyy}-${mm}-${dd}`);
+      onChange(d.toISOString());
     } else {
       onChange("");
     }
