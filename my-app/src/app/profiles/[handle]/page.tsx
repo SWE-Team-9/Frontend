@@ -365,8 +365,8 @@ export default function ProfilePage({
         ) : (
           <>
             {/* ── SECTION 1: VISUAL HEADER ── */}
-            <div className="relative w-full min-h-65 bg-[#d38b7d] p-4 md:p-6 flex flex-col md:flex-row items-center md:items-start justify-between gap-4">
-              <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-center text-center md:text-left mt-2">
+            <div className="relative isolate overflow-hidden w-full min-h-65 bg-[#d38b7d] p-4 md:p-6 flex flex-col md:flex-row items-center md:items-start justify-between gap-4">
+              <div className="relative z-20 flex flex-col md:flex-row gap-4 md:gap-6 items-center text-center md:text-left mt-2">
                 <CoverPhoto
                   isOwner={isOwner}
                   coverUrl={coverUrl}
