@@ -31,6 +31,7 @@ export const useLikeStore = create<LikeStore>((set, get) => ({
 
   toggleLike: async (track) => {
     const { likedTracks, loadingIds } = get();
+    const trackIdStr = String(track.id);
     const isAlreadyLiked = likedTracks.some((t) => t.id === track.id);
 
     if (loadingIds.includes(track.id)) return;
@@ -43,7 +44,7 @@ export const useLikeStore = create<LikeStore>((set, get) => ({
 
     try {
       // Convert string ID to Number for the service call
-      const numericId = Number(track.id); 
+      const numericId = track.id; 
 
       if (!isAlreadyLiked) {
         await likeTrack(numericId); 

@@ -75,11 +75,13 @@ export function RepostButton({
     // We pass the trackId and its CURRENT state to the store
     await toggleRepost(trackId, isCurrentlyReposted);
   };
+  const isLoading = useRepostStore((state) => state.loadingIds.has(String(trackId)));
 
   return (
     <SCButton
       active={isCurrentlyReposted}
       onClick={handleToggle}
+      disabled={isLoading}
       label={isCurrentlyReposted ? "Undo Repost" : "Repost"}
       count={repostsCount}
       size={size}
@@ -122,7 +124,7 @@ export function TrackActionButtons({
   const [modalType, setModalType] = useState<"likes" | "reposts" | null>(null);
   // Pull the local interaction state from your stores
   const isLiked = useLikeStore((state) => state.isLiked(trackId));
-  const isReposted = useRepostStore((state) => state.repostedTrackIds.has(String(trackId)));
+  const isReposted = useRepostStore((state) => state.repostedTrackIds.has(trackId));
 
   // LOGIC: Base Count + 1 (if liked/reposted locally)
   // This ensures the number goes up/down instantly when the user clicks!
