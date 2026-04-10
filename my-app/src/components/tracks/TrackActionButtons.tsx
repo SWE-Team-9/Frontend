@@ -66,7 +66,7 @@ export function RepostButton({
       title,
       artistName,
       coverArt,
-      repostsCount: repostsCount + (active ? -1 : 1), 
+      repostsCount: repostsCount, 
       likesCount: 0,
       coverArtUrl: coverArt || null
     } as TrackData);
@@ -93,7 +93,7 @@ export function LikeButton({
       title, 
       artistName, 
       coverArt, 
-      likesCount: likesCount + (active ? -1 : 1), 
+      likesCount: likesCount, 
       repostsCount: 0, 
       coverArtUrl: coverArt || null
     } as TrackData);
@@ -107,14 +107,22 @@ export function LikeButton({
 }
 
 export function TrackActionButtons({
-  trackId, title, artistName, coverArt, likesCount, repostsCount, size = "full",
+  trackId, title, artistName, coverArt, likesCount, repostsCount,liked, reposted, size = "full",
 }: TrackActionButtonsProps) {
   const [modalType, setModalType] = useState<"likes" | "reposts" | null>(null);
   const isCurrentlyLiked = useLikeStore((state) => state.isLiked(trackId));
   const isCurrentlyReposted = useRepostStore((state) => state.isReposted(trackId));
 
-  const displayLikes = isCurrentlyLiked ? (likesCount + 1) : likesCount;
-  const displayReposts = isCurrentlyReposted ? (repostsCount + 1) : repostsCount;
+  /* 2. THE FIX: Only increment if the user HAS liked it NOW 
+     but HADN'T liked it when the page loaded.
+  */
+  const displayLikes = (isCurrentlyLiked && !liked) ? likesCount + 1 : 
+                       (!isCurrentlyLiked && liked) ? Math.max(0, likesCount - 1) : 
+                       likesCount;
+
+  const displayReposts = (isCurrentlyReposted && !reposted) ? repostsCount + 1 : 
+                         (!isCurrentlyReposted && reposted) ? Math.max(0, repostsCount - 1) : 
+                         repostsCount;
   return (
     <div className="flex items-center gap-1.5">
       <div className="flex items-center gap-1">
