@@ -541,8 +541,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       audio.preload = "auto";
       audio.load();
 
-      const resumeTime = await get().loadResumePosition(track.trackId);
-      audio.currentTime = resumeTime;
+      audio.currentTime = 0;
+      set({ currentTime: 0 });
       audio.volume = get().volume / 100;
 
       try {
