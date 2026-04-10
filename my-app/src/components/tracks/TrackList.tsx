@@ -137,20 +137,24 @@ const TrackList: React.FC<TrackListProps> = ({ userId, type = "tracks", isOwner 
       ) : (
         <div className="grid gap-3">
           {tracks.map((track) => (
-            <TrackCard
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              key={track.trackId || (track as any).id}
-              track={{
-                ...track,
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                id: track.trackId || (track as any).id,
-                coverArtUrl: track.coverArtUrl ?? undefined,
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              } as any}
-              isOwner={isOwner}
-              onEdit={handleEdit}
-              onDelete={handleDeleteClick}
-            />
+          <TrackCard
+            key={track.trackId}
+            track={{
+              ...track,
+              trackId: track.trackId,
+              title: track.title,
+              artist: track.artist,
+              artistId: track.artistId ?? "",
+              artistHandle: track.artistHandle ?? undefined,
+              artistAvatarUrl: track.artistAvatarUrl ?? null,
+              coverArtUrl: track.coverArtUrl ?? undefined,
+              durationMs: track.durationMs,
+              genre: track.genre ?? undefined,
+            }}
+            isOwner={isOwner}
+            onEdit={handleEdit}
+            onDelete={handleDeleteClick}
+          />
           ))}
         </div>
       )}

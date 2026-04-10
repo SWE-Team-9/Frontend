@@ -115,7 +115,7 @@ export const TrackCard: React.FC<TrackCardProps> = ({
     trackId: track.trackId,
     title: savedData.title,
     artist: getArtistLabel(track.artistName ?? track.artist),
-    artistId: track.artistId || "",
+    artistId: track.artistId ?? "",
     artistHandle: track.artistHandle ?? undefined,
     artistAvatarUrl: track.artistAvatarUrl ?? null,
     cover:
@@ -125,6 +125,8 @@ export const TrackCard: React.FC<TrackCardProps> = ({
       : undefined,
     genre: savedData.genre || undefined,
   };
+  
+  console.log("[TrackCard playerTrack]", playerTrack);
 
   const isCurrentTrack = currentTrack?.trackId === track.trackId;
   const waveformProgress =
