@@ -6,7 +6,7 @@ import { TrackCard } from "@/src/components/tracks/TrackCard";
 import DeleteTrackModal from "@/src/components/tracks/DeleteTrackModal";
 import { useRepostStore } from "@/src/store/repostStore";
 import { usePlayerStore, type Track as PlayerTrack } from "@/src/store/playerStore";
-
+import { getUserReposts } from "@/src/services/repostService";
 interface TrackListProps {
   userId: string;
   type?: "tracks" | "reposts" | "all";
@@ -67,27 +67,37 @@ const TrackList: React.FC<TrackListProps> = ({ userId, type = "tracks", isOwner 
         setIsLoading(true);
         setError(null);
         setActionError(null);
-        const data = await getUserTracks(userId);
-        const allTracks = data.tracks || [];
-
         if (type === "reposts") {
-          // Filter by checking if ID exists in our Repost Set
-          const filtered = allTracks.filter((t: TrackDetails) =>
-            isReposted(String(t.trackId))
-          );
-          setTracks(filtered);
+        if (isOwner) {
+          // 1. On YOUR profile: Use your local Zustand store (repostedTracks)
+          // This ensures instant updates when you click the repost button.
+          setTracks(repostedTracks as unknown as TrackDetails[]);
+          
         } else {
-          setTracks(allTracks);
+          // 2. On OTHERS' profiles: Use the API service to fetch THEIR data
+          // We call your service which handles the backend mapping.
+          
+          const remoteData = await getUserReposts(userId) as unknown as TrackDetails[];
+          setTracks(remoteData);
         }
-      } catch (err) {
-        console.error("Load tracks failed:", err);
-        setTracks([]);
-      } finally {
-        setIsLoading(false);
+      } else {
+        // 3. Standard "All/Tracks" tab: Fetch this user's uploads
+        const data = await getUserTracks(userId);
+        setTracks(data.tracks || []);
       }
-    };
-    loadTracks();
-  }, [userId, type, repostedTracks.length]);
+    } catch (err) {
+      console.error("Load tracks failed:", err);
+      setTracks([]);
+      setError("Failed to load tracks. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  loadTracks();
+  // We include repostedTracks.length to refresh the list instantly 
+  // if you repost/unrepost a track while looking at your own list.
+}, [userId, type, isOwner, repostedTracks.length]);
 
   const handleEdit = (track: TrackDetails) => {
     setNotice(`Edit \"${track.title}\" is not available yet.`);

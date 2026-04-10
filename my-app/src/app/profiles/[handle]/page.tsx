@@ -22,6 +22,8 @@ import { useFollowStore } from "@/src/store/followStore";
 import { useLikeStore } from "@/src/store/likeStore";
 import TrackList from "@/src/components/tracks/TrackList";
 import Link from "next/dist/client/link";
+import { TrackData } from "@/src/types/interactions";
+import { getUserLikes } from "@/src/services/likeService";
 
 type FollowUserShape = {
   id: string;
@@ -59,12 +61,53 @@ export default function ProfilePage({
   // ── Like store ────────────────────────────────────────────────────────────
   const likedTracks = useLikeStore((state) => state.likedTracks || []);
   const likeError = useLikeStore((state) => state.error);
+  const [profileLikes, setProfileLikes] = useState<TrackData[]>([]);
+  const [isLikesLoading, setIsLikesLoading] = useState(false);
 
   // Clear stale data immediately the moment the handle changes
   useEffect(() => {
     useFollowStore.setState({ profileFollowing: [], profileFollowers: [] });
   }, [handle]);
 
+  // clear state to be used for the like
+  useEffect(() => {
+  let isMounted = true; // Prevents state updates if user navigates away
+
+  const fetchLikes = async () => {
+    if (!controller.userId) return;
+
+    try {
+      setIsLikesLoading(true);
+      if (isOwner) {
+        // Use the local store for immediate UI updates
+        setProfileLikes(likedTracks);
+      } else {
+        const data = await getUserLikes(controller.userId);
+        
+        if (!isMounted) return;
+
+        const cleanedData = data.map((t) => ({
+          ...t,
+          artistName: t.artistName ?? undefined,
+          coverArt: t.coverArt ?? undefined,
+        }));
+        
+        setProfileLikes(cleanedData as TrackData[]);
+      }
+    } catch (err) {
+      if (isMounted) console.error("Failed to fetch profile likes:", err);
+    } finally {
+      if (isMounted) setIsLikesLoading(false);
+    }
+  };
+
+  fetchLikes();
+
+  return () => {
+    isMounted = false; // Cleanup function
+  };
+  // Use likedTracks.length to avoid unnecessary reference-check triggers
+}, [controller.userId, isOwner, likedTracks.length, handle]);
   // Fetch the new profile's follow data once userId is known
   useEffect(() => {
     if (controller.userId) {
@@ -179,13 +222,13 @@ export default function ProfilePage({
 
         {/* ── LIKES TAB ── */}
         {detailTab === "Likes" &&
-          (likedTracks.length === 0 ? (
+          (profileLikes.length === 0 ? (
             <p className="text-2xl font-bold text-zinc-500 uppercase py-24">
               No likes yet.
             </p>
           ) : (
             <div className="grid grid-cols-1 gap-6 w-full">
-              {likedTracks.map((track) => (
+              {profileLikes.map((track) => (
                 <TrackCard
                   key={track.id}
                   track={{
@@ -193,8 +236,8 @@ export default function ProfilePage({
                     title: track.title,
                     likesCount: track.likesCount,
                     liked: true,
-                    artistName: track.artistName ?? undefined,
-                    coverArt: (track.coverArt || track.imageUrl) ?? undefined,
+                    artistName: track.artistName?? undefined,
+                    coverArt: track.coverArt ?? undefined,
                   }}
                   isOwner={false}
                 />
@@ -491,7 +534,7 @@ export default function ProfilePage({
                 <div className="space-y-4">
                   <div className="flex justify-between items-center text-zinc-500 text-[13px] border-b border-zinc-900 pb-2">
                     <p className="font-bold uppercase">
-                      {likedTracks.length} Likes
+                      {profileLikes.length} Likes
                     </p>
                     <button
                       onClick={() => {
@@ -503,12 +546,15 @@ export default function ProfilePage({
                       View all
                     </button>
                   </div>
-                  {likedTracks.length === 0 ? (
-                    <p className="text-xs text-zinc-600 font-bold uppercase">
+                  {isLikesLoading ? (
+                    <p className="text-xs text-zinc-600 font-bold uppercase animate-pulse">
+                      Loading likes...</p>
+                  ) : profileLikes.length===0 ? (
+                    <p className="text-xs text-red-400 font-bold uppercase">
                       No liked tracks yet
                     </p>
                   ) : (
-                    likedTracks.slice(0, 3).map((track) => (
+                    profileLikes.slice(0, 3).map((track) => (
                       <div
                         key={track.id}
                         className="flex items-center gap-3 p-2 hover:bg-zinc-900/40 rounded transition-all cursor-pointer"
@@ -533,7 +579,7 @@ export default function ProfilePage({
                           </p>
                           {track.artistName && (
                             <p className="text-[10px] text-zinc-500 uppercase truncate">
-                              {track.artistName}
+                              {track.artistName|| "Unknown Artist"}
                             </p>
                           )}
                         </div>
