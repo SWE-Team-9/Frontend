@@ -1,5 +1,6 @@
 export interface TrackData {
   id: string;
+  trackId?: string; 
   title: string;
   artistName?: string | null;
   likesCount: number;

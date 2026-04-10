@@ -31,7 +31,8 @@ export const useLikeStore = create<LikeStore>((set, get) => ({
 
   toggleLike: async (track) => {
     const { likedTracks, loadingIds } = get();
-    const trackId = String(track.id);
+    const trackId = track.trackId || track.id; // Support both trackId and id 
+    console.log("FULL TRACK:", track);
     const isAlreadyLiked = likedTracks.some((t) => t.id === trackId);
 
     if (loadingIds.includes(trackId)) return;
