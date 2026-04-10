@@ -47,14 +47,14 @@ const TrackList: React.FC<TrackListProps> = ({ userId, type = "tracks", isOwner 
       trackId: track.trackId,
       title: track.title,
       artist: getArtistLabel(track.artist),
-      artistId: track.artistId || "",
+      artistId: track.artistId || userId,
       artistHandle: track.artistHandle ?? undefined,
       artistAvatarUrl: track.artistAvatarUrl ?? null,
       cover: track.coverArtUrl || "/images/track-placeholder.png",
       duration: track.durationMs ? Math.floor(track.durationMs / 1000) : undefined,
       genre: track.genre ?? undefined,
     }));
-  }, [tracks]);
+  }, [tracks, userId]);
 
   useEffect(() => {
     setPlayerTracks(mappedPlayerTracks);
@@ -137,24 +137,24 @@ const TrackList: React.FC<TrackListProps> = ({ userId, type = "tracks", isOwner 
       ) : (
         <div className="grid gap-3">
           {tracks.map((track) => (
-          <TrackCard
-            key={track.trackId}
-            track={{
-              ...track,
-              trackId: track.trackId,
-              title: track.title,
-              artist: track.artist,
-              artistId: track.artistId ?? "",
-              artistHandle: track.artistHandle ?? undefined,
-              artistAvatarUrl: track.artistAvatarUrl ?? null,
-              coverArtUrl: track.coverArtUrl ?? undefined,
-              durationMs: track.durationMs,
-              genre: track.genre ?? undefined,
-            }}
-            isOwner={isOwner}
-            onEdit={handleEdit}
-            onDelete={handleDeleteClick}
-          />
+            <TrackCard
+              key={track.trackId}
+              track={{
+                ...track,
+                trackId: track.trackId,
+                title: track.title,
+                artist: track.artist,
+                artistId: track.artistId || userId,
+                artistHandle: track.artistHandle ?? undefined,
+                artistAvatarUrl: track.artistAvatarUrl ?? null,
+                coverArtUrl: track.coverArtUrl ?? undefined,
+                durationMs: track.durationMs,
+                genre: track.genre ?? undefined,
+              }}
+              isOwner={isOwner}
+              onEdit={handleEdit}
+              onDelete={handleDeleteClick}
+            />
           ))}
         </div>
       )}

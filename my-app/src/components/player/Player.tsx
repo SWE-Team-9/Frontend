@@ -79,9 +79,10 @@ export function Player() {
     avatar_url: currentTrack.artistAvatarUrl ?? "",
   };
 
-  const isOwnTrack = authUser?.id === artistUser.id;
-  const followed = isFollowing(artistUser.id);
-  const isLoading = !!loadingIds[artistUser.id];
+  const hasArtistId = !!artistUser.id;
+  const isOwnTrack = hasArtistId && authUser?.id === artistUser.id;
+  const followed = hasArtistId ? isFollowing(artistUser.id) : false;
+  const isLoading = hasArtistId ? !!loadingIds[artistUser.id] : false;
 
   const handleFollowClick = async () => {
     if (!artistUser.id || isOwnTrack || isLoading) return;
@@ -134,13 +135,15 @@ export function Player() {
               <button
                 type="button"
                 onClick={handleFollowClick}
-                disabled={isOwnTrack || isLoading}
+                disabled={!hasArtistId || isOwnTrack || isLoading}
                 title={
-                  isOwnTrack
-                    ? "You cannot follow yourself"
-                    : followed
-                      ? "Unfollow artist"
-                      : "Follow artist"
+                  !hasArtistId
+                    ? "Artist data unavailable"
+                    : isOwnTrack
+                      ? "You cannot follow yourself"
+                      : followed
+                        ? "Unfollow artist"
+                        : "Follow artist"
                 }
                 className={`transition-all ${isOwnTrack
                   ? "opacity-40 cursor-not-allowed"
