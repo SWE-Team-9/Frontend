@@ -34,7 +34,7 @@ const TrackList: React.FC<TrackListProps> = ({ userId, type = "tracks", isOwner 
   const [error, setError] = useState<string | null>(null);
 
   // Get repost state from store
-  const { repostedTrackIds } = useRepostStore();
+  const { isReposted, repostedTracks } = useRepostStore();
   const [actionError, setActionError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const setPlayerTracks = usePlayerStore((state) => state.setTracks);
@@ -73,7 +73,7 @@ const TrackList: React.FC<TrackListProps> = ({ userId, type = "tracks", isOwner 
         if (type === "reposts") {
           // Filter by checking if ID exists in our Repost Set
           const filtered = allTracks.filter((t: TrackDetails) =>
-            repostedTrackIds.has(String(t.trackId))
+            isReposted(String(t.trackId))
           );
           setTracks(filtered);
         } else {
@@ -87,7 +87,7 @@ const TrackList: React.FC<TrackListProps> = ({ userId, type = "tracks", isOwner 
       }
     };
     loadTracks();
-  }, [userId, type, repostedTrackIds.size]);
+  }, [userId, type, repostedTracks.length]);
 
   const handleEdit = (track: TrackDetails) => {
     setNotice(`Edit \"${track.title}\" is not available yet.`);

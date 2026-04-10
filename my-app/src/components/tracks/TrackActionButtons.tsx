@@ -5,12 +5,13 @@ import { RiShareForwardLine } from "react-icons/ri";
 import { EngagementModal } from "@/src/components/profile/modals/EngagementModal";
 import { useLikeStore } from '@/src/store/likeStore'; 
 import { useRepostStore } from '@/src/store/repostStore';
+import { TrackData } from "@/src/types/interactions";
 
 export interface TrackActionButtonsProps {
   trackId: string;
   title: string;
-  artistName: string; // Added
-  coverArt?: string;   // Added
+  artistName: string;
+  coverArt?: string;
   likesCount: number;
   liked: boolean;
   repostsCount: number;
@@ -55,34 +56,45 @@ function SCButton({ active, onClick, label, children, count, size = "full", disa
     </button>
   );
 }
+
 export function RepostButton({
   trackId,
-  reposted,
+  title,
+  artistName,
+  coverArt,
   repostsCount,
   size = "full",
 }: {
   trackId: string;
-  reposted: boolean;
+  title: string;
+  artistName: string;
+  coverArt?: string;
   repostsCount: number;
   size?: "compact" | "full";
 }) {
-  const { toggleRepost, repostedTrackIds } = useRepostStore();
-  const idString = String(trackId);
-  // We check the global store to see if this track is currently reposted
-  const isCurrentlyReposted = repostedTrackIds.has(trackId);
+  const { toggleRepost, isReposted, loadingIds } = useRepostStore();
+  const active = isReposted(trackId);
+  const isLoading = loadingIds.includes(String(trackId));
 
   const handleToggle = async () => {
-    // We pass the trackId and its CURRENT state to the store
-    await toggleRepost(trackId, isCurrentlyReposted);
+    // Pass the full TrackData object for the store to use
+    await toggleRepost({
+      id: trackId,
+      title: title,
+      artistName: artistName,
+      coverArt: coverArt,
+      repostsCount: repostsCount,
+      likesCount: 0, // Placeholder
+      coverArtUrl: coverArt || null
+    } as TrackData);
   };
-  const isLoading = useRepostStore((state) => state.loadingIds.has(String(trackId)));
 
   return (
     <SCButton
-      active={isCurrentlyReposted}
+      active={active}
       onClick={handleToggle}
       disabled={isLoading}
-      label={isCurrentlyReposted ? "Undo Repost" : "Repost"}
+      label={active ? "Undo Repost" : "Repost"}
       count={repostsCount}
       size={size}
     >
@@ -90,64 +102,63 @@ export function RepostButton({
     </SCButton>
   );
 }
+
 export function LikeButton({
-  trackId, title, artistName, coverArt, liked, likesCount, size = "full",
-}: { trackId: string; title: string; artistName?: string; coverArt?: string; liked: boolean; likesCount: number; size?: "compact" | "full" }) {
+  trackId, title, artistName, coverArt, likesCount, size = "full",
+}: { trackId: string; title: string; artistName: string; coverArt?: string; likesCount: number; size?: "compact" | "full" }) {
   
-  const { toggleLike, likedTracks, loadingIds } = useLikeStore();
-  
-  // Safe comparison converting both to strings to avoid ID type mismatches
-  const isCurrentlyLiked = likedTracks.some((t) => String(t.id) === String(trackId));
-  const isLoading = loadingIds.includes(trackId);
+  const { toggleLike, isLiked, loadingIds } = useLikeStore();
+  const active = isLiked(trackId);
+  const isLoading = loadingIds.includes(String(trackId));
 
   const handleToggle = () => {
-    // IMPORTANT: Passing the full object so the Sidebar has data to display
     toggleLike({ 
       id: trackId, 
       title: title, 
       artistName: artistName, 
       coverArt: coverArt, 
-      likesCount: likesCount 
-    });
+      likesCount: likesCount,
+      repostsCount: 0, // Placeholder
+      coverArtUrl: coverArt || null
+    } as TrackData);
   };
 
   return (
-    <SCButton active={isCurrentlyLiked} onClick={handleToggle} disabled={isLoading} label={isCurrentlyLiked ? "Unlike" : "Like"} count={likesCount}>
-      {isCurrentlyLiked ? <AiFillHeart size={15} /> : <AiOutlineHeart size={15} />}
+    <SCButton active={active} onClick={handleToggle} disabled={isLoading} label={active ? "Unlike" : "Like"} count={likesCount}>
+      {active ? <AiFillHeart size={15} /> : <AiOutlineHeart size={15} />}
     </SCButton>
   );
 }
 
 export function TrackActionButtons({
-  trackId, title, artistName, coverArt, likesCount, liked, repostsCount, size = "full",
+  trackId, title, artistName, coverArt, likesCount, repostsCount, size = "full",
 }: TrackActionButtonsProps) {
   const [modalType, setModalType] = useState<"likes" | "reposts" | null>(null);
-  // Pull the local interaction state from your stores
-  const isLiked = useLikeStore((state) => state.isLiked(trackId));
-  const isReposted = useRepostStore((state) => state.repostedTrackIds.has(trackId));
 
-  // LOGIC: Base Count + 1 (if liked/reposted locally)
-  // This ensures the number goes up/down instantly when the user clicks!
-  const displayLikes = (likesCount || 0) + (isLiked ? 1 : 0);
-  const displayReposts = (repostsCount || 0) + (isReposted ? 1 : 0);
+  // Pulling state from stores
+  const isCurrentlyLiked = useLikeStore((state) => state.isLiked(trackId));
+  const isCurrentlyReposted = useRepostStore((state) => state.isReposted(trackId));
+
   return (
     <div className="flex items-center gap-1.5">
      <div className="flex items-center gap-1">
       <LikeButton 
         trackId={trackId} title={title} artistName={artistName} coverArt={coverArt}
-        liked={liked} likesCount={likesCount} size={size} 
+        likesCount={likesCount} size={size} 
       />
       <span 
           onClick={() => setModalType("likes")} 
           className="text-xs text-zinc-500 cursor-pointer hover:text-white hover:underline"
         >
-          {displayLikes}
+          {fmtCount(likesCount)}
         </span>
      </div>
      <div className="flex items-center gap-1">
       <RepostButton 
         trackId={trackId} 
-        reposted={false} 
+        title={title}
+        artistName={artistName}
+        coverArt={coverArt}
         repostsCount={repostsCount} 
         size={size} 
       />
@@ -155,10 +166,11 @@ export function TrackActionButtons({
           onClick={() => setModalType("reposts")} 
           className="text-xs text-zinc-500 cursor-pointer hover:text-white hover:underline"
         >
-          {displayReposts}
+          {fmtCount(repostsCount)}
       </span>
      </div>
       <SCButton label="Share"><RiShareForwardLine size={15} /></SCButton>
+      
       <EngagementModal 
         isOpen={!!modalType} 
         onClose={() => setModalType(null)} 

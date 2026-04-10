@@ -193,8 +193,8 @@ export default function ProfilePage({
                     title: track.title,
                     likesCount: track.likesCount,
                     liked: true,
-                    artistName: track.artistName,
-                    coverArt: track.coverArt || track.imageUrl,
+                    artistName: track.artistName ?? undefined,
+                    coverArt: (track.coverArt || track.imageUrl) ?? undefined,
                   }}
                   isOwner={false}
                 />
