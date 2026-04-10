@@ -8,7 +8,7 @@ type LikeStore = {
   error: string | null;
   isLiked: (trackId: string) => boolean;
   toggleLike: (track: TrackData) => Promise<void>;
-  fetchInitialLikes: (userId: string) => Promise<void>;
+  syncWithServer: (userId: string) => Promise<void>;
   clearError: () => void;
 };
 
@@ -18,50 +18,66 @@ export const useLikeStore = create<LikeStore>((set, get) => ({
   error: null,
   clearError: () => set({ error: null }),
 
-  isLiked: (trackId) => get().likedTracks.some((t) => t.id === String(trackId)),
+  // Always compare as strings to avoid type mismatches
+  isLiked: (trackId) => 
+    get().likedTracks.some((t) => String(t.id) === String(trackId)),
 
-  fetchInitialLikes: async (userId) => {
+  syncWithServer: async (userId) => {
     try {
-      const data = await getUserLikes(userId);
-      set({ likedTracks: data.items.map(item => item.track) });
+      // The service now returns a flat TrackData[] array
+      const tracks = await getUserLikes(userId);
+      set({ likedTracks: tracks, error: null });
     } catch (err) {
-      console.error("Failed to load likes", err);
+      console.error("Sync failed", err);
     }
   },
 
   toggleLike: async (track) => {
-    const { likedTracks, loadingIds } = get();
-    const trackId = track.trackId || track.id; // Support both trackId and id 
-    console.log("FULL TRACK:", track);
-    const isAlreadyLiked = likedTracks.some((t) => t.id === trackId);
+    const { likedTracks, loadingIds, isLiked } = get();
+    // Normalize the ID: use .id as the primary identifier
+    const trackId = String('id' in track ? track.id : (track as { trackId?: string }).trackId);
+    const isAlreadyLiked = isLiked(trackId);
 
     if (loadingIds.includes(trackId)) return;
 
+    // --- STEP 1: OPTIMISTIC UPDATE ---
     set((state) => ({
       loadingIds: [...state.loadingIds, trackId],
       likedTracks: isAlreadyLiked
-        ? state.likedTracks.filter((t) => t.id !== trackId)
-        : [...state.likedTracks, { ...track, likesCount: (Number(track.likesCount) || 0) + 1 } as TrackData],
+        ? state.likedTracks.filter((t) => String(t.id) !== trackId)
+        : [...state.likedTracks, { ...track, id: trackId }], 
     }));
 
     try {
-      const response = isAlreadyLiked ? await unlikeTrack(trackId) : await likeTrack(trackId);
-      if (response && typeof response.likesCount === 'number') {
+      // --- STEP 2: API CALL ---
+      if (isAlreadyLiked) {
+        await unlikeTrack(trackId);
+      } else {
+        await likeTrack(trackId);
+      }
+      // If successful, we keep the optimistic state
+    } catch (error: unknown) {
+      const err = error as { response?: { status?: number; data?: { message?: string } }; message?: string };
+      
+      // --- STEP 3: SPECIAL CASE FOR 409 ---
+      if (err.response?.status === 409) {
+        // The server says "already liked", so our "Liked" state is actually correct.
+        // We don't need to rollback, just keep the UI as is.
+        console.warn("Server already in sync with this interaction.");
+      } else {
+        // --- STEP 4: ROLLBACK ON REAL ERROR ---
+        const msg = err.response?.data?.message || err.message || "Network Error";
         set((state) => ({
-          likedTracks: state.likedTracks.map((t) => 
-            t.id === trackId ? { ...t, likesCount: response.likesCount } : t
-          ),
+          likedTracks: isAlreadyLiked 
+            ? [...state.likedTracks, track] 
+            : state.likedTracks.filter((t) => String(t.id) !== trackId),
+          error: msg,
         }));
       }
-    } catch (error: unknown) {
-      const err = error as {response?: { data?: { message?: string } }; message?: string};
-      const msg = err.response?.data?.message || err.message || "Network Error";
-      set((state) => ({
-        likedTracks: isAlreadyLiked ? [...state.likedTracks, track] : state.likedTracks.filter((t) => t.id !== trackId),
-        error: msg,
-      }));
     } finally {
-      set((state) => ({ loadingIds: state.loadingIds.filter((id) => id !== trackId) }));
+      set((state) => ({ 
+        loadingIds: state.loadingIds.filter((id) => id !== trackId) 
+      }));
     }
   },
 }));

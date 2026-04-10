@@ -2,7 +2,7 @@
 import Image from "next/image";
 import DropdownMenu from "@/src/components/ui/DropdownMenu";
 import NavBarItem from "@/src/components/ui/NavBarItem";
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { MdPerson, MdPersonAddAlt1, MdStars, MdBarChart } from "react-icons/md";
 import { BsPersonCheckFill } from "react-icons/bs";
 import { ImHeart } from "react-icons/im";
@@ -21,6 +21,9 @@ import {
 import { useAuthStore } from "@/src/store/useAuthStore";
 import { logoutUser } from "@/src/services/authService";
 import { useRouter } from "next/navigation";
+// --- NEW IMPORTS ---
+import { useLikeStore } from "@/src/store/likeStore";
+import { useRepostStore } from "@/src/store/repostStore";
 
 interface NavItem {
   label: string;
@@ -118,6 +121,8 @@ const NavBar: React.FC<NavBarProps> = ({
 
   // Read the current logged-in user from the global auth store
   const user = useAuthStore((state) => state.user);
+  const syncLikes = useLikeStore((state) => state.syncWithServer);
+  const syncReposts = useRepostStore((state) => state.syncWithServer);
   // Use the user's avatar if available, otherwise a default silhouette
   const [profileImageSrc, setProfileImageSrc] = useState(
     user?.avatarUrl || "/images/profile.png",
@@ -127,6 +132,14 @@ const NavBar: React.FC<NavBarProps> = ({
     ? user.displayName || user.handle || user.email.split("@")[0]
     : null;
 
+  // --- SYNC INTERACTIONS ON LOAD ---
+  useEffect(() => {
+    if (user?.id) {
+      // Fetch user's likes and reposts from API to populate local stores
+      syncLikes(user.id);
+      syncReposts(user.id);
+    }
+  }, [user?.id, syncLikes, syncReposts]);
   const router = useRouter();
 
   useEffect(() => {
@@ -134,10 +147,10 @@ const NavBar: React.FC<NavBarProps> = ({
   }, [user]);
 
   // Sign-out handler — clears cookies on the backend, clears store
-  const handleLogout = async () => {
-    await logoutUser();
-    router.push("/");
-  };
+  const handleLogout = useCallback(async () => {
+  await logoutUser();
+  router.push("/");
+}, [router]);
 
  
   // Update Profile Menu to use the handle

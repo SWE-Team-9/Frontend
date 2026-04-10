@@ -1,5 +1,5 @@
 import api from "./api";
-import { UserInteractionResponse } from "../types/interactions";
+import { TrackData, UserInteractionResponse } from "../types/interactions";
 
 export interface RepostResponse {
   message: string;
@@ -18,9 +18,18 @@ export const removeRepost = async (trackId: string): Promise<RepostResponse> => 
   return response.data;
 };
 
-export const getUserReposts = async (userId: string): Promise<UserInteractionResponse> => {
+export const getUserReposts = async (userId: string): Promise<TrackData []> => {
   const response = await api.get(`/interactions/users/${userId}/reposts`, {
     params: { page: 1, limit: 20 }
   });
-  return response.data;
+  if (response.data && response.data.items) {
+    return response.data.items.map((item: { track: TrackData; interactedAt: string }) => ({
+      ...item.track,
+      // Ensure the ID is mapped correctly for our stores
+      id: item.track.id, 
+      interactedAt: item.interactedAt,
+    }));
+  }
+  
+  return [];
 };

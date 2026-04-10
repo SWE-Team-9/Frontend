@@ -1,5 +1,5 @@
 import api from "./api";
-import { UserInteractionResponse } from "../types/interactions";
+import { TrackData, UserInteractionResponse } from "../types/interactions";
 
 export interface LikeResponse {
   message: string;
@@ -18,9 +18,20 @@ export const unlikeTrack = async (trackId: string): Promise<LikeResponse> => {
   return response.data;
 };
 
-export const getUserLikes = async (userId: string): Promise<UserInteractionResponse> => {
-  const response = await api.get(`/interactions/users/${userId}/likes`, {
+export const getUserLikes = async (userId: string): Promise<TrackData[]> => {
+  const response = await api.get<UserInteractionResponse>(`/interactions/users/${userId}/likes`, {
     params: { page: 1, limit: 20 }
   });
-  return response.data;
+  if (response.data && response.data.items) {
+    return response.data.items.map((item: { track: TrackData; interactedAt: string }) => ({
+      ...item.track,
+      // Ensure the ID is mapped correctly for our stores
+      id: item.track.id, 
+      interactedAt: item.interactedAt,
+      coverArt: item.track.coverArt || item.track.coverArtUrl,
+      imageUrl: item.track.imageUrl || item.track.coverArtUrl
+    }));
+  }
+  
+  return [];
 };

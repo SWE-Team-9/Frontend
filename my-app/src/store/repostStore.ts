@@ -6,9 +6,9 @@ type RepostStore = {
   repostedTracks: TrackData[];
   loadingIds: string[];
   error: string | null;
-  isReposted: (trackId: string) => boolean; // Must match the name in implementation
+  isReposted: (trackId: string) => boolean;
   toggleRepost: (track: TrackData) => Promise<void>;
-  fetchInitialReposts: (userId: string) => Promise<void>;
+  syncWithServer: (userId: string) => Promise<void>; // Renamed for consistency
   clearError: () => void;
 };
 
@@ -18,62 +18,71 @@ export const useRepostStore = create<RepostStore>((set, get) => ({
   error: null,
   clearError: () => set({ error: null }),
 
-  // FIX: Renamed from isLiked to isReposted to match the Type definition
-  isReposted: (trackId) => get().repostedTracks.some((t) => t.id === String(trackId)),
+  isReposted: (trackId) => 
+    get().repostedTracks.some((t) => String(t.id) === String(trackId)),
 
-  fetchInitialReposts: async (userId) => {
+  syncWithServer: async (userId) => {
     try {
-      const data = await getUserReposts(userId);
-      set({ repostedTracks: data.items.map(item => item.track) });
+      // service now returns the flat TrackData[]
+      const tracks = await getUserReposts(userId);
+      set({ repostedTracks: tracks, error: null });
     } catch (err) {
-      console.error("Failed to load reposts", err);
+      console.error("Failed to sync reposts", err);
     }
   },
 
   toggleRepost: async (track) => {
-    const { repostedTracks, loadingIds } = get();
-    const trackId = String(track.id);
-    const isAlreadyReposted = repostedTracks.some((t) => t.id === trackId);
+    const { repostedTracks, loadingIds, isReposted } = get();
+    // Support both ID formats and force string type
+    const trackId = String('id' in track ? track.id : (track as { trackId?: string }).trackId);
+    const isAlreadyReposted = isReposted(trackId);
 
     if (loadingIds.includes(trackId)) return;
 
-    // STEP A: OPTIMISTIC UPDATE
+    // --- STEP A: OPTIMISTIC UPDATE ---
     set((state) => ({
       loadingIds: [...state.loadingIds, trackId],
       repostedTracks: isAlreadyReposted
-        ? state.repostedTracks.filter((t) => t.id !== trackId)
+        ? state.repostedTracks.filter((t) => String(t.id) !== trackId)
         : [...state.repostedTracks, { 
             ...track, 
+            id: trackId,
             repostsCount: (Number(track.repostsCount) || 0) + 1 
           } as TrackData],
     }));
 
     try {
-      // STEP B: API CALL
+      // --- STEP B: API CALL ---
       const response: RepostResponse = isAlreadyReposted 
         ? await removeRepost(trackId) 
         : await repostTrack(trackId);
 
-      // STEP C: SUCCESS SYNC
+      // --- STEP C: SUCCESS SYNC ---
       if (response && typeof response.repostsCount === 'number') {
         set((state) => ({
           repostedTracks: state.repostedTracks.map((t) => 
-            t.id === trackId ? { ...t, repostsCount: response.repostsCount } : t
+            String(t.id) === trackId ? { ...t, repostsCount: response.repostsCount } : t
           ),
         }));
       }
     } catch (error: unknown) {
-      const err = error as {response?: { data?: { message?: string } }; message?: string };
-      const msg = err.response?.data?.message || err.message || "Network Error";
-      // STEP D: ROLLBACK
-      set((state) => ({
-    repostedTracks: isAlreadyReposted 
-      ? [...state.repostedTracks, track] 
-      : state.repostedTracks.filter((t) => t.id !== trackId),
-    error: msg,
-  }));
+      const err = error as { response?: { status?: number; data?: { message?: string } }; message?: string };
+      
+      // --- STEP D: HANDLE 409 CONFLICT ---
+      if (err.response?.status === 409) {
+        // Server and UI are already in sync (e.g., already reposted)
+        console.warn("Repost state already exists on server.");
+      } else {
+        // --- STEP E: ACTUAL ROLLBACK ---
+        const msg = err.response?.data?.message || err.message || "Network Error";
+        set((state) => ({
+          repostedTracks: isAlreadyReposted 
+            ? [...state.repostedTracks, track] 
+            : state.repostedTracks.filter((t) => String(t.id) !== trackId),
+          error: msg,
+        }));
+      }
     } finally {
-      // STEP E: REMOVE LOADING STATE
       set((state) => ({ 
         loadingIds: state.loadingIds.filter((id) => id !== trackId) 
       }));
