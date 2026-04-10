@@ -27,7 +27,7 @@ function fmtCount(n: number): string {
 
 interface SCButtonProps {
   active?: boolean;
-  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void; // Fixed: Now accepts the event
+  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void; 
   label: string;
   children: React.ReactNode;
   count?: number;
@@ -48,11 +48,6 @@ function SCButton({ active, onClick, label, children, count, size = "full", disa
       <span className={`flex items-center transition-transform duration-100 group-active:scale-90 ${active ? "text-[#ff5500]" : ""}`}>
         {children}
       </span>
-      {size === "full" && typeof count === "number" && count > 0 && (
-        <span className={`text-[11px] font-medium tabular-nums leading-none ${active ? "text-[#ff5500]" : "text-[#777] group-hover:text-[#aaa]"}`}>
-          {fmtCount(count)}
-        </span>
-      )}
     </button>
   );
 }
@@ -71,7 +66,7 @@ export function RepostButton({
       title,
       artistName,
       coverArt,
-      repostsCount: repostsCount + (active ? -1 : 1), // Optimistically update count
+      repostsCount: repostsCount + (active ? -1 : 1), 
       likesCount: 0,
       coverArtUrl: coverArt || null
     } as TrackData);
@@ -98,7 +93,7 @@ export function LikeButton({
       title, 
       artistName, 
       coverArt, 
-      likesCount: likesCount + (active ? -1 : 1), // Optimistically update count
+      likesCount: likesCount + (active ? -1 : 1), 
       repostsCount: 0, 
       coverArtUrl: coverArt || null
     } as TrackData);
@@ -115,33 +110,42 @@ export function TrackActionButtons({
   trackId, title, artistName, coverArt, likesCount, repostsCount, size = "full",
 }: TrackActionButtonsProps) {
   const [modalType, setModalType] = useState<"likes" | "reposts" | null>(null);
+  const isCurrentlyLiked = useLikeStore((state) => state.isLiked(trackId));
+  const isCurrentlyReposted = useRepostStore((state) => state.isReposted(trackId));
 
+  const displayLikes = isCurrentlyLiked ? (likesCount + 1) : likesCount;
+  const displayReposts = isCurrentlyReposted ? (repostsCount + 1) : repostsCount;
   return (
     <div className="flex items-center gap-1.5">
       <div className="flex items-center gap-1">
         <LikeButton 
           trackId={trackId} title={title} artistName={artistName} coverArt={coverArt}
-          likesCount={likesCount} size={size} 
+          likesCount={displayLikes}
+           
         />
-        <span 
-          onClick={(e) => { e.stopPropagation(); setModalType("likes"); }} 
-          className="text-xs text-zinc-500 cursor-pointer hover:text-white hover:underline px-1"
-        >
-          {fmtCount(likesCount)}
-        </span>
+        {displayLikes > 0 && (
+          <span 
+            onClick={(e) => { e.stopPropagation(); setModalType("likes"); }} 
+            className="text-[11px] text-zinc-500 cursor-pointer hover:text-white hover:underline px-1 tabular-nums"
+          >
+            {fmtCount(displayLikes)}
+          </span>
+        )}
       </div>
 
       <div className="flex items-center gap-1">
         <RepostButton 
           trackId={trackId} title={title} artistName={artistName} coverArt={coverArt}
-          repostsCount={repostsCount} size={size}
+          repostsCount={displayReposts} 
         />
-        <span 
-          onClick={(e) => { e.stopPropagation(); setModalType("reposts"); }} 
-          className="text-xs text-zinc-500 cursor-pointer hover:text-white hover:underline px-1"
-        >
-          {fmtCount(repostsCount)}
-        </span>
+        {displayReposts > 0 && (
+          <span 
+            onClick={(e) => { e.stopPropagation(); setModalType("reposts"); }} 
+            className="text-[11px] text-zinc-500 cursor-pointer hover:text-white hover:underline px-1 tabular-nums"
+          >
+            {fmtCount(displayReposts)}
+          </span>
+        )}
       </div>
 
       <SCButton label="Share"><RiShareForwardLine size={15} /></SCButton>

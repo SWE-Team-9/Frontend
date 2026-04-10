@@ -6,6 +6,7 @@ import { IoClose } from "react-icons/io5";
 import Image from "next/image";
 import { useLikeStore } from "@/src/store/likeStore";
 import { useRepostStore } from "@/src/store/repostStore";
+import { useAuthStore } from "@/src/store/useAuthStore";
 
 interface EngagementModalProps {
   isOpen: boolean;
@@ -18,7 +19,10 @@ export const EngagementModal: React.FC<EngagementModalProps> = ({ isOpen, onClos
   const [users, setUsers] = useState<FollowUser[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Listen to store states to trigger re-fetches on interaction
+  // Use the logged-in user's ID to ensure we can reflect their follow status correctly in the list
+  const { user: currentUser } = useAuthStore();
+
+  
   const isLiked = useLikeStore((state) => state.isLiked(trackId));
   const isReposted = useRepostStore((state) => state.isReposted(trackId));
 
@@ -27,8 +31,7 @@ export const EngagementModal: React.FC<EngagementModalProps> = ({ isOpen, onClos
     
     setLoading(true);
     try {
-      // Small delay to allow backend database indexing to catch up 
-      // with the latest button click
+      
       await new Promise(resolve => setTimeout(resolve, 300));
       
       const data = await getTrackEngagements(trackId, type);
@@ -46,14 +49,13 @@ export const EngagementModal: React.FC<EngagementModalProps> = ({ isOpen, onClos
     if (isOpen) {
       fetchEngagements(isMounted);
     } else {
-      setUsers([]); // Clear list when closed to avoid flash of old data
+      setUsers([]); 
     }
 
     return () => {
       isMounted = false;
     };
-    // Adding isLiked and isReposted ensures the list refreshes 
-    // immediately if the user clicks the buttons while modal is open.
+    
   }, [isOpen, trackId, type, isLiked, isReposted, fetchEngagements]);
 
   if (!isOpen) return null;
@@ -108,7 +110,9 @@ export const EngagementModal: React.FC<EngagementModalProps> = ({ isOpen, onClos
                   </div>
                   
                   <div className="scale-90">
-                    <FollowButton user={user} />
+                    {user.id !== currentUser?.id && (
+                      <FollowButton user={user} />
+                    )}
                   </div>
                 </div>
               ))}
