@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { getTrackEngagements } from "@/src/services/interactionService";
 import { FollowUser } from "@/src/services/followService";
 import FollowButton from "@/src/components/profile/sidebar/FollowButton";
 import { IoClose } from "react-icons/io5";
 import Image from "next/image";
+import { useLikeStore } from "@/src/store/likeStore";
+import { useRepostStore } from "@/src/store/repostStore";
 
 interface EngagementModalProps {
   isOpen: boolean;
@@ -16,35 +18,56 @@ export const EngagementModal: React.FC<EngagementModalProps> = ({ isOpen, onClos
   const [users, setUsers] = useState<FollowUser[]>([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (!isOpen || !trackId) return;
-    
-    let isMounted = true;
-    const fetchEngagements = async () => {
-      setLoading(true);
-      try {
-        const data = await getTrackEngagements(trackId, type);
-        if (isMounted) setUsers(data);
-      } catch (error) {
-        console.error("Error fetching engagements:", error);
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    };
+  // Listen to store states to trigger re-fetches on interaction
+  const isLiked = useLikeStore((state) => state.isLiked(trackId));
+  const isReposted = useRepostStore((state) => state.isReposted(trackId));
 
-    fetchEngagements();
-    return () => { isMounted = false; };
-  }, [isOpen, trackId, type]);
+  const fetchEngagements = useCallback(async (isMounted: boolean) => {
+    if (!trackId) return;
+    
+    setLoading(true);
+    try {
+      // Small delay to allow backend database indexing to catch up 
+      // with the latest button click
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      const data = await getTrackEngagements(trackId, type);
+      if (isMounted) setUsers(data);
+    } catch (error) {
+      console.error("Error fetching engagements:", error);
+    } finally {
+      if (isMounted) setLoading(false);
+    }
+  }, [trackId, type]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (isOpen) {
+      fetchEngagements(isMounted);
+    } else {
+      setUsers([]); // Clear list when closed to avoid flash of old data
+    }
+
+    return () => {
+      isMounted = false;
+    };
+    // Adding isLiked and isReposted ensures the list refreshes 
+    // immediately if the user clicks the buttons while modal is open.
+  }, [isOpen, trackId, type, isLiked, isReposted, fetchEngagements]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-[#181818] w-full max-w-md rounded-xl border border-zinc-800 shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div 
+        className="bg-[#181818] w-full max-w-md rounded-xl border border-zinc-800 shadow-2xl overflow-hidden"
+        onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside modal
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-zinc-800">
           <h3 className="text-white font-bold uppercase tracking-widest text-[11px]">
-            {loading ? "Loading..." : `${users.length} ${type}`}
+            {loading ? "Updating..." : `${users.length} ${type}`}
           </h3>
           <button onClick={onClose} className="text-zinc-400 hover:text-white transition p-1">
             <IoClose size={22} />
@@ -53,7 +76,7 @@ export const EngagementModal: React.FC<EngagementModalProps> = ({ isOpen, onClos
 
         {/* List Content */}
         <div className="p-2 max-h-[400px] overflow-y-auto custom-scrollbar">
-          {loading ? (
+          {loading && users.length === 0 ? (
             <div className="py-20 flex justify-center">
               <div className="w-6 h-6 border-2 border-[#ff5500] border-t-transparent rounded-full animate-spin" />
             </div>
@@ -84,7 +107,6 @@ export const EngagementModal: React.FC<EngagementModalProps> = ({ isOpen, onClos
                     </div>
                   </div>
                   
-                  {/* Keep the follow button for discovery */}
                   <div className="scale-90">
                     <FollowButton user={user} />
                   </div>

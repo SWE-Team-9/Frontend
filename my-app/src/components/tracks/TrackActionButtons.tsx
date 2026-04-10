@@ -27,7 +27,7 @@ function fmtCount(n: number): string {
 
 interface SCButtonProps {
   active?: boolean;
-  onClick?: () => void;
+  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void; // Fixed: Now accepts the event
   label: string;
   children: React.ReactNode;
   count?: number;
@@ -58,46 +58,27 @@ function SCButton({ active, onClick, label, children, count, size = "full", disa
 }
 
 export function RepostButton({
-  trackId,
-  title,
-  artistName,
-  coverArt,
-  repostsCount,
-  size = "full",
-}: {
-  trackId: string;
-  title: string;
-  artistName: string;
-  coverArt?: string;
-  repostsCount: number;
-  size?: "compact" | "full";
-}) {
+  trackId, title, artistName, coverArt, repostsCount, size = "full",
+}: { trackId: string; title: string; artistName: string; coverArt?: string; repostsCount: number; size?: "compact" | "full"; }) {
   const { toggleRepost, isReposted, loadingIds } = useRepostStore();
   const active = isReposted(trackId);
   const isLoading = loadingIds.includes(String(trackId));
 
-  const handleToggle = async () => {
-    // Pass the full TrackData object for the store to use
+  const handleToggle = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation(); 
     await toggleRepost({
       id: trackId,
-      title: title,
-      artistName: artistName,
-      coverArt: coverArt,
-      repostsCount: repostsCount,
-      likesCount: 0, // Placeholder
+      title,
+      artistName,
+      coverArt,
+      repostsCount: repostsCount + (active ? -1 : 1), // Optimistically update count
+      likesCount: 0,
       coverArtUrl: coverArt || null
     } as TrackData);
   };
 
   return (
-    <SCButton
-      active={active}
-      onClick={handleToggle}
-      disabled={isLoading}
-      label={active ? "Undo Repost" : "Repost"}
-      count={repostsCount}
-      size={size}
-    >
+    <SCButton active={active} onClick={handleToggle} disabled={isLoading} label={active ? "Undo Repost" : "Repost"} count={repostsCount} size={size}>
       <BiRepost size={18} />
     </SCButton>
   );
@@ -106,25 +87,25 @@ export function RepostButton({
 export function LikeButton({
   trackId, title, artistName, coverArt, likesCount, size = "full",
 }: { trackId: string; title: string; artistName: string; coverArt?: string; likesCount: number; size?: "compact" | "full" }) {
-  
   const { toggleLike, isLiked, loadingIds } = useLikeStore();
   const active = isLiked(trackId);
   const isLoading = loadingIds.includes(String(trackId));
 
-  const handleToggle = () => {
+  const handleToggle = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
     toggleLike({ 
       id: trackId, 
-      title: title, 
-      artistName: artistName, 
-      coverArt: coverArt, 
-      likesCount: likesCount,
-      repostsCount: 0, // Placeholder
+      title, 
+      artistName, 
+      coverArt, 
+      likesCount: likesCount + (active ? -1 : 1), // Optimistically update count
+      repostsCount: 0, 
       coverArtUrl: coverArt || null
     } as TrackData);
   };
 
   return (
-    <SCButton active={active} onClick={handleToggle} disabled={isLoading} label={active ? "Unlike" : "Like"} count={likesCount}>
+    <SCButton active={active} onClick={handleToggle} disabled={isLoading} label={active ? "Unlike" : "Like"} count={likesCount} size={size}>
       {active ? <AiFillHeart size={15} /> : <AiOutlineHeart size={15} />}
     </SCButton>
   );
@@ -135,48 +116,44 @@ export function TrackActionButtons({
 }: TrackActionButtonsProps) {
   const [modalType, setModalType] = useState<"likes" | "reposts" | null>(null);
 
-  // Pulling state from stores
-  const isCurrentlyLiked = useLikeStore((state) => state.isLiked(trackId));
-  const isCurrentlyReposted = useRepostStore((state) => state.isReposted(trackId));
-
   return (
     <div className="flex items-center gap-1.5">
-     <div className="flex items-center gap-1">
-      <LikeButton 
-        trackId={trackId} title={title} artistName={artistName} coverArt={coverArt}
-        likesCount={likesCount} size={size} 
-      />
-      <span 
-          onClick={() => setModalType("likes")} 
-          className="text-xs text-zinc-500 cursor-pointer hover:text-white hover:underline"
+      <div className="flex items-center gap-1">
+        <LikeButton 
+          trackId={trackId} title={title} artistName={artistName} coverArt={coverArt}
+          likesCount={likesCount} size={size} 
+        />
+        <span 
+          onClick={(e) => { e.stopPropagation(); setModalType("likes"); }} 
+          className="text-xs text-zinc-500 cursor-pointer hover:text-white hover:underline px-1"
         >
           {fmtCount(likesCount)}
         </span>
-     </div>
-     <div className="flex items-center gap-1">
-      <RepostButton 
-        trackId={trackId} 
-        title={title}
-        artistName={artistName}
-        coverArt={coverArt}
-        repostsCount={repostsCount} 
-        
-      />
-      <span 
-          onClick={() => setModalType("reposts")} 
-          className="text-xs text-zinc-500 cursor-pointer hover:text-white hover:underline"
+      </div>
+
+      <div className="flex items-center gap-1">
+        <RepostButton 
+          trackId={trackId} title={title} artistName={artistName} coverArt={coverArt}
+          repostsCount={repostsCount} size={size}
+        />
+        <span 
+          onClick={(e) => { e.stopPropagation(); setModalType("reposts"); }} 
+          className="text-xs text-zinc-500 cursor-pointer hover:text-white hover:underline px-1"
         >
           {fmtCount(repostsCount)}
-      </span>
-     </div>
+        </span>
+      </div>
+
       <SCButton label="Share"><RiShareForwardLine size={15} /></SCButton>
       
-      <EngagementModal 
-        isOpen={!!modalType} 
-        onClose={() => setModalType(null)} 
-        trackId={trackId} 
-        type={modalType || "likes"} 
-      />
+      {modalType && (
+        <EngagementModal 
+          isOpen={true} 
+          onClose={() => setModalType(null)} 
+          trackId={trackId} 
+          type={modalType} 
+        />
+      )}
     </div>
   );
 }

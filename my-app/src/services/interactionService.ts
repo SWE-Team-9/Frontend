@@ -2,12 +2,17 @@ import api from "./api";
 import { FollowUser } from "@/src/services/followService";
 
 interface BackendUser {
-  id: string;
-  display_name: string;
-  handle: string;
-  avatar_url?: string;
+  userId: string;
+  displayName: string;
+  avatarUrl?: string | null;
+  handle?: string; 
 }
-// We use FollowUser directly to ensure total project sync
+
+interface InteractionItem {
+  interactedAt: string;
+  user: BackendUser;
+}
+
 export const getTrackEngagements = async (
   trackId: string, 
   type: 'likes' | 'reposts'
@@ -16,12 +21,15 @@ export const getTrackEngagements = async (
 
   const response = await api.get(`/interactions/tracks/${trackId}/${endpoint}`);
 
-  const users = response.data.users || [];
-  // Mapping backend response to the FollowUser interface
-  return users.map((u:BackendUser) => ({
-    id: u.id,
-    display_name: u.display_name,
-    handle: u.handle,
-    avatar_url: u.avatar_url || "", 
+  
+  const items = response.data.items || [];
+
+
+  return items.map((item: InteractionItem) => ({
+    id: item.user.userId,
+    display_name: item.user.displayName,
+    
+    handle: item.user.handle || item.user.displayName.toLowerCase().replace(/\s+/g, ''),
+    avatar_url: item.user.avatarUrl || "", 
   }));
 };
