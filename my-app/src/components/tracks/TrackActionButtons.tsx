@@ -160,7 +160,7 @@ export function TrackActionButtons({
         artistName={artistName}
         coverArt={coverArt}
         repostsCount={repostsCount} 
-        size={size} 
+        
       />
       <span 
           onClick={() => setModalType("reposts")} 

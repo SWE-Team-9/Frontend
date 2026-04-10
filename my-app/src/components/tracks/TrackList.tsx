@@ -146,27 +146,32 @@ const TrackList: React.FC<TrackListProps> = ({ userId, type = "tracks", isOwner 
         </div>
       ) : (
         <div className="grid gap-3">
-          {tracks.map((track) => (
-            <TrackCard
-              key={track.trackId}
-              track={{
-                ...track,
-                trackId: track.trackId,
-                title: track.title,
-                artist: track.artist,
-                artistId: track.artistId || userId,
-                artistHandle: track.artistHandle ?? undefined,
-                artistAvatarUrl: track.artistAvatarUrl ?? null,
-                coverArtUrl: track.coverArtUrl ?? undefined,
-                durationMs: track.durationMs,
-                genre: track.genre ?? undefined,
-              }}
-              isOwner={isOwner}
-              onEdit={handleEdit}
-              onDelete={handleDeleteClick}
-            />
-          ))}
-        </div>
+  {tracks.map((track) => {
+    // 1. Ensure we have a string ID (handles 'id' vs 'trackId')
+    const stableId = String((track as { id?: string }).id || track.trackId);
+    const isActuallyOwner = isOwner && (track.artistId === userId);
+    return (
+      <TrackCard
+        key={stableId}
+        track={{
+          ...track,
+          trackId: stableId, 
+          artistId: track.artistId || userId,
+    
+          artistHandle: track.artistHandle ?? undefined,
+          artistAvatarUrl: track.artistAvatarUrl ?? null,
+          coverArtUrl: track.coverArtUrl ?? undefined,
+          genre: track.genre ?? undefined,
+        }}
+        // 2. Dynamic Owner Check: Only true if the logged-in user 
+        // matches the track creator's ID
+        isOwner={isActuallyOwner} 
+        onEdit={handleEdit}
+        onDelete={handleDeleteClick}
+      />
+    );
+  })}
+</div>
       )}
 
       <DeleteTrackModal

@@ -23,6 +23,7 @@ import {
 
 import { TrackActionButtons } from "@/src/components/tracks/TrackActionButtons";
 import { WaveformDisplay } from "@/src/components/tracks/WaveformDisplay";
+import { useRepostStore } from "@/src/store/repostStore";
 import {
   changeTrackVisibility,
   getTrackDetails,
@@ -87,6 +88,20 @@ export const TrackCard: React.FC<TrackCardProps> = ({
     releaseDate: source.releaseDate?.split("T")[0] ?? "",
     description: source.description ?? "",
   });
+  const deleteRepostAction = useRepostStore((state) => state.deleteRepostAction);
+  const isReposted = useRepostStore((state) => state.isReposted(track.trackId));
+  const handleDeleteClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation(); // Prevent card click
+    if(!isOwner && isReposted) {
+      if(confirm( "Do you want to remove your repost?")) {
+        await deleteRepostAction(track.trackId);
+      }
+      return;
+    }
+    if (onDelete) {
+      onDelete(track.trackId, savedData.title);
+    } 
+  };
 
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -376,18 +391,33 @@ export const TrackCard: React.FC<TrackCardProps> = ({
                     <Edit2 className="w-4 h-4" />
                   </button>
 
-                  {onDelete && (
+                  {(isOwner || track.reposted) && (
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDelete(track.trackId, savedData.title);
-                      }}
-                      className="p-2 rounded bg-[#2a2a2a] text-red-500 hover:bg-red-900/20 transition-colors"
-                      title="Delete Track"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
+                      onClick={async (e) => {
+      e.stopPropagation();
+      
+      // Case 1: If the user is a reposter (and not the owner), remove the repost
+      if (!isOwner && track.reposted) {
+        try {
+          // Use the dedicated delete action from your store
+          await useRepostStore.getState().deleteRepostAction(track.trackId);
+        } catch (err) {
+          console.error("Failed to remove repost:", err);
+        }
+        return;
+      }
+
+      // Case 2: If the user is the owner, trigger the original onDelete callback
+      if (isOwner && onDelete) {
+        onDelete(track.trackId, savedData.title);
+      }
+    }}
+    className="p-2 rounded bg-[#2a2a2a] text-red-500 hover:bg-red-900/20 transition-colors"
+    title={isOwner ? "Delete Track" : "Remove Repost"}
+  >
+    <Trash2 className="w-4 h-4" />
+  </button>
+)}
 
                   <div className="relative">
                     <Menu>
