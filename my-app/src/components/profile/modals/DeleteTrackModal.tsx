@@ -11,7 +11,7 @@ export const DeleteTrackModal = ({ isOpen, onClose, onConfirm, trackTitle }: Del
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
       <div className="bg-[#1a1a1a] border border-zinc-800 p-8 rounded-xl max-w-md w-full shadow-2xl scale-in-center">
         <h2 className="text-white text-xl font-bold mb-4 uppercase tracking-wider">Delete Track</h2>
         <p className="text-zinc-400 text-sm mb-8 leading-relaxed">

@@ -61,7 +61,7 @@ export const EngagementModal: React.FC<EngagementModalProps> = ({ isOpen, onClos
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div 
         className="bg-[#181818] w-full max-w-md rounded-xl border border-zinc-800 shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside modal
@@ -77,7 +77,7 @@ export const EngagementModal: React.FC<EngagementModalProps> = ({ isOpen, onClos
         </div>
 
         {/* List Content */}
-        <div className="p-2 max-h-[400px] overflow-y-auto custom-scrollbar">
+        <div className="p-2 max-h-100 overflow-y-auto custom-scrollbar">
           {loading && users.length === 0 ? (
             <div className="py-20 flex justify-center">
               <div className="w-6 h-6 border-2 border-[#ff5500] border-t-transparent rounded-full animate-spin" />

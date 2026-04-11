@@ -1,5 +1,5 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import axios from "axios";
 
 let capturedSuccessHandler: (r: any) => any;
 let capturedErrorHandler: (e: any) => any;
@@ -38,7 +38,7 @@ describe("api.ts", () => {
 
   it("creates axios instance with correct config", () => {
     jest.resetModules();
-    const freshAxios = require("axios").default; // get the fresh mock
+    const freshAxios = require("axios").default;
     require("@/src/services/api");
     expect(freshAxios.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -70,17 +70,13 @@ describe("api.ts", () => {
   it("401 error triggers refresh attempt", async () => {
     require("@/src/services/api");
     mockApiInstance.post.mockResolvedValueOnce({});
-    // Simulate original request retry resolving
     const originalRequest = { _retry: false, method: "get", url: "/test" };
-    (mockApiInstance as any).mockResolvedValueOnce?.({ data: {} });
-
     const error = { response: { status: 401 }, config: originalRequest };
     try {
       await capturedErrorHandler(error);
     } catch {
       /* expected */
     }
-
     expect(mockApiInstance.post).toHaveBeenCalledWith("/auth/refresh");
   });
 
