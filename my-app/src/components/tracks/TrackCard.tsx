@@ -1,5 +1,6 @@
 "use client";
 
+import TimestampedCommentsSection from "@/src/components/tracks/TimestampedCommentsSection";
 import React, { useState, Fragment } from "react";
 import Image from "next/image";
 import {
@@ -337,17 +338,21 @@ export const TrackCard: React.FC<TrackCardProps> = ({
               </span>
             </div>
 
-            {/* Waveform */}
-            <div className="w-full h-16 bg-zinc-800/30 rounded relative overflow-hidden">
+            {/* Waveform + Timestamped Comments */}
+            <div className="w-full relative">
               {track.status === "PROCESSING" ? (
-                <div className="flex items-center justify-center h-full text-[#ff5500] text-xs font-bold italic animate-pulse">
+                <div className="flex h-16 items-center justify-center rounded bg-zinc-800/30 text-xs font-bold italic text-[#ff5500] animate-pulse">
                   PROCESSING...
                 </div>
               ) : (
-                <WaveformDisplay
-                  seed={track.trackId}
-                  progress={waveformProgress}
+                <TimestampedCommentsSection
+                  trackId={track.trackId}
+                  durationSeconds={playerTrack.duration ?? 0}
+                  waveformData={track.waveformData ?? null}
+                  waveformSeed={track.trackId}
+                  waveformProgress={waveformProgress}
                   onSeek={isCurrentTrack ? handleWaveformSeek : undefined}
+                  currentPlaybackSeconds={isCurrentTrack ? currentTime : 0}
                 />
               )}
             </div>

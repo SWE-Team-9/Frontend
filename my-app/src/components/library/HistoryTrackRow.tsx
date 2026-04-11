@@ -10,6 +10,7 @@ import { usePlayerStore } from "@/src/store/playerStore";
 import { ListeningHistoryItem } from "@/src/types/history";
 import { useState } from "react";
 import { WaveformDisplay } from "@/src/components/tracks/WaveformDisplay";
+import TimestampedCommentsSection from "@/src/components/tracks/TimestampedCommentsSection";
 
 const FALLBACK_IMAGE = "/images/track-placeholder.png";
 const ACCENT = "#ff5500";
