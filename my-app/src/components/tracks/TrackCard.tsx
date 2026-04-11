@@ -360,6 +360,7 @@ export const TrackCard: React.FC<TrackCardProps> = ({
             {/* Bottom Actions */}
             <div className="flex items-center justify-between mt-auto">
               <TrackActionButtons
+                key={track.trackId}
                 trackId={track.trackId}
                 title={savedData.title}
                 likesCount={track.likesCount ?? 0}

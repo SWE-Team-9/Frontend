@@ -111,32 +111,27 @@ export function TrackActionButtons({
 }: TrackActionButtonsProps) {
   const [modalType, setModalType] = useState<"likes" | "reposts" | null>(null);
 
-  // 1. Use State instead of Refs for the baseline
-  const [baseline] = useState({
-    likes: likesCount,
-    liked: liked,
-    reposts: repostsCount,
-    reposted: reposted,
-  });
-
-
+  // 1. Get the LIVE status from your stores
   const isCurrentlyLiked = useLikeStore((state) => state.isLiked(trackId));
   const isCurrentlyReposted = useRepostStore((state) => state.isReposted(trackId));
 
-  // 3. Math now uses state, which is safe for rendering
- const displayLikes = (isCurrentlyLiked && !baseline.liked) ? baseline.likes + 1 : 
-                       (!isCurrentlyLiked && baseline.liked) ? Math.max(0, baseline.likes - 1) : 
-                       baseline.likes;
+  // 2. Calculate the display count RELATIVE to the incoming props.
+  // If the store says LIKED but the prop says NOT LIKED, it's a +1 change.
+  // If the store says NOT LIKED but the prop says LIKED, it's a -1 change.
+  const displayLikes = (isCurrentlyLiked && !liked) ? likesCount + 1 : 
+                       (!isCurrentlyLiked && liked) ? Math.max(0, likesCount - 1) : 
+                       likesCount;
 
-  const displayReposts = (isCurrentlyReposted && !baseline.reposted) ? baseline.reposts + 1 : 
-                         (!isCurrentlyReposted && baseline.reposted) ? Math.max(0, baseline.reposts - 1) : 
-                         baseline.reposts;
+  const displayReposts = (isCurrentlyReposted && !reposted) ? repostsCount + 1 : 
+                         (!isCurrentlyReposted && reposted) ? Math.max(0, repostsCount - 1) : 
+                         repostsCount;
+
   return (
     <div className="flex items-center gap-1.5">
       <div className="flex items-center gap-1">
         <LikeButton 
           trackId={trackId} title={title} artistName={artistName} coverArt={coverArt}
-          likesCount={displayLikes}
+          likesCount={displayLikes} // Pass the synchronized count
         />
         {displayLikes > 0 && (
           <span 
@@ -151,7 +146,7 @@ export function TrackActionButtons({
       <div className="flex items-center gap-1">
         <RepostButton 
           trackId={trackId} title={title} artistName={artistName} coverArt={coverArt}
-          repostsCount={displayReposts} 
+          repostsCount={displayReposts} // Pass the synchronized count
         />
         {displayReposts > 0 && (
           <span 
