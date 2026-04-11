@@ -37,6 +37,7 @@ export default function TimestampedCommentsSection({
     className = "",
 }: TimestampedCommentsSectionProps) {
     const [isHovered, setIsHovered] = useState(false);
+    const [isInputActive, setIsInputActive] = useState(false);
     const [comments, setComments] = useState<TrackComment[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
@@ -46,6 +47,8 @@ export default function TimestampedCommentsSection({
     const [snapshotTimestamp, setSnapshotTimestamp] = useState(0);
 
     const inputRef = useRef<HTMLInputElement | null>(null);
+
+    const isOpen = isHovered || isInputActive;
 
     const loadComments = async () => {
         try {
@@ -61,10 +64,10 @@ export default function TimestampedCommentsSection({
     };
 
     useEffect(() => {
-        if (isHovered && !hasLoadedOnce && enabled) {
+        if (isOpen && !hasLoadedOnce && enabled) {
             loadComments();
         }
-    }, [isHovered, hasLoadedOnce, enabled]);
+    }, [isOpen, hasLoadedOnce, enabled]);
 
     const markers = useMemo<WaveformMarker[]>(() => {
         if (!durationSeconds || durationSeconds <= 0) return [];
@@ -81,6 +84,7 @@ export default function TimestampedCommentsSection({
     }, [comments, activeMarkerId]);
 
     const handleInputFocus = () => {
+        setIsInputActive(true);
         const safeTimestamp = Math.max(0, Math.floor(currentPlaybackSeconds || 0));
         setSnapshotTimestamp(safeTimestamp);
     };
@@ -88,6 +92,12 @@ export default function TimestampedCommentsSection({
     const handleInputClick = () => {
         const safeTimestamp = Math.max(0, Math.floor(currentPlaybackSeconds || 0));
         setSnapshotTimestamp(safeTimestamp);
+    };
+
+    const handleInputBlur = () => {
+        if (!text.trim()) {
+            setIsInputActive(false);
+        }
     };
 
     const handleSubmit = async () => {
@@ -104,6 +114,7 @@ export default function TimestampedCommentsSection({
 
             setText("");
             await loadComments();
+            setIsInputActive(false);
             inputRef.current?.blur();
         } catch (error) {
             console.error("Failed to add comment:", error);
@@ -154,8 +165,9 @@ export default function TimestampedCommentsSection({
             )}
 
             <div
-                className={`mt-5 overflow-hidden transition-all duration-200 ${isHovered ? "max-h-28 opacity-100" : "max-h-0 opacity-0"
-                    }`}
+            className={`mt-5 overflow-hidden transition-all duration-200 ${
+                isOpen ? "max-h-28 opacity-100" : "max-h-0 opacity-0"
+            }`}
             >
                 <div className="flex items-center gap-3">
                     <div className="h-10 w-10 shrink-0 rounded-full bg-[#c77c73]" />
@@ -164,8 +176,12 @@ export default function TimestampedCommentsSection({
                         <input
                             ref={inputRef}
                             value={text}
-                            onChange={(e) => setText(e.target.value)}
+                            onChange={(e) => {
+                                setText(e.target.value);
+                                setIsInputActive(true);
+                            }}
                             onFocus={handleInputFocus}
+                            onBlur={handleInputBlur}
                             onClick={handleInputClick}
                             onKeyDown={(e) => {
                                 if (e.key === "Enter") {

@@ -61,7 +61,7 @@ export const WaveformDisplay: React.FC<WaveformDisplayProps> = ({
   progress = 0,
   onSeek,
   playedColor = "#ff5500",
-  unplayedColor = "#d4d4d8", //"#52525b"
+  unplayedColor = "#7b7b83", // #d4d4d8 #52525b
   className = "",
   markers = [],
   onMarkerEnter,
