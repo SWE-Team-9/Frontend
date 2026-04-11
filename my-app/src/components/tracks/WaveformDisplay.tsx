@@ -122,9 +122,8 @@ export const WaveformDisplay: React.FC<WaveformDisplayProps> = ({
               type="button"
               onMouseEnter={() => onMarkerEnter?.(marker.id)}
               onMouseLeave={() => onMarkerLeave?.()}
-              className={`pointer-events-auto absolute top-0 h-3 w-3 -translate-x-1/2 rounded-full border border-zinc-900 transition ${
-                activeMarkerId === marker.id ? "scale-110 bg-[#d28b82]" : "bg-[#c77c73]"
-              }`}
+              className={`pointer-events-auto absolute top-0 h-3 w-3 -translate-x-1/2 rounded-full border border-zinc-900 transition ${activeMarkerId === marker.id ? "scale-110 bg-[#d28b82]" : "bg-[#c77c73]"
+                }`}
               style={{ left: `${marker.progress * 100}%` }}
               aria-label={marker.label ?? "Comment marker"}
             />

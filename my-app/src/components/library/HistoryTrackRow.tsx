@@ -102,11 +102,14 @@ export default function HistoryTrackRow({ track }: HistoryTrackRowProps) {
           </div>
         </div>
 
-        <div className="mb-5 h-[80px] w-full">
-          <WaveformDisplay
-            seed={track.trackId}
-            progress={waveformProgress}
+        <div className="mb-5 w-full">
+          <TimestampedCommentsSection
+            trackId={track.trackId}
+            durationSeconds={track.durationSeconds ?? 0}
+            waveformSeed={track.trackId}
+            waveformProgress={waveformProgress}
             onSeek={isCurrent ? handleWaveformSeek : undefined}
+            currentPlaybackSeconds={isCurrent ? currentTime : 0}
           />
         </div>
 
