@@ -2,6 +2,12 @@
 
 import React from "react";
 
+export interface WaveformMarker {
+  id: string;
+  progress: number; // 0 -> 1
+  label?: string;
+}
+
 interface WaveformDisplayProps {
   data?: number[] | null;
   seed?: string | number;
@@ -11,6 +17,10 @@ interface WaveformDisplayProps {
   playedColor?: string;
   unplayedColor?: string;
   className?: string;
+  markers?: WaveformMarker[];
+  onMarkerEnter?: (markerId: string) => void;
+  onMarkerLeave?: () => void;
+  activeMarkerId?: string | null;
 }
 
 function stringToSeed(value: string | number) {
@@ -51,8 +61,12 @@ export const WaveformDisplay: React.FC<WaveformDisplayProps> = ({
   progress = 0,
   onSeek,
   playedColor = "#ff5500",
-  unplayedColor = "#52525b",
+  unplayedColor = "#7b7b83", // #d4d4d8 #52525b
   className = "",
+  markers = [],
+  onMarkerEnter,
+  onMarkerLeave,
+  activeMarkerId = null,
 }) => {
   const waveformData = React.useMemo(() => {
     if (data && data.length > 0) return data;
@@ -72,31 +86,50 @@ export const WaveformDisplay: React.FC<WaveformDisplayProps> = ({
   };
 
   return (
-    <div
-      onClick={handleSeek}
-      className={`flex h-full w-full items-center overflow-hidden rounded-sm bg-zinc-800/70 px-2 ${onSeek ? "cursor-pointer" : ""} ${className}`}
-      role={onSeek ? "button" : undefined}
-      aria-label={onSeek ? "Seek audio waveform" : undefined}
-    >
-      <div className="flex h-[75%] w-full items-end gap-px">
-        {waveformData.map((val, i) => {
-          const barProgress = (i + 1) / waveformData.length;
-          const isPlayed = barProgress <= clampedProgress;
+    <div className={`relative h-full w-full ${className}`}>
+      <div
+        onClick={handleSeek}
+        className={`flex h-[52px] w-full items-center overflow-hidden rounded-sm bg-zinc-800/70 px-2 ${onSeek ? "cursor-pointer" : ""}`}
+        role={onSeek ? "button" : undefined}
+        aria-label={onSeek ? "Seek audio waveform" : undefined}
+      >
+        <div className="flex h-[75%] w-full items-end gap-px">
+          {waveformData.map((val, i) => {
+            const barProgress = (i + 1) / waveformData.length;
+            const isPlayed = barProgress <= clampedProgress;
 
-          return (
-            <div key={i} className="flex h-full flex-1 items-end">
-              <div
-                className="w-full rounded-t-[1px] transition-all duration-150"
-                style={{
-                  height: `${val * 100}%`,
-                  minWidth: "1px",
-                  backgroundColor: isPlayed ? playedColor : unplayedColor,
-                }}
-              />
-            </div>
-          );
-        })}
+            return (
+              <div key={i} className="flex h-full flex-1 items-end">
+                <div
+                  className="w-full rounded-t-[1px] transition-all duration-150"
+                  style={{
+                    height: `${val * 100}%`,
+                    minWidth: "1px",
+                    backgroundColor: isPlayed ? playedColor : unplayedColor,
+                  }}
+                />
+              </div>
+            );
+          })}
+        </div>
       </div>
+
+      {!!markers.length && (
+        <div className="pointer-events-none absolute left-0 right-0 top-[54px] h-4">
+          {markers.map((marker) => (
+            <button
+              key={marker.id}
+              type="button"
+              onMouseEnter={() => onMarkerEnter?.(marker.id)}
+              onMouseLeave={() => onMarkerLeave?.()}
+              className={`pointer-events-auto absolute top-0 h-3 w-3 -translate-x-1/2 rounded-full border border-zinc-900 transition ${activeMarkerId === marker.id ? "scale-110 bg-[#d28b82]" : "bg-[#c77c73]"
+                }`}
+              style={{ left: `${marker.progress * 100}%` }}
+              aria-label={marker.label ?? "Comment marker"}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

@@ -1,6 +1,6 @@
 export interface TrackData {
   id: string;
-  trackId?: string; 
+  trackId?: string;
   title: string;
   artistName?: string | null;
   likesCount: number;
@@ -25,4 +25,40 @@ export interface UserInteractionResponse {
     hasNextPage: boolean;
     hasPreviousPage: boolean;
   };
+}
+
+export interface TrackCommentUser {
+  id: string;
+  display_name: string;
+}
+
+export interface TrackComment {
+  commentId: string;
+  trackId: string;
+  text: string;
+  timestampSeconds: number;
+  createdAt: string;
+  user: TrackCommentUser;
+}
+
+export interface GetTrackCommentsResponse {
+  page: number;
+  limit: number;
+  total: number;
+  comments: TrackComment[];
+}
+
+export interface AddTrackCommentBody {
+  content: string;
+  timestampAt: number;
+}
+
+export interface AddTrackCommentResponse {
+  commentId: string;
+  trackId: string;
+  content?: string;
+  text?: string;
+  timestampAt?: number;
+  timestampSeconds?: number;
+  createdAt: string;
 }

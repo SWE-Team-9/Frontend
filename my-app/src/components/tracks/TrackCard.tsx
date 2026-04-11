@@ -1,5 +1,6 @@
 "use client";
 
+import TimestampedCommentsSection from "@/src/components/tracks/TimestampedCommentsSection";
 import React, { useState, Fragment } from "react";
 import Image from "next/image";
 import {
@@ -92,15 +93,15 @@ export const TrackCard: React.FC<TrackCardProps> = ({
   const isReposted = useRepostStore((state) => state.isReposted(track.trackId));
   const handleDeleteClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation(); // Prevent card click
-    if(!isOwner && isReposted) {
-      if(confirm( "Do you want to remove your repost?")) {
+    if (!isOwner && isReposted) {
+      if (confirm("Do you want to remove your repost?")) {
         await deleteRepostAction(track.trackId);
       }
       return;
     }
     if (onDelete) {
       onDelete(track.trackId, savedData.title);
-    } 
+    }
   };
 
   const [isEditing, setIsEditing] = useState(false);
@@ -140,7 +141,7 @@ export const TrackCard: React.FC<TrackCardProps> = ({
       : undefined,
     genre: savedData.genre || undefined,
   };
-  
+
   console.log("[TrackCard playerTrack]", playerTrack);
 
   const isCurrentTrack = currentTrack?.trackId === track.trackId;
@@ -337,17 +338,21 @@ export const TrackCard: React.FC<TrackCardProps> = ({
               </span>
             </div>
 
-            {/* Waveform */}
-            <div className="w-full h-16 bg-zinc-800/30 rounded relative overflow-hidden">
+            {/* Waveform + Timestamped Comments */}
+            <div className="w-full relative">
               {track.status === "PROCESSING" ? (
-                <div className="flex items-center justify-center h-full text-[#ff5500] text-xs font-bold italic animate-pulse">
+                <div className="flex h-16 items-center justify-center rounded bg-zinc-800/30 text-xs font-bold italic text-[#ff5500] animate-pulse">
                   PROCESSING...
                 </div>
               ) : (
-                <WaveformDisplay
-                  seed={track.trackId}
-                  progress={waveformProgress}
+                <TimestampedCommentsSection
+                  trackId={track.trackId}
+                  durationSeconds={playerTrack.duration ?? 0}
+                  waveformData={track.waveformData ?? null}
+                  waveformSeed={track.trackId}
+                  waveformProgress={waveformProgress}
                   onSeek={isCurrentTrack ? handleWaveformSeek : undefined}
+                  currentPlaybackSeconds={isCurrentTrack ? currentTime : 0}
                 />
               )}
             </div>
@@ -394,30 +399,30 @@ export const TrackCard: React.FC<TrackCardProps> = ({
                   {(isOwner || track.reposted) && (
                     <button
                       onClick={async (e) => {
-      e.stopPropagation();
-      
-      // Case 1: If the user is a reposter (and not the owner), remove the repost
-      if (!isOwner && track.reposted) {
-        try {
-          // Use the dedicated delete action from your store
-          await useRepostStore.getState().deleteRepostAction(track.trackId);
-        } catch (err) {
-          console.error("Failed to remove repost:", err);
-        }
-        return;
-      }
+                        e.stopPropagation();
 
-      // Case 2: If the user is the owner, trigger the original onDelete callback
-      if (isOwner && onDelete) {
-        onDelete(track.trackId, savedData.title);
-      }
-    }}
-    className="p-2 rounded bg-[#2a2a2a] text-red-500 hover:bg-red-900/20 transition-colors"
-    title={isOwner ? "Delete Track" : "Remove Repost"}
-  >
-    <Trash2 className="w-4 h-4" />
-  </button>
-)}
+                        // Case 1: If the user is a reposter (and not the owner), remove the repost
+                        if (!isOwner && track.reposted) {
+                          try {
+                            // Use the dedicated delete action from your store
+                            await useRepostStore.getState().deleteRepostAction(track.trackId);
+                          } catch (err) {
+                            console.error("Failed to remove repost:", err);
+                          }
+                          return;
+                        }
+
+                        // Case 2: If the user is the owner, trigger the original onDelete callback
+                        if (isOwner && onDelete) {
+                          onDelete(track.trackId, savedData.title);
+                        }
+                      }}
+                      className="p-2 rounded bg-[#2a2a2a] text-red-500 hover:bg-red-900/20 transition-colors"
+                      title={isOwner ? "Delete Track" : "Remove Repost"}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
 
                   <div className="relative">
                     <Menu>
