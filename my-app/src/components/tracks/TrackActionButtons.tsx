@@ -107,31 +107,36 @@ export function LikeButton({
 }
 
 export function TrackActionButtons({
-  trackId, title, artistName, coverArt, likesCount, repostsCount, liked, reposted, size = "full",
+  trackId, title, artistName, coverArt, likesCount:initialLikes, repostsCount, liked, reposted, size = "full",
 }: TrackActionButtonsProps) {
   const [modalType, setModalType] = useState<"likes" | "reposts" | null>(null);
 
-  // 1. Get the LIVE status from your stores
-  const isCurrentlyLiked = useLikeStore((state) => state.isLiked(trackId));
-  const isCurrentlyReposted = useRepostStore((state) => state.isReposted(trackId));
+  // 1. Get the LIVE status from stores
+  const likedTrack = useLikeStore((state) => 
+    state.likedTracks.find((t) => String(t.id) === String(trackId))
+  );
+  const repostedTrack = useRepostStore((state) => 
+    state.repostedTracks.find((t) => String(t.id) === String(trackId))
+  );
 
-  // 2. Calculate the display count RELATIVE to the incoming props.
-  // If the store says LIKED but the prop says NOT LIKED, it's a +1 change.
-  // If the store says NOT LIKED but the prop says LIKED, it's a -1 change.
-  const displayLikes = (isCurrentlyLiked && !liked) ? likesCount + 1 : 
-                       (!isCurrentlyLiked && liked) ? Math.max(0, likesCount - 1) : 
-                       likesCount;
+  // Use the count from the store if it exists, otherwise we'd need the initial prop
+  // (In a full store-managed app, you'd usually sync the feed into the store on load)
+  const isCurrentlyLiked = !!likedTrack;
+  const isCurrentlyReposted = !!repostedTrack;
 
-  const displayReposts = (isCurrentlyReposted && !reposted) ? repostsCount + 1 : 
-                         (!isCurrentlyReposted && reposted) ? Math.max(0, repostsCount - 1) : 
-                         repostsCount;
+  const displayLikes = isCurrentlyLiked 
+    ? (likedTrack?.likesCount ?? initialLikes) 
+    : (liked ? Math.max(0, initialLikes - 1) : initialLikes);
 
+  const displayReposts = isCurrentlyReposted 
+    ? (repostedTrack?.repostsCount ?? repostsCount) 
+    : (reposted ? Math.max(0, repostsCount - 1) : repostsCount);
   return (
     <div className="flex items-center gap-1.5">
       <div className="flex items-center gap-1">
         <LikeButton 
           trackId={trackId} title={title} artistName={artistName} coverArt={coverArt}
-          likesCount={displayLikes} // Pass the synchronized count
+          likesCount={displayLikes}
         />
         {displayLikes > 0 && (
           <span 
@@ -146,7 +151,7 @@ export function TrackActionButtons({
       <div className="flex items-center gap-1">
         <RepostButton 
           trackId={trackId} title={title} artistName={artistName} coverArt={coverArt}
-          repostsCount={displayReposts} // Pass the synchronized count
+          repostsCount={displayReposts} 
         />
         {displayReposts > 0 && (
           <span 

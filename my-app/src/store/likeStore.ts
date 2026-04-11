@@ -45,7 +45,7 @@ export const useLikeStore = create<LikeStore>((set, get) => ({
       loadingIds: [...state.loadingIds, trackId],
       likedTracks: isAlreadyLiked
         ? state.likedTracks.filter((t) => String(t.id) !== trackId)
-        : [...state.likedTracks, { ...track, id: trackId }], 
+        : [...state.likedTracks, { ...track, id: trackId,likesCount: (Number(track.likesCount) || 0) + 1, }], 
     }));
 
     try {
