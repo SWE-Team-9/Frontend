@@ -13,14 +13,17 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 
 export type SocialProvider = "google"; 
-
+// ─────────────────────────────────────────────────────────────
 interface LoginData {
   email: string;
   password: string;
   remember_me?: boolean;
-  captcha_token?: string;  
+//uncomment
+  // captcha_token?: string;  
+//uncomment
 }
-
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+// ─────────────────────────────────────────────────────────────
 interface RegisterData {
   email: string;
   password: string;
@@ -55,19 +58,30 @@ export async function registerWithCaptcha(data: RegisterData) {
 }
 
 // ================= LOGIN =================
+// ──────────────────────────────────────────────────────────────
 export const loginUser = async ({
   email,
   password,
   remember_me,
-  captcha_token,
+//uncomment    
+    // captcha_token,
+//uncomment
 }: LoginData) => {
   // POST /auth/login  →  sets httpOnly cookies + returns { message, user }
   const response = await api.post("/auth/login", {
     email,
     password,
     remember_me,
-    captcha_token,
+//uncomment    
+    // captcha_token,
+//uncomment
+//remove    
+    captcha_token: "" 
+//remove
   });
+// ─────────────────────────────────────────────────────────────
+
+
   const { user } = response.data;
   
   // Backend returns snake_case fields — we map them to camelCase for the store

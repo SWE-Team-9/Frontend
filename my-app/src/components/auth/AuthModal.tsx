@@ -197,21 +197,33 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
 
         setLoginCaptchaError(null);
 
-        const loginCaptchaToken = loginCaptchaRef.current?.getValue();
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//uncomment
+        // const loginCaptchaToken = loginCaptchaRef.current?.getValue();
 
-        if (!loginCaptchaToken) {
-          setLoginCaptchaError("Please complete the CAPTCHA verification.");
-          return;
-        }
+        // if (!loginCaptchaToken) {
+        //   setLoginCaptchaError("Please complete the CAPTCHA verification.");
+        //   return;
+        // }
 
         // Login with JWT via authService
+//uncomment        
         try {
           setIsSubmitting(true);
           setShowResendVerification(false);
           setResendSent(false);
           setLoginCaptchaError(null);
 
-          await loginUser({ email, password: loginPassword, captcha_token: loginCaptchaToken });
+          await loginUser({ 
+            email, 
+            password: loginPassword, 
+//uncomment            
+            // captcha_token: loginCaptchaToken, 
+//uncomment            
+          });
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////          
           setEmailStore(email);
           onClose();
           router.push("/discover");
@@ -229,23 +241,45 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
           const backendError = axiosErr.response?.data?.error;
           const backendMessage = axiosErr.response?.data?.message;
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//uncomment
+          // if (axiosErr.response?.status === 429) {
+          //   setError("Too many login attempts. Please wait a moment and try again.");
+          // } else if (axiosErr.response?.data?.error === "EMAIL_NOT_VERIFIED") {
+          //   setShowResendVerification(true);
+          //   setError("Your email is not verified yet.");
+          // } else if (backendError === "CAPTCHA_TOKEN_MISSING") {
+          //   setLoginCaptchaError("Please complete the CAPTCHA verification.");
+          // } else if (backendError === "CAPTCHA_FAILED") {
+          //   setLoginCaptchaError("CAPTCHA verification failed. Please try again.");
+          // } else if (backendError === "CAPTCHA_UNAVAILABLE") {
+          //   setError("CAPTCHA service is temporarily unavailable. Please try again.");
+          // } else if (typeof backendMessage === "string" && backendMessage.trim().length > 0) {
+          //   setError(backendMessage);
+          // } else {
+          //   setError("Incorrect email or password.");
+          // }
+//uncomment
+
+//remove
           if (axiosErr.response?.status === 429) {
             setError("Too many login attempts. Please wait a moment and try again.");
           } else if (axiosErr.response?.data?.error === "EMAIL_NOT_VERIFIED") {
             setShowResendVerification(true);
             setError("Your email is not verified yet.");
-          } else if (backendError === "CAPTCHA_TOKEN_MISSING") {
-            setLoginCaptchaError("Please complete the CAPTCHA verification.");
-          } else if (backendError === "CAPTCHA_FAILED") {
-            setLoginCaptchaError("CAPTCHA verification failed. Please try again.");
-          } else if (backendError === "CAPTCHA_UNAVAILABLE") {
-            setError("CAPTCHA service is temporarily unavailable. Please try again.");
           } else if (typeof backendMessage === "string" && backendMessage.trim().length > 0) {
             setError(backendMessage);
           } else {
             setError("Incorrect email or password.");
-          }
-          loginCaptchaRef.current?.reset(); // let the user tick again on failure
+          }    
+//remove          
+
+//uncomment
+          // loginCaptchaRef.current?.reset(); // let the user tick again on failure
+//uncomment        
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////         
         } finally {
           setIsSubmitting(false);
         }
@@ -546,12 +580,18 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
                       }
                     }}
                   />
-                  {view === "login" && (
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
+//uncomment
+                  {/* {view === "login" && (
                     <CaptchaField
                       captchaRef={loginCaptchaRef}
                       error={loginCaptchaError}
                     />
-                  )}
+                  )} */}
+//uncomment
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////                   
                   {/* Confirm password — only shown during signup */}
                   {view === "signup" && (
                     <AuthInput
