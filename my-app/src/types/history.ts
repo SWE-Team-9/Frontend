@@ -8,6 +8,8 @@ export interface RecentlyPlayedItem {
   coverArtUrl?: string | null;
   liked?: boolean;
   likesCount?: number;
+  reposted?: boolean;
+  repostsCount?: number;
   lastPlayedAt: string;
   lastPositionSeconds: number;
 }
@@ -22,6 +24,8 @@ export interface ListeningHistoryItem {
   coverArtUrl?: string | null;
   liked?: boolean;
   likesCount?: number;
+  reposted?: boolean;
+  repostsCount?: number;
   playedAt: string;
   positionSeconds: number;
   durationSeconds?: number;

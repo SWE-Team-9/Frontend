@@ -14,6 +14,8 @@ export interface TrackDetails {
   genre?: string;
   likesCount?: number;
   liked?: boolean;
+  repostsCount?: number;
+  reposted?: boolean;
 }
 
 const MOCK_TRACK_DETAILS: Record<string, TrackDetails> = {
@@ -29,6 +31,8 @@ const MOCK_TRACK_DETAILS: Record<string, TrackDetails> = {
     genre: "Arabic Pop",
     likesCount: 150,
     liked: true,
+    repostsCount: 25,
+    reposted: false,
   },
   trk_002: {
     trackId: "trk_002",
@@ -42,6 +46,8 @@ const MOCK_TRACK_DETAILS: Record<string, TrackDetails> = {
     genre: "Synthwave",
     likesCount: 200,
     liked: false,
+    repostsCount: 15,
+    reposted: true,
   },
   trk_003: {
     trackId: "trk_003",
@@ -55,6 +61,8 @@ const MOCK_TRACK_DETAILS: Record<string, TrackDetails> = {
     genre: "Electronic",
     likesCount: 100,
     liked: true,
+    repostsCount: 10,
+    reposted: false,
   },
   trk_004: {
     trackId: "trk_004",
@@ -68,6 +76,8 @@ const MOCK_TRACK_DETAILS: Record<string, TrackDetails> = {
     genre: "Lo-Fi",
     likesCount: 50,
     liked: false,
+    repostsCount: 5,
+    reposted: true,
   },
   trk_005: {
     trackId: "trk_005",
@@ -81,6 +91,8 @@ const MOCK_TRACK_DETAILS: Record<string, TrackDetails> = {
     genre: "Hip-Hop",
     likesCount: 75,
     liked: true,
+    repostsCount: 10,
+    reposted: false,
   },
   trk_006: {
     trackId: "trk_006",
@@ -94,6 +106,8 @@ const MOCK_TRACK_DETAILS: Record<string, TrackDetails> = {
     genre: "Ambient",
     likesCount: 125,
     liked: false,
+    repostsCount: 20,
+    reposted: true,
   },
 };
 
@@ -120,6 +134,8 @@ export async function getTrackDetails(trackId: string): Promise<TrackDetails> {
       genre: undefined,
       likesCount: 0,
       liked: false,
+      repostsCount: 0,
+      reposted: false,
     };
   }
 

@@ -10,6 +10,7 @@ import { usePlayerStore } from "@/src/store/playerStore";
 import { ListeningHistoryItem } from "@/src/types/history";
 import { useMemo } from "react";
 import { useLikeStore } from "@/src/store/likeStore";
+import { useRepostStore } from "@/src/store/repostStore";
 import { TrackData } from "@/src/types/interactions";
 import TimestampedCommentsSection from "@/src/components/tracks/TimestampedCommentsSection";
 
@@ -52,6 +53,34 @@ export default function HistoryTrackRow({ track }: HistoryTrackRowProps) {
       : !currentlyLiked && baselineLiked
         ? Math.max(0, baselineLikes - 1)
         : baselineLikes;
+
+  const { toggleRepost, isReposted, loadingIds: repostLoadingIds } = useRepostStore();
+
+  const currentlyReposted = isReposted(track.trackId);
+  const isRepostLoading = repostLoadingIds.includes(String(track.trackId));
+
+  const baselineReposted = track.reposted ?? false;
+  const baselineReposts = track.repostsCount ?? 0;
+
+  const displayReposts =
+    currentlyReposted && !baselineReposted
+      ? baselineReposts + 1
+      : !currentlyReposted && baselineReposted
+        ? Math.max(0, baselineReposts - 1)
+        : baselineReposts;
+
+  const handleRepostToggle = async () => {
+    await toggleRepost({
+      id: track.trackId,
+      title: track.title,
+      artistName: track.artist,
+      likesCount: baselineLikes,
+      repostsCount: baselineReposts,
+      coverArtUrl: track.coverArtUrl || null,
+      coverArt: track.coverArtUrl || null,
+      imageUrl: track.coverArtUrl || null,
+    } as TrackData);
+  };
 
   const isCurrent = currentTrack?.trackId === track.trackId;
   const waveformProgress =
@@ -149,8 +178,13 @@ export default function HistoryTrackRow({ track }: HistoryTrackRowProps) {
             <span className="text-sm tabular-nums">{displayLikes}</span>
           </button>
 
-          <button className="rounded bg-zinc-800 px-4 py-2 text-white transition hover:opacity-80">
-            <BiRepost />
+          <button
+            onClick={handleRepostToggle}
+            disabled={isRepostLoading}
+            className="flex items-center gap-2 rounded bg-zinc-800 px-4 py-2 text-white transition hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <BiRepost style={{ color: currentlyReposted ? ACCENT : "#ffffff" }} />
+            <span className="text-sm tabular-nums">{displayReposts}</span>
           </button>
 
           <button className="rounded bg-zinc-800 px-4 py-2 text-white transition hover:opacity-80">
