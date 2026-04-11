@@ -455,17 +455,6 @@ export default function TrackDetailPage() {
           </div>
         )}
 
-        {/* Waveform placeholder
-        {track.waveformData && (
-          <div className="mb-6 p-4 bg-[#121212] rounded-lg border border-[#2a2a2a]">
-            <p className="text-xs text-gray-500 uppercase tracking-widest mb-1">
-              Waveform
-            </p>
-            <p className="text-gray-400 text-sm">
-              {track.waveformData.length} data points ready
-            </p>
-          </div>
-        )} */}
         {/* Waveform Preview */}
         <div className="mt-6">
           <label className="font-medium pb-2 text-xl block mb-2 text-white">
