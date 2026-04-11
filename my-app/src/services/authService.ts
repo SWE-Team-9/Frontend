@@ -17,8 +17,6 @@ export type SocialProvider = "google";
 interface LoginData {
   email: string;
   password: string;
-  remember_me?: boolean;
-
 }
 
 interface RegisterData {
@@ -58,14 +56,12 @@ export async function registerUser(data: RegisterData) {
 export const loginUser = async ({
   email,
   password,
-  remember_me,
 
 }: LoginData) => {
   // POST /auth/login  →  sets httpOnly cookies + returns { message, user }
   const response = await api.post("/auth/login", {
     email,
     password,
-    remember_me,
   });
 
 
