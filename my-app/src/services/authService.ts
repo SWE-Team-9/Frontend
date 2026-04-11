@@ -28,7 +28,6 @@ interface RegisterData {
   display_name: string;
   date_of_birth: string;       // "YYYY-MM-DD"
   gender: "MALE" | "FEMALE" | "PREFER_NOT_TO_SAY";
-  captcha_token: string;
 }
 
 interface CheckEmailResponse {
@@ -47,7 +46,7 @@ export function startSocialLogin(provider: SocialProvider) {
 }
 
 // ====== Registration with reCAPTCHA ======
-export async function registerWithCaptcha(data: RegisterData) {
+export async function registerUser(data: RegisterData) {
   // Uses the shared axios instance so cookies are handled automatically
   const response = await api.post("/auth/register", data);
   useAuthStore.getState().setEmail(data.email);
@@ -66,8 +65,7 @@ export const loginUser = async ({
   const response = await api.post("/auth/login", {
     email,
     password,
-    remember_me,   
-    captcha_token: "" 
+    remember_me,
   });
 
 
