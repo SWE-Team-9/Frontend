@@ -12,6 +12,8 @@ export interface TrackDetails {
   coverArtUrl?: string | null;
   durationMs?: number;
   genre?: string;
+  likesCount?: number;
+  liked?: boolean;
 }
 
 const MOCK_TRACK_DETAILS: Record<string, TrackDetails> = {
@@ -25,6 +27,8 @@ const MOCK_TRACK_DETAILS: Record<string, TrackDetails> = {
     coverArtUrl: "https://images.unsplash.com/photo-1614149162883-504ce4d13909?w=400&h=400&fit=crop",
     durationMs: 240000,
     genre: "Arabic Pop",
+    likesCount: 150,
+    liked: true,
   },
   trk_002: {
     trackId: "trk_002",
@@ -36,6 +40,8 @@ const MOCK_TRACK_DETAILS: Record<string, TrackDetails> = {
     coverArtUrl: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=400&fit=crop",
     durationMs: 237000,
     genre: "Synthwave",
+    likesCount: 200,
+    liked: false,
   },
   trk_003: {
     trackId: "trk_003",
@@ -47,6 +53,8 @@ const MOCK_TRACK_DETAILS: Record<string, TrackDetails> = {
     coverArtUrl: "https://images.unsplash.com/photo-1500829243541-74b677fecc30?w=400&h=400&fit=crop",
     durationMs: 312000,
     genre: "Electronic",
+    likesCount: 100,
+    liked: true,
   },
   trk_004: {
     trackId: "trk_004",
@@ -58,6 +66,8 @@ const MOCK_TRACK_DETAILS: Record<string, TrackDetails> = {
     coverArtUrl: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&h=400&fit=crop",
     durationMs: 198000,
     genre: "Lo-Fi",
+    likesCount: 50,
+    liked: false,
   },
   trk_005: {
     trackId: "trk_005",
@@ -69,6 +79,8 @@ const MOCK_TRACK_DETAILS: Record<string, TrackDetails> = {
     coverArtUrl: "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=400&h=400&fit=crop",
     durationMs: 275000,
     genre: "Hip-Hop",
+    likesCount: 75,
+    liked: true,
   },
   trk_006: {
     trackId: "trk_006",
@@ -80,6 +92,8 @@ const MOCK_TRACK_DETAILS: Record<string, TrackDetails> = {
     coverArtUrl: "https://images.unsplash.com/photo-1598387993441-a364f854c3e1?w=400&h=400&fit=crop",
     durationMs: 341000,
     genre: "Ambient",
+    likesCount: 125,
+    liked: false,
   },
 };
 
@@ -104,6 +118,8 @@ export async function getTrackDetails(trackId: string): Promise<TrackDetails> {
       coverArtUrl: null,
       durationMs: 0,
       genre: undefined,
+      likesCount: 0,
+      liked: false,
     };
   }
 

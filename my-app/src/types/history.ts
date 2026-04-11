@@ -7,6 +7,7 @@ export interface RecentlyPlayedItem {
   artistAvatarUrl?: string | null;
   coverArtUrl?: string | null;
   liked?: boolean;
+  likesCount?: number;
   lastPlayedAt: string;
   lastPositionSeconds: number;
 }
@@ -19,6 +20,8 @@ export interface ListeningHistoryItem {
   artistHandle?: string;
   artistAvatarUrl?: string | null;
   coverArtUrl?: string | null;
+  liked?: boolean;
+  likesCount?: number;
   playedAt: string;
   positionSeconds: number;
   durationSeconds?: number;

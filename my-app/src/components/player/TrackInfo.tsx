@@ -2,15 +2,19 @@
 
 import { usePlayerStore } from "@/src/store/playerStore";
 import { FaHeart, FaRegHeart } from "react-icons/fa";
-import { useState } from "react";
+import { useLikeStore } from "@/src/store/likeStore";
+import { TrackData } from "@/src/types/interactions";
 import Image from "next/image";
 
 export function TrackInfo() {
   const currentTrack = usePlayerStore((s) => s.currentTrack);
   const accessState = usePlayerStore((s) => s.accessState);
-  const [liked, setLiked] = useState(false);
+  const { toggleLike, isLiked, loadingIds } = useLikeStore();
 
   if (!currentTrack) return null;
+
+  const liked = isLiked(currentTrack.trackId);
+  const isLikeLoading = loadingIds.includes(String(currentTrack.trackId));
 
   const getArtistLabel = (value: unknown): string => {
     if (typeof value === "string") return value;
@@ -55,8 +59,20 @@ export function TrackInfo() {
       </div>
 
       <button
-        onClick={() => setLiked((l) => !l)}
-        className={`shrink-0 p-1.5 transition-colors ${liked ? "text-[#f50]" : "text-[#999] hover:text-white"
+        onClick={async () => {
+          await toggleLike({
+            id: currentTrack.trackId,
+            title: currentTrack.title,
+            artistName: artistLabel,
+            likesCount: 0,
+            repostsCount: 0,
+            coverArtUrl: currentTrack.cover || null,
+            coverArt: currentTrack.cover || null,
+            imageUrl: currentTrack.cover || null,
+          } as TrackData);
+        }}
+        disabled={isLikeLoading}
+        className={`shrink-0 p-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${liked ? "text-[#f50]" : "text-[#999] hover:text-white"
           }`}
       >
         {liked ? <FaHeart size={14} /> : <FaRegHeart size={14} />}
