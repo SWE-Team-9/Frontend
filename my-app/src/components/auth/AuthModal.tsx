@@ -194,8 +194,8 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
 
           await loginUser({ 
             email, 
-            password: loginPassword, 
-           
+            password: loginPassword,
+            remember_me: true,   
           });
           setEmailStore(email);
           onClose();
