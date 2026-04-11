@@ -1,4 +1,6 @@
-import { useState } from "react";
+"use client";
+
+import React, { useState, useRef, useEffect } from "react";
 import { AiOutlineHeart, AiFillHeart } from "react-icons/ai";
 import { BiRepost } from "react-icons/bi";
 import { RiShareForwardLine } from "react-icons/ri";
@@ -30,12 +32,10 @@ interface SCButtonProps {
   onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void; 
   label: string;
   children: React.ReactNode;
-  count?: number;
-  size?: "compact" | "full";
   disabled?: boolean;
 }
 
-function SCButton({ active, onClick, label, children, count, size = "full", disabled }: SCButtonProps) {
+function SCButton({ active, onClick, label, children, disabled }: SCButtonProps) {
   return (
     <button
       onClick={onClick}
@@ -73,7 +73,7 @@ export function RepostButton({
   };
 
   return (
-    <SCButton active={active} onClick={handleToggle} disabled={isLoading} label={active ? "Undo Repost" : "Repost"} count={repostsCount} size={size}>
+    <SCButton active={active} onClick={handleToggle} disabled={isLoading} label={active ? "Undo Repost" : "Repost"}>
       <BiRepost size={18} />
     </SCButton>
   );
@@ -100,36 +100,43 @@ export function LikeButton({
   };
 
   return (
-    <SCButton active={active} onClick={handleToggle} disabled={isLoading} label={active ? "Unlike" : "Like"} count={likesCount} size={size}>
+    <SCButton active={active} onClick={handleToggle} disabled={isLoading} label={active ? "Unlike" : "Like"}>
       {active ? <AiFillHeart size={15} /> : <AiOutlineHeart size={15} />}
     </SCButton>
   );
 }
 
 export function TrackActionButtons({
-  trackId, title, artistName, coverArt, likesCount, repostsCount,liked, reposted, size = "full",
+  trackId, title, artistName, coverArt, likesCount, repostsCount, liked, reposted, size = "full",
 }: TrackActionButtonsProps) {
   const [modalType, setModalType] = useState<"likes" | "reposts" | null>(null);
+
+  // 1. Use State instead of Refs for the baseline
+  const [baseline] = useState({
+    likes: likesCount,
+    liked: liked,
+    reposts: repostsCount,
+    reposted: reposted,
+  });
+
+
   const isCurrentlyLiked = useLikeStore((state) => state.isLiked(trackId));
   const isCurrentlyReposted = useRepostStore((state) => state.isReposted(trackId));
 
-  /* 2. THE FIX: Only increment if the user HAS liked it NOW 
-     but HADN'T liked it when the page loaded.
-  */
-  const displayLikes = (isCurrentlyLiked && !liked) ? likesCount + 1 : 
-                       (!isCurrentlyLiked && liked) ? Math.max(0, likesCount - 1) : 
-                       likesCount;
+  // 3. Math now uses state, which is safe for rendering
+ const displayLikes = (isCurrentlyLiked && !baseline.liked) ? baseline.likes + 1 : 
+                       (!isCurrentlyLiked && baseline.liked) ? Math.max(0, baseline.likes - 1) : 
+                       baseline.likes;
 
-  const displayReposts = (isCurrentlyReposted && !reposted) ? repostsCount + 1 : 
-                         (!isCurrentlyReposted && reposted) ? Math.max(0, repostsCount - 1) : 
-                         repostsCount;
+  const displayReposts = (isCurrentlyReposted && !baseline.reposted) ? baseline.reposts + 1 : 
+                         (!isCurrentlyReposted && baseline.reposted) ? Math.max(0, baseline.reposts - 1) : 
+                         baseline.reposts;
   return (
     <div className="flex items-center gap-1.5">
       <div className="flex items-center gap-1">
         <LikeButton 
           trackId={trackId} title={title} artistName={artistName} coverArt={coverArt}
           likesCount={displayLikes}
-           
         />
         {displayLikes > 0 && (
           <span 
