@@ -43,25 +43,32 @@ export const getTrackEngagements = async (
 // ===============================
 
 interface BackendTrackComment {
-  commentId: string;
+  id?: string;
+  commentId?: string;
   text?: string;
   content?: string;
   timestampSeconds?: number;
   timestampAt?: number;
-  createdAt: string;
+  createdAt?: string;
   user: {
-    id: string;
-    display_name: string;
+    id?: string;
+    userId?: string;
+    display_name?: string;
+    displayName?: string;
+    avatarUrl?: string | null;
   };
 }
 
-interface BackendGetTrackCommentsResponse {
-  page: number;
-  limit: number;
-  total: number;
-  comments: BackendTrackComment[];
-}
+type BackendGetTrackCommentsResponse =
+  | BackendTrackComment[]
+  | {
+      page?: number;
+      limit?: number;
+      total?: number;
+      comments?: BackendTrackComment[];
+    };
 
+    
 export async function getTrackComments(
   trackId: string,
   page = 1,
@@ -71,19 +78,24 @@ export async function getTrackComments(
     `/interactions/tracks/${trackId}/comments?page=${page}&limit=${limit}`
   );
 
+  const rawComments = Array.isArray(data) ? data : data.comments ?? [];
+
   return {
-    page: data.page,
-    limit: data.limit,
-    total: data.total,
-    comments: data.comments.map((comment) => ({
-      commentId: comment.commentId,
+    page: Array.isArray(data) ? page : data.page ?? page,
+    limit: Array.isArray(data) ? limit : data.limit ?? limit,
+    total: Array.isArray(data) ? rawComments.length : data.total ?? rawComments.length,
+    comments: rawComments.map((comment) => ({
+      commentId: comment.commentId ?? comment.id ?? "",
       trackId,
       text: comment.text ?? comment.content ?? "",
       timestampSeconds: comment.timestampSeconds ?? comment.timestampAt ?? 0,
-      createdAt: comment.createdAt,
+      createdAt: comment.createdAt ?? new Date().toISOString(),
       user: {
-        id: comment.user.id,
-        display_name: comment.user.display_name,
+        id: comment.user.id ?? comment.user.userId ?? "",
+        display_name:
+          comment.user.display_name ??
+          comment.user.displayName ??
+          "Unknown User",
       },
     })),
   };

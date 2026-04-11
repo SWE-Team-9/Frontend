@@ -54,6 +54,7 @@ export default function TimestampedCommentsSection({
         try {
             setIsLoading(true);
             const data = await getTrackComments(trackId, 1, 100);
+            console.log("[TimestampedCommentsSection] mapped comments:", data.comments);
             setComments(data.comments);
             setHasLoadedOnce(true);
         } catch (error) {
