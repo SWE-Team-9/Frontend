@@ -18,12 +18,9 @@ interface LoginData {
   email: string;
   password: string;
   remember_me?: boolean;
-//uncomment
-  // captcha_token?: string;  
-//uncomment
+
 }
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-// ─────────────────────────────────────────────────────────────
+
 interface RegisterData {
   email: string;
   password: string;
@@ -58,28 +55,20 @@ export async function registerWithCaptcha(data: RegisterData) {
 }
 
 // ================= LOGIN =================
-// ──────────────────────────────────────────────────────────────
+
 export const loginUser = async ({
   email,
   password,
   remember_me,
-//uncomment    
-    // captcha_token,
-//uncomment
+
 }: LoginData) => {
   // POST /auth/login  →  sets httpOnly cookies + returns { message, user }
   const response = await api.post("/auth/login", {
     email,
     password,
-    remember_me,
-//uncomment    
-    // captcha_token,
-//uncomment
-//remove    
+    remember_me,   
     captcha_token: "" 
-//remove
   });
-// ─────────────────────────────────────────────────────────────
 
 
   const { user } = response.data;
