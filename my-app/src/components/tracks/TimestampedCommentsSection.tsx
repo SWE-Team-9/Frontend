@@ -108,8 +108,8 @@ export default function TimestampedCommentsSection({
             setIsSubmitting(true);
 
             await addTrackComment(trackId, {
-                text: trimmed,
-                timestampSeconds: snapshotTimestamp,
+                content: trimmed,
+                timestampAt: snapshotTimestamp,
             });
 
             setText("");

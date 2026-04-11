@@ -44,8 +44,10 @@ export const getTrackEngagements = async (
 
 interface BackendTrackComment {
   commentId: string;
-  text: string;
-  timestampSeconds: number;
+  text?: string;
+  content?: string;
+  timestampSeconds?: number;
+  timestampAt?: number;
   createdAt: string;
   user: {
     id: string;
@@ -76,8 +78,8 @@ export async function getTrackComments(
     comments: data.comments.map((comment) => ({
       commentId: comment.commentId,
       trackId,
-      text: comment.text,
-      timestampSeconds: comment.timestampSeconds,
+      text: comment.text ?? comment.content ?? "",
+      timestampSeconds: comment.timestampSeconds ?? comment.timestampAt ?? 0,
       createdAt: comment.createdAt,
       user: {
         id: comment.user.id,
@@ -91,9 +93,14 @@ export async function addTrackComment(
   trackId: string,
   body: AddTrackCommentBody
 ): Promise<AddTrackCommentResponse> {
+  const payload = {
+    content: body.content,
+    timestampAt: body.timestampAt,
+  };
+
   const { data } = await api.post<AddTrackCommentResponse>(
     `/interactions/tracks/${trackId}/comments`,
-    body
+    payload
   );
 
   return data;

@@ -49,14 +49,16 @@ export interface GetTrackCommentsResponse {
 }
 
 export interface AddTrackCommentBody {
-  text: string;
-  timestampSeconds: number;
+  content: string;
+  timestampAt: number;
 }
 
 export interface AddTrackCommentResponse {
   commentId: string;
   trackId: string;
-  text: string;
-  timestampSeconds: number;
+  content?: string;
+  text?: string;
+  timestampAt?: number;
+  timestampSeconds?: number;
   createdAt: string;
 }
