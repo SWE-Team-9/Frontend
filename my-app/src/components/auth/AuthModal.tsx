@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import ReCAPTCHA from "react-google-recaptcha";
 import AuthInput from "@/src/components/auth/AuthInput";
 import { useAuth } from "@/src/context/AuthContext";
 import { useAuthStore } from "@/src/store/useAuthStore";
@@ -15,8 +14,7 @@ import { FaFacebook, FaApple } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { IoIosArrowBack } from "react-icons/io";
 import { useRouter } from "next/navigation";
-import { startSocialLogin, registerWithCaptcha, type SocialProvider } from "@/src/services/authService";
-import CaptchaField from "@/src/components/auth/CaptchaField";
+import { startSocialLogin, registerUser, type SocialProvider } from "@/src/services/authService";
 
 const PASSWORD_REGEX =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
@@ -35,8 +33,6 @@ interface AuthModalProps {
 
 export default function AuthModal({ isOpen, onClose, initialView }: AuthModalProps) {
   useAuth(); // keep — ensures we're inside AuthContext
-  const signupCaptchaRef = useRef<ReCAPTCHA | null>(null);
-  const loginCaptchaRef = useRef<ReCAPTCHA | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
 
@@ -50,8 +46,6 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
 
   const [socialLoading, setSocialLoading] = useState<SocialProvider | null>(null);
   const [socialError, setSocialError] = useState<string | null>(null);
-  const [signupCaptchaError, setSignupCaptchaError] = useState<string | null>(null);
-  const [loginCaptchaError, setLoginCaptchaError] = useState<string | null>(null);
 
   // Resend verification after failed login
   const [showResendVerification, setShowResendVerification] = useState(false);
@@ -79,8 +73,6 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
       setIsResetSent(false);
       setSocialError(null);
       setSocialLoading(null);
-      setSignupCaptchaError(null);
-      setLoginCaptchaError(null);
       setShowResendVerification(false);
       setResendLoading(false);
       setResendSent(false);
@@ -88,8 +80,6 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
       setSignupPassword("");
       setSignupPasswordConfirm("");
       setIsSubmitting(false);
-      signupCaptchaRef.current?.reset();
-      loginCaptchaRef.current?.reset();
     }
     return () => {
       document.body.style.overflow = 'unset';
@@ -195,23 +185,17 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
           return;
         }
 
-        setLoginCaptchaError(null);
 
-        const loginCaptchaToken = loginCaptchaRef.current?.getValue();
-
-        if (!loginCaptchaToken) {
-          setLoginCaptchaError("Please complete the CAPTCHA verification.");
-          return;
-        }
-
-        // Login with JWT via authService
+    
         try {
           setIsSubmitting(true);
           setShowResendVerification(false);
           setResendSent(false);
-          setLoginCaptchaError(null);
 
-          await loginUser({ email, password: loginPassword, captcha_token: loginCaptchaToken });
+          await loginUser({ 
+            email, 
+            password: loginPassword,
+          });
           setEmailStore(email);
           onClose();
           router.push("/discover");
@@ -226,26 +210,19 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
               status?: number;
             };
           };
-          const backendError = axiosErr.response?.data?.error;
           const backendMessage = axiosErr.response?.data?.message;
+
 
           if (axiosErr.response?.status === 429) {
             setError("Too many login attempts. Please wait a moment and try again.");
           } else if (axiosErr.response?.data?.error === "EMAIL_NOT_VERIFIED") {
             setShowResendVerification(true);
             setError("Your email is not verified yet.");
-          } else if (backendError === "CAPTCHA_TOKEN_MISSING") {
-            setLoginCaptchaError("Please complete the CAPTCHA verification.");
-          } else if (backendError === "CAPTCHA_FAILED") {
-            setLoginCaptchaError("CAPTCHA verification failed. Please try again.");
-          } else if (backendError === "CAPTCHA_UNAVAILABLE") {
-            setError("CAPTCHA service is temporarily unavailable. Please try again.");
           } else if (typeof backendMessage === "string" && backendMessage.trim().length > 0) {
             setError(backendMessage);
           } else {
             setError("Incorrect email or password.");
-          }
-          loginCaptchaRef.current?.reset(); // let the user tick again on failure
+          }            
         } finally {
           setIsSubmitting(false);
         }
@@ -283,8 +260,6 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
         }
 
         setError(null);
-        setSignupCaptchaError(null);
-        setLoginCaptchaError(null);
         setStep(3);
       } else {
         const name =
@@ -343,16 +318,6 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
 
         try {
           setIsSubmitting(true);
-          setSignupCaptchaError(null);
-          setLoginCaptchaError(null);
-
-          const recaptchaToken = signupCaptchaRef.current?.getValue();
-
-          if (!recaptchaToken) {
-            setSignupCaptchaError("Please complete the CAPTCHA verification.");
-            setIsSubmitting(false);
-            return;
-          }
 
           // Map the <select> values to what the backend expects
           const genderMap: Record<string, "MALE" | "FEMALE" | "PREFER_NOT_TO_SAY"> = {
@@ -361,14 +326,13 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
             other: "PREFER_NOT_TO_SAY",
           };
 
-          await registerWithCaptcha({
+          await registerUser({
             email,
             password: signupPassword,
             password_confirm: signupPasswordConfirm,
             display_name: trimmedName,
             date_of_birth: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
             gender: genderMap[gender] || "PREFER_NOT_TO_SAY",
-            captcha_token: recaptchaToken,
           });
 
           setEmailStore(email); // store email for verification
@@ -378,7 +342,6 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
         } catch (err: unknown) {
           const axiosErr = err as { response?: { data?: { message?: string } } };
           setError(axiosErr.response?.data?.message || "Signup failed");
-          signupCaptchaRef.current?.reset(); // let the user tick again on failure
         } finally {
           setIsSubmitting(false);
         }
@@ -418,8 +381,6 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
             <button
               onClick={() => {
                 setError(null);
-                setSignupCaptchaError(null);
-                setLoginCaptchaError(null);
                 if (view === "forgot") {
                   setView("login");
                   setStep(2);
@@ -545,13 +506,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
                         setSignupPassword(e.target.value);
                       }
                     }}
-                  />
-                  {view === "login" && (
-                    <CaptchaField
-                      captchaRef={loginCaptchaRef}
-                      error={loginCaptchaError}
-                    />
-                  )}
+                  />               
                   {/* Confirm password — only shown during signup */}
                   {view === "signup" && (
                     <AuthInput
@@ -639,13 +594,6 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
                       <option value="male">Male</option>
                       <option value="other">Prefer not to say</option>
                     </select>
-                  </div>
-
-                  <div className="w-full overflow-hidden flex justify-center sm:justify-start">
-                    <div className="scale-[0.8] xxs:scale-[0.9] xs:scale-[100] origin-right xss:origin-center">
-
-                      <CaptchaField captchaRef={signupCaptchaRef} error={signupCaptchaError} />
-                    </div>
                   </div>
                 </div>
               )}

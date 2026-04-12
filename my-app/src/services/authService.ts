@@ -13,12 +13,10 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 
 export type SocialProvider = "google"; 
-
+// ─────────────────────────────────────────────────────────────
 interface LoginData {
   email: string;
   password: string;
-  remember_me?: boolean;
-  captcha_token?: string;  
 }
 
 interface RegisterData {
@@ -28,7 +26,6 @@ interface RegisterData {
   display_name: string;
   date_of_birth: string;       // "YYYY-MM-DD"
   gender: "MALE" | "FEMALE" | "PREFER_NOT_TO_SAY";
-  captcha_token: string;
 }
 
 interface CheckEmailResponse {
@@ -47,7 +44,7 @@ export function startSocialLogin(provider: SocialProvider) {
 }
 
 // ====== Registration with reCAPTCHA ======
-export async function registerWithCaptcha(data: RegisterData) {
+export async function registerUser(data: RegisterData) {
   // Uses the shared axios instance so cookies are handled automatically
   const response = await api.post("/auth/register", data);
   useAuthStore.getState().setEmail(data.email);
@@ -55,19 +52,19 @@ export async function registerWithCaptcha(data: RegisterData) {
 }
 
 // ================= LOGIN =================
+
 export const loginUser = async ({
   email,
   password,
-  remember_me,
-  captcha_token,
+
 }: LoginData) => {
   // POST /auth/login  →  sets httpOnly cookies + returns { message, user }
   const response = await api.post("/auth/login", {
     email,
     password,
-    remember_me,
-    captcha_token,
   });
+
+
   const { user } = response.data;
   
   // Backend returns snake_case fields — we map them to camelCase for the store
