@@ -3,10 +3,10 @@ import React from "react";
 import { act, render } from "@testing-library/react";
 import PlayerAudioSync from "@/src/components/player/PlayerAudioSync";
 
-let mockUsePlayerStore: jest.Mock = jest.fn();
-let mockGetAudioElement: jest.Mock = jest.fn();
-let mockGetState: jest.Mock = jest.fn();
-let mockSetState: jest.Mock = jest.fn();
+const mockUsePlayerStore: jest.Mock = jest.fn();
+const mockGetAudioElement: jest.Mock = jest.fn();
+const mockGetState: jest.Mock = jest.fn();
+const mockSetState: jest.Mock = jest.fn();
 
 const mockAudio = {
   currentTime: 42,
@@ -32,12 +32,18 @@ const mockStoreState = {
 jest.useFakeTimers();
 
 jest.mock("@/src/store/playerStore", () => {
-  const usePlayerStore: any = (selector?: (state: unknown) => unknown) => {
+  type MockedStoreHook = {
+    (selector?: (state: unknown) => unknown): unknown;
+    getState: (...args: unknown[]) => unknown;
+    setState: (...args: unknown[]) => unknown;
+  };
+
+  const usePlayerStore = ((selector?: (state: unknown) => unknown) => {
     if (typeof selector === "function") {
       return mockUsePlayerStore(selector);
     }
     return mockUsePlayerStore();
-  };
+  }) as MockedStoreHook;
 
   usePlayerStore.getState = (...args: unknown[]) => mockGetState(...args);
   usePlayerStore.setState = (...args: unknown[]) => mockSetState(...args);
