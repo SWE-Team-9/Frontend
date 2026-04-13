@@ -13,9 +13,9 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 const api = axios.create({
   baseURL: API_URL,
   withCredentials: true, // ← cookies are sent automatically (httpOnly tokens)
-  headers: {
-    "Content-Type": "application/json",
-  },
+  // NOTE: Do NOT set a default Content-Type here.
+  // Axios auto-detects multipart/form-data when the body is FormData,
+  // but an explicit default header overrides that and breaks file uploads.
 });
 
 // ─── Auto-refresh when access token expires ──────────────────
