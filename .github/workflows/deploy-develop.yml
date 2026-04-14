@@ -33,6 +33,11 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # --- ADDED THIS STEP FOR JEST TESTS ---
+      - name: Run unit tests
+        run: npm run test
+      # --------------------------------------
+
       - name: Build
         run: npm run build
 
