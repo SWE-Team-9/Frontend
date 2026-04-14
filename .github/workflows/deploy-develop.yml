@@ -11,6 +11,11 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: ./my-app
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -19,9 +24,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
+          cache-dependency-path: './my-app/package-lock.json' # Point cache to the right place!
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci # You can safely use npm ci again since you have a package-lock.json inside my-app!
 
       - name: Lint
         run: npm run lint
@@ -54,13 +61,15 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: swe-team-9/frontend
           IMAGE_TAG: develop
+        # NOTE: Make sure your Dockerfile is in the root or adjust this path to my-app too.
+        # If your Dockerfile is inside my-app, change `.` to `./my-app`
         run: |
           docker build \
             --build-arg NEXT_PUBLIC_APP_URL="${{ secrets.NEXT_PUBLIC_APP_URL }}" \
             --build-arg NEXT_PUBLIC_API_BASE_URL="${{ secrets.NEXT_PUBLIC_API_BASE_URL }}" \
             --build-arg NEXT_PUBLIC_API_URL="${{ secrets.NEXT_PUBLIC_API_URL }}" \
             --build-arg NEXT_PUBLIC_RECAPTCHA_SITE_KEY="${{ secrets.NEXT_PUBLIC_RECAPTCHA_SITE_KEY }}" \
-            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./my-app
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
       - name: Deploy to EC2 and Clean Up
