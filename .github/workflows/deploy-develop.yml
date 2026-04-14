@@ -30,8 +30,8 @@ jobs:
       - name: Install dependencies
         run: npm ci # You can safely use npm ci again since you have a package-lock.json inside my-app!
 
-      #- name: Lint
-        #run: npm run lint
+      - name: Lint
+        run: npm run lint
 
       # --- ADDED THIS STEP FOR JEST TESTS ---
       - name: Run unit tests
