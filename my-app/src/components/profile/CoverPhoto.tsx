@@ -32,7 +32,7 @@ export function CoverPhoto({
   const MIN_WIDTH = 1200;
   const MIN_HEIGHT = 520;
   const MAX_SIZE = 2 * 1024 * 1024;
-  
+
   const handleUploadClick = () => {
     if (finalImage) {
       setShowDropdown(!showDropdown);
@@ -208,8 +208,8 @@ export function CoverPhoto({
       />
 
       {showPopup && tempImage && (
-        <div className="fixed inset-0 bg-white/35 z-50 flex justify-center items-start overflow-y-auto pt-20">
-          <div className="bg-[#1E1E1E] p-5 rounded-sm shadow-lg w-full max-w-212.5 text-left animate-slideDown max-h-[calc(100vh-5rem)] overflow-y-auto">
+        <div className="fixed inset-0 bg-white/35 z-60 flex justify-center items-start overflow-y-auto p-4 pt-16 md:pt-20">
+          <div className="bg-[#1E1E1E] p-4 md:p-5 rounded-sm shadow-lg w-full max-w-3xl text-left animate-slideDown max-h-[calc(100vh-4rem)] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-white">
                 Position and resize your profile header
@@ -228,7 +228,7 @@ export function CoverPhoto({
             </p>
             <div
               ref={containerRef}
-              className="w-full h-55 mb-2 overflow-hidden rounded-none border border-gray-700 relative"
+              className="w-full h-40 md:h-55 mb-2 overflow-hidden rounded-none border border-gray-700 relative"
             >
               <Image
                 ref={imageRef}
@@ -269,7 +269,7 @@ export function CoverPhoto({
                     step="0.1"
                     value={zoom}
                     onChange={(e) => setZoom(parseFloat(e.target.value))}
-                    className="w-75 appearance-none h-2 rounded-lg cursor-pointer bg-zinc-800 accent-white"
+                    className="w-full max-w-xs md:w-75 appearance-none h-2 rounded-lg cursor-pointer bg-zinc-800 accent-white"
                   />
                   <button
                     onClick={() => setZoom(Math.min(3, zoom + 0.1))}

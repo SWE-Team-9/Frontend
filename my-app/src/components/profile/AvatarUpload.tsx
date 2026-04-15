@@ -188,8 +188,8 @@ export function AvatarUpload({
       )}
 
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-white/25 flex justify-center items-start z-50">
-          <div className="bg-black p-3 rounded-lg shadow-xl w-87.5 text-left animate-slideDown mt-[10vh] h-40">
+        <div className="fixed inset-0 bg-white/25 flex justify-center items-center px-4 z-60">
+          <div className="bg-black p-4 rounded-lg shadow-xl w-full max-w-sm text-left animate-slideDown">
             <h2 className="text-xl font-bold mb-2 text-white">Are you sure?</h2>
             <p className="text-sm text-zinc-100 mb-4">
               Please confirm that you want to delete this image.
@@ -215,21 +215,23 @@ export function AvatarUpload({
       )}
 
       {showEditor && tempImage && (
-        <div className="fixed inset-0 bg-white/30 backdrop-blur-sm flex items-start justify-center pt-20 z-50 overflow-y-auto">
+        <div className="fixed inset-0 bg-white/30 backdrop-blur-sm flex items-start justify-center p-4 pt-16 md:pt-20 z-60 overflow-y-auto">
           <button
             onClick={() => setShowEditor(false)}
-            className="absolute top-6 right-6 text-black text-2xl font-bold hover:text-zinc-700 z-50"
+            className="absolute top-6 right-6 text-black text-2xl font-bold hover:text-zinc-700 z-60"
           >
             ×
           </button>
-          <div className="bg-zinc-900 p-5 rounded-xl flex flex-col items-center gap-4 w-full max-w-125 shadow-2xl max-h-[calc(100vh-5rem)] overflow-y-auto">
-            <h2 className="text-white font-bold text-2xl">{username}</h2>
+          <div className="bg-zinc-900 p-4 md:p-5 rounded-xl flex flex-col items-center gap-4 w-full max-w-lg shadow-2xl max-h-[calc(100vh-4rem)] overflow-y-auto">
+            <h2 className="text-white font-bold text-xl md:text-2xl">
+              {username}
+            </h2>
             <p className="text-zinc-400 text-sm">{location}</p>
             <p className="text-zinc-300 text-xs text-center">
               For best results, upload images of at least{" "}
               <strong>1000×1000 pixels</strong>. 2MB file-size limit.
             </p>
-            <div className="relative w-120 h-120 rounded-full overflow-hidden bg-transparent shadow-lg">
+            <div className="relative w-full max-w-xs md:max-w-sm aspect-square rounded-full overflow-hidden bg-transparent shadow-lg">
               <Cropper
                 image={tempImage}
                 crop={crop}
@@ -244,7 +246,7 @@ export function AvatarUpload({
                 restrictPosition
               />
             </div>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between w-full mt-6 gap-3">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between w-full mt-4 gap-3">
               {isValidImage ? (
                 <div className="flex items-center gap-2 flex-1">
                   <button
@@ -277,13 +279,13 @@ export function AvatarUpload({
               <div className="flex gap-3 ml-0 sm:ml-6 mt-2 sm:mt-0">
                 <button
                   onClick={() => setShowEditor(false)}
-                  className="bg-zinc-800 text-white px-2 py-2 rounded text-sm hover:bg-zinc-700 transition"
+                  className="bg-zinc-800 text-white px-3 py-2 rounded text-sm hover:bg-zinc-700 transition"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSave}
-                  className="bg-white text-black px-2 py-2 rounded font-bold text-sm hover:bg-gray-200 transition"
+                  className="bg-white text-black px-3 py-2 rounded font-bold text-sm hover:bg-gray-200 transition"
                 >
                   Save
                 </button>
