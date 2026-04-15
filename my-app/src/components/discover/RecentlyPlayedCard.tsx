@@ -81,8 +81,8 @@ export default function RecentlyPlayedCard({ track }: RecentlyPlayedCardProps) {
     };
 
     return (
-        <div className="group relative w-[190px] shrink-0 overflow-visible">
-            <div className="relative h-[190px] w-[190px] overflow-hidden rounded-sm bg-zinc-900">
+        <div className="group relative w-47.5 shrink-0 overflow-visible">
+            <div className="relative h-47.5 w-47.5 overflow-hidden rounded-sm bg-zinc-900">
                 <Image
                     src={track.coverArtUrl || FALLBACK_IMAGE}
                     alt={track.title}
