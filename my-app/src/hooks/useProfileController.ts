@@ -11,6 +11,21 @@ import {
 
 type AccountType = "ARTIST" | "LISTENER";
 
+type ProfileDraft = {
+  displayName: string;
+  bio: string;
+  location: string;
+  website: string;
+  isPrivate?: boolean;
+  favoriteGenres: string[];
+  accountType: AccountType;
+  links?: {
+    id: number;
+    platform: string;
+    url: string;
+  }[];
+};
+
 export const useProfileController = (handle?: string) => {
   const store = useProfileStore();
   const authHandle = useAuthStore((state) => state.user?.handle);
@@ -88,9 +103,11 @@ export const useProfileController = (handle?: string) => {
 
     try {
       setIsLoading(true);
+
       const profile = handle
         ? await getProfileByHandle(handle)
         : await getMyProfile();
+
       setUserId(profile.id);
 
       store.setProfileData({
@@ -121,9 +138,9 @@ export const useProfileController = (handle?: string) => {
         isLoaded: true,
       });
 
-      // Sync avatar to auth store so the navbar always shows the correct photo
       if (!handle) {
         const authUser = useAuthStore.getState().user;
+
         if (authUser) {
           useAuthStore.getState().setUser({
             ...authUser,
@@ -137,23 +154,36 @@ export const useProfileController = (handle?: string) => {
     } finally {
       setIsLoading(false);
     }
-  }, [handle]);
+  }, [handle, store]);
 
   useEffect(() => {
     const current = useProfileStore.getState();
+
     if (current.handle === handle && current.isLoaded) {
       hasRequestedProfileRef.current = true;
       return;
     }
-    setIsLoading(true); 
+
+    setIsLoading(true);
     setUserId(null);
     store.resetProfile();
     hasRequestedProfileRef.current = false;
     loadProfile();
-  }, [handle]);
+  }, [handle, loadProfile, store]);
 
-  const handleSave = async () => {
-    if (!store.displayName.trim()) {
+  const handleSave = async (draft?: ProfileDraft) => {
+    const nextProfile = {
+      displayName: draft?.displayName ?? store.displayName,
+      bio: draft?.bio ?? store.bio,
+      location: draft?.location ?? store.location,
+      website: draft?.website ?? store.website,
+      isPrivate: draft?.isPrivate ?? store.isPrivate,
+      favoriteGenres: draft?.favoriteGenres ?? store.favoriteGenres,
+      accountType: draft?.accountType ?? store.accountType,
+      links: draft?.links ?? store.links ?? [],
+    };
+
+    if (!nextProfile.displayName.trim()) {
       setError("Display name is required!");
       return;
     }
@@ -163,20 +193,22 @@ export const useProfileController = (handle?: string) => {
       setError("");
 
       await updateMyProfile({
-        display_name: store.displayName,
-        bio: store.bio || undefined,
-        location: store.location || undefined,
-        website: store.website || undefined,
-        is_private: store.isPrivate,
-        favorite_genres: store.favoriteGenres.filter((g) => g !== "None"),
-        account_type: store.accountType,
+        display_name: nextProfile.displayName,
+        bio: nextProfile.bio || undefined,
+        location: nextProfile.location || undefined,
+        website: nextProfile.website || undefined,
+        is_private: nextProfile.isPrivate,
+        favorite_genres: nextProfile.favoriteGenres.filter((g) => g !== "None"),
+        account_type: nextProfile.accountType,
       });
 
-      const validLinks = store.links
+      const validLinks = nextProfile.links
         .filter((l) => l.url.trim() !== "")
         .map((l) => ({ platform: l.platform || "website", url: l.url }));
 
       await updateMyLinks(validLinks);
+
+      store.setProfileData(nextProfile);
 
       setIsEditOpen(false);
       setShowSuccessToast(true);
@@ -189,7 +221,9 @@ export const useProfileController = (handle?: string) => {
     }
   };
 
-  const handleAvatarUpload = async (file: File): Promise<string | undefined> => {
+  const handleAvatarUpload = async (
+    file: File,
+  ): Promise<string | undefined> => {
     if (isAvatarUploading) return store.avatarUrl || undefined;
 
     try {
@@ -202,10 +236,12 @@ export const useProfileController = (handle?: string) => {
       if (uploadedUrl) {
         store.setProfileData({ avatarUrl: uploadedUrl });
 
-        // Keep navbar in sync after avatar upload
         const authUser = useAuthStore.getState().user;
+
         if (authUser) {
-          useAuthStore.getState().setUser({ ...authUser, avatarUrl: uploadedUrl });
+          useAuthStore
+            .getState()
+            .setUser({ ...authUser, avatarUrl: uploadedUrl });
         }
       }
 
@@ -236,7 +272,9 @@ export const useProfileController = (handle?: string) => {
       return uploadedUrl;
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } };
-      setError(axiosErr.response?.data?.message || "Failed to upload cover photo.");
+      setError(
+        axiosErr.response?.data?.message || "Failed to upload cover photo.",
+      );
       throw err;
     } finally {
       setIsCoverUploading(false);
