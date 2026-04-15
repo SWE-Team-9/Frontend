@@ -647,7 +647,6 @@ export default function ProfilePage({
 
         {/* ── EDIT MODAL ── */}
         <EditProfileModal
-          key={controller.isEditOpen ? "edit-profile-open" : "edit-profile-closed"}
           isOpen={controller.isEditOpen}
           onClose={() => controller.setIsEditOpen(false)}
           data={{
