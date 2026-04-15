@@ -6,18 +6,20 @@ import { HiDotsHorizontal } from "react-icons/hi";
 import TrackCardMenu from "./TrackCardMenu";
 import { usePlayerStore } from "@/src/store/playerStore";
 import { useEffect, useRef, useState } from "react";
+import { useLikeStore } from "@/src/store/likeStore";
+import { TrackData } from "@/src/types/interactions";
 
 interface RecentlyPlayedItem {
-  trackId: string;
-  title: string;
-  artist: string;
-  artistId: string;
-  artistHandle?: string;
-  artistAvatarUrl?: string | null;
-  coverArtUrl?: string | null;
-  liked?: boolean;
-  lastPlayedAt: string;
-  lastPositionSeconds: number;
+    trackId: string;
+    title: string;
+    artist: string;
+    artistId: string;
+    artistHandle?: string;
+    artistAvatarUrl?: string | null;
+    coverArtUrl?: string | null;
+    liked?: boolean;
+    lastPlayedAt: string;
+    lastPositionSeconds: number;
 }
 
 interface RecentlyPlayedCardProps {
@@ -29,33 +31,37 @@ const ACCENT = "#ff5500";
 
 export default function RecentlyPlayedCard({ track }: RecentlyPlayedCardProps) {
     const [menuOpen, setMenuOpen] = useState(false);
-    const [liked, setLiked] = useState(track.liked ?? false);
 
     const { currentTrack, isPlaying, toggle, fetchAndPlay } = usePlayerStore();
 
+    const { toggleLike, isLiked, loadingIds } = useLikeStore();
+
+    const liked = isLiked(track.trackId);
+    const isLikeLoading = loadingIds.includes(String(track.trackId));
+
     const isCurrent = currentTrack?.trackId === track.trackId;
-    
+
     const menuRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-        if (
-        menuRef.current &&
-        event.target instanceof Node &&
-        !menuRef.current.contains(event.target)
-        ) {
-        setMenuOpen(false);
+        function handleClickOutside(event: MouseEvent) {
+            if (
+                menuRef.current &&
+                event.target instanceof Node &&
+                !menuRef.current.contains(event.target)
+            ) {
+                setMenuOpen(false);
+            }
         }
-    }
 
-    if (menuOpen) {
-        document.addEventListener("mousedown", handleClickOutside);
-    }
+        if (menuOpen) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
 
-    return () => {
-        document.removeEventListener("mousedown", handleClickOutside);
-    };
-    }, [menuOpen]);    
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [menuOpen]);
 
     const handlePlayPause = () => {
         if (isCurrent) {
@@ -64,19 +70,19 @@ export default function RecentlyPlayedCard({ track }: RecentlyPlayedCardProps) {
         }
 
         fetchAndPlay({
-        trackId: track.trackId,
-        title: track.title,
-        cover: track.coverArtUrl || FALLBACK_IMAGE,
-        artist: track.artist,
-        artistId: track.artistId,
-        artistHandle: track.artistHandle,
-        artistAvatarUrl: track.artistAvatarUrl ?? null,
+            trackId: track.trackId,
+            title: track.title,
+            cover: track.coverArtUrl || FALLBACK_IMAGE,
+            artist: track.artist,
+            artistId: track.artistId,
+            artistHandle: track.artistHandle,
+            artistAvatarUrl: track.artistAvatarUrl ?? null,
         });
     };
 
     return (
-        <div className="group relative w-[190px] shrink-0 overflow-visible">
-            <div className="relative h-[190px] w-[190px] overflow-hidden rounded-sm bg-zinc-900">
+        <div className="group relative w-47.5 shrink-0 overflow-visible">
+            <div className="relative h-47.5 w-47.5 overflow-hidden rounded-sm bg-zinc-900">
                 <Image
                     src={track.coverArtUrl || FALLBACK_IMAGE}
                     alt={track.title}
@@ -103,11 +109,20 @@ export default function RecentlyPlayedCard({ track }: RecentlyPlayedCardProps) {
 
                 <div className="absolute bottom-3 right-3 z-30 flex items-center gap-2 opacity-0 transition duration-200 group-hover:opacity-100">
                     <button
-                        onClick={(e) => {
+                        onClick={async (e) => {
                             e.stopPropagation();
-                            setLiked((prev) => !prev);
+                            await toggleLike({
+                                id: track.trackId,
+                                title: track.title,
+                                artistName: track.artist,
+                                repostsCount: 0,
+                                coverArtUrl: track.coverArtUrl || null,
+                                coverArt: track.coverArtUrl || null,
+                                imageUrl: track.coverArtUrl || null,
+                            } as TrackData);
                         }}
-                        className="opacity-100 transition-opacity duration-200 hover:opacity-70"
+                        disabled={isLikeLoading}
+                        className="opacity-100 transition-opacity duration-200 hover:opacity-70 disabled:cursor-not-allowed disabled:opacity-50"
                         aria-label={liked ? "Unlike track" : "Like track"}
                     >
                         <FaHeart

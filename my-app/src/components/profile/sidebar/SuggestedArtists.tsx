@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import { useFollowStore } from "@/src/store/followStore";
 import { UserCard } from "@/src/components/user/UserCard";
-import { HiRefresh } from "react-icons/hi";
 
 export default function SuggestedArtists() {
   const { suggestions, suggestionsLoading, fetchSuggestions, error } =
@@ -19,20 +18,6 @@ export default function SuggestedArtists() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <button
-          onClick={() => fetchSuggestions()}
-          disabled={suggestionsLoading}
-          className="ml-auto text-zinc-400 hover:text-white transition-colors disabled:opacity-40"
-          title="Refresh suggestions"
-        >
-          <HiRefresh
-            size={16}
-            className={suggestionsLoading ? "animate-spin" : ""}
-          />
-        </button>
-      </div>
-
       {suggestionsLoading && (
         <p className="text-sm text-zinc-500">Loading...</p>
       )}
