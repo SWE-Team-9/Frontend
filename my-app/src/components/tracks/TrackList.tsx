@@ -11,6 +11,7 @@ interface TrackListProps {
   userId: string;
   type?: "tracks" | "reposts" | "all";
   isOwner?: boolean;
+  onTracksTotalChange?: (count: number) => void;
 }
 
 function getArtistLabel(value: unknown): string {
@@ -28,8 +29,14 @@ function getArtistLabel(value: unknown): string {
   return "Unknown Artist";
 }
 
-const TrackList: React.FC<TrackListProps> = ({ userId, type = "tracks", isOwner = false }) => {
+const TrackList: React.FC<TrackListProps> = ({
+  userId,
+  type = "tracks",
+  isOwner = false,
+  onTracksTotalChange,
+}) => {
   const [tracks, setTracks] = useState<TrackDetails[]>([]);
+  const [totalTracksCount, setTotalTracksCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -83,7 +90,13 @@ const TrackList: React.FC<TrackListProps> = ({ userId, type = "tracks", isOwner 
       } else {
         // 3. Standard "All/Tracks" tab: Fetch this user's uploads
         const data = await getUserTracks(userId);
-        setTracks(data.tracks || []);
+        const nextTracks = data.tracks || [];
+        const nextTotal =
+          typeof data.totalTracks === "number" ? data.totalTracks : nextTracks.length;
+
+        setTracks(nextTracks);
+        setTotalTracksCount(nextTotal);
+        onTracksTotalChange?.(nextTotal);
       }
     } catch (err) {
       console.error("Load tracks failed:", err);
@@ -97,7 +110,7 @@ const TrackList: React.FC<TrackListProps> = ({ userId, type = "tracks", isOwner 
   loadTracks();
   // We include repostedTracks.length to refresh the list instantly 
   // if you repost/unrepost a track while looking at your own list.
-}, [userId, type, isOwner, repostedTracks.length]);
+}, [userId, type, isOwner, repostedTracks.length, onTracksTotalChange]);
 
   const handleEdit = (track: TrackDetails) => {
     setNotice(`Edit \"${track.title}\" is not available yet.`);
@@ -113,9 +126,25 @@ const TrackList: React.FC<TrackListProps> = ({ userId, type = "tracks", isOwner 
     if (!trackToDelete) return;
     try {
       await deleteTrack(trackToDelete.id);
-      setTracks((prev) =>
-        prev.filter((t) => t.trackId !== trackToDelete.id)
-      );
+      const deletedTrackId = trackToDelete.id;
+
+      const nextTracks = tracks.filter((t) => {
+        const candidateId = String(
+          (t as { id?: string | number }).id ?? t.trackId ?? "",
+        );
+        return candidateId !== deletedTrackId;
+      });
+
+      setTracks(nextTracks);
+
+      if (type !== "reposts") {
+        const removedCount = Math.max(tracks.length - nextTracks.length, 0);
+        const currentTotal = totalTracksCount || tracks.length;
+        const nextTotal = Math.max(currentTotal - removedCount, 0);
+        setTotalTracksCount(nextTotal);
+        onTracksTotalChange?.(nextTotal);
+      }
+
       setActionError(null);
       setIsDeleteModalOpen(false);
       setTrackToDelete(null);
@@ -134,7 +163,10 @@ const TrackList: React.FC<TrackListProps> = ({ userId, type = "tracks", isOwner 
     <div className="space-y-4 max-w-4xl mx-auto p-6 bg-[#121212] rounded-xl">
       <h2 className="text-2xl font-bold text-white mb-4 uppercase tracking-wider">
         {type === "reposts" ? "Reposts" : "Tracks"}
-        <span className="text-zinc-500 text-lg"> ({tracks.length})</span>
+        <span className="text-zinc-500 text-lg">
+          {" "}
+          ({type === "reposts" ? tracks.length : totalTracksCount})
+        </span>
       </h2>
 
       {notice && <p className="text-amber-400 text-sm">{notice}</p>}
@@ -148,7 +180,9 @@ const TrackList: React.FC<TrackListProps> = ({ userId, type = "tracks", isOwner 
         <div className="grid gap-3">
   {tracks.map((track) => {
     // 1. Ensure we have a string ID (handles 'id' vs 'trackId')
-    const stableId = String((track as { id?: string }).id || track.trackId);
+    const stableId = String(
+      (track as { id?: string | number }).id ?? track.trackId,
+    );
     const stableArtistId = track.artistId || userId;
     const isActuallyOwner = isOwner && (stableArtistId === userId);
     return (

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import NavBar from "@/src/components/ui/NavBar";
 import { FiShare } from "react-icons/fi";
@@ -20,6 +20,7 @@ import { TrackCard } from "@/src/components/tracks/TrackCard";
 import Image from "next/image";
 import { useFollowStore } from "@/src/store/followStore";
 import { useLikeStore } from "@/src/store/likeStore";
+import { useProfileStore } from "@/src/store/useProfileStore";
 import TrackList from "@/src/components/tracks/TrackList";
 import Link from "next/dist/client/link";
 import { TrackData } from "@/src/types/interactions";
@@ -48,6 +49,7 @@ export default function ProfilePage({
   const handle = resolvedParams.handle;
   const [searchQuery, setSearchQuery] = useState("");
   const controller = useProfileController(handle);
+  const setProfileData = useProfileStore((state) => state.setProfileData);
   const isOwner = controller.isOwner;
   // ── Follow store ──────────────────────────────────────────────────────────
   const following = useFollowStore((state) => state.profileFollowing || []);
@@ -158,6 +160,13 @@ export default function ProfilePage({
     const name = user.display_name || user.displayName || user.name || "";
     return name.toLowerCase().includes(searchQuery.toLowerCase());
   });
+
+  const handleTracksTotalChange = useCallback(
+    (nextTotal: number) => {
+      setProfileData({ tracksCount: nextTotal });
+    },
+    [setProfileData],
+  );
 
   // ─── DETAILS VIEW ─────────────────────────────────────────────────────────
   const renderDetailsPage = () => (
@@ -341,7 +350,11 @@ export default function ProfilePage({
       return (
         <div className="flex-1 border-r border-zinc-900/50 pr-12">
           {controller.userId ? (
-            <TrackList userId={controller.userId ?? ""} isOwner={isOwner} />
+            <TrackList
+              userId={controller.userId ?? ""}
+              isOwner={isOwner}
+              onTracksTotalChange={handleTracksTotalChange}
+            />
           ) : (
             <p className="text-sm text-zinc-500">Loading tracks...</p>
           )}

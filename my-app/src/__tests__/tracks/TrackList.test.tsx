@@ -74,4 +74,20 @@ describe('TrackList Component (Module 4)', () => {
       expect(screen.getByText(/No tracks found/i)).toBeInTheDocument();
     });
   });
+
+  test('reports total tracks through callback for profile stats sync', async () => {
+    const onTracksTotalChange = jest.fn();
+    mockedGetUserTracks.mockResolvedValue({ ...mockTracksResponse, totalTracks: 7 });
+
+    render(
+      <TrackList
+        {...defaultProps}
+        onTracksTotalChange={onTracksTotalChange}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(onTracksTotalChange).toHaveBeenCalledWith(7);
+    });
+  });
 });
