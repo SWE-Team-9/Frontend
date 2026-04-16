@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { PrivacyToggle } from "@/src/components/ui/PrivacyToggle";
 import { SocialLinkInput } from "@/src/components/ui/SocialLinkInput";
 
@@ -27,7 +27,16 @@ interface EditModalProps {
   };
   handlers: {
     setProfileData: (data: Record<string, unknown>) => void;
-    handleSave: () => void;
+    handleSave: (draft: {
+      displayName: string;
+      bio: string;
+      location: string;
+      website: string;
+      isPrivate?: boolean;
+      favoriteGenres: string[];
+      accountType: "ARTIST" | "LISTENER";
+      links?: SocialLink[];
+    }) => void;
     addLink: () => void;
     removeLink: (id: number) => void;
     updateLink: (id: number, field: string, value: string) => void;
@@ -41,6 +50,39 @@ export const EditProfileModal = ({
   data,
   handlers,
 }: EditModalProps) => {
+  const [draft, setDraft] = useState(() => ({
+    displayName: data.displayName,
+    handle: data.handle,
+    bio: data.bio,
+    location: data.location,
+    website: data.website,
+    accountType: data.accountType,
+    favoriteGenres: data.favoriteGenres,
+    links: data.links ?? [{ id: 1, platform: "", url: "" }],
+    isPrivate: data.isPrivate,
+  }));
+  const addDraftLink = () => {
+    setDraft((prev) => ({
+      ...prev,
+      links: [...(prev.links ?? []), { id: Date.now(), platform: "", url: "" }],
+    }));
+  };
+
+  const removeDraftLink = (id: number) => {
+    setDraft((prev) => ({
+      ...prev,
+      links: (prev.links ?? []).filter((link) => link.id !== id),
+    }));
+  };
+
+  const updateDraftLink = (id: number, field: string, value: string) => {
+    setDraft((prev) => ({
+      ...prev,
+      links: (prev.links ?? []).map((link) =>
+        link.id === id ? { ...link, [field]: value } : link,
+      ),
+    }));
+  };
   if (!isOpen) return null;
 
   return (
@@ -76,9 +118,9 @@ export const EditProfileModal = ({
                   </label>
                   <input
                     type="text"
-                    value={data.displayName}
+                    value={draft.displayName}
                     onChange={(e) =>
-                      handlers.setProfileData({ displayName: e.target.value })
+                      setDraft({ ...draft, displayName: e.target.value })
                     }
                     className="w-full bg-[#333] border border-zinc-800 p-2 rounded text-white font-bold h-10 outline-none focus:border-white"
                   />
@@ -91,14 +133,12 @@ export const EditProfileModal = ({
                   </label>
                   <div className="flex items-center bg-[#333] border border-zinc-800 rounded p-2 h-10 overflow-hidden">
                     <span className="text-zinc-500 text-[11px] font-bold mr-1 uppercase whitespace-nowrap">
-                      spotly.com/
+                      iqa3.tech/
                     </span>
                     <input
                       type="text"
-                      value={data.handle}
-                      onChange={(e) =>
-                        handlers.setProfileData({ handle: e.target.value })
-                      }
+                      value={draft.handle}
+                      readOnly
                       className="bg-transparent text-white font-bold outline-none w-full text-sm"
                     />
                   </div>
@@ -113,18 +153,27 @@ export const EditProfileModal = ({
                     <button
                       type="button"
                       onClick={() =>
-                        handlers.setProfileData({ accountType: "ARTIST" })
+                        setDraft({ ...draft, accountType: "ARTIST" })
                       }
-                      className={`flex-1 py-2 rounded font-bold text-xs uppercase transition-all ${data.accountType === "ARTIST" ? "bg-white text-black" : "bg-transparent border border-zinc-700 text-zinc-400"}`}
+                      className={`flex-1 py-2 rounded font-bold text-xs uppercase transition-all ${
+                        draft.accountType === "ARTIST"
+                          ? "bg-white text-black"
+                          : "bg-transparent border border-zinc-700 text-zinc-400"
+                      }`}
                     >
                       Artist
                     </button>
+
                     <button
                       type="button"
                       onClick={() =>
-                        handlers.setProfileData({ accountType: "LISTENER" })
+                        setDraft({ ...draft, accountType: "LISTENER" })
                       }
-                      className={`flex-1 py-2 rounded font-bold text-xs uppercase transition-all ${data.accountType === "LISTENER" ? "bg-white text-black" : "bg-transparent border border-zinc-700 text-zinc-400"}`}
+                      className={`flex-1 py-2 rounded font-bold text-xs uppercase transition-all ${
+                        draft.accountType === "LISTENER"
+                          ? "bg-white text-black"
+                          : "bg-transparent border border-zinc-700 text-zinc-400"
+                      }`}
                     >
                       Listener
                     </button>
@@ -138,9 +187,9 @@ export const EditProfileModal = ({
                   </label>
                   <input
                     type="text"
-                    value={data.location}
+                    value={draft.location}
                     onChange={(e) =>
-                      handlers.setProfileData({ location: e.target.value })
+                      setDraft({ ...draft, location: e.target.value })
                     }
                     className="w-full bg-[#333] border border-zinc-800 p-2 rounded text-white font-bold h-10 outline-none focus:border-white"
                   />
@@ -153,10 +202,10 @@ export const EditProfileModal = ({
                   </label>
                   <input
                     type="text"
-                    value={data.website}
+                    value={draft.website}
                     placeholder="https://..."
                     onChange={(e) =>
-                      handlers.setProfileData({ website: e.target.value })
+                      setDraft({ ...draft, website: e.target.value })
                     }
                     className="w-full bg-[#333] border border-zinc-800 p-2 rounded text-white font-bold h-10 outline-none focus:border-white"
                   />
@@ -168,9 +217,10 @@ export const EditProfileModal = ({
                     Favorite Genre
                   </label>
                   <select
-                    value={data.favoriteGenres?.[0] || "None"}
+                    value={draft.favoriteGenres?.[0] || "None"}
                     onChange={(e) =>
-                      handlers.setProfileData({
+                      setDraft({
+                        ...draft,
                         favoriteGenres:
                           e.target.value === "None" ? [] : [e.target.value],
                       })
@@ -190,9 +240,9 @@ export const EditProfileModal = ({
                     Bio *
                   </label>
                   <textarea
-                    value={data.bio}
+                    value={draft.bio}
                     onChange={(e) =>
-                      handlers.setProfileData({ bio: e.target.value })
+                      setDraft({ ...draft, bio: e.target.value })
                     }
                     className="w-full bg-[#333] border border-zinc-800 p-2 rounded h-28 text-white font-bold resize-none outline-none focus:border-white"
                   />
@@ -205,17 +255,18 @@ export const EditProfileModal = ({
                       i
                     </span>
                   </label>
-                  {data.links?.map((link) => (
+                  {draft.links?.map((link) => (
                     <SocialLinkInput
                       key={link.id}
                       link={link}
-                      onRemove={handlers.removeLink}
-                      onChange={handlers.updateLink}
+                      onRemove={removeDraftLink}
+                      onChange={updateDraftLink}
                     />
                   ))}
+
                   <button
                     type="button"
-                    onClick={handlers.addLink}
+                    onClick={addDraftLink}
                     className="bg-[#333] hover:bg-[#444] text-white text-[13px] font-bold py-1.5 px-6 rounded transition-all border border-zinc-700 uppercase"
                   >
                     Add link
@@ -223,8 +274,13 @@ export const EditProfileModal = ({
                 </div>
 
                 <PrivacyToggle
-                  isPrivate={Boolean(data.isPrivate)}
-                  onToggle={handlers.togglePrivate}
+                  isPrivate={Boolean(draft.isPrivate)}
+                  onToggle={() =>
+                    setDraft((prev) => ({
+                      ...prev,
+                      isPrivate: !prev.isPrivate,
+                    }))
+                  }
                 />
               </div>
             </div>
@@ -241,7 +297,18 @@ export const EditProfileModal = ({
           </button>
           <button
             type="button"
-            onClick={handlers.handleSave}
+            onClick={() =>
+              handlers.handleSave({
+                displayName: draft.displayName,
+                bio: draft.bio,
+                location: draft.location,
+                website: draft.website,
+                isPrivate: draft.isPrivate,
+                favoriteGenres: draft.favoriteGenres,
+                accountType: draft.accountType,
+                links: draft.links,
+              })
+            }
             disabled={data.isSaving}
             className="bg-white hover:bg-[#ff5500] transition duration-300 cursor-pointer font-bold text-lg text-black px-6 py-1.5 rounded uppercase shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
           >

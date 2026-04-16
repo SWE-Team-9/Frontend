@@ -11,6 +11,21 @@ import {
 
 type AccountType = "ARTIST" | "LISTENER";
 
+type ProfileDraft = {
+  displayName: string;
+  bio: string;
+  location: string;
+  website: string;
+  isPrivate?: boolean;
+  favoriteGenres: string[];
+  accountType: AccountType;
+  links?: {
+    id: number;
+    platform: string;
+    url: string;
+  }[];
+};
+
 export const useProfileController = (handle?: string) => {
   const store = useProfileStore();
 
@@ -153,42 +168,55 @@ export const useProfileController = (handle?: string) => {
     loadProfile();
   }, [handle]);
 
-  const handleSave = async () => {
-    if (!store.displayName.trim()) {
-      setError("Display name is required!");
-      return;
-    }
-
-    try {
-      setIsSaving(true);
-      setError("");
-
-      await updateMyProfile({
-        display_name: store.displayName,
-        bio: store.bio || undefined,
-        location: store.location || undefined,
-        website: store.website || undefined,
-        is_private: store.isPrivate,
-        favorite_genres: store.favoriteGenres.filter((g) => g !== "None"),
-        account_type: store.accountType,
-      });
-
-      const validLinks = store.links
-        .filter((l) => l.url.trim() !== "")
-        .map((l) => ({ platform: l.platform || "website", url: l.url }));
-
-      await updateMyLinks(validLinks);
-
-      setIsEditOpen(false);
-      setShowSuccessToast(true);
-      setTimeout(() => setShowSuccessToast(false), 3000);
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { message?: string } } };
-      setError(axiosErr.response?.data?.message || "Failed to save profile.");
-    } finally {
-      setIsSaving(false);
-    }
+const handleSave = async (draft: ProfileDraft) => {
+  const nextProfile = {
+    displayName: draft.displayName,
+    bio: draft.bio,
+    location: draft.location,
+    website: draft.website,
+    isPrivate: draft.isPrivate,
+    favoriteGenres: draft.favoriteGenres,
+    accountType: draft.accountType,
+    links: draft.links ?? [],
   };
+
+  if (!nextProfile.displayName.trim()) {
+    setError("Display name is required!");
+    return;
+  }
+
+  try {
+    setIsSaving(true);
+    setError("");
+
+    await updateMyProfile({
+      display_name: nextProfile.displayName,
+      bio: nextProfile.bio || undefined,
+      location: nextProfile.location || undefined,
+      website: nextProfile.website || undefined,
+      is_private: nextProfile.isPrivate,
+      favorite_genres: nextProfile.favoriteGenres.filter((g) => g !== "None"),
+      account_type: nextProfile.accountType,
+    });
+
+    const validLinks = nextProfile.links
+      .filter((l) => l.url.trim() !== "")
+      .map((l) => ({ platform: l.platform || "website", url: l.url }));
+
+    await updateMyLinks(validLinks);
+
+    store.setProfileData(nextProfile);
+
+    setIsEditOpen(false);
+    setShowSuccessToast(true);
+    setTimeout(() => setShowSuccessToast(false), 3000);
+  } catch (err: unknown) {
+    const axiosErr = err as { response?: { data?: { message?: string } } };
+    setError(axiosErr.response?.data?.message || "Failed to save profile.");
+  } finally {
+    setIsSaving(false);
+  }
+};
 
   const handleAvatarUpload = async (file: File): Promise<string | undefined> => {
     if (isAvatarUploading) return store.avatarUrl || undefined;
