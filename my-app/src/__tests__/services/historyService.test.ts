@@ -81,58 +81,76 @@ describe("historyService", () => {
     ]);
   });
 
-  it("getRecentlyPlayed falls back to backend title and artist when details are missing", async () => {
+  it("getRecentlyPlayed skips deleted tracks when getTrackDetails returns 404", async () => {
     (process.env as Record<string, string | undefined>).NEXT_PUBLIC_USE_MOCK = "false";
 
     mockApiGet.mockResolvedValue({
       data: {
         page: 1,
         limit: 6,
-        total: 1,
+        total: 2,
         tracks: [
           {
             trackId: "trk_1",
-            title: "Fallback Title",
-            artist: { id: "usr_1", display_name: "Fallback Artist" },
+            title: "Still Exists",
+            artist: { id: "usr_1", display_name: "Artist One" },
             lastPlayedAt: "2026-04-12T10:00:00Z",
             lastPositionSeconds: 90,
+          },
+          {
+            trackId: "trk_deleted",
+            title: "Deleted Track",
+            artist: { id: "usr_deleted", display_name: "Deleted Artist" },
+            lastPlayedAt: "2026-04-12T09:00:00Z",
+            lastPositionSeconds: 30,
           },
         ],
       },
     });
 
-    mockGetTrackDetails.mockResolvedValue({
-    trackId: "not_the_same_id",
-    title: "Other",
-    artist: "Other",
-    artistId: "usr_other",
-    artistHandle: undefined,
-    artistAvatarUrl: null,
-    coverArtUrl: null,
-    liked: false,
-    likesCount: 0,
-    reposted: false,
-    repostsCount: 0,
+    mockGetTrackDetails.mockImplementation((trackId: string) => {
+      if (trackId === "trk_1") {
+        return Promise.resolve({
+          trackId: "trk_1",
+          title: "Layali",
+          artist: "Ahmed Hassan",
+          artistId: "usr_1",
+          artistHandle: "ahmed",
+          artistAvatarUrl: null,
+          coverArtUrl: "/cover.jpg",
+          liked: true,
+          likesCount: 8,
+          reposted: false,
+          repostsCount: 2,
+        });
+      }
+
+      return Promise.reject({
+        isAxiosError: true,
+        response: { status: 404 },
+      });
     });
 
     const { getRecentlyPlayed } = await import("@/src/services/historyService");
     const result = await getRecentlyPlayed();
 
-    expect(result[0]).toEqual({
-      trackId: "trk_1",
-      title: "Fallback Title",
-      artist: "Fallback Artist",
-      artistId: "usr_1",
-      artistHandle: undefined,
-      artistAvatarUrl: null,
-      coverArtUrl: null,
-      liked: false,
-      likesCount: 0,
-      reposted: false,
-      repostsCount: 0,
-      lastPlayedAt: "2026-04-12T10:00:00Z",
-      lastPositionSeconds: 90,
-    });
+    expect(result).toEqual([
+      {
+        trackId: "trk_1",
+        title: "Layali",
+        artist: "Ahmed Hassan",
+        artistId: "usr_1",
+        artistHandle: "ahmed",
+        artistAvatarUrl: null,
+        coverArtUrl: "/cover.jpg",
+        liked: true,
+        likesCount: 8,
+        reposted: false,
+        repostsCount: 2,
+        lastPlayedAt: "2026-04-12T10:00:00Z",
+        lastPositionSeconds: 90,
+      },
+    ]);
   });
 
   it("getListeningHistory maps API + track details into enriched history items", async () => {
@@ -195,14 +213,14 @@ describe("historyService", () => {
     ]);
   });
 
-  it("getListeningHistory falls back to unknown artist defaults when details are missing", async () => {
+  it("getListeningHistory skips deleted tracks when getTrackDetails returns 404", async () => {
     (process.env as Record<string, string | undefined>).NEXT_PUBLIC_USE_MOCK = "false";
 
     mockApiGet.mockResolvedValue({
       data: {
         page: 1,
         limit: 20,
-        total: 1,
+        total: 2,
         history: [
           {
             trackId: "trk_2",
@@ -210,46 +228,65 @@ describe("historyService", () => {
             playedAt: "2026-04-12T11:00:00Z",
             positionSeconds: 40,
             durationSeconds: 180,
+            isCompleted: false,
+          },
+          {
+            trackId: "trk_deleted",
+            title: "Deleted Backend Title",
+            playedAt: "2026-04-12T10:30:00Z",
+            positionSeconds: 20,
+            durationSeconds: 200,
             isCompleted: true,
           },
         ],
       },
     });
 
-    mockGetTrackDetails.mockResolvedValue({
-    trackId: "not_the_same_id",
-    title: "Other",
-    artist: "Other",
-    artistId: "usr_other",
-    artistHandle: undefined,
-    artistAvatarUrl: null,
-    coverArtUrl: null,
-    liked: false,
-    likesCount: 0,
-    reposted: false,
-    repostsCount: 0,
+    mockGetTrackDetails.mockImplementation((trackId: string) => {
+      if (trackId === "trk_2") {
+        return Promise.resolve({
+          trackId: "trk_2",
+          title: "Neon Pulse",
+          artist: "Synthwave Ghost",
+          artistId: "usr_2",
+          artistHandle: "synth",
+          artistAvatarUrl: "/artist.jpg",
+          coverArtUrl: "/cover2.jpg",
+          liked: false,
+          likesCount: 10,
+          reposted: true,
+          repostsCount: 4,
+        });
+      }
+
+      return Promise.reject({
+        isAxiosError: true,
+        response: { status: 404 },
+      });
     });
 
     const { getListeningHistory } = await import("@/src/services/historyService");
     const result = await getListeningHistory();
 
-    expect(result[0]).toEqual({
-      trackId: "trk_2",
-      title: "Backend Title",
-      artist: "Unknown Artist",
-      artistId: "usr_unknown",
-      artistHandle: undefined,
-      artistAvatarUrl: null,
-      coverArtUrl: null,
-      liked: false,
-      likesCount: 0,
-      reposted: false,
-      repostsCount: 0,
-      playedAt: "2026-04-12T11:00:00Z",
-      positionSeconds: 40,
-      durationSeconds: 180,
-      isCompleted: true,
-    });
+    expect(result).toEqual([
+      {
+        trackId: "trk_2",
+        title: "Neon Pulse",
+        artist: "Synthwave Ghost",
+        artistId: "usr_2",
+        artistHandle: "synth",
+        artistAvatarUrl: "/artist.jpg",
+        coverArtUrl: "/cover2.jpg",
+        liked: false,
+        likesCount: 10,
+        reposted: true,
+        repostsCount: 4,
+        playedAt: "2026-04-12T11:00:00Z",
+        positionSeconds: 40,
+        durationSeconds: 180,
+        isCompleted: false,
+      },
+    ]);
   });
 
   it("clearListeningHistory calls delete endpoint", async () => {

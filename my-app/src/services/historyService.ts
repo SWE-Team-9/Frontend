@@ -1,6 +1,7 @@
 import api from "@/src/services/api";
 import { getTrackDetails } from "@/src/services/trackService";
 import { ListeningHistoryItem, RecentlyPlayedItem } from "@/src/types/history";
+import axios from "axios";
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 
@@ -36,6 +37,18 @@ interface ListeningHistoryResponse {
   limit: number;
   total: number;
   history: ListeningHistoryResponseItem[];
+}
+
+async function getTrackDetailsSafe(trackId: string) {
+  try {
+    return await getTrackDetails(trackId);
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      return null;
+    }
+
+    throw error;
+  }
 }
 
 // ===============================
@@ -256,28 +269,29 @@ export async function getRecentlyPlayed(limit = 6, page = 1): Promise<RecentlyPl
   );
 
   const details = await Promise.all(
-    data.tracks.map((track) => getTrackDetails(track.trackId))
+    data.tracks.map(async (track) => ({
+      historyTrack: track,
+      detail: await getTrackDetailsSafe(track.trackId),
+    }))
   );
 
-  return data.tracks.map((track) => {
-    const detail = details.find((d) => d.trackId === track.trackId);
-
-    return {
-      trackId: track.trackId,
-      title: detail?.title || track.title,
-      artist: detail?.artist || track.artist.display_name,
-      artistId: detail?.artistId || track.artist.id,
+  return details
+    .filter((item) => item.detail !== null)
+    .map(({ historyTrack, detail }) => ({
+      trackId: historyTrack.trackId,
+      title: detail?.title || historyTrack.title,
+      artist: detail?.artist || historyTrack.artist.display_name,
+      artistId: detail?.artistId || historyTrack.artist.id,
       artistHandle: detail?.artistHandle,
       artistAvatarUrl: detail?.artistAvatarUrl ?? null,
-      coverArtUrl: detail?.coverArtUrl || null,
+      coverArtUrl: detail?.coverArtUrl ?? null,
       liked: detail?.liked ?? false,
       likesCount: detail?.likesCount ?? 0,
       reposted: detail?.reposted ?? false,
       repostsCount: detail?.repostsCount ?? 0,
-      lastPlayedAt: track.lastPlayedAt,
-      lastPositionSeconds: track.lastPositionSeconds,
-    };
-  });
+      lastPlayedAt: historyTrack.lastPlayedAt,
+      lastPositionSeconds: historyTrack.lastPositionSeconds,
+    }));
 }
 
 // ===============================
@@ -296,30 +310,31 @@ export async function getListeningHistory(limit = 20, page = 1): Promise<Listeni
   );
 
   const details = await Promise.all(
-    data.history.map((track) => getTrackDetails(track.trackId))
+    data.history.map(async (track) => ({
+      historyTrack: track,
+      detail: await getTrackDetailsSafe(track.trackId),
+    }))
   );
 
-  return data.history.map((track) => {
-    const detail = details.find((d) => d.trackId === track.trackId);
-
-    return {
-      trackId: track.trackId,
-      title: detail?.title || track.title,
+  return details
+    .filter((item) => item.detail !== null)
+    .map(({ historyTrack, detail }) => ({
+      trackId: historyTrack.trackId,
+      title: detail?.title || historyTrack.title,
       artist: detail?.artist || "Unknown Artist",
       artistId: detail?.artistId || "usr_unknown",
       artistHandle: detail?.artistHandle,
       artistAvatarUrl: detail?.artistAvatarUrl ?? null,
-      coverArtUrl: detail?.coverArtUrl || null,
+      coverArtUrl: detail?.coverArtUrl ?? null,
       liked: detail?.liked ?? false,
       likesCount: detail?.likesCount ?? 0,
       reposted: detail?.reposted ?? false,
       repostsCount: detail?.repostsCount ?? 0,
-      playedAt: track.playedAt,
-      positionSeconds: track.positionSeconds,
-      durationSeconds: track.durationSeconds,
-      isCompleted: track.isCompleted,
-    };
-  });
+      playedAt: historyTrack.playedAt,
+      positionSeconds: historyTrack.positionSeconds,
+      durationSeconds: historyTrack.durationSeconds,
+      isCompleted: historyTrack.isCompleted,
+    }));
 }
 
 // ===============================
