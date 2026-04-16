@@ -65,7 +65,7 @@ export function Player() {
 
   useEffect(() => {
     if (!authUser?.id) return;
-    fetchFollowing(authUser.id);
+    fetchFollowing(authUser.id, { syncProfileList: false });
   }, [authUser?.id, fetchFollowing]);
 
   if (!isPlayerVisible || !currentTrack) {

@@ -122,7 +122,9 @@ describe("Player", () => {
 
   it("fetches following for authenticated user", () => {
     render(<Player />);
-    expect(mockFetchFollowing).toHaveBeenCalledWith("usr_1");
+    expect(mockFetchFollowing).toHaveBeenCalledWith("usr_1", {
+      syncProfileList: false,
+    });
   });
 
   it("calls toggleFollow when follow button is clicked", async () => {

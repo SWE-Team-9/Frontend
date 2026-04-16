@@ -113,8 +113,8 @@ export default function ProfilePage({
   // Fetch the new profile's follow data once userId is known
   useEffect(() => {
     if (controller.userId) {
-      fetchFollowing(controller.userId);
-      fetchFollowers(controller.userId);
+      fetchFollowing(controller.userId, { syncProfileList: true });
+      fetchFollowers(controller.userId, { syncProfileList: true });
     }
   }, [controller.userId, fetchFollowing, fetchFollowers]);
 

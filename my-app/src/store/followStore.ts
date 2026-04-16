@@ -23,8 +23,14 @@ type FollowStore = {
   clearError: () => void;
   toggleFollow: (user: FollowUser) => Promise<void>;
   isFollowing: (userId: string | number | undefined) => boolean;
-  fetchFollowing: (userId: string) => Promise<void>;
-  fetchFollowers: (userId: string) => Promise<void>;
+  fetchFollowing: (
+    userId: string,
+    options?: { syncProfileList?: boolean },
+  ) => Promise<void>;
+  fetchFollowers: (
+    userId: string,
+    options?: { syncProfileList?: boolean },
+  ) => Promise<void>;
   fetchSuggestions: (limit?: number) => Promise<void>;
 };
 
@@ -72,14 +78,36 @@ export const useFollowStore = create<FollowStore>((set, get) => ({
     try {
       if (!alreadyFollowing) {
         await followUser(user.id);
-        const currentCount = useProfileStore.getState().followingCount;
-        useProfileStore.setState({ followingCount: currentCount + 1 });
+
+        const profileState = useProfileStore.getState();
+        const activeProfileUserId = profileState.userId;
+        const currentUserId = useAuthStore.getState().user?.id;
+
+        if (activeProfileUserId && activeProfileUserId === currentUserId) {
+          useProfileStore.setState({
+            followingCount: profileState.followingCount + 1,
+          });
+        } else if (activeProfileUserId && activeProfileUserId === user.id) {
+          useProfileStore.setState({
+            followersCount: profileState.followersCount + 1,
+          });
+        }
       } else {
         await unfollowUser(user.id);
-        const currentCount = useProfileStore.getState().followingCount;
-        useProfileStore.setState({
-          followingCount: Math.max(0, currentCount - 1),
-        });
+
+        const profileState = useProfileStore.getState();
+        const activeProfileUserId = profileState.userId;
+        const currentUserId = useAuthStore.getState().user?.id;
+
+        if (activeProfileUserId && activeProfileUserId === currentUserId) {
+          useProfileStore.setState({
+            followingCount: Math.max(0, profileState.followingCount - 1),
+          });
+        } else if (activeProfileUserId && activeProfileUserId === user.id) {
+          useProfileStore.setState({
+            followersCount: Math.max(0, profileState.followersCount - 1),
+          });
+        }
       }
     } catch {
       set({
@@ -100,46 +128,74 @@ export const useFollowStore = create<FollowStore>((set, get) => ({
     }
   },
 
-  fetchFollowing: async (userId) => {
+  fetchFollowing: async (userId, options) => {
     if (!userId) return;
+
+    const syncProfileList = options?.syncProfileList ?? true;
+
     try {
       set({ error: null });
       const data = await getFollowing(userId);
       const followingList = data.following || [];
+      const profileState = useProfileStore.getState();
+      const isActiveProfile = profileState.userId === userId;
 
-      // Only update counts if this is still the active profile
-      if (useProfileStore.getState().userId === userId) {
-        useProfileStore.setState({ followingCount: followingList.length });
+      // Keep profile counts aligned with server totals (avoid page-size list lengths)
+      if (syncProfileList && isActiveProfile && typeof data.total === "number") {
+        useProfileStore.setState({ followingCount: data.total });
       }
 
       const currentUserId = useAuthStore.getState().user?.id;
+      const nextState: Partial<FollowStore> = {};
+
       if (userId === currentUserId) {
-        set({ following: followingList, profileFollowing: followingList });
-      } else {
-        set({ profileFollowing: followingList });
+        nextState.following = followingList;
+      }
+
+      // Prevent stale profile bleed from unrelated fetches (e.g., player refresh)
+      if (syncProfileList && isActiveProfile) {
+        nextState.profileFollowing = followingList;
+      }
+
+      if (Object.keys(nextState).length > 0) {
+        set(nextState);
       }
     } catch {
       set({ error: "Could not load following list." });
     }
   },
 
-  fetchFollowers: async (userId) => {
+  fetchFollowers: async (userId, options) => {
     if (!userId) return;
+
+    const syncProfileList = options?.syncProfileList ?? true;
+
     try {
       set({ error: null });
       const data = await getFollowers(userId);
       const followersList = data.followers || [];
+      const profileState = useProfileStore.getState();
+      const isActiveProfile = profileState.userId === userId;
 
-      // Only update counts if this is still the active profile
-      if (useProfileStore.getState().userId === userId) {
-        useProfileStore.setState({ followersCount: followersList.length });
+      // Keep profile counts aligned with server totals (avoid page-size list lengths)
+      if (syncProfileList && isActiveProfile && typeof data.total === "number") {
+        useProfileStore.setState({ followersCount: data.total });
       }
 
       const currentUserId = useAuthStore.getState().user?.id;
+      const nextState: Partial<FollowStore> = {};
+
       if (userId === currentUserId) {
-        set({ followers: followersList, profileFollowers: followersList });
-      } else {
-        set({ profileFollowers: followersList });
+        nextState.followers = followersList;
+      }
+
+      // Prevent stale profile bleed when navigating between profiles quickly
+      if (syncProfileList && isActiveProfile) {
+        nextState.profileFollowers = followersList;
+      }
+
+      if (Object.keys(nextState).length > 0) {
+        set(nextState);
       }
     } catch {
       set({ error: "Could not load followers list." });
