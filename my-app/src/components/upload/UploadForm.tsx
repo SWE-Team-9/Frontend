@@ -31,7 +31,7 @@ const UploadForm: React.FC<Props> = ({ onNext }) => {
               <button onClick={() => removeFile(idx)}>
                 <MdDeleteForever
                   size={30}
-                  className="text-red-700 hover:text-red-500 transition duration-100 font-bold"
+                  className="text-red-500 hover:text-red-700 transition duration-100 font-bold"
                 />
               </button>
             </li>

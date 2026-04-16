@@ -291,7 +291,7 @@ export const EditProfileModal = ({
           <button
             type="button"
             onClick={onClose}
-            className="text-white font-bold uppercase px-4 hover:bg-zinc-600 text-lg transition duration-300 py-1.5 rounded cursor-pointer"
+            className="text-white font-bold uppercase px-4 hover:bg-zinc-600 text-sm transition duration-300 py-1.5 rounded cursor-pointer"
           >
             Cancel
           </button>
@@ -310,7 +310,7 @@ export const EditProfileModal = ({
               })
             }
             disabled={data.isSaving}
-            className="bg-white hover:bg-[#ff5500] transition duration-300 cursor-pointer font-bold text-lg text-black px-6 py-1.5 rounded uppercase shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
+            className="bg-white hover:bg-[#ff5500] transition duration-300 cursor-pointer font-bold text-sm text-black px-6 py-1.5 rounded uppercase shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {data.isSaving ? "Saving..." : "Save Changes"}
           </button>

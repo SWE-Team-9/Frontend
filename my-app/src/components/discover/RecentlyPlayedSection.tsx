@@ -73,8 +73,8 @@ export default function RecentlyPlayedSection() {
                 <h2 className="mb-6 text-2xl font-bold text-white">Recently Played</h2>
                 <div className="flex gap-8">
                     {[...Array(3)].map((_, index) => (
-                        <div key={index} className="w-[190px] animate-pulse">
-                            <div className="h-[190px] w-[190px] rounded-sm bg-zinc-800" />
+                        <div key={index} className="w-47.5 animate-pulse">
+                            <div className="h-47.5 w-47.5 rounded-sm bg-zinc-800" />
                             <div className="mt-3 h-4 w-3/4 rounded bg-zinc-800" />
                         </div>
                     ))}
