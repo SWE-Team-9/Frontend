@@ -16,7 +16,7 @@ export default function ConfirmModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+    <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/70">
       <div className="bg-[#1e1e1e] border border-zinc-700 rounded-xl p-6 max-w-xl w-full mx-4 shadow-2xl">
         <h1 className="mb-4 font-semibold text-lg">
           {isBlocked ? `Unblock ${displayName}?` : `Block ${displayName}?`}

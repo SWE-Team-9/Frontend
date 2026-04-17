@@ -464,18 +464,13 @@ function SessionsSection() {
 function AccountSection() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [status, setStatus] = useState<{
     type: "error" | "success";
     msg: string;
   } | null>(null);
 
   const handleDeactivateAccount = async () => {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete your account? Your account will be deactivated and your tracks will be hidden.",
-    );
-
-    if (!confirmed) return;
-
     try {
       setLoading(true);
       setStatus(null);
@@ -511,14 +506,59 @@ function AccountSection() {
     <SectionCard title="Account">
       <button
         type="button"
-        onClick={handleDeactivateAccount}
+        onClick={() => setShowDeleteModal(true)}
         disabled={loading}
         className="h-10 w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-sm text-lg transition-colors"
       >
-        {loading ? "Deleting account…" : "Delete Account"}
+        Delete Account
       </button>
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/70 px-4">
+          <div className="w-full max-w-2xl rounded-lg border border-zinc-700 bg-[#1a1a1a] p-8 shadow-2xl">
+            <h2 className="mb-6 text-xl font-bold text-white">
+              Delete your account?
+            </h2>
 
-      {status && <StatusMessage type={status.type} message={status.msg} />}
+            <div className="mb-8 text-lg leading-8 text-zinc-200">
+              <p className="mb-4">
+                Deleting your account means your account will be deactivated
+                and:
+              </p>
+
+              <ul className="list-disc space-y-1 pl-6">
+                <li>your profile will no longer be active,</li>
+                <li>your tracks will be hidden,</li>
+                <li>other users will not be able to find your account,</li>
+                <li>you may lose access to your account data.</li>
+              </ul>
+            </div>
+
+            {status && (
+              <StatusMessage type={status.type} message={status.msg} />
+            )}
+
+            <div className="mt-8 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={loading}
+                className="rounded bg-white px-6 py-2 font-bold text-black hover:bg-zinc-200 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDeactivateAccount}
+                disabled={loading}
+                className="rounded bg-red-600 px-6 py-2 font-bold text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                {loading ? "Deleting…" : "Delete Account"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </SectionCard>
   );
 }
@@ -531,7 +571,8 @@ export default function SettingsPage() {
   const user = useAuthStore((s) => s.user);
   const router = useRouter();
 
-  const { fetchBlockedUsers, loadingUserId, blockUser, unblockUser } = useBlockStore();
+  const { fetchBlockedUsers, loadingUserId, blockUser, unblockUser } =
+    useBlockStore();
 
   useEffect(() => {
     // Middleware already blocks unauthenticated access via the cookie check,
