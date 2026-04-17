@@ -111,6 +111,7 @@ export function TrackActionButtons({
 }: TrackActionButtonsProps) {
   const [modalType, setModalType] = useState<"likes" | "reposts" | null>(null);
 
+  const [likeOffset, setLikeOffset] = useState(0);
   // 1. Get the LIVE status from stores
   const likedTrack = useLikeStore((state) => 
     state.likedTracks.find((t) => String(t.id) === String(trackId))
@@ -124,9 +125,18 @@ export function TrackActionButtons({
   const isCurrentlyLiked = !!likedTrack;
   const isCurrentlyReposted = !!repostedTrack;
 
-  const displayLikes = isCurrentlyLiked 
-    ? (likedTrack?.likesCount ?? initialLikes) 
-    : (liked ? Math.max(0, initialLikes - 1) : initialLikes);
+  // Use an effect to update the offset when the store state changes
+  useEffect(() => {
+    if (isCurrentlyLiked && !liked) {
+      setLikeOffset(1); // User liked an unliked track
+    } else if (!isCurrentlyLiked && liked) {
+      setLikeOffset(-1); // User unliked a liked track
+    } else {
+      setLikeOffset(0); // State matches initial backend state
+    }
+  }, [isCurrentlyLiked, liked]);
+
+  const displayLikes = Math.max(0, initialLikes + likeOffset);
 
   const displayReposts = isCurrentlyReposted 
     ? (repostedTrack?.repostsCount ?? repostsCount) 
