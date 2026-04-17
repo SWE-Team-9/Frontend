@@ -25,8 +25,15 @@ describe("playerStore", () => {
     currentTime: 0,
     duration: 180,
     volume: 1,
-    play: jest.fn().mockResolvedValue(undefined),
-    pause: jest.fn(),
+    paused: true,
+    error: null,
+    play: jest.fn().mockImplementation(async () => {
+      mockAudio.paused = false;
+      return undefined;
+    }),
+    pause: jest.fn().mockImplementation(() => {
+      mockAudio.paused = true;
+    }),
     load: jest.fn(),
     removeAttribute: jest.fn(),
   };
@@ -41,8 +48,18 @@ describe("playerStore", () => {
       currentTime = 0;
       duration = 180;
       volume = 1;
-      play = jest.fn().mockResolvedValue(undefined);
-      pause = jest.fn();
+      paused = true;
+      error: MediaError | null = null;
+
+      play = jest.fn().mockImplementation(async () => {
+        this.paused = false;
+        return undefined;
+      });
+
+      pause = jest.fn().mockImplementation(() => {
+        this.paused = true;
+      });
+
       load = jest.fn();
       removeAttribute = jest.fn();
     }
@@ -198,7 +215,7 @@ describe("playerStore", () => {
     });
   });
 
-  it("play starts audio and records play", async () => {
+  it("play starts audio, clears streamError, and records play", async () => {
     mockMarkTrackPlayed.mockResolvedValue({
       message: "Play event recorded successfully",
       trackId: "trk_1",
@@ -213,7 +230,10 @@ describe("playerStore", () => {
     const audio = getAudioElement();
     if (audio) {
       audio.src = "/audio.mp3";
-      audio.play = jest.fn().mockResolvedValue(undefined);
+      audio.play = jest.fn().mockImplementation(async () => {
+        (audio as typeof audio & { paused: boolean }).paused = false;
+        return undefined;
+      });
     }
 
     usePlayerStore.setState({
@@ -225,14 +245,48 @@ describe("playerStore", () => {
         cover: "/cover.jpg",
       },
       accessState: "PLAYABLE",
+      streamError: "old error",
     });
 
     await usePlayerStore.getState().play();
 
     expect(audio?.play).toHaveBeenCalled();
     expect(usePlayerStore.getState().isPlaying).toBe(true);
+    expect(usePlayerStore.getState().streamError).toBeNull();
     expect(mockMarkTrackPlayed).toHaveBeenCalledWith("trk_1");
   });
+
+  it("play keeps success state when play promise rejects but audio already started", async () => {
+    const { usePlayerStore, getAudioElement } = await import("@/src/store/playerStore");
+    const audio = getAudioElement();
+
+    if (audio) {
+      audio.src = "/audio.mp3";
+      audio.play = jest.fn().mockImplementation(async () => {
+        (audio as typeof audio & { paused: boolean; currentTime: number }).paused = false;
+        (audio as typeof audio & { paused: boolean; currentTime: number }).currentTime = 1;
+        throw new DOMException("The play() request was interrupted", "AbortError");
+      });
+    }
+
+    usePlayerStore.setState({
+      currentTrack: {
+        trackId: "trk_1",
+        title: "Layali",
+        artist: "Ahmed Hassan",
+        artistId: "usr_1",
+        cover: "/cover.jpg",
+      },
+      accessState: "PLAYABLE",
+      streamError: "old error",
+    });
+
+    await usePlayerStore.getState().play();
+
+    expect(usePlayerStore.getState().isPlaying).toBe(true);
+    expect(usePlayerStore.getState().streamError).toBeNull();
+  });
+
 
   it("pause pauses audio and persists progress/session", async () => {
     mockSavePlaybackProgress.mockResolvedValue({});
@@ -399,7 +453,10 @@ describe("playerStore", () => {
     const { usePlayerStore, getAudioElement } = await import("@/src/store/playerStore");
     const audio = getAudioElement();
     if (audio) {
-      audio.play = jest.fn().mockResolvedValue(undefined);
+      audio.play = jest.fn().mockImplementation(async () => {
+        (audio as typeof audio & { paused: boolean }).paused = false;
+        return undefined;
+      });
     }
 
     usePlayerStore.setState({
@@ -428,6 +485,56 @@ describe("playerStore", () => {
     expect(usePlayerStore.getState().accessState).toBe("PLAYABLE");
     expect(usePlayerStore.getState().isPlaying).toBe(true);
   });
+
+  it("fetchAndPlay ignores aborted play error when audio already started", async () => {
+    mockGetPlaybackState.mockResolvedValue({
+      trackId: "trk_1",
+      accessState: "PLAYABLE",
+      reason: null,
+    });
+
+    mockGetPlaybackSource.mockResolvedValue({
+      trackId: "trk_1",
+      streamUrl: "/audio.mp3",
+      accessState: "PLAYABLE",
+    });
+
+    const { usePlayerStore, getAudioElement } = await import("@/src/store/playerStore");
+    const audio = getAudioElement();
+
+    if (audio) {
+      audio.play = jest.fn().mockImplementation(async () => {
+        (audio as typeof audio & { paused: boolean; currentTime: number }).paused = false;
+        (audio as typeof audio & { paused: boolean; currentTime: number }).currentTime = 1;
+        throw new DOMException("The play() request was interrupted", "AbortError");
+      });
+    }
+
+    usePlayerStore.setState({
+      tracks: [
+        {
+          trackId: "trk_1",
+          title: "Layali",
+          artist: "Ahmed Hassan",
+          artistId: "usr_1",
+          cover: "/cover.jpg",
+        },
+      ],
+      streamError: "old error",
+    });
+
+    await usePlayerStore.getState().fetchAndPlay({
+      trackId: "trk_1",
+      title: "Layali",
+      artist: "Ahmed Hassan",
+      artistId: "usr_1",
+      cover: "/cover.jpg",
+    });
+
+    expect(usePlayerStore.getState().isPlaying).toBe(true);
+    expect(usePlayerStore.getState().streamError).toBeNull();
+    expect(usePlayerStore.getState().accessState).toBe("PLAYABLE");
+  });  
 
   it("fetchAndPlay handles blocked state without playback", async () => {
     mockGetPlaybackState.mockResolvedValue({

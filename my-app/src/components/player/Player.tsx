@@ -37,23 +37,45 @@ export function Player() {
     const audio = getAudioElement();
     if (!audio) return;
 
-    const onError = () =>
+    const onError = () => {
+      const mediaError = audio.error;
+
+      // Ignore empty/spurious error events
+      if (!mediaError) return;
+
       usePlayerStore.setState({
         isPlaying: false,
         streamError: "Audio playback failed.",
       });
+    };
 
     const onWaiting = () => console.log("Buffering...");
-    const onPlaying = () => console.log("Playing smoothly");
+
+    const onPlaying = () => {
+      console.log("Playing smoothly");
+      usePlayerStore.setState({
+        isPlaying: true,
+        streamError: null,
+        isResolvingPlayback: false,
+      });
+    };
+
+    const onCanPlay = () => {
+      usePlayerStore.setState({
+        streamError: null,
+      });
+    };
 
     audio.addEventListener("error", onError);
     audio.addEventListener("waiting", onWaiting);
     audio.addEventListener("playing", onPlaying);
+    audio.addEventListener("canplay", onCanPlay);
 
     return () => {
       audio.removeEventListener("error", onError);
       audio.removeEventListener("waiting", onWaiting);
       audio.removeEventListener("playing", onPlaying);
+      audio.removeEventListener("canplay", onCanPlay);
     };
   }, []);
 

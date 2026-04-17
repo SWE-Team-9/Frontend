@@ -11,14 +11,25 @@ const mockToggleFollow = jest.fn();
 const mockFetchFollowing = jest.fn();
 const mockIsFollowing = jest.fn();
 
-const mockAudio = {
+const mockAudio: {
+  volume: number;
+  error: MediaError | null;
+  addEventListener: jest.Mock;
+  removeEventListener: jest.Mock;
+} = {
   volume: 1,
+  error: null,
   addEventListener: jest.fn(),
   removeEventListener: jest.fn(),
 };
 
+const mockPlayerSetState = jest.fn();
+
 jest.mock("@/src/store/playerStore", () => ({
-  usePlayerStore: () => mockUsePlayerStore(),
+  usePlayerStore: Object.assign(
+    () => mockUsePlayerStore(),
+    { setState: (...args: unknown[]) => mockPlayerSetState(...args) }
+  ),
   getAudioElement: () => mockGetAudioElement(),
 }));
 
@@ -53,6 +64,7 @@ jest.mock("@/src/components/player/PlaybackToast", () => ({
 describe("Player", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockPlayerSetState.mockClear();
 
     mockGetAudioElement.mockReturnValue(mockAudio);
 
@@ -120,6 +132,78 @@ describe("Player", () => {
     expect(mockAudio.volume).toBe(0.75);
   });
 
+  it("clears stream error when audio fires playing", () => {
+    render(<Player />);
+
+    const playingHandler = mockAudio.addEventListener.mock.calls.find(
+      ([event]) => event === "playing"
+    )?.[1] as (() => void) | undefined;
+
+    expect(playingHandler).toBeTruthy();
+
+    playingHandler?.();
+
+    expect(mockPlayerSetState).toHaveBeenCalledWith({
+      isPlaying: true,
+      streamError: null,
+      isResolvingPlayback: false,
+    });
+  });
+
+  it("clears stream error when audio fires canplay", () => {
+    render(<Player />);
+
+    const canPlayHandler = mockAudio.addEventListener.mock.calls.find(
+      ([event]) => event === "canplay"
+    )?.[1] as (() => void) | undefined;
+
+    expect(canPlayHandler).toBeTruthy();
+
+    canPlayHandler?.();
+
+    expect(mockPlayerSetState).toHaveBeenCalledWith({
+      streamError: null,
+    });
+  });
+
+  it("sets playback failure only when audio has a real media error", () => {
+    mockAudio.error = { code: 3 } as MediaError;
+
+    render(<Player />);
+
+    const errorHandler = mockAudio.addEventListener.mock.calls.find(
+      ([event]) => event === "error"
+    )?.[1] as (() => void) | undefined;
+
+    expect(errorHandler).toBeTruthy();
+
+    errorHandler?.();
+
+    expect(mockPlayerSetState).toHaveBeenCalledWith({
+      isPlaying: false,
+      streamError: "Audio playback failed.",
+    });
+  });
+
+  it("ignores audio error event when there is no media error object", () => {
+    mockAudio.error = null;
+
+    render(<Player />);
+
+    const errorHandler = mockAudio.addEventListener.mock.calls.find(
+      ([event]) => event === "error"
+    )?.[1] as (() => void) | undefined;
+
+    expect(errorHandler).toBeTruthy();
+
+    errorHandler?.();
+
+    expect(mockPlayerSetState).not.toHaveBeenCalledWith({
+      isPlaying: false,
+      streamError: "Audio playback failed.",
+    });
+  });
+  
   it("fetches following for authenticated user", () => {
     render(<Player />);
     expect(mockFetchFollowing).toHaveBeenCalledWith("usr_1", {

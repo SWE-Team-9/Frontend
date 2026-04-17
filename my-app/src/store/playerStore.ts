@@ -337,11 +337,35 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
     try {
       await audio.play();
-      set({ isPlaying: true });
+
+      set({
+        isPlaying: true,
+        streamError: null,
+      });
+
       await recordPlayEvent(currentTrack.trackId);
       await persistPlayerSession();
-    } catch {
-      set({ isPlaying: false });
+    } catch (error: unknown) {
+      const errorName =
+        error instanceof DOMException ? error.name : undefined;
+
+      if (
+        (errorName === "AbortError" || errorName === "NotAllowedError") &&
+        (!audio.paused || audio.currentTime > 0)
+      ) {
+        set({
+          isPlaying: true,
+          streamError: null,
+        });
+        return;
+      }
+
+      console.error("play() failed:", error);
+
+      set({
+        isPlaying: false,
+        streamError: "Playback failed",
+      });
     }
   },
 
@@ -547,10 +571,34 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
       try {
         await audio.play();
-        set({ isPlaying: true });
+
+        set({
+          isPlaying: true,
+          streamError: null,
+        });
+
         await get().recordPlayEvent(track.trackId);
         await get().persistPlayerSession();
-      } catch {
+      } catch (error: unknown) {
+        const errorName =
+          error instanceof DOMException ? error.name : undefined;
+
+        // Ignore aborted/interrupted play requests if audio actually starts/started
+        if (
+          errorName === "AbortError" ||
+          errorName === "NotAllowedError"
+        ) {
+          if (!audio.paused || audio.currentTime > 0) {
+            set({
+              isPlaying: true,
+              streamError: null,
+            });
+            return;
+          }
+        }
+
+        console.error("audio.play() failed:", error);
+
         set({
           isPlaying: false,
           streamError: "Playback failed",
