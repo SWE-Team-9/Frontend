@@ -14,6 +14,8 @@ import {
 import AuthInput from "@/src/components/auth/AuthInput";
 import BlockedUsersList from "@/src/components/block-user/BlockedUsersList";
 import { useBlockStore } from "@/src/store/useblockStore";
+import { deactivateMyAccount } from "@/src/services/profileService";
+import { useProfileStore } from "@/src/store/useProfileStore";
 
 // ─── Validation helpers ──────────────────────────────────────────────────────
 // Must match backend DTO rules exactly so we surface errors before the round-trip.
@@ -459,8 +461,70 @@ function SessionsSection() {
   );
 }
 
+function AccountSection() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState<{
+    type: "error" | "success";
+    msg: string;
+  } | null>(null);
+
+  const handleDeactivateAccount = async () => {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete your account? Your account will be deactivated and your tracks will be hidden.",
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setLoading(true);
+      setStatus(null);
+
+      const result = await deactivateMyAccount();
+
+      setStatus({
+        type: "success",
+        msg: result.message,
+      });
+
+      useAuthStore.getState().logout();
+      useProfileStore.getState().resetProfile();
+
+      setTimeout(() => {
+        router.replace("/");
+      }, 1200);
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } } };
+
+      setStatus({
+        type: "error",
+        msg:
+          axiosErr.response?.data?.message ??
+          "Failed to deactivate account. Please try again.",
+      });
+
+      setLoading(false);
+    }
+  };
+
+  return (
+    <SectionCard title="Account">
+      <button
+        type="button"
+        onClick={handleDeactivateAccount}
+        disabled={loading}
+        className="h-10 w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-sm text-lg transition-colors"
+      >
+        {loading ? "Deleting account…" : "Delete Account"}
+      </button>
+
+      {status && <StatusMessage type={status.type} message={status.msg} />}
+    </SectionCard>
+  );
+}
+
 // Page root
-type Tab = "security" | "sessions" | "privacy";
+type Tab = "security" | "sessions" | "privacy" | "account";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("security");
@@ -487,6 +551,7 @@ export default function SettingsPage() {
     { id: "security", label: "Security" },
     { id: "sessions", label: "Sessions" },
     { id: "privacy", label: "Privacy" },
+    { id: "account", label: "Account" },
   ];
 
   // Fetch blocked users when Privacy tab is opened
@@ -534,6 +599,9 @@ export default function SettingsPage() {
           <BlockedUsersList loadingUserId={loadingUserId} />
         </SectionCard>
       )}
+
+      {/* Account tab: deactivate account */}
+      {activeTab === "account" && <AccountSection />}
     </div>
   );
 }

@@ -269,3 +269,9 @@ export const uploadProfileImage = async (
   });
   return response.data;
 };
+
+// ====== DELETE Account ======
+export async function deactivateMyAccount(): Promise<{ message: string }> {
+  const response = await api.delete("/profiles/me");
+  return response.data;
+}
