@@ -37,23 +37,53 @@ export function Player() {
     const audio = getAudioElement();
     if (!audio) return;
 
-    const onError = () =>
+    const onError = () => {
+      const mediaError = audio.error;
+      if (!mediaError) return;
+
       usePlayerStore.setState({
         isPlaying: false,
         streamError: "Audio playback failed.",
       });
+    };
 
     const onWaiting = () => console.log("Buffering...");
-    const onPlaying = () => console.log("Playing smoothly");
+
+    const onPlaying = () => {
+      console.log("Playing smoothly");
+      usePlayerStore.setState({
+        isPlaying: true,
+        streamError: null,
+        isResolvingPlayback: false,
+      });
+    };
+
+    const onCanPlay = () => {
+      usePlayerStore.setState({
+        streamError: null,
+      });
+    };
+
+    const onEnded = async () => {
+      usePlayerStore.setState({
+        isPlaying: false,
+      });
+
+      await usePlayerStore.getState().nextTrack();
+    };
 
     audio.addEventListener("error", onError);
     audio.addEventListener("waiting", onWaiting);
     audio.addEventListener("playing", onPlaying);
+    audio.addEventListener("canplay", onCanPlay);
+    audio.addEventListener("ended", onEnded);
 
     return () => {
       audio.removeEventListener("error", onError);
       audio.removeEventListener("waiting", onWaiting);
       audio.removeEventListener("playing", onPlaying);
+      audio.removeEventListener("canplay", onCanPlay);
+      audio.removeEventListener("ended", onEnded);
     };
   }, []);
 
