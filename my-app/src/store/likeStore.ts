@@ -40,6 +40,8 @@ export const useLikeStore = create<LikeStore>((set, get) => ({
 
     if (loadingIds.includes(trackId)) return;
 
+    const previousLikedTracks = [...likedTracks];
+
     // --- STEP 1: OPTIMISTIC UPDATE ---
     set((state) => ({
       loadingIds: [...state.loadingIds, trackId],
@@ -66,13 +68,10 @@ export const useLikeStore = create<LikeStore>((set, get) => ({
         console.warn("Server already in sync with this interaction.");
       } else {
         // --- STEP 4: ROLLBACK ON REAL ERROR ---
+
         const msg = err.response?.data?.message || err.message || "Network Error";
-        set((state) => ({
-          likedTracks: isAlreadyLiked 
-            ? [...state.likedTracks, track] 
-            : state.likedTracks.filter((t) => String(t.id) !== trackId),
-          error: msg,
-        }));
+        set({ likedTracks: previousLikedTracks, error:msg });
+      
       }
     } finally {
       set((state) => ({ 

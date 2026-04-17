@@ -131,24 +131,14 @@ export function TrackActionButtons({
     ? (repostedTrack?.repostsCount ?? repostsCount) 
     : (reposted ? Math.max(0, repostsCount - 1) : repostsCount);
 
-  const { toggleLike } = useLikeStore();
-  const handleLikeToggle = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    // We pass the track data to the store. 
-    // The store's optimistic update will toggle 'isLiked', which triggers our 'likeDelta' calculation automatically.
-    await toggleLike({ 
-      id: trackId, title, artistName, coverArt, 
-      likesCount: initialLikes, // The store handles its own incrementing
-      repostsCount: repostsCount,
-      coverArtUrl: coverArt || null
-    } as TrackData);
-  };
+
+ 
   return (
     <div className="flex items-center gap-1.5">
       <div className="flex items-center gap-1">
         <LikeButton 
           trackId={trackId} title={title} artistName={artistName} coverArt={coverArt}
-          likesCount={displayLikes}
+          likesCount={initialLikes}
         />
         {displayLikes > 0 && (
           <span 
