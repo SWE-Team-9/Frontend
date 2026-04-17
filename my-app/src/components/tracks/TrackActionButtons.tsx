@@ -110,33 +110,35 @@ export function TrackActionButtons({
   trackId, title, artistName, coverArt, likesCount:initialLikes, repostsCount, liked, reposted, size = "full",
 }: TrackActionButtonsProps) {
   const [modalType, setModalType] = useState<"likes" | "reposts" | null>(null);
-
-  // 1. Get the LIVE status from stores
-  const likedTrack = useLikeStore((state) => 
+  
+  const isCurrentlyLiked = !!useLikeStore((state) => 
     state.likedTracks.find((t) => String(t.id) === String(trackId))
   );
+  
   const repostedTrack = useRepostStore((state) => 
     state.repostedTracks.find((t) => String(t.id) === String(trackId))
   );
-
-  // Use the count from the store if it exists, otherwise we'd need the initial prop
-  // (In a full store-managed app, you'd usually sync the feed into the store on load)
-  const isCurrentlyLiked = !!likedTrack;
   const isCurrentlyReposted = !!repostedTrack;
 
-  const displayLikes = isCurrentlyLiked 
-    ? (likedTrack?.likesCount ?? initialLikes) 
-    : (liked ? Math.max(0, initialLikes - 1) : initialLikes);
+  let likeDelta = 0;
+  if (isCurrentlyLiked && !liked) likeDelta = 1;
+  else if (!isCurrentlyLiked && liked) likeDelta = -1;
+ 
+
+  const displayLikes = Math.max(0, initialLikes + likeDelta);
 
   const displayReposts = isCurrentlyReposted 
     ? (repostedTrack?.repostsCount ?? repostsCount) 
     : (reposted ? Math.max(0, repostsCount - 1) : repostsCount);
+
+
+ 
   return (
     <div className="flex items-center gap-1.5">
       <div className="flex items-center gap-1">
         <LikeButton 
           trackId={trackId} title={title} artistName={artistName} coverArt={coverArt}
-          likesCount={displayLikes}
+          likesCount={initialLikes}
         />
         {displayLikes > 0 && (
           <span 
