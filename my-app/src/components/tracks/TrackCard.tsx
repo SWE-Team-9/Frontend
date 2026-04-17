@@ -126,6 +126,15 @@ export const TrackCard: React.FC<TrackCardProps> = ({
 
   // Single edit data object (replaces individual editTitle, editGenre, etc.)
   const [editData, setEditData] = useState(() => toEditData(track));
+  const normalizedEditData = {
+    title: editData.title.trim(),
+    genre: editData.genre.trim(),
+    description: editData.description.trim(),
+  };
+  const isEditFormInvalid =
+    normalizedEditData.title.length === 0 ||
+    normalizedEditData.genre.length === 0 ||
+    normalizedEditData.description.length === 0;
 
   const playerTrack: PlayerTrack = {
     trackId: track.trackId,
@@ -187,22 +196,34 @@ export const TrackCard: React.FC<TrackCardProps> = ({
     }
   };
 
-  const cancelEdit = () => setIsEditing(false);
+  const cancelEdit = () => {
+    setError(null);
+    setIsEditing(false);
+  };
 
   const handleSave = async () => {
+    if (isEditFormInvalid) {
+      return;
+    }
+
     setIsSaving(true);
     try {
       setError(null);
       await updateTrackMetadata(track.trackId, {
-        title: editData.title,
-        genre: editData.genre,
-        description: editData.description,
+        title: normalizedEditData.title,
+        genre: normalizedEditData.genre,
+        description: normalizedEditData.description,
         releaseDate: editData.releaseDate
           ? new Date(editData.releaseDate).toISOString()
           : undefined,
       });
 
-      setSavedData(editData);
+      setSavedData({
+        ...editData,
+        title: normalizedEditData.title,
+        genre: normalizedEditData.genre,
+        description: normalizedEditData.description,
+      });
       setIsEditing(false);
     } catch {
       setError("Could not save track changes. Please try again.");
@@ -254,35 +275,46 @@ export const TrackCard: React.FC<TrackCardProps> = ({
         {isEditing ? (
           /* --- EDIT MODE --- */
           <div className="flex flex-col gap-3 bg-[#181818] p-4 rounded-md border border-zinc-700">
+            {isEditFormInvalid && (
+              <p className="text-xs text-red-400">
+                Title, genre, and description are required.
+              </p>
+            )}
             <input
               value={editData.title}
-              onChange={(e) =>
-                setEditData({ ...editData, title: e.target.value })
-              }
+              onChange={(e) => {
+                setEditData((prev) => ({ ...prev, title: e.target.value }));
+                if (error) setError(null);
+              }}
               className="bg-[#121212] border border-zinc-700 rounded p-2 text-white text-sm"
               placeholder="Track Title"
+              required
             />
             <input
               value={editData.genre}
-              onChange={(e) =>
-                setEditData({ ...editData, genre: e.target.value })
-              }
+              onChange={(e) => {
+                setEditData((prev) => ({ ...prev, genre: e.target.value }));
+                if (error) setError(null);
+              }}
               className="bg-[#121212] border border-zinc-700 rounded p-2 text-white text-sm"
               placeholder="Genre"
+              required
             />
             <textarea
               value={editData.description}
-              onChange={(e) =>
-                setEditData({ ...editData, description: e.target.value })
-              }
+              onChange={(e) => {
+                setEditData((prev) => ({ ...prev, description: e.target.value }));
+                if (error) setError(null);
+              }}
               className="bg-[#121212] border border-zinc-700 rounded p-2 text-white text-sm resize-none"
               placeholder="Description"
               rows={3}
+              required
             />
             <div className="flex gap-2">
               <button
                 onClick={handleSave}
-                disabled={isSaving}
+                disabled={isSaving || isEditFormInvalid}
                 className="bg-white text-black px-4 py-1.5 rounded text-xs font-bold flex items-center gap-1 disabled:opacity-50"
               >
                 <Check className="w-3 h-3" /> {isSaving ? "Saving..." : "Save"}

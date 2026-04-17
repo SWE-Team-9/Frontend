@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import TrackList from '../../components/tracks/TrackList';
 import React from 'react';
 import * as uploadService from '@/src/services/uploadService';
@@ -6,6 +6,8 @@ import * as uploadService from '@/src/services/uploadService';
 // 1. Mock the service to prevent real API calls
 jest.mock('@/src/services/uploadService');
 const mockedGetUserTracks = uploadService.getUserTracks as jest.Mock;
+const mockedGetTrackDetails = uploadService.getTrackDetails as jest.Mock;
+const mockedUpdateTrackMetadata = uploadService.updateTrackMetadata as jest.Mock;
 
 describe('TrackList Component (Module 4)', () => {
   const defaultProps = {
@@ -37,6 +39,12 @@ describe('TrackList Component (Module 4)', () => {
     jest.clearAllMocks();
     // Simulate successful API response
     mockedGetUserTracks.mockResolvedValue(mockTracksResponse);
+    mockedGetTrackDetails.mockResolvedValue({
+      title: 'Starboy',
+      genre: 'Pop',
+      description: 'Initial description',
+    });
+    mockedUpdateTrackMetadata.mockResolvedValue({});
   });
 
   /**
@@ -89,5 +97,34 @@ describe('TrackList Component (Module 4)', () => {
     await waitFor(() => {
       expect(onTracksTotalChange).toHaveBeenCalledWith(7);
     });
+  });
+
+  test('prevents saving edits when required fields are empty', async () => {
+    render(<TrackList {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Starboy')).toBeInTheDocument();
+    });
+
+    const editButtons = screen.getAllByTitle(/Edit Metadata/i);
+    fireEvent.click(editButtons[0]);
+
+    const titleInput = await screen.findByPlaceholderText('Track Title');
+    const genreInput = screen.getByPlaceholderText('Genre');
+    const descriptionInput = screen.getByPlaceholderText('Description');
+
+    fireEvent.change(titleInput, { target: { value: '   ' } });
+    fireEvent.change(genreInput, { target: { value: '' } });
+    fireEvent.change(descriptionInput, { target: { value: ' ' } });
+
+    const saveButton = screen.getByRole('button', { name: /save/i });
+
+    expect(saveButton).toBeDisabled();
+    expect(
+      screen.getByText(/Title, genre, and description are required\./i),
+    ).toBeInTheDocument();
+
+    fireEvent.click(saveButton);
+    expect(mockedUpdateTrackMetadata).not.toHaveBeenCalled();
   });
 });
