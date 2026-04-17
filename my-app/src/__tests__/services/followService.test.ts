@@ -1,4 +1,6 @@
+
 import api from '@/src/services/api';
+import * as FollowServiceNamespace from '@/src/services/followService';
 import { 
   followUser, 
   unfollowUser, 
@@ -57,17 +59,18 @@ describe("followService - Success Cases", () => {
 });
 
 describe("followService - Mock Mode Coverage", () => {
-  let mockService: any;
+  let mockService: typeof FollowServiceNamespace;
   const originalEnv = process.env.NEXT_PUBLIC_USE_MOCK;
 
   beforeAll(() => {
-    // 1. Set env to true
     process.env.NEXT_PUBLIC_USE_MOCK = "true";
 
-    // 2. Isolate modules to force a fresh import of the service
     jest.isolateModules(() => {
-      // to ensure the service reads the NEW env value
-      mockService = require('@/src/services/followService');
+      /* The linter forbids require, but we need it here to force a 
+         fresh module evaluation with the updated process.env.
+      */
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      mockService = require('@/src/services/followService')as typeof FollowServiceNamespace;  
     });
   });
 

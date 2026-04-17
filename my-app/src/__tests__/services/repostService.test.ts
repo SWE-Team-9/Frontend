@@ -1,9 +1,11 @@
+
 import api from '@/src/services/api';
 import { 
   repostTrack, 
   removeRepost, 
   getUserReposts 
 } from '@/src/services/repostService';
+import { UserInteractionResponse, TrackData } from '@/src/types/interactions';
 
 // Mock base API
 jest.mock('@/src/services/api');
@@ -34,7 +36,7 @@ describe('repostService', () => {
 
   test('getUserReposts: transforms nested API data correctly', async () => {
     
-    const mockApiResponse = {
+    const mockApiResponse: { data: UserInteractionResponse }  = {
       data: {
         items: [
           {
@@ -43,10 +45,19 @@ describe('repostService', () => {
               id: 'track_1',
               title: 'Starboy',
               likesCount: 10,
-              repostsCount: 5
-            }
+              repostsCount: 5,
+              coverArtUrl: null
+            }as TrackData
           }
-        ]
+        ],
+        pagination: {
+          page: 1,
+          limit: 20,
+          total: 1,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPreviousPage: false
+        }
       }
     };
 
@@ -57,7 +68,8 @@ describe('repostService', () => {
     
     expect(result).toHaveLength(1);
     expect(result[0].title).toBe('Starboy');
-    expect((result[0] as any).interactedAt).toBe('2026-04-13');
+    const flattenedTrack = result[0] as TrackData & { interactedAt: string };
+    expect(flattenedTrack.interactedAt).toBe('2026-04-13');
     expect(mockedApi.get).toHaveBeenCalledWith(
       '/interactions/users/user_123/reposts',
       expect.objectContaining({ params: { page: 1, limit: 20 } })

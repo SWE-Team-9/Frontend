@@ -1,10 +1,13 @@
+
 import api from '@/src/services/api';
 import { likeTrack, unlikeTrack, getUserLikes } from '@/src/services/likeService';
+import { UserInteractionResponse, TrackData } from '@/src/types/interactions';
 
+type TestTrackData = TrackData & { artistHandle?: string };
 jest.mock('@/src/services/api');
 const mockedApi = api as jest.Mocked<typeof api>;
 
-describe('likeService - 100% Coverage Suite', () => {
+describe('likeService -  Coverage Suite', () => {
   afterEach(() => {
     jest.clearAllMocks();
   });
@@ -28,18 +31,18 @@ describe('likeService - 100% Coverage Suite', () => {
   // --- GET /user-likes ---
 
   test('getUserLikes: maps raw response and exercises all fallback branches', async () => {
-    const rawData = {
+    const rawData: Partial<UserInteractionResponse> = {
       items: [
         {
           interactedAt: '2024-01-01',
           track: {
             id: 't1',
-            title: null, 
+            title: null as unknown as string, 
             artistName: null, 
             artistHandle: 'handle_1',
             coverArtUrl: 'url_primary.jpg', 
-            likesCount: null, 
-          }
+            likesCount: null as unknown as number, 
+          } as unknown as TrackData
         },
         {
           interactedAt: '2024-01-02',
@@ -48,7 +51,7 @@ describe('likeService - 100% Coverage Suite', () => {
             title: 'Real Title',
             imageUrl: 'url_alt.png',
             coverArt: 'url_alt.png'
-          }
+          } as unknown as TrackData
         }
       ]
     };
@@ -58,16 +61,17 @@ describe('likeService - 100% Coverage Suite', () => {
     const result = await getUserLikes('u1');
 
     // Verification for Item 0
-    expect(result[0].title).toBe('Untitled Track');
-    expect(result[0].artistName).toBeUndefined();
-    // Use type casting to check artistHandle if it's missing from TrackData type
-    expect((result[0] as any).artistHandle).toBe('handle_1');
-    expect(result[0].likesCount).toBe(0);
-    expect(result[0].coverArt).toBe('url_primary.jpg');
+    const item0 = result[0] as TestTrackData;
+    expect(item0.title).toBe('Untitled Track');
+    expect(item0.artistName).toBeUndefined();
+    expect(item0.artistHandle).toBe('handle_1');
+    expect(item0.likesCount).toBe(0);
+    expect(item0.coverArt).toBe('url_primary.jpg');
 
     // Verification for Item 1
-    expect(result[1].title).toBe('Real Title');
-    expect(result[1].imageUrl).toBe('url_alt.png');
+    const item1 = result[1] as TestTrackData;
+    expect(item1.title).toBe('Real Title');
+    expect(item1.imageUrl).toBe('url_alt.png');
   });
 
   test('getUserLikes: handles missing artistHandle field gracefully', async () => {
@@ -78,7 +82,8 @@ describe('likeService - 100% Coverage Suite', () => {
     };
     mockedApi.get.mockResolvedValue({ data: rawData });
     const result = await getUserLikes('u1');
-    expect((result[0] as any).artistHandle).toBeUndefined();
+    const track = result[0] as TestTrackData;
+    expect(track.artistHandle).toBeUndefined();
   });
 
   test('getUserLikes: returns empty array if response data is missing items', async () => {

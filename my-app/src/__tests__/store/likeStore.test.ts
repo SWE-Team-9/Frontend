@@ -1,17 +1,20 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { act } from '@testing-library/react';
 import { useLikeStore } from '@/src/store/likeStore';
 import * as likeService from '@/src/services/likeService';
+import { TrackData, UserInteractionResponse } from '@/src/types/interactions';
 
 jest.mock('@/src/services/likeService');
 const mockedService = likeService as jest.Mocked<typeof likeService>;
 
 describe('useLikeStore - 100% Coverage Suite', () => {
-  const mockTrack = {
+  const mockTrack: TrackData = {
     id: 'track_1',
     title: 'Starboy',
     artistName: 'The Weeknd',
     likesCount: 10,
     repostsCount: 5,
+    coverArtUrl: null,
   };
 
   beforeEach(() => {
@@ -26,10 +29,10 @@ describe('useLikeStore - 100% Coverage Suite', () => {
   });
 
   test('toggleLike: adds track optimistically and calls service', async () => {
-    mockedService.likeTrack.mockResolvedValue({} as any);
+    mockedService.likeTrack.mockResolvedValue({} as unknown as any);
 
     await act(async () => {
-      await useLikeStore.getState().toggleLike(mockTrack as any);
+      await useLikeStore.getState().toggleLike(mockTrack);
     });
 
     const state = useLikeStore.getState();
@@ -38,11 +41,11 @@ describe('useLikeStore - 100% Coverage Suite', () => {
   });
 
   test('toggleLike: removes track optimistically if already liked', async () => {
-    act(() => { useLikeStore.setState({ likedTracks: [mockTrack as any] }); });
-    mockedService.unlikeTrack.mockResolvedValue({} as any);
+    act(() => { useLikeStore.setState({ likedTracks: [mockTrack] }); });
+    mockedService.unlikeTrack.mockResolvedValue({} as unknown as any);
 
     await act(async () => {
-      await useLikeStore.getState().toggleLike(mockTrack as any);
+      await useLikeStore.getState().toggleLike(mockTrack);
     });
 
     expect(useLikeStore.getState().likedTracks).toHaveLength(0);
@@ -51,7 +54,7 @@ describe('useLikeStore - 100% Coverage Suite', () => {
 
 
   test('isLiked: correctly identifies numeric and string ID matches', () => {
-    act(() => { useLikeStore.setState({ likedTracks: [{ id: 123 } as any] }); });
+    act(() => { useLikeStore.setState({ likedTracks: [{ id: 123 } as unknown as TrackData] }); });
     const store = useLikeStore.getState();
     expect(store.isLiked("123")).toBe(true);
     expect(store.isLiked("999")).toBe(false);
@@ -61,7 +64,7 @@ describe('useLikeStore - 100% Coverage Suite', () => {
     act(() => { useLikeStore.setState({ loadingIds: ['track_1'] }); });
     
     await act(async () => {
-      await useLikeStore.getState().toggleLike(mockTrack as any);
+      await useLikeStore.getState().toggleLike(mockTrack);
     });
 
     expect(mockedService.likeTrack).not.toHaveBeenCalled();
@@ -69,10 +72,10 @@ describe('useLikeStore - 100% Coverage Suite', () => {
 
   test('toggleLike: handles alternate trackId property format', async () => {
     const altTrack = { trackId: 'alt_99', title: 'Alt' };
-    mockedService.likeTrack.mockResolvedValue({} as any);
+    mockedService.likeTrack.mockResolvedValue({} as unknown as any);
 
     await act(async () => {
-      // @ts-ignore testing flexible ID format
+      // @ts-expect-error: Testing flexible ID format
       await useLikeStore.getState().toggleLike(altTrack);
     });
 
@@ -86,7 +89,7 @@ describe('useLikeStore - 100% Coverage Suite', () => {
     mockedService.likeTrack.mockRejectedValue(conflictError);
 
     await act(async () => {
-      await useLikeStore.getState().toggleLike(mockTrack as any);
+      await useLikeStore.getState().toggleLike(mockTrack);
     });
 
     const state = useLikeStore.getState();
@@ -97,11 +100,11 @@ describe('useLikeStore - 100% Coverage Suite', () => {
 
   test('toggleLike: rolls back UNLIKE on failure', async () => {
     // Start as liked
-    act(() => { useLikeStore.setState({ likedTracks: [mockTrack as any] }); });
+    act(() => { useLikeStore.setState({ likedTracks: [mockTrack] }); });
     mockedService.unlikeTrack.mockRejectedValue(new Error("Fail"));
 
     await act(async () => {
-      await useLikeStore.getState().toggleLike(mockTrack as any);
+      await useLikeStore.getState().toggleLike(mockTrack);
     });
 
     const state = useLikeStore.getState();

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useRepostStore } from '@/src/store/repostStore';
 import * as repostService from '@/src/services/repostService';
 import { TrackData } from '@/src/types/interactions';
@@ -53,7 +54,7 @@ describe('useRepostStore', () => {
 
   // --- TEST FOR deleteRepostAction GUARD & ERROR ---
   test('deleteRepostAction: returns early if trackId is invalid', async () => {
-    // @ts-ignore - testing runtime guard
+    // @ts-expect-error: Testing runtime guard
     await useRepostStore.getState().deleteRepostAction(undefined);
     expect(mockedService.removeRepost).not.toHaveBeenCalled();
   });
@@ -73,9 +74,9 @@ describe('useRepostStore', () => {
   // --- TEST FOR ALTERNATE TRACK OBJECT FORMAT ---
   test('toggleRepost: handles track objects with trackId property', async () => {
     const altTrack = { trackId: 'alt-99', repostsCount: 0 };
-    mockedService.repostTrack.mockResolvedValue({ repostsCount: 1 } as any);
+    mockedService.repostTrack.mockResolvedValue({ repostsCount: 1 } as unknown as any);
 
-    // @ts-ignore - testing the flexible ID logic in the store
+    //@ts-expect-error: Testing flexible ID format
     await useRepostStore.getState().toggleRepost(altTrack);
 
     expect(mockedService.repostTrack).toHaveBeenCalledWith('alt-99');
