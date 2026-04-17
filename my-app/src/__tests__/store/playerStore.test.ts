@@ -106,6 +106,40 @@ describe("playerStore", () => {
     expect(usePlayerStore.getState().queue).toEqual(tracks);
   });
 
+  it("toggleShuffle flips shuffle state and persists session", async () => {
+    mockUpdatePlayerSession.mockResolvedValue({
+      message: "Player session updated successfully",
+    });
+
+    const { usePlayerStore } = await import("@/src/store/playerStore");
+
+    expect(usePlayerStore.getState().isShuffleOn).toBe(false);
+
+    usePlayerStore.getState().toggleShuffle();
+
+    expect(usePlayerStore.getState().isShuffleOn).toBe(true);
+    expect(mockUpdatePlayerSession).toHaveBeenCalled();
+  });
+
+  it("cycleLoopMode rotates OFF -> ALL -> ONE -> OFF", async () => {
+    mockUpdatePlayerSession.mockResolvedValue({
+      message: "Player session updated successfully",
+    });
+
+    const { usePlayerStore } = await import("@/src/store/playerStore");
+
+    expect(usePlayerStore.getState().loopMode).toBe("OFF");
+
+    usePlayerStore.getState().cycleLoopMode();
+    expect(usePlayerStore.getState().loopMode).toBe("ALL");
+
+    usePlayerStore.getState().cycleLoopMode();
+    expect(usePlayerStore.getState().loopMode).toBe("ONE");
+
+    usePlayerStore.getState().cycleLoopMode();
+    expect(usePlayerStore.getState().loopMode).toBe("OFF");
+  });
+
   it("loadResumePosition updates audio currentTime and store currentTime", async () => {
     mockGetResumePosition.mockResolvedValue({
       trackId: "trk_1",
@@ -149,10 +183,10 @@ describe("playerStore", () => {
     const { usePlayerStore, getAudioElement } = await import("@/src/store/playerStore");
     const audio = getAudioElement();
     if (audio) {
-    Object.defineProperty(audio, "duration", {
+      Object.defineProperty(audio, "duration", {
         value: 180,
         configurable: true,
-    });
+      });
     }
 
     usePlayerStore.setState({
@@ -202,6 +236,8 @@ describe("playerStore", () => {
           cover: "/c2.jpg",
         },
       ],
+      isShuffleOn: true,
+      loopMode: "ALL",
     });
 
     await usePlayerStore.getState().persistPlayerSession();
@@ -212,6 +248,8 @@ describe("playerStore", () => {
       isPlaying: true,
       volume: 0.8,
       queueTrackIds: ["trk_2"],
+      isShuffleOn: true,
+      loopMode: "ALL",
     });
   });
 
@@ -287,7 +325,6 @@ describe("playerStore", () => {
     expect(usePlayerStore.getState().streamError).toBeNull();
   });
 
-
   it("pause pauses audio and persists progress/session", async () => {
     mockSavePlaybackProgress.mockResolvedValue({});
     mockUpdatePlayerSession.mockResolvedValue({});
@@ -315,7 +352,7 @@ describe("playerStore", () => {
     expect(mockUpdatePlayerSession).toHaveBeenCalled();
   });
 
-  it("nextTrack fetches next index", async () => {
+  it("nextTrack fetches the next track in order when shuffle is off", async () => {
     const { usePlayerStore } = await import("@/src/store/playerStore");
     const fetchSpy = jest.spyOn(usePlayerStore.getState(), "fetchAndPlay");
 
@@ -325,12 +362,118 @@ describe("playerStore", () => {
         { trackId: "t2", title: "2", artist: "B", artistId: "u2", cover: "/2.jpg" },
       ],
       trackIndex: 0,
+      isShuffleOn: false,
+      loopMode: "OFF",
     });
 
     await usePlayerStore.getState().nextTrack();
+
     expect(fetchSpy).toHaveBeenCalledWith(
       expect.objectContaining({ trackId: "t2" })
     );
+  });
+
+  it("nextTrack repeats current track when loop mode is ONE", async () => {
+    const { usePlayerStore } = await import("@/src/store/playerStore");
+    const fetchSpy = jest.spyOn(usePlayerStore.getState(), "fetchAndPlay");
+
+    const currentTrack = {
+      trackId: "t1",
+      title: "1",
+      artist: "A",
+      artistId: "u1",
+      cover: "/1.jpg",
+    };
+
+    usePlayerStore.setState({
+      tracks: [currentTrack],
+      trackIndex: 0,
+      currentTrack,
+      loopMode: "ONE",
+      isShuffleOn: false,
+    });
+
+    await usePlayerStore.getState().nextTrack();
+
+    expect(fetchSpy).toHaveBeenCalledWith(expect.objectContaining({ trackId: "t1" }));
+  });
+
+  it("nextTrack stops playback at the last track when loop mode is OFF", async () => {
+    mockSavePlaybackProgress.mockResolvedValue({});
+    mockUpdatePlayerSession.mockResolvedValue({});
+
+    const { usePlayerStore, getAudioElement } = await import("@/src/store/playerStore");
+    const audio = getAudioElement();
+
+    usePlayerStore.setState({
+      tracks: [
+        { trackId: "t1", title: "1", artist: "A", artistId: "u1", cover: "/1.jpg" },
+        { trackId: "t2", title: "2", artist: "B", artistId: "u2", cover: "/2.jpg" },
+      ],
+      trackIndex: 1,
+      currentTrack: {
+        trackId: "t2",
+        title: "2",
+        artist: "B",
+        artistId: "u2",
+        cover: "/2.jpg",
+      },
+      isPlaying: true,
+      loopMode: "OFF",
+      isShuffleOn: false,
+    });
+
+    await usePlayerStore.getState().nextTrack();
+
+    expect(audio?.pause).toHaveBeenCalled();
+    expect(usePlayerStore.getState().isPlaying).toBe(false);
+    expect(usePlayerStore.getState().currentTime).toBe(0);
+  });
+
+  it("nextTrack wraps to first track when loop mode is ALL", async () => {
+    const { usePlayerStore } = await import("@/src/store/playerStore");
+    const fetchSpy = jest.spyOn(usePlayerStore.getState(), "fetchAndPlay");
+
+    usePlayerStore.setState({
+      tracks: [
+        { trackId: "t1", title: "1", artist: "A", artistId: "u1", cover: "/1.jpg" },
+        { trackId: "t2", title: "2", artist: "B", artistId: "u2", cover: "/2.jpg" },
+      ],
+      trackIndex: 1,
+      loopMode: "ALL",
+      isShuffleOn: false,
+    });
+
+    await usePlayerStore.getState().nextTrack();
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ trackId: "t1" })
+    );
+  });
+
+  it("nextTrack picks a random different track when shuffle is on", async () => {
+    const randomSpy = jest.spyOn(Math, "random").mockReturnValue(0.9);
+
+    const { usePlayerStore } = await import("@/src/store/playerStore");
+    const fetchSpy = jest.spyOn(usePlayerStore.getState(), "fetchAndPlay");
+
+    usePlayerStore.setState({
+      tracks: [
+        { trackId: "t1", title: "1", artist: "A", artistId: "u1", cover: "/1.jpg" },
+        { trackId: "t2", title: "2", artist: "B", artistId: "u2", cover: "/2.jpg" },
+      ],
+      trackIndex: 0,
+      isShuffleOn: true,
+      loopMode: "OFF",
+    });
+
+    await usePlayerStore.getState().nextTrack();
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ trackId: "t2" })
+    );
+
+    randomSpy.mockRestore();
   });
 
   it("previousTrack resets to zero when currentTime is over 3 seconds", async () => {
@@ -376,6 +519,28 @@ describe("playerStore", () => {
     );
   });
 
+  it("previousTrack wraps to last track when loop mode is ALL and current time is 3 or less", async () => {
+    const { usePlayerStore } = await import("@/src/store/playerStore");
+    const fetchSpy = jest.spyOn(usePlayerStore.getState(), "fetchAndPlay");
+
+    usePlayerStore.setState({
+      tracks: [
+        { trackId: "t1", title: "1", artist: "A", artistId: "u1", cover: "/1.jpg" },
+        { trackId: "t2", title: "2", artist: "B", artistId: "u2", cover: "/2.jpg" },
+      ],
+      trackIndex: 0,
+      currentTime: 2,
+      isShuffleOn: false,
+      loopMode: "ALL",
+    });
+
+    await usePlayerStore.getState().previousTrack();
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ trackId: "t2" })
+    );
+  });
+
   it("setVolume stores 0-100 but writes audio volume as 0-1", async () => {
     mockUpdatePlayerSession.mockResolvedValue({});
 
@@ -410,6 +575,8 @@ describe("playerStore", () => {
       isPlaying: true,
       volume: 0.5,
       queue: [{ trackId: "t2", title: "Two" }],
+      isShuffleOn: true,
+      loopMode: "ONE",
     });
 
     const { usePlayerStore, getAudioElement } = await import("@/src/store/playerStore");
@@ -431,6 +598,8 @@ describe("playerStore", () => {
     expect(state.isPlaying).toBe(false);
     expect(state.volume).toBe(50);
     expect(state.hydratedFromSession).toBe(true);
+    expect(state.isShuffleOn).toBe(true);
+    expect(state.loopMode).toBe("ONE");
     expect(audio?.volume).toBe(0.5);
   });
 
@@ -534,7 +703,7 @@ describe("playerStore", () => {
     expect(usePlayerStore.getState().isPlaying).toBe(true);
     expect(usePlayerStore.getState().streamError).toBeNull();
     expect(usePlayerStore.getState().accessState).toBe("PLAYABLE");
-  });  
+  });
 
   it("fetchAndPlay handles blocked state without playback", async () => {
     mockGetPlaybackState.mockResolvedValue({

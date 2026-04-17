@@ -1,4 +1,5 @@
 export {};
+
 jest.mock("@/src/services/api", () => ({
   __esModule: true,
   default: {
@@ -153,6 +154,8 @@ describe("playerService", () => {
         isPlaying: false,
         volume: 0.75,
         queue: [],
+        isShuffleOn: true,
+        loopMode: "ALL",
       },
     });
 
@@ -161,6 +164,8 @@ describe("playerService", () => {
 
     expect(getMockApi().get).toHaveBeenCalledWith("/player/session");
     expect(result.positionSeconds).toBe(44);
+    expect(result.isShuffleOn).toBe(true);
+    expect(result.loopMode).toBe("ALL");
   });
 
   it("updatePlayerSession puts session payload", async () => {
@@ -175,6 +180,8 @@ describe("playerService", () => {
       isPlaying: true,
       volume: 0.8,
       queueTrackIds: ["trk_2", "trk_3"],
+      isShuffleOn: true,
+      loopMode: "ONE",
     });
 
     expect(getMockApi().put).toHaveBeenCalledWith("/player/session", {
@@ -183,6 +190,8 @@ describe("playerService", () => {
       isPlaying: true,
       volume: 0.8,
       queueTrackIds: ["trk_2", "trk_3"],
+      isShuffleOn: true,
+      loopMode: "ONE",
     });
     expect(result).toEqual({ message: "Player session updated successfully" });
   });

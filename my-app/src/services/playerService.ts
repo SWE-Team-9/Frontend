@@ -76,6 +76,8 @@ export interface PlayerSessionResponse {
     isPlaying: boolean;
     volume: number;
     queue: QueueTrackItem[];
+    isShuffleOn?: boolean;
+    loopMode?: "OFF" | "ALL" | "ONE";
 }
 
 export interface UpdatePlayerSessionBody {
@@ -84,6 +86,8 @@ export interface UpdatePlayerSessionBody {
     isPlaying: boolean;
     volume: number;
     queueTrackIds: string[];
+    isShuffleOn?: boolean;
+    loopMode?: "OFF" | "ALL" | "ONE";
 }
 
 export interface UpdatePlayerSessionResponse {
@@ -145,6 +149,8 @@ let MOCK_PLAYER_SESSION: PlayerSessionResponse = {
     isPlaying: false,
     volume: 0.75,
     queue: [],
+    isShuffleOn: false,
+    loopMode: "OFF",
 };
 
 const MOCK_RESUME_POSITIONS: Record<string, number> = {
@@ -309,6 +315,8 @@ export async function updatePlayerSession(
                 trackId: id,
                 title: `Mock Track ${id}`,
             })),
+            isShuffleOn: body.isShuffleOn ?? false,
+            loopMode: body.loopMode ?? "OFF",
         };
 
         return {

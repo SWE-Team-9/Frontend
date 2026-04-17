@@ -39,8 +39,6 @@ export function Player() {
 
     const onError = () => {
       const mediaError = audio.error;
-
-      // Ignore empty/spurious error events
       if (!mediaError) return;
 
       usePlayerStore.setState({
@@ -66,16 +64,26 @@ export function Player() {
       });
     };
 
+    const onEnded = async () => {
+      usePlayerStore.setState({
+        isPlaying: false,
+      });
+
+      await usePlayerStore.getState().nextTrack();
+    };
+
     audio.addEventListener("error", onError);
     audio.addEventListener("waiting", onWaiting);
     audio.addEventListener("playing", onPlaying);
     audio.addEventListener("canplay", onCanPlay);
+    audio.addEventListener("ended", onEnded);
 
     return () => {
       audio.removeEventListener("error", onError);
       audio.removeEventListener("waiting", onWaiting);
       audio.removeEventListener("playing", onPlaying);
       audio.removeEventListener("canplay", onCanPlay);
+      audio.removeEventListener("ended", onEnded);
     };
   }, []);
 

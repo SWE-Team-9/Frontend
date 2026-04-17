@@ -26,6 +26,8 @@ export interface Track {
   previewUrl?: string;
 }
 
+export type LoopMode = "OFF" | "ALL" | "ONE";
+
 let _audio: HTMLAudioElement | null = null;
 
 export function getAudioElement(): HTMLAudioElement | null {
@@ -35,6 +37,16 @@ export function getAudioElement(): HTMLAudioElement | null {
     _audio.preload = "auto";
   }
   return _audio;
+}
+
+function getRandomIndexExcluding(length: number, excludeIndex: number): number {
+  if (length <= 1) return excludeIndex;
+
+  let randomIndex = excludeIndex;
+  while (randomIndex === excludeIndex) {
+    randomIndex = Math.floor(Math.random() * length);
+  }
+  return randomIndex;
 }
 
 export const mockTracks: Track[] = [
@@ -120,6 +132,9 @@ interface PlayerState {
   trackIndex: number;
   tracks: Track[];
 
+  isShuffleOn: boolean;
+  loopMode: LoopMode;
+
   queue: Track[];
   hasRecordedPlay: boolean;
   hydratedFromSession: boolean;
@@ -138,6 +153,8 @@ interface PlayerState {
   setTrack: (track: Track) => void;
   setTracks: (tracks: Track[]) => void;
   setQueue: (queue: Track[]) => void;
+  toggleShuffle: () => void;
+  cycleLoopMode: () => void;
   nextTrack: () => Promise<void>;
   previousTrack: () => Promise<void>;
   setVolume: (volume: number) => Promise<void>;
@@ -161,6 +178,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   duration: 0,
   trackIndex: -1,
   tracks: mockTracks,
+  isShuffleOn: false,
+  loopMode: "OFF",
   queue: [],
   hasRecordedPlay: false,
   hydratedFromSession: false,
@@ -251,14 +270,23 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   persistPlayerSession: async () => {
-    const { currentTrack, currentTime, isPlaying, volume, queue } = get();
-
+    const {
+      currentTrack,
+      currentTime,
+      isPlaying,
+      volume,
+      queue,
+      isShuffleOn,
+      loopMode,
+    } = get();
     const payload = {
       currentTrackId: currentTrack?.trackId ?? null,
       positionSeconds: Math.floor(currentTime),
       isPlaying,
       volume: volume / 100,
       queueTrackIds: queue.map((track) => track.trackId),
+      isShuffleOn,
+      loopMode,
     };
 
     console.log("[playerStore] persistPlayerSession payload", payload);
@@ -302,13 +330,15 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         currentTrack: restoredCurrentTrack,
         queue: restoredQueue,
         currentTime: data.positionSeconds ?? 0,
-        isPlaying: false, // do not auto-play on hydrate
+        isPlaying: false,
         volume: typeof data.volume === "number" ? Math.round(data.volume * 100) : 75,
         hydratedFromSession: true,
         isPlayerVisible: !!restoredCurrentTrack,
         trackIndex: restoredCurrentTrack
           ? tracks.findIndex((t) => t.trackId === restoredCurrentTrack.trackId)
           : -1,
+        isShuffleOn: !!data.isShuffleOn,
+        loopMode: data.loopMode ?? "OFF",
       });
 
       const audio = getAudioElement();
@@ -414,6 +444,21 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
   setTracks: (tracks) => set({ tracks }),
   setQueue: (queue) => set({ queue }),
+
+  toggleShuffle: () => {
+    const nextValue = !get().isShuffleOn;
+    set({ isShuffleOn: nextValue });
+    void get().persistPlayerSession();
+  },
+
+  cycleLoopMode: () => {
+    const current = get().loopMode;
+    const next: LoopMode =
+      current === "OFF" ? "ALL" : current === "ALL" ? "ONE" : "OFF";
+
+    set({ loopMode: next });
+    void get().persistPlayerSession();
+  },  
 
   //  fetch streamUrl, handle 409 and accessState
   fetchAndPlay: async (track: Track) => {
@@ -623,15 +668,61 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   nextTrack: async () => {
-    const { tracks, trackIndex } = get();
+    const { tracks, trackIndex, isShuffleOn, loopMode, currentTrack } = get();
     if (!tracks.length) return;
 
-    const nextIndex = trackIndex < 0 ? 0 : (trackIndex + 1) % tracks.length;
+    // Repeat current track
+    if (loopMode === "ONE" && currentTrack) {
+      const audio = getAudioElement();
+      if (audio) audio.currentTime = 0;
+      set({ currentTime: 0 });
+      await get().fetchAndPlay(currentTrack);
+      return;
+    }
+
+    let nextIndex: number;
+
+    if (isShuffleOn) {
+      const currentIndex =
+        trackIndex >= 0
+          ? trackIndex
+          : currentTrack
+            ? tracks.findIndex((t) => t.trackId === currentTrack.trackId)
+            : 0;
+
+      nextIndex = getRandomIndexExcluding(tracks.length, currentIndex);
+    } else {
+      const isLastTrack = trackIndex >= tracks.length - 1;
+
+      if (isLastTrack) {
+        if (loopMode === "ALL") {
+          nextIndex = 0;
+        } else {
+          const audio = getAudioElement();
+          if (audio) {
+            audio.pause();
+            audio.currentTime = 0;
+          }
+
+          set({
+            isPlaying: false,
+            currentTime: 0,
+          });
+
+          await get().persistProgress();
+          await get().persistPlayerSession();
+          return;
+        }
+      } else {
+        nextIndex = trackIndex < 0 ? 0 : trackIndex + 1;
+      }
+    }
+
     await get().fetchAndPlay(tracks[nextIndex]);
   },
 
   previousTrack: async () => {
-    const { tracks, trackIndex, currentTime } = get();
+    const { tracks, trackIndex, currentTime, isShuffleOn, loopMode, currentTrack } = get();
     const audio = getAudioElement();
 
     if (!tracks.length) return;
@@ -644,8 +735,26 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       return;
     }
 
-    const prevIndex =
-      trackIndex <= 0 ? tracks.length - 1 : trackIndex - 1;
+    let prevIndex: number;
+
+    if (isShuffleOn) {
+      const currentIndex =
+        trackIndex >= 0
+          ? trackIndex
+          : currentTrack
+            ? tracks.findIndex((t) => t.trackId === currentTrack.trackId)
+            : 0;
+
+      prevIndex = getRandomIndexExcluding(tracks.length, currentIndex);
+    } else {
+      const isFirstTrack = trackIndex <= 0;
+
+      if (isFirstTrack) {
+        prevIndex = loopMode === "ALL" ? tracks.length - 1 : 0;
+      } else {
+        prevIndex = trackIndex - 1;
+      }
+    }
 
     await get().fetchAndPlay(tracks[prevIndex]);
   },

@@ -10,6 +10,9 @@ const mockGetAudioElement = jest.fn();
 const mockToggleFollow = jest.fn();
 const mockFetchFollowing = jest.fn();
 const mockIsFollowing = jest.fn();
+const mockPlayerSetState = jest.fn();
+const mockPlayerGetState = jest.fn();
+const mockStoreNextTrack = jest.fn();
 
 const mockAudio: {
   volume: number;
@@ -23,12 +26,13 @@ const mockAudio: {
   removeEventListener: jest.fn(),
 };
 
-const mockPlayerSetState = jest.fn();
-
 jest.mock("@/src/store/playerStore", () => ({
   usePlayerStore: Object.assign(
     () => mockUsePlayerStore(),
-    { setState: (...args: unknown[]) => mockPlayerSetState(...args) }
+    {
+      setState: (...args: unknown[]) => mockPlayerSetState(...args),
+      getState: () => mockPlayerGetState(),
+    }
   ),
   getAudioElement: () => mockGetAudioElement(),
 }));
@@ -67,6 +71,9 @@ describe("Player", () => {
     mockPlayerSetState.mockClear();
 
     mockGetAudioElement.mockReturnValue(mockAudio);
+    mockPlayerGetState.mockReturnValue({
+      nextTrack: mockStoreNextTrack,
+    });
 
     mockUsePlayerStore.mockReturnValue({
       currentTrack: {
@@ -203,7 +210,24 @@ describe("Player", () => {
       streamError: "Audio playback failed.",
     });
   });
-  
+
+  it("calls nextTrack when audio fires ended", async () => {
+    render(<Player />);
+
+    const endedHandler = mockAudio.addEventListener.mock.calls.find(
+      ([event]) => event === "ended"
+    )?.[1] as (() => Promise<void>) | undefined;
+
+    expect(endedHandler).toBeTruthy();
+
+    await endedHandler?.();
+
+    expect(mockPlayerSetState).toHaveBeenCalledWith({
+      isPlaying: false,
+    });
+    expect(mockStoreNextTrack).toHaveBeenCalledTimes(1);
+  });
+
   it("fetches following for authenticated user", () => {
     render(<Player />);
     expect(mockFetchFollowing).toHaveBeenCalledWith("usr_1", {
