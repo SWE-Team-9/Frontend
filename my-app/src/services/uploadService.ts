@@ -90,6 +90,29 @@ export const uploadTrack = async (
   return res.data;
 };
 
+
+// ===============================
+//  UPLOAD COVER ART
+// ===============================
+export const uploadTrackCoverArt = async (
+  trackId: string,
+  file: File,
+): Promise<{ coverArtUrl: string }> => {
+  if (USE_MOCK) {
+    await new Promise((r) => setTimeout(r, 800));
+    return { coverArtUrl: URL.createObjectURL(file) };
+  }
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await api.put(`/tracks/${trackId}/cover`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+
+  return res.data;
+};
+
 // ===============================
 //  GET TRACK DETAILS
 // ===============================

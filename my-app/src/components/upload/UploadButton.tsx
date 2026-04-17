@@ -7,8 +7,13 @@ import {
   uploadTrack,
   getTrackDetails,
   changeTrackVisibility,
+  uploadTrackCoverArt,
 } from "@/src/services/uploadService";
 import { useRouter } from "next/navigation";
+
+interface UploadButtonProps {
+  coverFile?: File | null;
+}
 
 interface FileStatus {
   name: string;
@@ -18,7 +23,7 @@ interface FileStatus {
   resolvedTrackId?: string; // store it for redirect
 }
 
-const UploadButton: React.FC = () => {
+const UploadButton: React.FC<UploadButtonProps> = ({ coverFile }) => {
   const { files, setFiles, metadata } = useUploadStore();
   const [fileStatuses, setFileStatuses] = useState<FileStatus[]>([]);
   const router = useRouter();
@@ -105,8 +110,8 @@ const UploadButton: React.FC = () => {
 
       try {
         if (!metadata) throw new Error("Metadata missing");
+        
         const data = await uploadTrack(file, metadata);
-
         if (data.status === "PROCESSING" && data.trackId) {
           // Set the visibility the user chose before polling starts
           await changeTrackVisibility(data.trackId, metadata.visibility);
@@ -115,6 +120,7 @@ const UploadButton: React.FC = () => {
         } else {
           updateFileStatus(file.name, "DONE");
         }
+
       } catch (err: unknown) {
         updateFileStatus(
           file.name,

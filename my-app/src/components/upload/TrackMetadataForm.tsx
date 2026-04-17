@@ -55,11 +55,39 @@ const TrackMetadataForm = () => {
   const [title, setTitle] = useState("");
   const [genre, setGenre] = useState("None");
   const [tags, setTags] = useState("");
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [coverError, setCoverError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [releaseDate, setReleaseDate] = useState("");
   const [visibility, setVisibility] = useState<"PUBLIC" | "PRIVATE">("PRIVATE");
   const [description, setDescription] = useState("");
   const [errors, setErrors] = useState<FormErrors>({});
+
+  const handleCoverChange = (file: File | null) => {
+    setCoverError(null);
+
+    if (!file) {
+      setCoverFile(null);
+      setCoverPreview(null);
+      return;
+    }
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+
+    if (!allowedTypes.includes(file.type)) {
+      setCoverError("Cover must be JPEG, PNG, or WebP.");
+      return;
+    }
+
+    if (file.size > 15 * 1024 * 1024) {
+      setCoverError("Cover must be 15 MB or smaller.");
+      return;
+    }
+
+    setCoverFile(file);
+    setCoverPreview(URL.createObjectURL(file));
+  };
 
   const validate = (): boolean => {
     const newErrors: FormErrors = {};
@@ -191,6 +219,37 @@ const TrackMetadataForm = () => {
           )}
           {!errors.releaseDate && <div className="mb-4" />}
 
+          {/* Description */}
+          <div className="flex flex-col gap-1">
+            <label className="font-medium pb-2 text-xl">Description</label>
+
+            <textarea
+              placeholder="Describe your track"
+              className={`w-full p-2 focus:outline-none focus:border-[#ff5500] transition duration-300 rounded border resize-none min-h-40 ${
+                errors.description ? "border-red-500" : "border-[#8c8c8c]"
+              }`}
+              value={description}
+              maxLength={MAX_DESCRIPTION}
+              onChange={(e) => {
+                setDescription(e.target.value);
+                if (errors.description)
+                  setErrors((prev) => ({ ...prev, description: undefined }));
+              }}
+            />
+
+            <p className="text-sm mt-1 text-right text-[#8c8c8c]">
+              {description.length} / {MAX_DESCRIPTION}
+            </p>
+
+            {errors.description && (
+              <p className="text-red-500 text-sm mt-1 mb-3">
+                {errors.description}
+              </p>
+            )}
+
+            {!errors.description && <div className="mb-4" />}
+          </div>
+
           {/* Visibility */}
           <div className="flex flex-col gap-1">
             <label className="font-medium pt-4 pb-2 text-xl">Visibility</label>
@@ -221,34 +280,44 @@ const TrackMetadataForm = () => {
           </div>
         </div>
 
-        {/* Right column — description */}
+        {/* Right column — cover art */}
         <div className="flex flex-col flex-1">
-          <label className="font-medium pb-2 text-xl">Description</label>
-          <textarea
-            placeholder="Describe your track"
-            className={`w-full p-2 focus:outline-none focus:border-[#ff5500] transition duration-300 rounded border resize-none flex-1 min-h-75 ${
-              errors.description ? "border-red-500" : "border-[#8c8c8c]"
-            }`}
-            value={description}
-            maxLength={MAX_DESCRIPTION}
-            onChange={(e) => {
-              setDescription(e.target.value);
-              if (errors.description)
-                setErrors((prev) => ({ ...prev, description: undefined }));
-            }}
-          />
-          {/* Character counter */}
-          <p
-            className={`text-sm mt-1 text-right ${
-              description.length > MAX_DESCRIPTION
-                ? "text-red-500"
-                : "text-[#8c8c8c]"
-            }`}
-          >
-            {description.length} / {MAX_DESCRIPTION}
-          </p>
-          {errors.description && (
-            <p className="text-red-500 text-sm mt-1">{errors.description}</p>
+          <label className="font-medium pb-2 text-xl">Cover Art</label>
+
+          <label className="border border-dashed border-[#8c8c8c] rounded-xl min-h-92.5 flex flex-col items-center justify-center cursor-pointer hover:border-[#ff5500] transition duration-300 overflow-hidden bg-[#181818]">
+            {coverPreview ? (
+              <img
+                src={coverPreview}
+                alt="Cover preview"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="text-center px-6">
+                <p className="text-white font-semibold mb-2">
+                  Upload cover art
+                </p>
+                <p className="text-[#8c8c8c] text-sm">
+                  JPEG, PNG, or WebP. Max 15 MB.
+                </p>
+              </div>
+            )}
+
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={(e) => handleCoverChange(e.target.files?.[0] ?? null)}
+            />
+          </label>
+
+          {coverFile && (
+            <p className="text-sm text-[#8c8c8c] mt-2 truncate">
+              {coverFile.name}
+            </p>
+          )}
+
+          {coverError && (
+            <p className="text-red-500 text-sm mt-2">{coverError}</p>
           )}
         </div>
       </div>
@@ -278,7 +347,7 @@ const TrackMetadataForm = () => {
       )}
 
       {/* Upload Button */}
-      <UploadButton />
+      <UploadButton coverFile={coverFile}/>
     </div>
   );
 };
