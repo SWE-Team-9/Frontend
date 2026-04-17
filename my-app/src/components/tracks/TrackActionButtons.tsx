@@ -110,37 +110,39 @@ export function TrackActionButtons({
   trackId, title, artistName, coverArt, likesCount:initialLikes, repostsCount, liked, reposted, size = "full",
 }: TrackActionButtonsProps) {
   const [modalType, setModalType] = useState<"likes" | "reposts" | null>(null);
-
-  const [likeOffset, setLikeOffset] = useState(0);
-  // 1. Get the LIVE status from stores
-  const likedTrack = useLikeStore((state) => 
+  
+  const isCurrentlyLiked = !!useLikeStore((state) => 
     state.likedTracks.find((t) => String(t.id) === String(trackId))
   );
+  
   const repostedTrack = useRepostStore((state) => 
     state.repostedTracks.find((t) => String(t.id) === String(trackId))
   );
-
-  // Use the count from the store if it exists, otherwise we'd need the initial prop
-  // (In a full store-managed app, you'd usually sync the feed into the store on load)
-  const isCurrentlyLiked = !!likedTrack;
   const isCurrentlyReposted = !!repostedTrack;
 
-  // Use an effect to update the offset when the store state changes
-  useEffect(() => {
-    if (isCurrentlyLiked && !liked) {
-      setLikeOffset(1); // User liked an unliked track
-    } else if (!isCurrentlyLiked && liked) {
-      setLikeOffset(-1); // User unliked a liked track
-    } else {
-      setLikeOffset(0); // State matches initial backend state
-    }
-  }, [isCurrentlyLiked, liked]);
+  let likeDelta = 0;
+  if (isCurrentlyLiked && !liked) likeDelta = 1;
+  else if (!isCurrentlyLiked && liked) likeDelta = -1;
+ 
 
-  const displayLikes = Math.max(0, initialLikes + likeOffset);
+  const displayLikes = Math.max(0, initialLikes + likeDelta);
 
   const displayReposts = isCurrentlyReposted 
     ? (repostedTrack?.repostsCount ?? repostsCount) 
     : (reposted ? Math.max(0, repostsCount - 1) : repostsCount);
+
+  const { toggleLike } = useLikeStore();
+  const handleLikeToggle = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    // We pass the track data to the store. 
+    // The store's optimistic update will toggle 'isLiked', which triggers our 'likeDelta' calculation automatically.
+    await toggleLike({ 
+      id: trackId, title, artistName, coverArt, 
+      likesCount: initialLikes, // The store handles its own incrementing
+      repostsCount: repostsCount,
+      coverArtUrl: coverArt || null
+    } as TrackData);
+  };
   return (
     <div className="flex items-center gap-1.5">
       <div className="flex items-center gap-1">
