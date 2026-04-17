@@ -29,16 +29,17 @@ export default function RecentlyPlayedSection() {
                     );
 
                     return {
-                        trackId: item.trackId,
-                        title: details?.title || item.title,
-                        artist: details?.artist || item.artist.display_name,
-                        artistId: details?.artistId || item.artist.id,
-                        artistHandle: details?.artistHandle,
-                        artistAvatarUrl: details?.artistAvatarUrl ?? null,
-                        coverArtUrl: details?.coverArtUrl || null,
-                        liked: false,
-                        lastPlayedAt: item.lastPlayedAt,
-                        lastPositionSeconds: item.lastPositionSeconds,
+                    trackId: item.trackId,
+                    title: details?.title || item.title,
+                    artist: details?.artist || item.artist.display_name,
+                    artistId: details?.artistId || item.artist.id,
+                    artistHandle: details?.artistHandle,
+                    artistAvatarUrl: details?.artistAvatarUrl ?? null,
+                    coverArtUrl: details?.coverArtUrl || null,
+                    liked: details?.liked ?? false,
+                    likesCount: details?.likesCount ?? 0,
+                    lastPlayedAt: item.lastPlayedAt,
+                    lastPositionSeconds: item.lastPositionSeconds,
                     };
                 });
 

@@ -1,112 +1,194 @@
-import api from "@/src/services/api";
-import { 
-  getTrackEngagements, 
-  getTrackComments, 
-  addTrackComment, 
-  deleteTrackComment 
-} from "@/src/services/interactionService";
+export {};
+jest.mock("@/src/services/api", () => ({
+  __esModule: true,
+  default: {
+    get: jest.fn(),
+    post: jest.fn(),
+    delete: jest.fn(),
+  },
+}));
 
-jest.mock("@/src/services/api");
-const mockedApi = api as jest.Mocked<typeof api>;
+const getMockApi = () =>
+  jest.requireMock("@/src/services/api").default as {
+    get: jest.Mock;
+    post: jest.Mock;
+    delete: jest.Mock;
+  };
 
-describe("interactionService Coverage Boost", () => {
-  afterEach(() => {
+describe("interactionService", () => {
+  beforeEach(() => {
     jest.clearAllMocks();
+    jest.resetModules();
   });
 
-  describe("getTrackEngagements", () => {
-    test("calls likers endpoint and maps data correctly", async () => {
-      const mockItems = [
+  it("getTrackEngagements maps likes users", async () => {
+    getMockApi().get.mockResolvedValue({
+      data: {
+        items: [
+          {
+            interactedAt: "2026-04-12T10:00:00Z",
+            user: {
+              userId: "usr_1",
+              displayName: "Ahmed Hassan",
+              avatarUrl: "/avatar.jpg",
+              handle: "ahmed",
+            },
+          },
+        ],
+      },
+    });
+
+    const { getTrackEngagements } = await import("@/src/services/interactionService");
+    const result = await getTrackEngagements("trk_1", "likes");
+
+    expect(getMockApi().get).toHaveBeenCalledWith("/interactions/tracks/trk_1/likers");
+    expect(result).toEqual([
+      {
+        id: "usr_1",
+        display_name: "Ahmed Hassan",
+        handle: "ahmed",
+        avatar_url: "/avatar.jpg",
+      },
+    ]);
+  });
+
+  it("getTrackEngagements derives handle when missing", async () => {
+    getMockApi().get.mockResolvedValue({
+      data: {
+        items: [
+          {
+            interactedAt: "2026-04-12T10:00:00Z",
+            user: {
+              userId: "usr_2",
+              displayName: "Maryam Soliman",
+              avatarUrl: null,
+            },
+          },
+        ],
+      },
+    });
+
+    const { getTrackEngagements } = await import("@/src/services/interactionService");
+    const result = await getTrackEngagements("trk_1", "reposts");
+
+    expect(getMockApi().get).toHaveBeenCalledWith("/interactions/tracks/trk_1/reposters");
+    expect(result[0].handle).toBe("maryamsoliman");
+    expect(result[0].avatar_url).toBe("");
+  });
+
+  it("getTrackComments normalizes array response shape", async () => {
+    getMockApi().get.mockResolvedValue({
+      data: [
         {
-          user: { userId: "1", displayName: "Salma Mohamed", avatarUrl: "url" },
-          interactedAt: "2026-04-14"
-        }
-      ];
-      mockedApi.get.mockResolvedValue({ data: { items: mockItems } });
-
-      const result = await getTrackEngagements("track_123", "likes");
-
-      expect(mockedApi.get).toHaveBeenCalledWith("/interactions/tracks/track_123/likers");
-      expect(result[0]).toEqual({
-        id: "1",
-        display_name: "Salma Mohamed",
-        handle: "salmamohamed", // Testing handle fallback logic
-        avatar_url: "url"
-      });
+          id: "c1",
+          content: "Great drop",
+          timestampAt: 30,
+          createdAt: "2026-04-12T10:00:00Z",
+          user: {
+            userId: "usr_1",
+            displayName: "Maryam",
+          },
+        },
+      ],
     });
 
-    test("calls reposters endpoint and handles missing items", async () => {
-      mockedApi.get.mockResolvedValue({ data: {} }); // Missing items field
-      const result = await getTrackEngagements("track_123", "reposts");
-      
-      expect(mockedApi.get).toHaveBeenCalledWith("/interactions/tracks/track_123/reposters");
-      expect(result).toEqual([]);
-    });
-  });
+    const { getTrackComments } = await import("@/src/services/interactionService");
+    const result = await getTrackComments("trk_1", 1, 100);
 
-  describe("getTrackComments", () => {
-    test("handles raw array response from backend", async () => {
-      const mockArray = [
-        { id: "c1", content: "Great track!", user: { id: "u1", display_name: "User" } }
-      ];
-      mockedApi.get.mockResolvedValue({ data: mockArray });
-
-      const result = await getTrackComments("track_123");
-      expect(result.comments).toHaveLength(1);
-      expect(result.total).toBe(1);
-      expect(result.comments[0].text).toBe("Great track!");
-    });
-
-    test("handles object response and complex fallback mapping", async () => {
-      const mockObject = {
-        page: 1,
-        limit: 10,
-        total: 50,
-        comments: [{
-          commentId: "c2",
-          text: "Love it",
-          timestampAt: 120,
-          createdAt: "2026-01-01T00:00:00Z",
-          user: { userId: "u2", displayName: "Expert User" }
-        }]
-      };
-      mockedApi.get.mockResolvedValue({ data: mockObject });
-
-      const result = await getTrackComments("track_123", 1, 10);
-      
-      expect(result.total).toBe(50);
-      expect(result.comments[0]).toMatchObject({
-        commentId: "c2",
-        text: "Love it",
-        timestampSeconds: 120,
-        user: { id: "u2", display_name: "Expert User" }
-      });
-    });
-
-    test("handles missing user fields with defaults", async () => {
-      mockedApi.get.mockResolvedValue({ 
-        data: [{ id: "c1", user: {} }] // Extreme case: empty user object
-      });
-      const result = await getTrackComments("track_123");
-      expect(result.comments[0].user.display_name).toBe("Unknown User");
+    expect(getMockApi().get).toHaveBeenCalledWith("/interactions/tracks/trk_1/comments?page=1&limit=100");
+    expect(result).toEqual({
+      page: 1,
+      limit: 100,
+      total: 1,
+      comments: [
+        {
+          commentId: "c1",
+          trackId: "trk_1",
+          text: "Great drop",
+          timestampSeconds: 30,
+          createdAt: "2026-04-12T10:00:00Z",
+          user: {
+            id: "usr_1",
+            display_name: "Maryam",
+          },
+        },
+      ],
     });
   });
 
-  describe("add & delete", () => {
-    test("addTrackComment sends correct payload", async () => {
-      mockedApi.post.mockResolvedValue({ data: { id: "new_id" } });
-      const body = { content: "Nice", timestampAt: 10 };
-      
-      const result = await addTrackComment("t1", body);
-      expect(mockedApi.post).toHaveBeenCalledWith("/interactions/tracks/t1/comments", body);
-      expect(result).toEqual({ id: "new_id" });
+  it("getTrackComments normalizes object response shape", async () => {
+    getMockApi().get.mockResolvedValue({
+      data: {
+        page: 2,
+        limit: 20,
+        total: 5,
+        comments: [
+          {
+            commentId: "c2",
+            text: "Nice",
+            timestampSeconds: 40,
+            createdAt: "2026-04-12T11:00:00Z",
+            user: {
+              id: "usr_2",
+              display_name: "Ahmed",
+            },
+          },
+        ],
+      },
     });
 
-    test("deleteTrackComment calls correct endpoint", async () => {
-      mockedApi.delete.mockResolvedValue({ data: { message: "Deleted" } });
-      const result = await deleteTrackComment("c_99");
-      expect(mockedApi.delete).toHaveBeenCalledWith("/interactions/comments/c_99");
-      expect(result.message).toBe("Deleted");
+    const { getTrackComments } = await import("@/src/services/interactionService");
+    const result = await getTrackComments("trk_2", 2, 20);
+
+    expect(result.page).toBe(2);
+    expect(result.limit).toBe(20);
+    expect(result.total).toBe(5);
+    expect(result.comments[0]).toEqual({
+      commentId: "c2",
+      trackId: "trk_2",
+      text: "Nice",
+      timestampSeconds: 40,
+      createdAt: "2026-04-12T11:00:00Z",
+      user: {
+        id: "usr_2",
+        display_name: "Ahmed",
+      },
     });
+  });
+
+  it("addTrackComment maps request body to backend payload", async () => {
+    getMockApi().post.mockResolvedValue({
+      data: {
+        commentId: "c3",
+        trackId: "trk_1",
+        text: "Amazing",
+        timestampSeconds: 50,
+        createdAt: "2026-04-12T12:00:00Z",
+      },
+    });
+
+    const { addTrackComment } = await import("@/src/services/interactionService");
+    const result = await addTrackComment("trk_1", {
+      content: "Amazing",
+      timestampAt: 50,
+    });
+
+    expect(getMockApi().post).toHaveBeenCalledWith("/interactions/tracks/trk_1/comments", {
+      content: "Amazing",
+      timestampAt: 50,
+    });
+    expect(result.commentId).toBe("c3");
+  });
+
+  it("deleteTrackComment calls delete endpoint", async () => {
+    getMockApi().delete.mockResolvedValue({
+      data: { message: "Comment deleted successfully" },
+    });
+
+    const { deleteTrackComment } = await import("@/src/services/interactionService");
+    const result = await deleteTrackComment("c1");
+
+    expect(getMockApi().delete).toHaveBeenCalledWith("/interactions/comments/c1");
+    expect(result).toEqual({ message: "Comment deleted successfully" });
   });
 });

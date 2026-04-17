@@ -149,7 +149,8 @@ const TrackList: React.FC<TrackListProps> = ({ userId, type = "tracks", isOwner 
   {tracks.map((track) => {
     // 1. Ensure we have a string ID (handles 'id' vs 'trackId')
     const stableId = String((track as { id?: string }).id || track.trackId);
-    const isActuallyOwner = isOwner && (track.artistId === userId);
+    const stableArtistId = track.artistId || userId;
+    const isActuallyOwner = isOwner && (stableArtistId === userId);
     return (
       <TrackCard
         key={stableId}

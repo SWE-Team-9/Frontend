@@ -8,8 +8,10 @@ import { FiShare } from "react-icons/fi";
 import { TbCopy } from "react-icons/tb";
 import { usePlayerStore } from "@/src/store/playerStore";
 import { ListeningHistoryItem } from "@/src/types/history";
-import { useState } from "react";
-import { WaveformDisplay } from "@/src/components/tracks/WaveformDisplay";
+import { useMemo } from "react";
+import { useLikeStore } from "@/src/store/likeStore";
+import { useRepostStore } from "@/src/store/repostStore";
+import { TrackData } from "@/src/types/interactions";
 import TimestampedCommentsSection from "@/src/components/tracks/TimestampedCommentsSection";
 
 const FALLBACK_IMAGE = "/images/track-placeholder.png";
@@ -27,7 +29,6 @@ function formatTime(seconds?: number) {
 }
 
 export default function HistoryTrackRow({ track }: HistoryTrackRowProps) {
-  const [liked, setLiked] = useState(false);
   const {
     currentTrack,
     isPlaying,
@@ -37,6 +38,49 @@ export default function HistoryTrackRow({ track }: HistoryTrackRowProps) {
     duration,
     seekTo,
   } = usePlayerStore();
+
+  const { toggleLike, isLiked, loadingIds } = useLikeStore();
+
+  const currentlyLiked = isLiked(track.trackId);
+  const isLikeLoading = loadingIds.includes(String(track.trackId));
+
+  const baselineLiked = track.liked ?? false;
+  const baselineLikes = track.likesCount ?? 0;
+
+  const displayLikes =
+    currentlyLiked && !baselineLiked
+      ? baselineLikes + 1
+      : !currentlyLiked && baselineLiked
+        ? Math.max(0, baselineLikes - 1)
+        : baselineLikes;
+
+  const { toggleRepost, isReposted, loadingIds: repostLoadingIds } = useRepostStore();
+
+  const currentlyReposted = isReposted(track.trackId);
+  const isRepostLoading = repostLoadingIds.includes(String(track.trackId));
+
+  const baselineReposted = track.reposted ?? false;
+  const baselineReposts = track.repostsCount ?? 0;
+
+  const displayReposts =
+    currentlyReposted && !baselineReposted
+      ? baselineReposts + 1
+      : !currentlyReposted && baselineReposted
+        ? Math.max(0, baselineReposts - 1)
+        : baselineReposts;
+
+  const handleRepostToggle = async () => {
+    await toggleRepost({
+      id: track.trackId,
+      title: track.title,
+      artistName: track.artist,
+      likesCount: baselineLikes,
+      repostsCount: baselineReposts,
+      coverArtUrl: track.coverArtUrl || null,
+      coverArt: track.coverArtUrl || null,
+      imageUrl: track.coverArtUrl || null,
+    } as TrackData);
+  };
 
   const isCurrent = currentTrack?.trackId === track.trackId;
   const waveformProgress =
@@ -115,14 +159,32 @@ export default function HistoryTrackRow({ track }: HistoryTrackRowProps) {
 
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setLiked((prev) => !prev)}
-            className="flex items-center gap-2 rounded bg-zinc-800 px-4 py-2 text-white transition hover:opacity-80"
+            onClick={async () => {
+              await toggleLike({
+                id: track.trackId,
+                title: track.title,
+                artistName: track.artist,
+                likesCount: baselineLikes,
+                repostsCount: 0,
+                coverArtUrl: track.coverArtUrl || null,
+                coverArt: track.coverArtUrl || null,
+                imageUrl: track.coverArtUrl || null,
+              } as TrackData);
+            }}
+            disabled={isLikeLoading}
+            className="flex items-center gap-2 rounded bg-zinc-800 px-4 py-2 text-white transition hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <FaHeart style={{ color: liked ? ACCENT : "#ffffff" }} />
+            <FaHeart style={{ color: currentlyLiked ? ACCENT : "#ffffff" }} />
+            <span className="text-sm tabular-nums">{displayLikes}</span>
           </button>
 
-          <button className="rounded bg-zinc-800 px-4 py-2 text-white transition hover:opacity-80">
-            <BiRepost />
+          <button
+            onClick={handleRepostToggle}
+            disabled={isRepostLoading}
+            className="flex items-center gap-2 rounded bg-zinc-800 px-4 py-2 text-white transition hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <BiRepost style={{ color: currentlyReposted ? ACCENT : "#ffffff" }} />
+            <span className="text-sm tabular-nums">{displayReposts}</span>
           </button>
 
           <button className="rounded bg-zinc-800 px-4 py-2 text-white transition hover:opacity-80">

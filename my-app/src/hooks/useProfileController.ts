@@ -13,9 +13,10 @@ type AccountType = "ARTIST" | "LISTENER";
 
 export const useProfileController = (handle?: string) => {
   const store = useProfileStore();
-  const authHandle = useAuthStore((state) => state.user?.handle);
-  const isOwner = !handle || handle === authHandle;
+
   const [userId, setUserId] = useState<string | null>(null);
+  const currentUserId = useAuthStore((state) => state.user?.id);  
+  const isOwner = userId === currentUserId;
 
   const [activeTab, setActiveTab] = useState("Tracks");
   const [viewState, setViewState] = useState("profile");
