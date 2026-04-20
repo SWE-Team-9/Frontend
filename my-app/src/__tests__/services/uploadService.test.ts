@@ -59,47 +59,6 @@ describe('uploadService', () => {
     });
   });
 
-<<<<<<< HEAD
-  describe('getTrackDetailsByArtistHandleAndSlug', () => {
-    it('rejects invalid route params before requesting profile data', async () => {
-      await expect(
-        uploadService.getTrackDetailsByArtistHandleAndSlug('undefined', 'sherlocked'),
-      ).rejects.toThrow('Invalid track URL.');
-
-      expect(mockedProfileService.getProfileByHandle).not.toHaveBeenCalled();
-      expect(mockGet).not.toHaveBeenCalled();
-    });
-
-    it('resolves slug via artist handle then fetches full details by trackId', async () => {
-      mockedProfileService.getProfileByHandle.mockResolvedValue({
-        id: 'usr_123',
-      } as profileService.UserProfile);
-
-      mockGet
-        .mockResolvedValueOnce({
-          data: {
-            tracks: [{ trackId: 'trk_001', slug: 'sherlocked' }],
-            totalTracks: 1,
-          },
-        })
-        .mockResolvedValueOnce({
-          data: { trackId: 'trk_001', status: 'FINISHED', title: 'Sherlocked' },
-        });
-
-      const result = await uploadService.getTrackDetailsByArtistHandleAndSlug(
-        'john-doe',
-        'sherlocked',
-      );
-
-      expect(mockedProfileService.getProfileByHandle).toHaveBeenCalledWith('john-doe');
-      expect(mockGet).toHaveBeenNthCalledWith(1, '/users/usr_123/tracks?page=1&limit=50');
-      expect(mockGet).toHaveBeenNthCalledWith(2, '/tracks/trk_001');
-      expect(result.trackId).toBe('trk_001');
-    });
-  });
-
-=======
->>>>>>> parent of 58a0820 (feat(track): implement getTrackDetailsByArtistHandleAndSlug function and update TrackPage component)
   describe('changeTrackVisibility', () => {
     it('calls the correct endpoint with visibility value', async () => {
       mockPatch.mockResolvedValue({ data: { success: true } });

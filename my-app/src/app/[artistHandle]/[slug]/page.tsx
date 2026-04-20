@@ -47,15 +47,6 @@ function formatDate(iso: string | null) {
 export default function TrackPage() {
   const { slug: routeSlug } = useParams<{ artistHandle: string; slug: string }>();
   const slug = Array.isArray(routeSlug) ? routeSlug[0] : routeSlug;
-  const normalizedArtistHandle = artistHandle?.trim();
-  const normalizedSlug = slug?.trim();
-  const hasInvalidRouteParams =
-    !normalizedArtistHandle ||
-    !normalizedSlug ||
-    normalizedArtistHandle.toLowerCase() === "undefined" ||
-    normalizedArtistHandle.toLowerCase() === "null" ||
-    normalizedSlug.toLowerCase() === "undefined" ||
-    normalizedSlug.toLowerCase() === "null";
 
   const [track, setTrack] = useState<TrackDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -75,7 +66,11 @@ export default function TrackPage() {
   useEffect(() => {
     let active = true;
 
-    getTrackDetails(slug)
+    if (!artistHandle || !slug) {
+      return;
+    }
+
+    getTrackDetailsByArtistHandleAndSlug(artistHandle, slug)
       .then((data) => {
         if (!active) return;
         setTrack(data);
@@ -94,7 +89,7 @@ export default function TrackPage() {
     return () => {
       active = false;
     };
-  }, [slug]);
+  }, [artistHandle, slug]);
 
   const playerTrack = useMemo<PlayerTrack | null>(() => {
     if (!track) return null;
@@ -148,8 +143,14 @@ export default function TrackPage() {
     await seekTo(nextProgress * duration);
   };
 
-=======
->>>>>>> parent of 58a0820 (feat(track): implement getTrackDetailsByArtistHandleAndSlug function and update TrackPage component)
+  if (!artistHandle || !slug) {
+    return (
+      <main className="min-h-screen bg-[#111] flex items-center justify-center">
+        <p className="text-red-400 text-lg">Invalid track URL.</p>
+      </main>
+    );
+  }
+
   if (loading) {
     return (
       <main className="min-h-screen bg-[#111] flex items-center justify-center">

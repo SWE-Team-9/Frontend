@@ -29,19 +29,6 @@ function getArtistLabel(value: unknown): string {
   return "Unknown Artist";
 }
 
-function getArtistHandle(value: unknown): string | undefined {
-  if (
-    value &&
-    typeof value === "object" &&
-    "handle" in value &&
-    typeof (value as { handle?: unknown }).handle === "string"
-  ) {
-    return (value as { handle: string }).handle;
-  }
-
-  return undefined;
-}
-
 const TrackList: React.FC<TrackListProps> = ({
   userId,
   type = "tracks",
@@ -68,7 +55,7 @@ const TrackList: React.FC<TrackListProps> = ({
       title: track.title,
       artist: getArtistLabel(track.artist),
       artistId: track.artistId || userId,
-      artistHandle: track.artistHandle ?? getArtistHandle(track.artist),
+      artistHandle: track.artistHandle ?? undefined,
       artistAvatarUrl: track.artistAvatarUrl ?? null,
       cover: track.coverArtUrl || "/images/track-placeholder.png",
       duration: track.durationMs ? Math.floor(track.durationMs / 1000) : undefined,
@@ -198,7 +185,6 @@ const TrackList: React.FC<TrackListProps> = ({
     );
     const stableArtistId = track.artistId || userId;
     const isActuallyOwner = isOwner && (stableArtistId === userId);
-    const trackArtistHandle = track.artistHandle ?? getArtistHandle(track.artist);
     return (
       <TrackCard
         key={stableId}
@@ -207,7 +193,7 @@ const TrackList: React.FC<TrackListProps> = ({
           trackId: stableId, 
           artistId: track.artistId || userId,
     
-          artistHandle: trackArtistHandle,
+          artistHandle: track.artistHandle ?? undefined,
           artistAvatarUrl: track.artistAvatarUrl ?? null,
           coverArtUrl: track.coverArtUrl ?? undefined,
           genre: track.genre ?? undefined,
