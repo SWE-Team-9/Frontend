@@ -9,6 +9,7 @@ import {
   changeTrackVisibility,
 } from "@/src/services/uploadService";
 import { useRouter } from "next/navigation";
+import { getMyProfile } from "@/src/services/profileService";
 
 interface FileStatus {
   name: string;
@@ -21,6 +22,8 @@ interface FileStatus {
 const UploadButton: React.FC = () => {
   const { files, setFiles, metadata } = useUploadStore();
   const [fileStatuses, setFileStatuses] = useState<FileStatus[]>([]);
+  const [permissionError, setPermissionError] = useState<string | null>(null);
+  const [isCheckingPermission, setIsCheckingPermission] = useState(false);
   const router = useRouter();
 
   const updateFileStatus = (
@@ -96,7 +99,24 @@ const UploadButton: React.FC = () => {
   };
 
   const handleUpload = async () => {
+    setPermissionError(null);
+
     if (files.length === 0) return;
+
+    try {
+      setIsCheckingPermission(true);
+      const profile = await getMyProfile();
+
+      if (profile.accountType !== "ARTIST") {
+        setPermissionError("Only users with ARTIST accounts can upload tracks.");
+        return;
+      }
+    } catch {
+      setPermissionError("Could not verify upload permission. Please try again.");
+      return;
+    } finally {
+      setIsCheckingPermission(false);
+    }
 
     setFileStatuses(files.map((f) => ({ name: f.name, status: "PENDING" })));
 
@@ -133,10 +153,16 @@ const UploadButton: React.FC = () => {
       <button
         onClick={handleUpload}
         className="mt-4 w-full bg-white text-lg transition duration-300 hover:bg-[#ff5500] text-black font-bold py-2 px-4 rounded disabled:opacity-50"
-        disabled={files.length === 0}
+        disabled={files.length === 0 || isCheckingPermission}
       >
-        Upload {files.length > 0 ? `(${files.length}) files` : ""}
+        {isCheckingPermission
+          ? "Checking permissions..."
+          : `Upload ${files.length > 0 ? `(${files.length}) files` : ""}`}
       </button>
+
+      {permissionError && (
+        <p className="mt-2 text-sm text-red-500">{permissionError}</p>
+      )}
 
       <div className="mt-4 space-y-2">
         {fileStatuses.map((f) => (
