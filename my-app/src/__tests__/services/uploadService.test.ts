@@ -1,5 +1,4 @@
 import * as uploadService from '@/src/services/uploadService';
-import * as profileService from '@/src/services/profileService';
 
 const mockPost = jest.fn();
 const mockGet = jest.fn();
@@ -14,11 +13,6 @@ jest.mock('@/src/services/api', () => ({
   },
 }));
 
-jest.mock('@/src/services/profileService', () => ({
-  __esModule: true,
-  getProfileByHandle: jest.fn(),
-}));
-
 const mockMetadata = {
   title: 'Test Track',
   genre: 'pop',
@@ -30,8 +24,6 @@ const mockMetadata = {
 
 describe('uploadService', () => {
   beforeEach(() => jest.clearAllMocks());
-
-  const mockedProfileService = profileService as jest.Mocked<typeof profileService>;
 
   describe('uploadTrack', () => {
     it('calls POST with a FormData body', async () => {
@@ -67,6 +59,7 @@ describe('uploadService', () => {
     });
   });
 
+<<<<<<< HEAD
   describe('getTrackDetailsByArtistHandleAndSlug', () => {
     it('rejects invalid route params before requesting profile data', async () => {
       await expect(
@@ -105,6 +98,8 @@ describe('uploadService', () => {
     });
   });
 
+=======
+>>>>>>> parent of 58a0820 (feat(track): implement getTrackDetailsByArtistHandleAndSlug function and update TrackPage component)
   describe('changeTrackVisibility', () => {
     it('calls the correct endpoint with visibility value', async () => {
       mockPatch.mockResolvedValue({ data: { success: true } });

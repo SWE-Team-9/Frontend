@@ -1,5 +1,4 @@
 import api from "@/src/services/api";
-import { getProfileByHandle } from "@/src/services/profileService";
 
 export type TrackStatus = "PROCESSING" | "FINISHED";
 
@@ -50,14 +49,6 @@ export interface TrackDetails {
   createdAt: string;
   updatedAt: string;
   files: TrackFile[];
-}
-
-interface UserTracksResponse {
-  tracks?: Array<{
-    trackId?: string;
-    slug?: string;
-  }>;
-  totalTracks?: number;
 }
 
 // ===============================
@@ -152,6 +143,7 @@ export const getTrackDetails = async (
 };
 
 // ===============================
+<<<<<<< HEAD
 //  GET TRACK DETAILS BY ARTIST HANDLE + SLUG
 // ===============================
 export const getTrackDetailsByArtistHandleAndSlug = async (
@@ -214,6 +206,8 @@ export const getTrackDetailsByArtistHandleAndSlug = async (
 };
 
 // ===============================
+=======
+>>>>>>> parent of 58a0820 (feat(track): implement getTrackDetailsByArtistHandleAndSlug function and update TrackPage component)
 //  GET TRACK STATUS
 // ===============================
 export const getTrackStatus = async (trackId: string) => {

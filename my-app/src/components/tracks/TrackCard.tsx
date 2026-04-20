@@ -371,8 +371,13 @@ export const TrackCard: React.FC<TrackCardProps> = ({
                   <p className="text-zinc-400 text-sm">
                     {getArtistLabel(track.artistName ?? track.artist)}
                   </p>
+<<<<<<< HEAD
                   <Link href={trackHref}>
                     <h4 className="text-white text-xl font-bold truncate hover:text-neutral-500 cursor-pointer">
+=======
+                  <Link href={`/${track.artistHandle}/${track.slug}`}>
+                    <h4 className="text-white text-xl font-bold truncate hover:underline cursor-pointer">
+>>>>>>> parent of 58a0820 (feat(track): implement getTrackDetailsByArtistHandleAndSlug function and update TrackPage component)
                       {savedData.title}
                     </h4>
                   </Link>

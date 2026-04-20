@@ -11,7 +11,7 @@ import {
   BarChart2,
 } from "lucide-react";
 import {
-  getTrackDetailsByArtistHandleAndSlug,
+  getTrackDetails,
   type TrackDetails,
 } from "@/src/services/uploadService";
 import { WaveformDisplay } from "@/src/components/tracks/WaveformDisplay";
@@ -45,7 +45,7 @@ function formatDate(iso: string | null) {
 }
 
 export default function TrackPage() {
-  const { slug: routeSlug } = useParams<{ handle: string; slug: string }>();
+  const { slug: routeSlug } = useParams<{ artistHandle: string; slug: string }>();
   const slug = Array.isArray(routeSlug) ? routeSlug[0] : routeSlug;
   const normalizedArtistHandle = artistHandle?.trim();
   const normalizedSlug = slug?.trim();
@@ -75,11 +75,7 @@ export default function TrackPage() {
   useEffect(() => {
     let active = true;
 
-    if (hasInvalidRouteParams) {
-      return;
-    }
-
-    getTrackDetailsByArtistHandleAndSlug(normalizedArtistHandle, normalizedSlug)
+    getTrackDetails(slug)
       .then((data) => {
         if (!active) return;
         setTrack(data);
@@ -98,7 +94,7 @@ export default function TrackPage() {
     return () => {
       active = false;
     };
-  }, [hasInvalidRouteParams, normalizedArtistHandle, normalizedSlug]);
+  }, [slug]);
 
   const playerTrack = useMemo<PlayerTrack | null>(() => {
     if (!track) return null;
@@ -152,14 +148,8 @@ export default function TrackPage() {
     await seekTo(nextProgress * duration);
   };
 
-  if (hasInvalidRouteParams) {
-    return (
-      <main className="min-h-screen bg-[#111] flex items-center justify-center">
-        <p className="text-red-400 text-lg">Invalid track URL.</p>
-      </main>
-    );
-  }
-
+=======
+>>>>>>> parent of 58a0820 (feat(track): implement getTrackDetailsByArtistHandleAndSlug function and update TrackPage component)
   if (loading) {
     return (
       <main className="min-h-screen bg-[#111] flex items-center justify-center">
