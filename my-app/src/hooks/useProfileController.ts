@@ -196,7 +196,7 @@ const handleSave = async (draft: ProfileDraft) => {
       website: nextProfile.website || undefined,
       is_private: nextProfile.isPrivate,
       favorite_genres: nextProfile.favoriteGenres.filter((g) => g !== "None"),
-      account_tier: nextProfile.accountType,
+      account_type: nextProfile.accountType,
     });
 
     const validLinks = nextProfile.links

@@ -237,12 +237,19 @@ export interface UpdateProfileData {
   website?: string;
   is_private?: boolean;
   favorite_genres?: string[];
+  // Legacy frontend key kept for backward compatibility; not sent to backend.
   account_tier?: "LISTENER" | "ARTIST";
   account_type?: "LISTENER" | "ARTIST";
 }
 
 export const updateMyProfile = async (data: UpdateProfileData): Promise<UserProfile> => {
-  const response = await api.patch("/profiles/me", data);
+  const payload: UpdateProfileData = { ...data };
+  if (!payload.account_type && payload.account_tier) {
+    payload.account_type = payload.account_tier;
+  }
+  delete payload.account_tier;
+
+  const response = await api.patch("/profiles/me", payload);
   return mapProfileResponse(extractProfilePayload(response.data as ProfileApiResponse));
 };
 

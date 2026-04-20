@@ -44,7 +44,7 @@ describe("profileService", () => {
     expect(profile.accountType).toBe("ARTIST");
   });
 
-  it("maps wrapped update responses and keeps account_tier", async () => {
+  it("maps wrapped update responses and rewrites account_tier to account_type", async () => {
     mockedApi.patch.mockResolvedValueOnce({
       data: {
         profile: {
@@ -61,7 +61,7 @@ describe("profileService", () => {
     const profile = await updateMyProfile({ account_tier: "LISTENER" });
 
     expect(mockedApi.patch).toHaveBeenCalledWith("/profiles/me", {
-      account_tier: "LISTENER",
+      account_type: "LISTENER",
     });
     expect(profile.accountType).toBe("LISTENER");
   });
