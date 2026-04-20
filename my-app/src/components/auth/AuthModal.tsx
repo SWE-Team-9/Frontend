@@ -13,6 +13,7 @@ import {
 import { FaFacebook, FaApple } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { IoIosArrowBack } from "react-icons/io";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { startSocialLogin, registerUser, type SocialProvider } from "@/src/services/authService";
 
@@ -455,9 +456,9 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
                   <p className="text-sm text-gray-400">
                     If the email address is in our database, we will send you an
                     email to reset your password. Need help? visit our{" "}
-                    <a href="/help" className="text-[#38d]">
+                    <Link href="/help" className="text-[#38d]">
                       Help Center
-                    </a>
+                    </Link>
                   </p>
 
                   <AuthInput
