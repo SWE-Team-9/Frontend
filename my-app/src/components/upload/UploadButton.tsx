@@ -58,7 +58,14 @@ const UploadButton: React.FC = () => {
 
         if (data.status === "FINISHED") {
           updateFileStatus(fileName, "DONE", trackId);
-          router.push(`/tracks/${trackId}`);
+          const artistHandle = data.artistHandle?.trim();
+          const trackSlug = data.slug?.trim();
+
+          if (artistHandle && trackSlug) {
+            router.push(`/${encodeURIComponent(artistHandle)}/${encodeURIComponent(trackSlug)}`);
+          } else {
+            router.push(`/tracks/${trackId}`);
+          }
           return;
         }
 
