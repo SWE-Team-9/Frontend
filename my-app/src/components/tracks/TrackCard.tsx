@@ -3,6 +3,7 @@
 import TimestampedCommentsSection from "@/src/components/tracks/TimestampedCommentsSection";
 import React, { useState, Fragment } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   Menu,
   MenuButton,
@@ -82,14 +83,19 @@ export const TrackCard: React.FC<TrackCardProps> = ({
   onEdit,
 }) => {
   const toEditData = (
-    source: Pick<IntegratedTrack, "title" | "genre" | "releaseDate" | "description">,
+    source: Pick<
+      IntegratedTrack,
+      "title" | "genre" | "releaseDate" | "description"
+    >,
   ) => ({
     title: source.title,
     genre: source.genre ?? "",
     releaseDate: source.releaseDate?.split("T")[0] ?? "",
     description: source.description ?? "",
   });
-  const deleteRepostAction = useRepostStore((state) => state.deleteRepostAction);
+  const deleteRepostAction = useRepostStore(
+    (state) => state.deleteRepostAction,
+  );
   const isReposted = useRepostStore((state) => state.isReposted(track.trackId));
   const handleDeleteClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation(); // Prevent card click
@@ -303,7 +309,10 @@ export const TrackCard: React.FC<TrackCardProps> = ({
             <textarea
               value={editData.description}
               onChange={(e) => {
-                setEditData((prev) => ({ ...prev, description: e.target.value }));
+                setEditData((prev) => ({
+                  ...prev,
+                  description: e.target.value,
+                }));
                 if (error) setError(null);
               }}
               className="bg-[#121212] border border-zinc-700 rounded p-2 text-white text-sm resize-none"
@@ -357,9 +366,11 @@ export const TrackCard: React.FC<TrackCardProps> = ({
                   <p className="text-zinc-400 text-sm">
                     {getArtistLabel(track.artistName ?? track.artist)}
                   </p>
-                  <h4 className="text-white text-xl font-bold truncate">
-                    {savedData.title}
-                  </h4>
+                  <Link href={`/${track.artistHandle}/${track.slug}`}>
+                    <h4 className="text-white text-xl font-bold truncate hover:underline cursor-pointer">
+                      {savedData.title}
+                    </h4>
+                  </Link>
                 </div>
               </div>
 
@@ -438,7 +449,9 @@ export const TrackCard: React.FC<TrackCardProps> = ({
                         if (!isOwner && track.reposted) {
                           try {
                             // Use the dedicated delete action from your store
-                            await useRepostStore.getState().deleteRepostAction(track.trackId);
+                            await useRepostStore
+                              .getState()
+                              .deleteRepostAction(track.trackId);
                           } catch (err) {
                             console.error("Failed to remove repost:", err);
                           }
