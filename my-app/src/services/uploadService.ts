@@ -162,9 +162,23 @@ export const getTrackDetailsByArtistHandleAndSlug = async (
     return getTrackDetails("trk_mock_001");
   }
 
-  const profile = await getProfileByHandle(artistHandle);
+  const normalizedArtistHandle = artistHandle.trim();
+  const normalizedSlug = slug.trim();
 
-  const normalizedSlug = slug.trim().toLowerCase();
+  if (
+    !normalizedArtistHandle ||
+    !normalizedSlug ||
+    normalizedArtistHandle.toLowerCase() === "undefined" ||
+    normalizedArtistHandle.toLowerCase() === "null" ||
+    normalizedSlug.toLowerCase() === "undefined" ||
+    normalizedSlug.toLowerCase() === "null"
+  ) {
+    throw new Error("Invalid track URL.");
+  }
+
+  const profile = await getProfileByHandle(normalizedArtistHandle);
+
+  const normalizedSlugLower = normalizedSlug.toLowerCase();
   const limit = 50;
   let page = 1;
 
@@ -177,7 +191,7 @@ export const getTrackDetailsByArtistHandleAndSlug = async (
     const tracks = Array.isArray(listResponse.tracks) ? listResponse.tracks : [];
 
     const matchedTrack = tracks.find(
-      (t) => typeof t.slug === "string" && t.slug.toLowerCase() === normalizedSlug,
+      (t) => typeof t.slug === "string" && t.slug.toLowerCase() === normalizedSlugLower,
     );
 
     if (matchedTrack?.trackId) {

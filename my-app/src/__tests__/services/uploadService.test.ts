@@ -68,6 +68,15 @@ describe('uploadService', () => {
   });
 
   describe('getTrackDetailsByArtistHandleAndSlug', () => {
+    it('rejects invalid route params before requesting profile data', async () => {
+      await expect(
+        uploadService.getTrackDetailsByArtistHandleAndSlug('undefined', 'sherlocked'),
+      ).rejects.toThrow('Invalid track URL.');
+
+      expect(mockedProfileService.getProfileByHandle).not.toHaveBeenCalled();
+      expect(mockGet).not.toHaveBeenCalled();
+    });
+
     it('resolves slug via artist handle then fetches full details by trackId', async () => {
       mockedProfileService.getProfileByHandle.mockResolvedValue({
         id: 'usr_123',

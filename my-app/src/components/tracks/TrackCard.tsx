@@ -82,6 +82,19 @@ export const TrackCard: React.FC<TrackCardProps> = ({
   onDelete,
   onEdit,
 }) => {
+  const normalizedArtistHandle = track.artistHandle?.trim();
+  const normalizedSlug = track.slug?.trim();
+  const hasCanonicalTrackRoute =
+    !!normalizedArtistHandle &&
+    !!normalizedSlug &&
+    normalizedArtistHandle.toLowerCase() !== "undefined" &&
+    normalizedArtistHandle.toLowerCase() !== "null" &&
+    normalizedSlug.toLowerCase() !== "undefined" &&
+    normalizedSlug.toLowerCase() !== "null";
+  const trackHref = hasCanonicalTrackRoute
+    ? `/${normalizedArtistHandle}/${normalizedSlug}`
+    : `/tracks/${track.trackId}`;
+
   const toEditData = (
     source: Pick<
       IntegratedTrack,
@@ -366,7 +379,7 @@ export const TrackCard: React.FC<TrackCardProps> = ({
                   <p className="text-zinc-400 text-sm">
                     {getArtistLabel(track.artistName ?? track.artist)}
                   </p>
-                  <Link href={`/${track.artistHandle}/${track.slug}`}>
+                  <Link href={trackHref}>
                     <h4 className="text-white text-xl font-bold truncate hover:text-neutral-500 cursor-pointer">
                       {savedData.title}
                     </h4>
