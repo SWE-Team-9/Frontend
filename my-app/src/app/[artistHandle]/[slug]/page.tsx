@@ -45,11 +45,7 @@ function formatDate(iso: string | null) {
 }
 
 export default function TrackPage() {
-  const { artistHandle: routeArtistHandle, slug: routeSlug } =
-    useParams<{ artistHandle: string; slug: string }>();
-  const artistHandle = Array.isArray(routeArtistHandle)
-    ? routeArtistHandle[0]
-    : routeArtistHandle;
+  const { slug: routeSlug } = useParams<{ handle: string; slug: string }>();
   const slug = Array.isArray(routeSlug) ? routeSlug[0] : routeSlug;
   const normalizedArtistHandle = artistHandle?.trim();
   const normalizedSlug = slug?.trim();
