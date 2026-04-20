@@ -1,572 +1,378 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import Image from "next/image";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import {
+  Play,
+  Pause,
+  MoreHorizontal,
+  Download,
+  MessageCircle,
+  BarChart2,
+} from "lucide-react";
+import {
   getTrackDetails,
-  updateTrackMetadata,
-  changeTrackVisibility,
+  type TrackDetails,
 } from "@/src/services/uploadService";
 import { WaveformDisplay } from "@/src/components/tracks/WaveformDisplay";
+import {
+  usePlayerStore,
+  type Track as PlayerTrack,
+} from "@/src/store/playerStore";
+import { TrackActionButtons } from "@/src/components/tracks/TrackActionButtons";
 
-const GENRES = [
-  "None",
-  "electronic",
-  "hip-hop",
-  "pop",
-  "rock",
-  "alternative",
-  "ambient",
-  "classical",
-  "jazz",
-  "r-b-soul",
-  "metal",
-  "folk-singer-songwriter",
-  "country",
-  "reggaeton",
-  "dancehall",
-  "drum-bass",
-  "house",
-  "techno",
-  "deep-house",
-  "trance",
-  "lo-fi",
-  "indie",
-  "punk",
-  "blues",
-  "latin",
-  "afrobeat",
-  "trap",
-  "experimental",
-  "world",
-  "gospel",
-  "spoken-word",
-];
+const FALLBACK_COVER = "/images/track-placeholder.png";
 
-interface TrackFile {
-  id: string;
-  role: string;
-  mimeType: string;
-  format: string;
-  size: number;
-  status: string;
+function formatTime(seconds: number) {
+  if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-interface Track {
-  trackId: string;
-  title: string;
-  slug: string;
-  description: string | null;
-  artist: string | null;
-  artistId: string | null;
-  artistHandle: string | null;
-  artistAvatarUrl: string | null;
-  genre: string | null;
-  tags: string[];
-  releaseDate: string | null;
-  durationMs: number | null;
-  waveformData: number[] | null;
-  visibility: "PUBLIC" | "PRIVATE";
-  accessLevel: string;
-  status: string;
-  license: string;
-  allowComments: boolean;
-  downloadable: boolean;
-  coverArtUrl: string | null;
-  secretToken: string | null;
-  publishedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-  files: TrackFile[];
-}
-
-const formatDuration = (ms: number) => {
+function formatDuration(ms: number) {
   const totalSeconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
-};
+  return formatTime(totalSeconds);
+}
 
-const formatBytes = (bytes: number) => {
-  if (bytes >= 1_000_000) return `${(bytes / 1_000_000).toFixed(1)} MB`;
-  if (bytes >= 1_000) return `${(bytes / 1_000).toFixed(1)} KB`;
-  return `${bytes} B`;
-};
-
-const formatDate = (iso: string | null) => {
-  if (!iso) return "—";
+function formatDate(iso: string | null) {
+  if (!iso) return "-";
   return new Date(iso).toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
     day: "numeric",
   });
-};
+}
 
-export default function TrackDetailPage() {
-  const router = useRouter();
-  const { trackId } = useParams<{ trackId: string }>();
-  const [track, setTrack] = useState<Track | null>(null);
+export default function TrackPage() {
+  const { slug: routeSlug } = useParams<{ handle: string; slug: string }>();
+  const slug = Array.isArray(routeSlug) ? routeSlug[0] : routeSlug;
+
+  const [track, setTrack] = useState<TrackDetails | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isEditing, setIsEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Edit form state
-  const [editTitle, setEditTitle] = useState("");
-  const [editGenre, setEditGenre] = useState("");
-  const [editTags, setEditTags] = useState("");
-  const [editDescription, setEditDescription] = useState("");
-  const [editReleaseDate, setEditReleaseDate] = useState("");
-  const [editVisibility, setEditVisibility] = useState<"PUBLIC" | "PRIVATE">(
-    "PRIVATE",
-  );
+  const currentTrack = usePlayerStore((state) => state.currentTrack);
+  const isPlaying = usePlayerStore((state) => state.isPlaying);
+  const currentTime = usePlayerStore((state) => state.currentTime);
+  const duration = usePlayerStore((state) => state.duration);
+  const isProcessing = usePlayerStore((state) => state.isProcessing);
+  const isResolvingPlayback = usePlayerStore((state) => state.isResolvingPlayback);
+  const accessState = usePlayerStore((state) => state.accessState);
+  const fetchAndPlay = usePlayerStore((state) => state.fetchAndPlay);
+  const toggle = usePlayerStore((state) => state.toggle);
+  const seekTo = usePlayerStore((state) => state.seekTo);
 
   useEffect(() => {
-    getTrackDetails(trackId)
+    let active = true;
+
+    getTrackDetails(slug)
       .then((data) => {
+        if (!active) return;
+        setTrack(data);
         setError(null);
-        setTrack(data as unknown as Track);
       })
       .catch(() => {
+        if (!active) return;
+        setTrack(null);
         setError("Could not load track details.");
       })
-      .finally(() => setLoading(false));
-  }, [trackId]);
-
-  const enterEditMode = () => {
-    if (!track) return;
-    setEditTitle(track.title);
-    setEditGenre(track.genre ?? "");
-    setEditTags(track.tags?.join(", ") ?? "");
-    setEditDescription(track.description ?? "");
-    setEditReleaseDate(track.releaseDate?.split("T")[0] ?? "");
-    setEditVisibility(track.visibility);
-    setIsEditing(true);
-  };
-
-  const handleSave = async () => {
-    if (!track) return;
-    setSaving(true);
-    try {
-      setError(null);
-      await updateTrackMetadata(track.trackId, {
-        title: editTitle,
-        genre: editGenre,
-        tags: editTags
-          .split(",")
-          .map((t) => t.trim())
-          .filter(Boolean),
-        releaseDate: editReleaseDate ? new Date(editReleaseDate).toISOString() : undefined,
-        description: editDescription,
+      .finally(() => {
+        if (!active) return;
+        setLoading(false);
       });
 
-      if (editVisibility !== track.visibility) {
-        await changeTrackVisibility(track.trackId, editVisibility);
+    return () => {
+      active = false;
+    };
+  }, [slug]);
+
+  const playerTrack = useMemo<PlayerTrack | null>(() => {
+    if (!track) return null;
+
+    return {
+      trackId: track.trackId,
+      title: track.title,
+      artist: track.artist ?? "Unknown Artist",
+      artistId: track.artistId ?? "",
+      artistHandle: track.artistHandle ?? undefined,
+      artistAvatarUrl: track.artistAvatarUrl ?? null,
+      cover: track.coverArtUrl || FALLBACK_COVER,
+      duration: track.durationMs ? Math.floor(track.durationMs / 1000) : undefined,
+      genre: track.genre ?? undefined,
+    };
+  }, [track]);
+
+  const isCurrentTrack = !!playerTrack && currentTrack?.trackId === playerTrack.trackId;
+  const currentSeconds = isCurrentTrack ? currentTime : 0;
+  const durationSeconds = isCurrentTrack ? duration : playerTrack?.duration ?? 0;
+  const waveformProgress =
+    isCurrentTrack && duration > 0 ? currentTime / duration : 0;
+
+  const isTrackBlocked = isCurrentTrack && accessState === "BLOCKED";
+  const isTrackProcessing = track?.status === "PROCESSING";
+  const disablePlayButton =
+    !playerTrack ||
+    !track ||
+    isTrackProcessing ||
+    (isCurrentTrack && (isProcessing || isResolvingPlayback || isTrackBlocked));
+
+  const handlePlayClick = async () => {
+    if (!playerTrack || !track || isTrackProcessing) return;
+
+    try {
+      setError(null);
+
+      if (isCurrentTrack) {
+        await toggle();
+        return;
       }
 
-      setTrack((prev) =>
-        prev
-          ? {
-              ...prev,
-              title: editTitle,
-              genre: editGenre,
-              tags: editTags
-                .split(",")
-                .map((t) => t.trim())
-                .filter(Boolean),
-              description: editDescription,
-              releaseDate: editReleaseDate,
-              visibility: editVisibility,
-            }
-          : prev,
-      );
-      setIsEditing(false);
+      await fetchAndPlay(playerTrack);
     } catch {
-      setError("Failed to save track changes. Please try again.");
-    } finally {
-      setSaving(false);
+      setError("Could not start playback. Please try again.");
     }
   };
 
-  const handleViewOnProfile = () => {
-    if (track?.artistHandle) {
-      router.push(`/profiles/${track.artistHandle}`);
-    } else {
-      router.push("/profile");
-    }
+  const handleWaveformSeek = async (nextProgress: number) => {
+    if (!isCurrentTrack || duration <= 0 || isTrackBlocked) return;
+    await seekTo(nextProgress * duration);
   };
 
-  if (loading)
+  if (loading) {
     return (
-      <main className="min-h-screen bg-[#121212] flex items-center justify-center">
-        <h1 className="text-[#ff5500] text-lg">Loading Track...</h1>
+      <main className="min-h-screen bg-[#111] flex items-center justify-center">
+        <p className="text-[#ff5500] text-lg">Loading track...</p>
       </main>
     );
+  }
 
-  if (!track)
+  if (error || !track) {
     return (
-      <main className="min-h-screen bg-[#121212] flex items-center justify-center">
-        <h1 className="text-[#ff5500] text-lg">Track not found.</h1>
+      <main className="min-h-screen bg-[#111] flex items-center justify-center">
+        <p className="text-red-400 text-lg">{error ?? "Track not found."}</p>
       </main>
     );
+  }
+
+  const trackWithEngagement = track as TrackDetails & {
+    likesCount?: number;
+    liked?: boolean;
+    repostsCount?: number;
+    reposted?: boolean;
+  };
 
   return (
-    <main className="min-h-screen bg-[#121212] flex items-start justify-center p-6 pt-12">
-      <div className="w-full max-w-3xl bg-[#1a1a1a] rounded-2xl p-8 shadow-xl border border-[#2a2a2a]">
-        {error && <p className="mb-4 text-sm text-red-400">{error}</p>}
-        {/* Header row */}
-        <div className="flex items-start justify-between mb-6">
-          <div className="flex-1">
-            {isEditing ? (
-              <input
-                className="text-3xl font-bold bg-transparent border-b border-[#8c8c8c] text-white w-full focus:outline-none focus:border-white pb-1"
-                value={editTitle}
-                onChange={(e) => setEditTitle(e.target.value)}
-              />
-            ) : (
-              <h1 className="text-3xl font-bold text-white">{track.title}</h1>
-            )}
-            {track.artistHandle && (
-              <p className="text-[#ff5500] mt-1 text-sm">
-                @{track.artistHandle}
-              </p>
-            )}
-          </div>
+    <div className="min-h-screen bg-[#111] text-white font-sans">
+      <div
+        className="relative w-full h-100 overflow-hidden"
+        style={{
+          background: track.coverArtUrl
+            ? undefined
+            : "linear-gradient(135deg, #8D8284 0%, #89747C 40%, #866975 100%)",
+        }}
+      >
+        {track.coverArtUrl && (
+          <div
+            className="absolute inset-0 scale-110 blur-2xl opacity-40 pointer-events-none bg-cover bg-center"
+            style={{ backgroundImage: `url(${track.coverArtUrl})` }}
+          />
+        )}
+        <div className="absolute inset-0 bg-black/50 pointer-events-none" />
 
-          {/* Status + Visibility badges */}
-          <div className="flex flex-col items-end gap-2 ml-4">
-            <span
-              className={`text-xs font-semibold px-3 py-1 rounded-full border ${
-                track.status === "FINISHED"
-                  ? "border-green-500 text-green-400"
-                  : track.status === "FAILED"
-                    ? "border-red-500 text-red-400"
-                    : "border-yellow-500 text-yellow-400"
-              }`}
-            >
-              {track.status}
-            </span>
-            <span
-              className={`text-xs font-semibold px-3 py-1 rounded-full border ${
-                track.visibility === "PUBLIC"
-                  ? "border-blue-400 text-blue-400"
-                  : "border-gray-500 text-gray-400"
-              }`}
-            >
-              {track.visibility}
-            </span>
-          </div>
-        </div>
-
-        {/* Artist row */}
-        <div className="flex items-center gap-3 mb-6 pb-6 border-b border-[#2a2a2a]">
-          {track.artistAvatarUrl ? (
-            <Image
-              src={track.artistAvatarUrl}
-              alt={track.artist ?? "Artist"}
-              className="w-10 h-10 rounded-full object-cover"
-            />
-          ) : (
-            <div className="w-10 h-10 rounded-full bg-[#2a2a2a] flex items-center justify-center text-gray-500 text-sm font-bold">
-              {track.artist?.charAt(0) ?? "?"}
-            </div>
-          )}
-          <div>
-            <p className="text-white font-medium">
-              {track.artist ?? "Unknown Artist"}
-            </p>
-            {track.artistHandle && (
-              <p className="text-gray-500 text-sm">@{track.artistHandle}</p>
-            )}
-          </div>
-        </div>
-
-        {/* Description */}
-        <div className="mb-6">
-          <label className="text-xs text-gray-500 uppercase tracking-widest mb-1 block">
-            Description
-          </label>
-          {isEditing ? (
-            <textarea
-              className="w-full bg-[#121212] border border-[#8c8c8c] rounded p-2 text-white text-sm resize-none min-h-25 focus:outline-none focus:border-white"
-              value={editDescription}
-              maxLength={5000}
-              onChange={(e) => setEditDescription(e.target.value)}
-            />
-          ) : (
-            <p className="text-gray-300 text-sm leading-relaxed">
-              {track.description ?? (
-                <span className="text-gray-600 italic">No description</span>
-              )}
-            </p>
-          )}
-        </div>
-
-        {/* Metadata grid */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div>
-            <label className="text-xs text-gray-500 uppercase tracking-widest mb-1 block">
-              Genre
-            </label>
-            {isEditing ? (
-              <select
-                value={editGenre || "None"}
-                onChange={(e) =>
-                  setEditGenre(e.target.value === "None" ? "" : e.target.value)
-                }
-                className="w-full bg-[#121212] border border-[#8c8c8c] rounded p-2 text-white text-sm focus:outline-none focus:border-white"
+        <div className="relative z-10 flex items-stretch">
+          <div className="flex-1 min-w-0 px-6 pt-6 pb-0 flex flex-col gap-4">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={handlePlayClick}
+                disabled={disablePlayButton}
+                className="w-14 h-14 rounded-full bg-black/50 border border-white/20 flex items-center justify-center hover:bg-black/70 transition shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label={isCurrentTrack && isPlaying ? "Pause track" : "Play track"}
               >
-                {GENRES.map((g) => (
-                  <option key={g} value={g} className="bg-[#1a1a1a]">
-                    {g}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <p className="text-white text-sm">{track.genre ?? "—"}</p>
-            )}
-          </div>
-
-          <div>
-            <label className="text-xs text-gray-500 uppercase tracking-widest mb-1 block">
-              Release Date
-            </label>
-            {isEditing ? (
-              <input
-                type="date"
-                className="w-full bg-[#121212] border border-[#8c8c8c] rounded p-2 text-white text-sm focus:outline-none focus:border-white"
-                value={editReleaseDate}
-                onChange={(e) => setEditReleaseDate(e.target.value)}
-              />
-            ) : (
-              <p className="text-white text-sm">
-                {formatDate(track.releaseDate)}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label className="text-xs text-gray-500 uppercase tracking-widest mb-1 block">
-              Tags
-            </label>
-            {isEditing ? (
-              <input
-                className="w-full bg-[#121212] border border-[#8c8c8c] rounded p-2 text-white text-sm focus:outline-none focus:border-white"
-                placeholder="Comma separated"
-                value={editTags}
-                onChange={(e) => setEditTags(e.target.value)}
-              />
-            ) : (
-              <div className="flex flex-wrap gap-1">
-                {track.tags?.length ? (
-                  track.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="text-xs bg-[#2a2a2a] text-gray-300 px-2 py-1 rounded-full"
-                    >
-                      {tag}
-                    </span>
-                  ))
+                {isCurrentTrack && isPlaying ? (
+                  <Pause className="w-6 h-6 fill-white text-white" />
                 ) : (
-                  <span className="text-gray-600 italic text-sm">No tags</span>
+                  <Play className="w-6 h-6 fill-white text-white ml-1" />
                 )}
+              </button>
+
+              <div className="min-w-0">
+                <h1 className="text-2xl font-bold leading-tight truncate">{track.title}</h1>
+                <p className="text-[#ff5500] text-sm mt-0.5">
+                  {track.artistHandle ?? track.artist ?? "unknown"}
+                </p>
               </div>
-            )}
-          </div>
-
-          <div>
-            <label className="text-xs text-gray-500 uppercase tracking-widest mb-1 block">
-              Duration
-            </label>
-            <p className="text-white text-sm">
-              {track.durationMs ? formatDuration(track.durationMs) : "—"}
-            </p>
-          </div>
-
-          <div>
-            <label className="text-xs text-gray-500 uppercase tracking-widest mb-1 block">
-              License
-            </label>
-            <p className="text-white text-sm">
-              {track.license?.replace(/_/g, " ") ?? "—"}
-            </p>
-          </div>
-
-          <div>
-            <label className="text-xs text-gray-500 uppercase tracking-widest mb-1 block">
-              Slug
-            </label>
-            <p className="text-gray-400 text-sm font-mono">
-              {track.slug ?? "—"}
-            </p>
-          </div>
-
-          <div>
-            <label className="text-xs text-gray-500 uppercase tracking-widest mb-1 block">
-              Comments
-            </label>
-            <p className="text-white text-sm">
-              {track.allowComments ? "Enabled" : "Disabled"}
-            </p>
-          </div>
-
-          <div>
-            <label className="text-xs text-gray-500 uppercase tracking-widest mb-1 block">
-              Downloadable
-            </label>
-            <p className="text-white text-sm">
-              {track.downloadable ? "Yes" : "No"}
-            </p>
-          </div>
-        </div>
-
-        {/* Visibility toggle — edit mode only */}
-        {isEditing && (
-          <div className="mb-6">
-            <label className="text-xs text-gray-500 uppercase tracking-widest mb-2 block">
-              Visibility
-            </label>
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setEditVisibility("PUBLIC")}
-                className={`flex-1 py-2 rounded border font-bold transition duration-300 text-sm ${
-                  editVisibility === "PUBLIC"
-                    ? "bg-white text-black border-white"
-                    : "bg-transparent text-[#8c8c8c] border-[#8c8c8c]"
-                }`}
-              >
-                Public
-              </button>
-              <button
-                type="button"
-                onClick={() => setEditVisibility("PRIVATE")}
-                className={`flex-1 py-2 rounded border font-bold transition duration-300 text-sm ${
-                  editVisibility === "PRIVATE"
-                    ? "bg-white text-black border-white"
-                    : "bg-transparent text-[#8c8c8c] border-[#8c8c8c]"
-                }`}
-              >
-                Private
-              </button>
             </div>
-          </div>
-        )}
 
-        {/* Waveform Preview */}
-        <div className="mt-6">
-          <label className="font-medium pb-2 text-xl block mb-2 text-white">
-            Waveform Preview
-          </label>
-          <div className="w-full h-20 rounded overflow-hidden">
-            <WaveformDisplay />
-          </div>
-        </div>
-
-        {/* Files */}
-        {track.files?.length > 0 && (
-          <div className="mb-6">
-            <label className="text-xs text-gray-500 uppercase tracking-widest mb-2 block">
-              Files
-            </label>
-            <div className="space-y-2">
-              {track.files.map((f) => (
-                <div
-                  key={f.id}
-                  className="flex items-center justify-between bg-[#121212] border border-[#2a2a2a] rounded-lg px-4 py-3"
-                >
-                  <div>
-                    <span className="text-white text-sm font-medium uppercase">
-                      {f.format}
-                    </span>
-                    <span className="text-gray-500 text-xs ml-2">
-                      {f.mimeType}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <span className="text-gray-400 text-xs">
-                      {formatBytes(f.size)}
-                    </span>
-                    <span
-                      className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${
-                        f.status === "READY"
-                          ? "border-green-500 text-green-400"
-                          : "border-yellow-500 text-yellow-400"
-                      }`}
-                    >
-                      {f.status}
-                    </span>
-                  </div>
+            <div className="flex flex-col gap-2">
+              {(isCurrentTrack && isResolvingPlayback) || isTrackProcessing || isTrackBlocked ? (
+                <div className="flex flex-wrap items-center gap-2 text-[10px]">
+                  {isCurrentTrack && isResolvingPlayback && (
+                    <span className="text-zinc-300">Loading playback...</span>
+                  )}
+                  {isTrackProcessing && (
+                    <span className="text-yellow-400">Track is still processing.</span>
+                  )}
+                  {isTrackBlocked && (
+                    <span className="text-red-400">This track is unavailable right now.</span>
+                  )}
                 </div>
-              ))}
+              ) : null}
+
+              <div className="flex justify-between text-[10px] text-white/50 px-0.5">
+                <span>{formatTime(currentSeconds)}</span>
+                <span>{durationSeconds > 0 ? formatTime(durationSeconds) : "-"}</span>
+              </div>
+
+              <WaveformDisplay
+                data={track.waveformData}
+                seed={track.trackId}
+                progress={waveformProgress}
+                onSeek={
+                  isCurrentTrack && !isTrackBlocked ? handleWaveformSeek : undefined
+                }
+              />
             </div>
           </div>
-        )}
 
-        {/* Timestamps */}
-        <div className="grid grid-cols-2 gap-4 mb-8 text-xs text-gray-600 border-t border-[#2a2a2a] pt-4">
-          <div>
-            <span className="uppercase tracking-widest">Published</span>
-            <p className="text-gray-500 mt-0.5">
-              {formatDate(track.publishedAt)}
-            </p>
-          </div>
-          <div>
-            <span className="uppercase tracking-widest">Created</span>
-            <p className="text-gray-500 mt-0.5">
-              {formatDate(track.createdAt)}
-            </p>
-          </div>
-          <div>
-            <span className="uppercase tracking-widest">Last Updated</span>
-            <p className="text-gray-500 mt-0.5">
-              {formatDate(track.updatedAt)}
-            </p>
+          <div className="shrink-0 self-stretch flex items-start">
+            <div
+              className="relative overflow-hidden"
+              style={{ width: 200, height: 200, minWidth: 200 }}
+            >
+              <img
+                src={track.coverArtUrl || FALLBACK_COVER}
+                alt={track.title}
+                className="w-full h-full object-cover"
+              />
+            </div>
           </div>
         </div>
 
-        {/* Action buttons */}
-        <div className="flex gap-3">
-          {isEditing ? (
-            <>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="flex-1 bg-white text-black font-bold py-2 px-4 rounded hover:bg-[#ff5500] transition disabled:opacity-50"
-              >
-                {saving ? "Saving..." : "Save Changes"}
-              </button>
-              <button
-                onClick={() => setIsEditing(false)}
-                disabled={saving}
-                className="flex-1 border border-[#8c8c8c] text-[#8c8c8c] font-bold py-2 px-4 rounded hover:border-white hover:text-white transition"
-              >
-                Cancel
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                onClick={enterEditMode}
-                className="bg-white text-black font-bold py-2 px-6 rounded hover:bg-[#ff5500] transition"
-              >
-                Edit
-              </button>
+        <div className="relative z-10 flex items-center gap-1 px-6 py-2 mt-6 border-t border-white/10">
+          <TrackActionButtons
+            trackId={track.trackId}
+            title={track.title}
+            artistName={track.artist ?? "Unknown Artist"}
+            coverArt={track.coverArtUrl || FALLBACK_COVER}
+            likesCount={trackWithEngagement.likesCount ?? 0}
+            liked={trackWithEngagement.liked ?? false}
+            repostsCount={trackWithEngagement.repostsCount ?? 0}
+            reposted={trackWithEngagement.reposted ?? false}
+            size="full"
+          />
 
-              {track.artistHandle && (
-                <button
-                  onClick={handleViewOnProfile}
-                  className="border border-[#8c8c8c] text-[#8c8c8c] font-bold py-2 px-6 rounded hover:border-[#ff5500] hover:text-[#ff5500] transition"
-                >
-                  View on Profile
-                </button>
-              )}
-            </>
+          <button className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium text-white/60 hover:text-white transition">
+            <MessageCircle className="w-4 h-4" />
+            <span>5</span>
+          </button>
+
+          {track.downloadable && (
+            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium text-white/60 hover:text-white transition">
+              <Download className="w-4 h-4" />
+            </button>
           )}
+
+          <div className="ml-auto flex items-center gap-1">
+            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium text-white/60 hover:text-white transition">
+              <BarChart2 className="w-4 h-4" />
+              Stats
+            </button>
+            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium text-white/60 hover:text-white transition">
+              <MoreHorizontal className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
-    </main>
+
+      <div className="flex justify-end px-6 py-6 mx-auto">
+        <div className="w-64 shrink-0">
+          <div className="bg-zinc-900 rounded-lg p-4 mb-4">
+            <h3 className="text-xs font-semibold uppercase tracking-widest text-zinc-500 mb-3">
+              Track Info
+            </h3>
+            <div className="space-y-2.5 text-sm">
+              <div>
+                <span className="text-zinc-500 block text-xs uppercase tracking-wider mb-0.5">
+                  Genre
+                </span>
+                <span className="text-white">{track.genre ?? "-"}</span>
+              </div>
+              <div>
+                <span className="text-zinc-500 block text-xs uppercase tracking-wider mb-0.5">
+                  Released
+                </span>
+                <span className="text-white">{formatDate(track.releaseDate)}</span>
+              </div>
+              <div>
+                <span className="text-zinc-500 block text-xs uppercase tracking-wider mb-0.5">
+                  Duration
+                </span>
+                <span className="text-white">
+                  {track.durationMs ? formatDuration(track.durationMs) : "-"}
+                </span>
+              </div>
+              <div>
+                <span className="text-zinc-500 block text-xs uppercase tracking-wider mb-0.5">
+                  Tags
+                </span>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {track.tags.length ? (
+                    track.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="text-xs bg-[#2a2a2a] text-gray-300 px-2 py-1 rounded-full"
+                      >
+                        {tag}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-gray-500 italic text-sm">No tags</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-zinc-900 rounded-lg p-4">
+            <h3 className="text-xs font-semibold uppercase tracking-widest text-zinc-500 mb-3">
+              Status
+            </h3>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-zinc-400">Visibility</span>
+                <span
+                  className={`text-xs font-semibold px-3 py-1 rounded-full border ${
+                    track.visibility === "PUBLIC"
+                      ? "border-blue-400 text-blue-400"
+                      : "border-gray-500 text-gray-400"
+                  }`}
+                >
+                  {track.visibility}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-zinc-400">Processing</span>
+                <span
+                  className={`text-xs font-semibold px-3 py-1 rounded-full border ${
+                    track.status === "FINISHED"
+                      ? "border-green-500 text-green-400"
+                      : "border-yellow-500 text-yellow-400"
+                  }`}
+                >
+                  {track.status}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-zinc-400">Comments</span>
+                <span className="text-white text-xs">
+                  {track.allowComments ? "Enabled" : "Disabled"}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
