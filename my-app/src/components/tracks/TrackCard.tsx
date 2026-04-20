@@ -96,19 +96,14 @@ export const TrackCard: React.FC<TrackCardProps> = ({
     : `/tracks/${track.trackId}`;
 
   const toEditData = (
-    source: Pick<
-      IntegratedTrack,
-      "title" | "genre" | "releaseDate" | "description"
-    >,
+    source: Pick<IntegratedTrack, "title" | "genre" | "releaseDate" | "description">,
   ) => ({
     title: source.title,
     genre: source.genre ?? "",
     releaseDate: source.releaseDate?.split("T")[0] ?? "",
     description: source.description ?? "",
   });
-  const deleteRepostAction = useRepostStore(
-    (state) => state.deleteRepostAction,
-  );
+  const deleteRepostAction = useRepostStore((state) => state.deleteRepostAction);
   const isReposted = useRepostStore((state) => state.isReposted(track.trackId));
   const handleDeleteClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation(); // Prevent card click
@@ -322,10 +317,7 @@ export const TrackCard: React.FC<TrackCardProps> = ({
             <textarea
               value={editData.description}
               onChange={(e) => {
-                setEditData((prev) => ({
-                  ...prev,
-                  description: e.target.value,
-                }));
+                setEditData((prev) => ({ ...prev, description: e.target.value }));
                 if (error) setError(null);
               }}
               className="bg-[#121212] border border-zinc-700 rounded p-2 text-white text-sm resize-none"
@@ -462,9 +454,7 @@ export const TrackCard: React.FC<TrackCardProps> = ({
                         if (!isOwner && track.reposted) {
                           try {
                             // Use the dedicated delete action from your store
-                            await useRepostStore
-                              .getState()
-                              .deleteRepostAction(track.trackId);
+                            await useRepostStore.getState().deleteRepostAction(track.trackId);
                           } catch (err) {
                             console.error("Failed to remove repost:", err);
                           }
