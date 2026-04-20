@@ -1,4 +1,5 @@
 import api from "@/src/services/api";
+import { getProfileByHandle } from "@/src/services/profileService";
 
 export type TrackStatus = "PROCESSING" | "FINISHED";
 
@@ -49,6 +50,14 @@ export interface TrackDetails {
   createdAt: string;
   updatedAt: string;
   files: TrackFile[];
+}
+
+interface UserTracksResponse {
+  tracks?: Array<{
+    trackId?: string;
+    slug?: string;
+  }>;
+  totalTracks?: number;
 }
 
 // ===============================
@@ -140,6 +149,54 @@ export const getTrackDetails = async (
 
   const res = await api.get(`/tracks/${trackId}`); // protected endpoint, cookies sent automatically
   return res.data;
+};
+
+// ===============================
+//  GET TRACK DETAILS BY ARTIST HANDLE + SLUG
+// ===============================
+export const getTrackDetailsByArtistHandleAndSlug = async (
+  artistHandle: string,
+  slug: string,
+): Promise<TrackDetails> => {
+  if (USE_MOCK) {
+    return getTrackDetails("trk_mock_001");
+  }
+
+  const profile = await getProfileByHandle(artistHandle);
+
+  const normalizedSlug = slug.trim().toLowerCase();
+  const limit = 50;
+  let page = 1;
+
+  while (true) {
+    const listResponse = (await getUserTracks(
+      profile.id,
+      page,
+      limit,
+    )) as UserTracksResponse;
+    const tracks = Array.isArray(listResponse.tracks) ? listResponse.tracks : [];
+
+    const matchedTrack = tracks.find(
+      (t) => typeof t.slug === "string" && t.slug.toLowerCase() === normalizedSlug,
+    );
+
+    if (matchedTrack?.trackId) {
+      return getTrackDetails(matchedTrack.trackId);
+    }
+
+    const totalTracks =
+      typeof listResponse.totalTracks === "number"
+        ? listResponse.totalTracks
+        : tracks.length;
+
+    if (tracks.length === 0 || page * limit >= totalTracks) {
+      break;
+    }
+
+    page += 1;
+  }
+
+  throw new Error("Track not found.");
 };
 
 // ===============================

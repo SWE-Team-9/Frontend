@@ -1,4 +1,5 @@
 import * as uploadService from '@/src/services/uploadService';
+import * as profileService from '@/src/services/profileService';
 
 const mockPost = jest.fn();
 const mockGet = jest.fn();
@@ -13,6 +14,11 @@ jest.mock('@/src/services/api', () => ({
   },
 }));
 
+jest.mock('@/src/services/profileService', () => ({
+  __esModule: true,
+  getProfileByHandle: jest.fn(),
+}));
+
 const mockMetadata = {
   title: 'Test Track',
   genre: 'pop',
@@ -24,6 +30,8 @@ const mockMetadata = {
 
 describe('uploadService', () => {
   beforeEach(() => jest.clearAllMocks());
+
+  const mockedProfileService = profileService as jest.Mocked<typeof profileService>;
 
   describe('uploadTrack', () => {
     it('calls POST with a FormData body', async () => {
@@ -56,6 +64,35 @@ describe('uploadService', () => {
     it('rejects when API call fails', async () => {
       mockGet.mockRejectedValue(new Error('Not found'));
       await expect(uploadService.getTrackDetails('trk_001')).rejects.toThrow('Not found');
+    });
+  });
+
+  describe('getTrackDetailsByArtistHandleAndSlug', () => {
+    it('resolves slug via artist handle then fetches full details by trackId', async () => {
+      mockedProfileService.getProfileByHandle.mockResolvedValue({
+        id: 'usr_123',
+      } as profileService.UserProfile);
+
+      mockGet
+        .mockResolvedValueOnce({
+          data: {
+            tracks: [{ trackId: 'trk_001', slug: 'sherlocked' }],
+            totalTracks: 1,
+          },
+        })
+        .mockResolvedValueOnce({
+          data: { trackId: 'trk_001', status: 'FINISHED', title: 'Sherlocked' },
+        });
+
+      const result = await uploadService.getTrackDetailsByArtistHandleAndSlug(
+        'john-doe',
+        'sherlocked',
+      );
+
+      expect(mockedProfileService.getProfileByHandle).toHaveBeenCalledWith('john-doe');
+      expect(mockGet).toHaveBeenNthCalledWith(1, '/users/usr_123/tracks?page=1&limit=50');
+      expect(mockGet).toHaveBeenNthCalledWith(2, '/tracks/trk_001');
+      expect(result.trackId).toBe('trk_001');
     });
   });
 

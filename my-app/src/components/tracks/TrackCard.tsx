@@ -367,7 +367,7 @@ export const TrackCard: React.FC<TrackCardProps> = ({
                     {getArtistLabel(track.artistName ?? track.artist)}
                   </p>
                   <Link href={`/${track.artistHandle}/${track.slug}`}>
-                    <h4 className="text-white text-xl font-bold truncate hover:underline cursor-pointer">
+                    <h4 className="text-white text-xl font-bold truncate hover:text-neutral-500 cursor-pointer">
                       {savedData.title}
                     </h4>
                   </Link>

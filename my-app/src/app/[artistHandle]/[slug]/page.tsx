@@ -11,7 +11,7 @@ import {
   BarChart2,
 } from "lucide-react";
 import {
-  getTrackDetails,
+  getTrackDetailsByArtistHandleAndSlug,
   type TrackDetails,
 } from "@/src/services/uploadService";
 import { WaveformDisplay } from "@/src/components/tracks/WaveformDisplay";
@@ -45,7 +45,11 @@ function formatDate(iso: string | null) {
 }
 
 export default function TrackPage() {
-  const { slug: routeSlug } = useParams<{ artistHandle: string; slug: string }>();
+  const { artistHandle: routeArtistHandle, slug: routeSlug } =
+    useParams<{ artistHandle: string; slug: string }>();
+  const artistHandle = Array.isArray(routeArtistHandle)
+    ? routeArtistHandle[0]
+    : routeArtistHandle;
   const slug = Array.isArray(routeSlug) ? routeSlug[0] : routeSlug;
 
   const [track, setTrack] = useState<TrackDetails | null>(null);
@@ -66,7 +70,11 @@ export default function TrackPage() {
   useEffect(() => {
     let active = true;
 
-    getTrackDetails(slug)
+    if (!artistHandle || !slug) {
+      return;
+    }
+
+    getTrackDetailsByArtistHandleAndSlug(artistHandle, slug)
       .then((data) => {
         if (!active) return;
         setTrack(data);
@@ -85,7 +93,7 @@ export default function TrackPage() {
     return () => {
       active = false;
     };
-  }, [slug]);
+  }, [artistHandle, slug]);
 
   const playerTrack = useMemo<PlayerTrack | null>(() => {
     if (!track) return null;
@@ -138,6 +146,14 @@ export default function TrackPage() {
     if (!isCurrentTrack || duration <= 0 || isTrackBlocked) return;
     await seekTo(nextProgress * duration);
   };
+
+  if (!artistHandle || !slug) {
+    return (
+      <main className="min-h-screen bg-[#111] flex items-center justify-center">
+        <p className="text-red-400 text-lg">Invalid track URL.</p>
+      </main>
+    );
+  }
 
   if (loading) {
     return (
