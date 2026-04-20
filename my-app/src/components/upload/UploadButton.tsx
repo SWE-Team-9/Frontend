@@ -106,8 +106,9 @@ const UploadButton: React.FC = () => {
     try {
       setIsCheckingPermission(true);
       const profile = await getMyProfile();
+      const isArtist = profile.accountType?.trim().toUpperCase() === "ARTIST";
 
-      if (profile.accountType !== "ARTIST") {
+      if (!isArtist) {
         setPermissionError("Only users with ARTIST accounts can upload tracks.");
         return;
       }

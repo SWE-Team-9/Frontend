@@ -101,8 +101,10 @@ interface BackendUserProfile {
   visibility?: "PUBLIC" | "PRIVATE";
   is_private?: boolean;
   isPrivate?: boolean;
-  account_tier?: "LISTENER" | "ARTIST";
-  accountType?: "LISTENER" | "ARTIST";
+  account_tier?: string;
+  account_type?: string;
+  accountTier?: string;
+  accountType?: string;
   favorite_genres?: string[] | BackendFavoriteGenre[];
   favoriteGenres?: string[];
   external_links?: Record<string, string>;
@@ -132,6 +134,13 @@ const extractProfilePayload = (payload: ProfileApiResponse): BackendUserProfile 
   }
   return payload as BackendUserProfile;
 };
+
+const normalizeAccountType = (
+  value: string | undefined,
+): UserProfile["accountType"] => {
+  const normalized = value?.trim().toUpperCase();
+  return normalized === "ARTIST" ? "ARTIST" : "LISTENER";
+};
 // Maps backend profile response to frontend UserProfile structure
 const mapProfileResponse = (profile: BackendUserProfile): UserProfile => {
   const favoriteGenresFromBackend = Array.isArray(profile.favorite_genres)
@@ -156,7 +165,12 @@ const mapProfileResponse = (profile: BackendUserProfile): UserProfile => {
       profile.cover_photo_url ?? profile.coverPhotoUrl ?? profile.coverUrl ?? null,
     isPrivate:
       profile.is_private ?? profile.isPrivate ?? profile.visibility === "PRIVATE",
-    accountType: profile.account_tier ?? profile.accountType ?? "LISTENER",
+    accountType: normalizeAccountType(
+      profile.account_tier ??
+        profile.account_type ??
+        profile.accountTier ??
+        profile.accountType,
+    ),
     favoriteGenres: favoriteGenresFromBackend.length
       ? favoriteGenresFromBackend
       : profile.favoriteGenres ?? [],
@@ -223,12 +237,13 @@ export interface UpdateProfileData {
   website?: string;
   is_private?: boolean;
   favorite_genres?: string[];
+  account_tier?: "LISTENER" | "ARTIST";
   account_type?: "LISTENER" | "ARTIST";
 }
 
 export const updateMyProfile = async (data: UpdateProfileData): Promise<UserProfile> => {
   const response = await api.patch("/profiles/me", data);
-  return mapProfileResponse(response.data as BackendUserProfile);
+  return mapProfileResponse(extractProfilePayload(response.data as ProfileApiResponse));
 };
 
 // ====== UPDATE my social links ======

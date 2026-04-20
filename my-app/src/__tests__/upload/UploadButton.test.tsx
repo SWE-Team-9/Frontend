@@ -182,6 +182,26 @@ describe("UploadButton", () => {
       expect(uploadTrack).not.toHaveBeenCalled();
     });
 
+    it("accepts lowercase artist account type values", async () => {
+      setupStore([makeFile()]);
+      (getMyProfile as jest.Mock).mockResolvedValue({
+        accountType: "artist",
+      });
+      (uploadTrack as jest.Mock).mockResolvedValue({ status: "DONE" });
+
+      render(<UploadButton />);
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button"));
+      });
+
+      expect(uploadTrack).toHaveBeenCalled();
+      expect(
+        screen.queryByText(
+          "Only users with ARTIST accounts can upload tracks.",
+        ),
+      ).not.toBeInTheDocument();
+    });
+
     it("shows an error when the profile fetch throws", async () => {
       setupStore([makeFile()]);
       (getMyProfile as jest.Mock).mockRejectedValue(new Error("Network"));

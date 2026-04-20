@@ -17,7 +17,8 @@ export default function UploadPage() {
     getMyProfile()
       .then((profile) => {
         if (!active) return;
-        const isArtist = profile.accountType === "ARTIST";
+        const isArtist =
+          profile.accountType?.trim().toUpperCase() === "ARTIST";
         setCanUpload(isArtist);
         setAccessMessage(
           isArtist
