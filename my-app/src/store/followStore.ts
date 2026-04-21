@@ -180,26 +180,25 @@ export const useFollowStore = create<FollowStore>((set, get) => ({
     }
   },
 
-  fetchFollowers: async (userId, options) => {
+fetchFollowers: async (userId, options) => {
     if (!userId) return;
 
     const syncProfileList = options?.syncProfileList ?? true;
 
-    // START: PAGINATION PARAMS
-    // Set default pagination values if not provided
+    // 1. Extract page and limit from options for pagination support
     const page = options?.page ?? 1;
     const limit = options?.limit ?? 20;
-    // END: PAGINATION PARAMS
 
     try {
       set({ error: null });
 
-      // Requesting specific page data from the backend
+      // 2. Pass pagination parameters to the API service
       const data = await getFollowers(userId, page, limit);
       const followersList = data.followers || [];
       const profileState = useProfileStore.getState();
       const isActiveProfile = profileState.userId === userId;
 
+      // Update total count in profile store to stay synced with backend
       if (syncProfileList && isActiveProfile && typeof data.total === "number") {
         useProfileStore.setState({ followersCount: data.total });
       }
@@ -207,12 +206,13 @@ export const useFollowStore = create<FollowStore>((set, get) => ({
       const currentUserId = useAuthStore.getState().user?.id;
       const nextState: Partial<FollowStore> = {};
 
+      // Update main followers list if it's the current user's profile
       if (userId === currentUserId) {
         nextState.followers = followersList;
       }
 
+      // 3. Replace the list with new page data for clean independent pagination
       if (syncProfileList && isActiveProfile) {
-        // Update the profile followers list with the new page data
         nextState.profileFollowers = followersList;
       }
 

@@ -206,6 +206,12 @@ const MOCK_SUGGESTIONS: SuggestedUser[] = [
   },
 
 ];
+const MOCK_FOLLOWERS: FollowUser[] = Array.from({ length: 24 }).map((_, i) => ({
+  id: `fllr_${i + 1}`,
+  display_name: `Follower ${i + 1}`,
+  handle: `follower_${i + 1}`,
+  avatar_url: "",
+}));
 
 let mockFollowing = [...MOCK_FOLLOWING];
 let mockSuggestions = [...MOCK_SUGGESTIONS];
@@ -265,11 +271,15 @@ export const getFollowers = async (
 ): Promise<FollowListResponse> => {
   if (USE_MOCK) {
     await new Promise((r) => setTimeout(r, 800));
+    
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+
     return {
       page,
       limit,
-      total: 0,
-      followers: [],
+      total: MOCK_FOLLOWERS.length, 
+      followers: MOCK_FOLLOWERS.slice(startIndex, endIndex), 
     };
   }
 
