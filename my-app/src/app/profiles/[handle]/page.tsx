@@ -16,7 +16,7 @@ import FollowButton from "@/src/components/profile/sidebar/FollowButton";
 import { TrackCard } from "@/src/components/tracks/TrackCard";
 import Image from "next/image";
 import { useFollowStore } from "@/src/store/followStore";
-import { useLikeStore } from "@/src/store/likeStore";
+// import { useLikeStore } from "@/src/store/likeStore";
 import { useProfileStore } from "@/src/store/useProfileStore";
 import TrackList from "@/src/components/tracks/TrackList";
 import Link from "next/link";
@@ -48,6 +48,8 @@ export default function ProfilePage({
   const handle = resolvedParams.handle;
   const [searchQuery, setSearchQuery] = useState("");
   const controller = useProfileController(handle);
+  // Destructure detailTab and setDetailTab early to avoid 'used before declaration' errors
+  const { detailTab, setDetailTab } = controller;
   const setProfileData = useProfileStore((state) => state.setProfileData);
   const isOwner = controller.isOwner;
   // Follow store
@@ -57,44 +59,45 @@ export default function ProfilePage({
   const fetchFollowers = useFollowStore((state) => state.fetchFollowers);
   const storeToggleFollow = useFollowStore((state) => state.toggleFollow);
   const checkIsFollowing = useFollowStore((state) => state.isFollowing);
-  const followError = useFollowStore((state) => state.error);
+  const [followingPage, setFollowingPage] = useState(1);
+  const FOLLOW_LIMIT = 20; // Number of items per page for following pagination
+  const [followersPage, setFollowersPage] = useState(1);
 
-  // Like store
-  const likedTracks = useLikeStore((state) => state.likedTracks || []);
-  const likeError = useLikeStore((state) => state.error);
+  // ── Like store ────────────────────────────────────────────────────────────
   const [profileLikes, setProfileLikes] = useState<TrackData[]>([]);
   const [isLikesLoading, setIsLikesLoading] = useState(false);
-
+  const [likesPage, setLikesPage] = useState(1);
+  const LIKES_LIMIT = 10;
   // Clear stale data immediately the moment the handle changes
+  // 1. Reset data when handle changes
   useEffect(() => {
     useFollowStore.setState({ profileFollowing: [], profileFollowers: [] });
   }, [handle]);
 
-  // clear state to be used for the like
+  // 2. Fetch profile likes based on the current page
   useEffect(() => {
-    let isMounted = true; // Prevents state updates if user navigates away
+    let isMounted = true;
 
     const fetchLikes = async () => {
       if (!controller.userId) return;
 
       try {
         setIsLikesLoading(true);
-        if (isOwner) {
-          // Use the local store for immediate UI updates
-          setProfileLikes(likedTracks);
-        } else {
-          const data = await getUserLikes(controller.userId);
+        // Ensure getUserLikes is called with userId, page, and limit
+        const data = await getUserLikes(
+          controller.userId,
+          likesPage,
+          LIKES_LIMIT,
+        );
 
-          if (!isMounted) return;
+        if (!isMounted) return;
 
-          const cleanedData = data.map((t) => ({
-            ...t,
-            artistName: t.artistName ?? undefined,
-            coverArt: t.coverArt ?? undefined,
-          }));
-
-          setProfileLikes(cleanedData as TrackData[]);
-        }
+        const cleanedData = data.map((t: TrackData) => ({
+          ...t,
+          artistName: t.artistName ?? undefined,
+          coverArt: t.coverArt ?? undefined,
+        }));
+        setProfileLikes(cleanedData as TrackData[]);
       } catch (err) {
         if (isMounted) console.error("Failed to fetch profile likes:", err);
       } finally {
@@ -102,25 +105,45 @@ export default function ProfilePage({
       }
     };
 
-    fetchLikes();
+    if (detailTab === "Likes") {
+      fetchLikes();
+    }
 
     return () => {
-      isMounted = false; // Cleanup function
+      isMounted = false;
     };
-    // Use likedTracks.length to avoid unnecessary reference-check triggers
-  }, [controller.userId, isOwner, likedTracks.length, handle]);
-  // Fetch the new profile's follow data once userId is known
+  }, [controller.userId, likesPage, detailTab]);
+  // Fetch Following data based on current page
   useEffect(() => {
-    if (controller.userId) {
-      fetchFollowing(controller.userId, { syncProfileList: true });
-      fetchFollowers(controller.userId, { syncProfileList: true });
+    if (controller.userId && detailTab === "Following") {
+      useFollowStore.setState({ profileFollowing: [] });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (fetchFollowing as any)(controller.userId, {
+        syncProfileList: true,
+        page: followingPage,
+        limit: FOLLOW_LIMIT,
+      });
     }
-  }, [controller.userId, fetchFollowing, fetchFollowers]);
+  }, [controller.userId, followingPage, detailTab, fetchFollowing]);
+
+  // Fetch Followers based on current page
+  useEffect(() => {
+    if (controller.userId && detailTab === "Followers") {
+      useFollowStore.setState({ profileFollowers: [] });
+      fetchFollowers(controller.userId, {
+        syncProfileList: true,
+        page: followersPage,
+        limit: FOLLOW_LIMIT,
+      });
+    }
+  }, [controller.userId, followersPage, detailTab, fetchFollowers]);
 
   const router = useRouter();
 
   const BUTTON_STYLE =
     "bg-zinc-800/50 border border-zinc-700 px-4 py-1 rounded text-xs font-bold hover:bg-zinc-700 transition-colors uppercase flex items-center gap-2";
+
+
 
   const {
     displayName,
@@ -132,8 +155,6 @@ export default function ProfilePage({
     tabs,
     viewState,
     setViewState,
-    detailTab,
-    setDetailTab,
     showSuccessToast,
     accountType,
     setIsEditOpen,
@@ -200,52 +221,10 @@ export default function ProfilePage({
         </ul>
       </div>
 
-      {(detailTab === "Following" || detailTab === "Followers") && (
-        <div className="max-w-md mb-8">
-          <input
-            type="text"
-            placeholder={`Search ${detailTab.toLowerCase()}...`}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-zinc-900 border border-zinc-800 text-white px-4 py-2 rounded-md focus:outline-none focus:border-white transition-all text-sm"
-          />
-        </div>
-      )}
-
-      <div className="py-10 flex flex-col items-center">
-        {followError && (
-          <p className="mb-4 text-sm text-red-400">{followError}</p>
-        )}
-        {likeError && <p className="mb-4 text-sm text-red-400">{likeError}</p>}
-
-        {/* ── LIKES TAB ── */}
-        {detailTab === "Likes" &&
-          (profileLikes.length === 0 ? (
-            <p className="text-2xl font-bold text-zinc-500 uppercase py-24">
-              No likes yet.
-            </p>
-          ) : (
-            <div className="grid grid-cols-1 gap-6 w-full">
-              {profileLikes.map((track) => (
-                <TrackCard
-                  key={track.id}
-                  track={{
-                    trackId: track.id,
-                    title: track.title,
-                    likesCount: track.likesCount,
-                    liked: true,
-                    artistName: track.artistName ?? undefined,
-                    coverArt: track.coverArt ?? undefined,
-                  }}
-                  isOwner={false}
-                />
-              ))}
-            </div>
-          ))}
-
-        {/* ── FOLLOWING / FOLLOWERS TAB ── */}
-        {(detailTab === "Following" || detailTab === "Followers") &&
-          (filteredUsers.length > 0 ? (
+      {/* ── FOLLOWING / FOLLOWERS TAB ── */}
+      {(detailTab === "Following" || detailTab === "Followers") &&
+        (filteredUsers.length > 0 ? (
+          <div className="flex flex-col items-center w-full">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8">
               {filteredUsers.map((user) => {
                 const name =
@@ -253,11 +232,9 @@ export default function ProfilePage({
                 const avatar =
                   user.avatar_url || user.avatarUrl || user.avatar || null;
                 const followerCount =
-                  user.followersCount ||
-                  user.followers_count ||
-                  user.followers ||
-                  0;
+                  (user as FollowUserShape).followersCount || 0;
                 const isFollowing = checkIsFollowing(user.id);
+
                 return (
                   <div
                     key={`${detailTab}-${user.id}`}
@@ -300,11 +277,7 @@ export default function ProfilePage({
                           avatar_url: avatar ?? "",
                         })
                       }
-                      className={`px-4 py-1.5 rounded text-[10px] font-bold uppercase transition-all ${
-                        isFollowing
-                          ? "bg-zinc-800 text-zinc-400 border border-zinc-700"
-                          : "bg-white text-black hover:bg-zinc-200"
-                      }`}
+                      className={`px-4 py-1.5 rounded text-[10px] font-bold uppercase transition-all ${isFollowing ? "bg-zinc-800 text-zinc-400 border border-zinc-700" : "bg-white text-black hover:bg-zinc-200"}`}
                     >
                       {isFollowing ? "Following" : "Follow"}
                     </button>
@@ -312,24 +285,121 @@ export default function ProfilePage({
                 );
               })}
             </div>
-          ) : (
-            <div className="py-20 text-center">
-              <p className="text-xl font-bold text-zinc-600 uppercase mb-8">
-                Nothing found.
-              </p>
-            </div>
-          ))}
 
-        <button
-          onClick={() => {
-            setViewState("profile");
-            setSearchQuery("");
-          }}
-          className="mt-12 bg-white text-black px-6 py-2 rounded-full font-bold hover:bg-zinc-200 transition-all uppercase"
-        >
-          ← Back to Profile
-        </button>
-      </div>
+            {/* ── PAGINATION CONTROLS (Common for both) ── */}
+            <div className="flex justify-center items-center gap-6 mt-12">
+              <button
+                disabled={
+                  detailTab === "Following"
+                    ? followingPage === 1
+                    : followersPage === 1
+                }
+                onClick={() => {
+                  if (detailTab === "Following")
+                    setFollowingPage((prev) => prev - 1);
+                  else setFollowersPage((prev) => prev - 1);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                className="px-6 py-2 bg-zinc-800 text-white rounded-full font-bold disabled:opacity-30 hover:bg-zinc-700 transition uppercase text-xs border border-zinc-700"
+              >
+                Previous
+              </button>
+
+              <span className="text-white font-black text-sm uppercase tracking-widest">
+                Page {detailTab === "Following" ? followingPage : followersPage}
+              </span>
+
+              <button
+                disabled={filteredUsers.length < FOLLOW_LIMIT}
+                onClick={() => {
+                  if (detailTab === "Following")
+                    setFollowingPage((prev) => prev + 1);
+                  else setFollowersPage((prev) => prev + 1);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                className="px-6 py-2 bg-zinc-800 text-white rounded-full font-bold disabled:opacity-30 hover:bg-zinc-700 transition uppercase text-xs border border-zinc-700"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="py-20 text-center">
+            <p className="text-xl font-bold text-zinc-600 uppercase mb-8">
+              Nothing found.
+            </p>
+          </div>
+        ))}
+{/* ── LIKES GRID DISPLAY & PAGINATION ── */}
+      {/* This section renders the liked tracks and their specific pagination controls */}
+      {detailTab === "Likes" && (
+        profileLikes.length === 0 ? (
+          <div className="py-20 text-center w-full">
+            <p className="text-xl font-bold text-zinc-600 uppercase">No likes found.</p>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center w-full">
+            {/* Grid layout for displaying Track Cards */}
+<div className="grid grid-cols-1 gap-6 w-full max-w-5xl">
+                {profileLikes.map((track) => (
+                <TrackCard
+                  key={track.id}
+                  track={{
+                    trackId: track.id,
+                    title: track.title,
+                    // artistName: track.artistName,
+                    // coverArt: track.coverArt,
+                    likesCount: track.likesCount,
+                    liked: true 
+                  }}
+                  isOwner={isOwner}
+                />
+              ))}
+            </div>
+
+            {/* Pagination Controls for Likes Tab */}
+            <div className="flex justify-center items-center gap-6 mt-12">
+              <button
+                disabled={likesPage === 1}
+                onClick={() => {
+                  setLikesPage((prev) => prev - 1);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                className="px-6 py-2 bg-zinc-800 text-white rounded-full font-bold disabled:opacity-30 hover:bg-zinc-700 transition uppercase text-xs border border-zinc-700"
+              >
+                Previous
+              </button>
+
+              <span className="text-white font-black text-sm uppercase tracking-widest">
+                Page {likesPage}
+              </span>
+
+              <button
+                // Disable Next button if current page items are fewer than the limit
+                disabled={profileLikes.length < LIKES_LIMIT}
+                onClick={() => {
+                  setLikesPage((prev) => prev + 1);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                className="px-6 py-2 bg-zinc-800 text-white rounded-full font-bold disabled:opacity-30 hover:bg-zinc-700 transition uppercase text-xs border border-zinc-700"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )
+      )}
+
+      {/* Back to Profile Button - Stays at the bottom of all tabs */}
+      <button
+        onClick={() => {
+          setViewState("profile");
+          setSearchQuery("");
+        }}
+        className="mt-12 bg-white text-black px-6 py-2 rounded-full font-bold hover:bg-zinc-200 transition-all uppercase"
+      >
+        ← Back to Profile
+      </button>
     </div>
   );
 
