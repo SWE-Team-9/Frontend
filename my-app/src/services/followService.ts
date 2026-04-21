@@ -64,6 +64,147 @@ const MOCK_SUGGESTIONS: SuggestedUser[] = [
     avatar_url: "",
     reason: "Shared genres",
   },
+    {
+    id: "usr_5",
+    display_name: "The Weeknd",
+    handle: "theweeknd",
+    avatar_url: "",
+    reason: "Shared genres",
+  },
+    {
+    id: "usr_6",
+    display_name: "The Weeknd",
+    handle: "theweeknd",
+    avatar_url: "",
+    reason: "Shared genres",
+  },
+    {
+    id: "usr_7",
+    display_name: "The Weeknd",
+    handle: "theweeknd",
+    avatar_url: "",
+    reason: "Shared genres",
+  },
+    {
+    id: "usr_8",
+    display_name: "The Weeknd",
+    handle: "theweeknd",
+    avatar_url: "",
+    reason: "Shared genres",
+  },
+    {
+    id: "usr_9",
+    display_name: "The Weeknd",
+    handle: "theweeknd",
+    avatar_url: "",
+    reason: "Shared genres",
+  },
+    {
+    id: "usr_10",
+    display_name: "The Weeknd",
+    handle: "theweeknd",
+    avatar_url: "",
+    reason: "Shared genres",
+  },
+    {
+    id: "usr_11",
+    display_name: "The Weeknd",
+    handle: "theweeknd",
+    avatar_url: "",
+    reason: "Shared genres",
+  },
+    {
+    id: "usr_12",
+    display_name: "The Weeknd",
+    handle: "theweeknd",
+    avatar_url: "",
+    reason: "Shared genres",
+  },
+    {
+    id: "usr_13",
+    display_name: "The Weeknd",
+    handle: "theweeknd",
+    avatar_url: "",
+    reason: "Shared genres",
+  },
+    {
+    id: "usr_14",
+    display_name: "The Weeknd",
+    handle: "theweeknd",
+    avatar_url: "",
+    reason: "Shared genres",
+  },
+    {
+    id: "usr_15",
+    display_name: "The Weeknd",
+    handle: "theweeknd",
+    avatar_url: "",
+    reason: "Shared genres",
+  },
+    {
+    id: "usr_16",
+    display_name: "The Weeknd",
+    handle: "theweeknd",
+    avatar_url: "",
+    reason: "Shared genres",
+  },
+    {
+    id: "usr_17",
+    display_name: "The Weeknd",
+    handle: "theweeknd",
+    avatar_url: "",
+    reason: "Shared genres",
+  },
+    {
+    id: "usr_18",
+    display_name: "The Weeknd",
+    handle: "theweeknd",
+    avatar_url: "",
+    reason: "Shared genres",
+  },
+    {
+    id: "usr_19",
+    display_name: "The Weeknd",
+    handle: "theweeknd",
+    avatar_url: "",
+    reason: "Shared genres",
+  },
+    {
+    id: "usr_20",
+    display_name: "The Weeknd",
+    handle: "theweeknd",
+    avatar_url: "",
+    reason: "Shared genres",
+  },
+    {
+    id: "usr_21",
+    display_name: "The Weeknd",
+    handle: "theweeknd",
+    avatar_url: "",
+    reason: "Shared genres",
+  },
+    {
+    id: "usr_22",
+    display_name: "The Weeknd",
+    handle: "theweeknd",
+    avatar_url: "",
+    reason: "Shared genres",
+  },
+    {
+    id: "usr_23",
+    display_name: "The Weeknd",
+    handle: "theweeknd",
+    avatar_url: "",
+    reason: "Shared genres",
+  },
+    {
+    id: "usr_24",
+    display_name: "The Weeknd",
+    handle: "theweeknd",
+    avatar_url: "",
+    reason: "Shared genres",
+  },
+
 ];
 
 let mockFollowing = [...MOCK_FOLLOWING];
@@ -147,12 +288,15 @@ export const getFollowing = async (
   limit = 20,
 ): Promise<FollowListResponse> => {
   if (USE_MOCK) {
+    await new Promise((r) => setTimeout(r, 500));
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
     await new Promise((r) => setTimeout(r, 800));
     return {
       page,
       limit,
       total: mockFollowing.length,
-      following: mockFollowing,
+      following: mockFollowing.slice(startIndex, endIndex),
     };
   }
 
