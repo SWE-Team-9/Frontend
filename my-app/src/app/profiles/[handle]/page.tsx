@@ -68,6 +68,8 @@ export default function ProfilePage({
   const [isLikesLoading, setIsLikesLoading] = useState(false);
   const [likesPage, setLikesPage] = useState(1);
   const LIKES_LIMIT = 10;
+  const [tracksPage, setTracksPage] = useState(1);
+const TRACKS_LIMIT = 10;
   // Clear stale data immediately the moment the handle changes
   // 1. Reset data when handle changes
   useEffect(() => {
@@ -409,18 +411,56 @@ export default function ProfilePage({
       return (
         <div className="flex-1 border-r border-zinc-900/50 pr-12">
           {controller.userId ? (
-            <TrackList
-              userId={controller.userId ?? ""}
-              isOwner={isOwner}
-              onTracksTotalChange={handleTracksTotalChange}
-            />
+            <div className="flex flex-col">
+              {/* Main Track List with Pagination Props */}
+              <TrackList
+                userId={controller.userId ?? ""}
+                page={tracksPage}
+                limit={TRACKS_LIMIT}
+                type="tracks"
+                isOwner={isOwner}
+                onTracksTotalChange={handleTracksTotalChange}
+              />
+
+              {/* ── TRACKS PAGINATION CONTROLS ── */}
+              {/* Only show pagination if there are tracks to navigate through */}
+              {controller.tracksCount > 0 && (
+                <div className="flex justify-center items-center gap-6 mt-12 mb-10">
+                  <button
+                    disabled={tracksPage === 1}
+                    onClick={() => {
+                      setTracksPage((prev) => prev - 1);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    className="px-6 py-2 bg-zinc-800 text-white rounded-full font-bold disabled:opacity-30 hover:bg-zinc-700 transition uppercase text-xs border border-zinc-700"
+                  >
+                    Previous
+                  </button>
+
+                  <span className="text-white font-black text-sm uppercase tracking-widest">
+                    Page {tracksPage}
+                  </span>
+
+                  <button
+                    // Disable next button if the current page covers all available tracks
+                    disabled={tracksPage * TRACKS_LIMIT >= controller.tracksCount}
+                    onClick={() => {
+                      setTracksPage((prev) => prev + 1);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    className="px-6 py-2 bg-zinc-800 text-white rounded-full font-bold disabled:opacity-30 hover:bg-zinc-700 transition uppercase text-xs border border-zinc-700"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </div>
           ) : (
             <p className="text-sm text-zinc-500">Loading tracks...</p>
           )}
         </div>
       );
     }
-
     if (activeTab === "Playlists") {
       return (
         <div className="flex-1 text-center py-20 border-r border-zinc-900/50 pr-12 flex flex-col items-center justify-center">
