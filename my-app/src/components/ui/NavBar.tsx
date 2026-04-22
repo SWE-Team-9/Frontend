@@ -1,5 +1,7 @@
 "use client";
 import Image from "next/image";
+import Link from "next/link";
+import { Star } from 'lucide-react'; // Example star icon
 import DropdownMenu from "@/src/components/ui/DropdownMenu";
 import NavBarItem from "@/src/components/ui/NavBarItem";
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
@@ -24,6 +26,8 @@ import { useRouter } from "next/navigation";
 // --- NEW IMPORTS ---
 import { useLikeStore } from "@/src/store/likeStore";
 import { useRepostStore } from "@/src/store/repostStore";
+// --- SUBSCRIPTION IMPORTS ---
+import { getMySubscription, SubscriptionDetails } from '@/src/services/subscriptionService';
 
 interface NavItem {
   label: string;
@@ -59,7 +63,7 @@ const NavBar: React.FC<NavBarProps> = ({
   ],
 
   rightRoutes = [
-    { label: "Try ArtistPro", href: "/pro" },
+    { label: "Try ArtistPro", href: "/subscriptions" },
     { label: "For Artists", href: "/artists" },
     { label: "Upload", href: "/upload" },
   ],
@@ -119,6 +123,9 @@ const NavBar: React.FC<NavBarProps> = ({
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null); // Ref for detecting clicks outside of the menu
 
+  // --- SUBSCRIPTION STATE ---
+  const [sub, setSub] = useState<SubscriptionDetails | null>(null);
+
   // Read the current logged-in user from the global auth store
   const user = useAuthStore((state) => state.user);
   const syncLikes = useLikeStore((state) => state.syncWithServer);
@@ -146,13 +153,31 @@ const NavBar: React.FC<NavBarProps> = ({
     setProfileImageSrc(user?.avatarUrl || "/images/profile.png");
   }, [user]);
 
+  // --- FETCH SUBSCRIPTION ON MOUNT ---
+useEffect(() => {
+  const fetchSub = async () => {
+    try {
+      // We will call the service normally
+      const data = await getMySubscription();
+      setSub(data);
+    } catch (err) {
+      console.error("Navbar sync failed, but don't worry!");
+      
+      // Force mock data if API fails during development
+      if (process.env.NEXT_PUBLIC_USE_MOCK === "true") {
+      }
+    }
+  };
+  fetchSub();
+}, []);
+
   // Sign-out handler — clears cookies on the backend, clears store
   const handleLogout = useCallback(async () => {
   await logoutUser();
   router.push("/");
 }, [router]);
 
- 
+  
   // Update Profile Menu to use the handle
   const dynamicProfileMenu = useMemo(() => {
     return profileMenu.map((item) => {
@@ -273,12 +298,23 @@ const NavBar: React.FC<NavBarProps> = ({
                   e.currentTarget.src = "/images/profile.png";
                 }}
               />
-              {/* Show the user's display name (or handle / email prefix) when logged in */}
-              {displayLabel && (
-                <span className="hidden lg:block text-white text-sm font-medium max-w-24 truncate">
-                  {displayLabel}
-                </span>
-              )}
+              {/* Show the user's display name and premium badge if applicable */}
+            {/* Inside the profile button area in Navbar.tsx */}
+{displayLabel && (
+  <div className="flex items-center gap-2">
+    <span className="hidden lg:block text-white text-sm font-medium max-w-24 truncate">
+      {displayLabel}
+    </span>
+    
+    {/* Check if sub exists and type is PRO or GO+ */}
+    {sub && (sub.subscriptionType === "PRO" || sub.subscriptionType === "GO+") && (
+      <div className="flex items-center bg-yellow-400 text-black text-[9px] px-1.5 py-0.5 rounded-full font-black uppercase tracking-tighter shadow-[0_0_10px_rgba(250,204,21,0.5)]">
+        <Star size={8} fill="black" className="mr-0.5" />
+        PRO
+      </div>
+    )}
+  </div>
+)}
               <FiChevronDown className="text-neutral-400" />
               {openMenu === "profile" && <DropdownMenu items={dynamicProfileMenu} />}
             </button>
