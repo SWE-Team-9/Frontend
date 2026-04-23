@@ -28,9 +28,9 @@ export interface OfflineTrack {
 let MOCK_SUBSCRIPTION: SubscriptionDetails = {
   userId: "usr_123",
   subscriptionType: "FREE", // Starts as FREE
-  uploadLimit: 3, // Default for FREE tier
+  uploadLimit: 10, // Default for FREE tier
   uploadedTracks: 1,
-  remainingUploads: 2,
+  remainingUploads: 9, // Set to 0 to test the quota limit scenario
   perks: { 
     adFree: false, 
     offlineListening: false 
@@ -48,15 +48,21 @@ const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
  */
 export const getMySubscription = async (): Promise<SubscriptionDetails> => {
   if (USE_MOCK) {
-    // Log to verify what the components are currently reading
-    console.log("Navbar is reading Mock Data:", MOCK_SUBSCRIPTION.subscriptionType);
-    
-    // Simulate network delay for realistic testing
+    // Simulate network delay for realistic testing 
     await new Promise((resolve) => setTimeout(resolve, 800));
-    return MOCK_SUBSCRIPTION;
+
+    // --- TESTING LOGIC ---
+    // Decrease remaining count if greater than 0
+    if (MOCK_SUBSCRIPTION.remainingUploads > 0) {
+      MOCK_SUBSCRIPTION.remainingUploads -= 1; // Decrease remaining 
+      MOCK_SUBSCRIPTION.uploadedTracks += 1;   // Increase uploaded tracks 
+    }
+
+    console.log("Mock Updated - Remaining:", MOCK_SUBSCRIPTION.remainingUploads);
+    return { ...MOCK_SUBSCRIPTION }; // Return updated mock object 
   }
 
-  // Real API call to GET /api/v1/subscriptions/me 
+  // Real API call to GET /api/v1/subscriptions/me
   const response = await api.get("/subscriptions/me");
   return response.data;
 };
@@ -74,8 +80,9 @@ export const upgradeSubscription = async (type: "PRO" | "GO+") => {
     MOCK_SUBSCRIPTION = {
       ...MOCK_SUBSCRIPTION,
       subscriptionType: type,
-      uploadLimit: 100, // New limit for premium tiers 
-      remainingUploads: 99,
+      uploadLimit: 100, // Default for PRO/GO+ tiers
+  uploadedTracks: 10,
+  remainingUploads: 90, // Set to 0 to test the quota limit scenario
       perks: { 
         adFree: true, 
         offlineListening: true 
