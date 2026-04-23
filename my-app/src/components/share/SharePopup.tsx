@@ -84,10 +84,6 @@ export default function SharePopup({ permalink, onClose }: Props) {
           )}
         </button>
       </div>
-
-      <p className="mt-2 text-[11px] text-zinc-500">
-        Paste this link in the address bar to test the permalink resolver.
-      </p>
     </div>
   );
 }

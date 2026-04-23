@@ -25,7 +25,6 @@ import {
 } from "lucide-react";
 
 import { TrackActionButtons } from "@/src/components/tracks/TrackActionButtons";
-import { WaveformDisplay } from "@/src/components/tracks/WaveformDisplay";
 import { useRepostStore } from "@/src/store/repostStore";
 import {
   changeTrackVisibility,
