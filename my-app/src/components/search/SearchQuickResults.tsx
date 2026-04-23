@@ -87,12 +87,11 @@ export default function SearchQuickResults({
 
 function Panel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="absolute z-50 mt-2 w-full rounded-md border bg-white p-3 shadow-lg">
+    <div className="absolute z-50 mt-2 w-full rounded-md border border-neutral-700 bg-neutral-900 p-3 shadow-lg text-sm text-neutral-300">
       {children}
     </div>
   );
 }
-
 function Section({
   title,
   children,
@@ -102,7 +101,7 @@ function Section({
 }) {
   return (
     <div className="mb-2">
-      <div className="mb-1 text-xs font-bold uppercase text-gray-500">
+      <div className="mb-1 text-xs font-bold uppercase tracking-wide text-neutral-500">
         {title}
       </div>
       {children}
