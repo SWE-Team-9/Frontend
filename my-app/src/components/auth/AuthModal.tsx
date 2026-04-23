@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import AuthInput from "@/src/components/auth/AuthInput";
 import { useAuth } from "@/src/context/AuthContext";
 import { useAuthStore } from "@/src/store/useAuthStore";
+import Link from "next/link";
 import {
   loginUser,
   forgotPassword,
@@ -455,9 +456,9 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
                   <p className="text-sm text-gray-400">
                     If the email address is in our database, we will send you an
                     email to reset your password. Need help? visit our{" "}
-                    <a href="/help" className="text-[#38d]">
+                    <Link href="/help" className="text-[#38d]">
                       Help Center
-                    </a>
+                    </Link>
                   </p>
 
                   <AuthInput

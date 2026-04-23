@@ -2,6 +2,8 @@
 
 import TimestampedCommentsSection from "@/src/components/tracks/TimestampedCommentsSection";
 import React, { useState, Fragment } from "react";
+import { Share2 } from "lucide-react";
+import SharePopup from "@/src/components/share/SharePopup";
 import Image from "next/image";
 import {
   Menu,
@@ -95,14 +97,19 @@ export const TrackCard: React.FC<TrackCardProps> = ({
     : `/tracks/${track.trackId}`;
 
   const toEditData = (
-    source: Pick<IntegratedTrack, "title" | "genre" | "releaseDate" | "description">,
+    source: Pick<
+      IntegratedTrack,
+      "title" | "genre" | "releaseDate" | "description"
+    >,
   ) => ({
     title: source.title,
     genre: source.genre ?? "",
     releaseDate: source.releaseDate?.split("T")[0] ?? "",
     description: source.description ?? "",
   });
-  const deleteRepostAction = useRepostStore((state) => state.deleteRepostAction);
+  const deleteRepostAction = useRepostStore(
+    (state) => state.deleteRepostAction,
+  );
   const isReposted = useRepostStore((state) => state.isReposted(track.trackId));
   const handleDeleteClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation(); // Prevent card click
@@ -117,6 +124,7 @@ export const TrackCard: React.FC<TrackCardProps> = ({
     }
   };
 
+  const [shareOpen, setShareOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isPreparingEdit, setIsPreparingEdit] = useState(false);
@@ -316,7 +324,10 @@ export const TrackCard: React.FC<TrackCardProps> = ({
             <textarea
               value={editData.description}
               onChange={(e) => {
-                setEditData((prev) => ({ ...prev, description: e.target.value }));
+                setEditData((prev) => ({
+                  ...prev,
+                  description: e.target.value,
+                }));
                 if (error) setError(null);
               }}
               className="bg-[#121212] border border-zinc-700 rounded p-2 text-white text-sm resize-none"
@@ -376,11 +387,38 @@ export const TrackCard: React.FC<TrackCardProps> = ({
                 </div>
               </div>
 
-              <span
-                className={`text-[10px] px-2 py-0.5 rounded font-bold ${visibility === "PUBLIC" ? "bg-green-900/30 text-green-400" : "bg-zinc-800 text-zinc-500"}`}
-              >
-                {visibility}
-              </span>
+              <div className="flex items-center gap-2 relative">
+                <span
+                  className={`text-[10px] px-2 py-0.5 rounded font-bold ${
+                    visibility === "PUBLIC"
+                      ? "bg-green-900/30 text-green-400"
+                      : "bg-zinc-800 text-zinc-500"
+                  }`}
+                >
+                  {visibility}
+                </span>
+
+                {/* Share button */}
+                <button
+                  onClick={() => setShareOpen((v) => !v)}
+                  disabled={!hasCanonicalTrackRoute}
+                  title={
+                    hasCanonicalTrackRoute
+                      ? "Share this track"
+                      : "Permalink not available yet"
+                  }
+                  className="flex items-center gap-1 rounded border border-zinc-700 px-2 py-1 text-xs text-zinc-300 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Share2 className="h-3 w-3" /> Share
+                </button>
+
+                {shareOpen && hasCanonicalTrackRoute && (
+                  <SharePopup
+                    permalink={trackHref}
+                    onClose={() => setShareOpen(false)}
+                  />
+                )}
+              </div>
             </div>
 
             {/* Waveform + Timestamped Comments */}
@@ -451,7 +489,9 @@ export const TrackCard: React.FC<TrackCardProps> = ({
                         if (!isOwner && track.reposted) {
                           try {
                             // Use the dedicated delete action from your store
-                            await useRepostStore.getState().deleteRepostAction(track.trackId);
+                            await useRepostStore
+                              .getState()
+                              .deleteRepostAction(track.trackId);
                           } catch (err) {
                             console.error("Failed to remove repost:", err);
                           }
