@@ -1,124 +1,126 @@
 import api from "./api";
-import { FollowUser } from "@/src/services/followService";
-import type {
-  TrackComment,
-  GetTrackCommentsResponse,
-  AddTrackCommentBody,
-  AddTrackCommentResponse,
-} from "@/src/types/interactions";
 
-interface BackendUser {
+/**
+ * Data structures for Subscription and Offline tracks
+ */
+export interface SubscriptionDetails {
   userId: string;
-  displayName: string;
-  avatarUrl?: string | null;
-  handle?: string;
+  subscriptionType: "FREE" | "PRO" | "GO+";
+  uploadLimit: number;
+  uploadedTracks: number;
+  remainingUploads: number;
+  perks: {
+    adFree: boolean;
+    offlineListening: boolean;
+  };
 }
 
-interface InteractionItem {
-  interactedAt: string;
-  user: BackendUser;
+export interface OfflineTrack {
+  trackId: string;
+  title: string;
+  artist: string;
+  downloadUrl: string;
 }
 
-export const getTrackEngagements = async (
-  trackId: string,
-  type: "likes" | "reposts"
-): Promise<FollowUser[]> => {
-  const endpoint = type === "likes" ? "likers" : "reposters";
-
-  const response = await api.get(`/interactions/tracks/${trackId}/${endpoint}`);
-  const items = response.data.items || [];
-
-  return items.map((item: InteractionItem) => ({
-    id: item.user.userId,
-    display_name: item.user.displayName,
-    handle:
-      item.user.handle ||
-      item.user.displayName.toLowerCase().replace(/\s+/g, ""),
-    avatar_url: item.user.avatarUrl || "",
-  }));
+/**
+ * This allows simulating a real upgrade during development
+ */
+let MOCK_SUBSCRIPTION: SubscriptionDetails = {
+  userId: "usr_123",
+  subscriptionType: "PRO", // Starts as FREE
+  uploadLimit: 3, // Default for FREE tier
+  uploadedTracks: 1,
+  remainingUploads: 2,
+  perks: { 
+    adFree: false, 
+    offlineListening: false 
+  },
 };
 
-// ===============================
-// COMMENTS
-// ===============================
+/**
+ * Helper to check if we should use mock data from environment variables
+ */
+const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 
-interface BackendTrackComment {
-  id?: string;
-  commentId?: string;
-  text?: string;
-  content?: string;
-  timestampSeconds?: number;
-  timestampAt?: number;
-  createdAt?: string;
-  user: {
-    id?: string;
-    userId?: string;
-    display_name?: string;
-    displayName?: string;
-    avatarUrl?: string | null;
-  };
-}
+/**
+ * Get current user's subscription and upload quota
+ * Essential for displaying user status and managing limits 
+ */
+export const getMySubscription = async (): Promise<SubscriptionDetails> => {
+  if (USE_MOCK) {
+    // Log to verify what the components are currently reading
+    console.log("Navbar is reading Mock Data:", MOCK_SUBSCRIPTION.subscriptionType);
+    
+    // Simulate network delay for realistic testing
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    return MOCK_SUBSCRIPTION;
+  }
 
-type BackendGetTrackCommentsResponse =
-  | BackendTrackComment[]
-  | {
-      page?: number;
-      limit?: number;
-      total?: number;
-      comments?: BackendTrackComment[];
+  // Real API call to GET /api/v1/subscriptions/me 
+  const response = await api.get("/subscriptions/me");
+  return response.data;
+};
+
+/**
+ * Upgrade user to PRO or GO+ plan
+ * Implements the logic to update status and perks 
+ */
+export const upgradeSubscription = async (type: "PRO" | "GO+") => {
+  if (USE_MOCK) {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    
+    // Update the mock object so other components see the change 
+    MOCK_SUBSCRIPTION = {
+      ...MOCK_SUBSCRIPTION,
+      subscriptionType: type,
+      uploadLimit: 100, // New limit for premium tiers 
+      remainingUploads: 99,
+      perks: { 
+        adFree: true, 
+        offlineListening: true 
+      },
     };
 
-    
-export async function getTrackComments(
-  trackId: string,
-  page = 1,
-  limit = 100
-): Promise<GetTrackCommentsResponse> {
-  const { data } = await api.get<BackendGetTrackCommentsResponse>(
-    `/interactions/tracks/${trackId}/comments?page=${page}&limit=${limit}`
-  );
+    return { 
+      message: "Success", 
+      newType: type,
+      status: "ACTIVE" 
+    };
+  }
 
-  const rawComments = Array.isArray(data) ? data : data.comments ?? [];
+  // Real API call using mocked payment method as required 
+  const response = await api.post("/subscriptions/subscribe", {
+    subscriptionType: type,
+    paymentMethodId: "mock_123"
+  });
+  return response.data;
+};
 
-  return {
-    page: Array.isArray(data) ? page : data.page ?? page,
-    limit: Array.isArray(data) ? limit : data.limit ?? limit,
-    total: Array.isArray(data) ? rawComments.length : data.total ?? rawComments.length,
-    comments: rawComments.map((comment) => ({
-      commentId: comment.commentId ?? comment.id ?? "",
+/**
+ * Get secure download link for offline listening
+ * Only accessible if subscription perks allow 
+ */
+export const getOfflineTrack = async (trackId: string): Promise<OfflineTrack> => {
+  if (USE_MOCK) {
+    return {
       trackId,
-      text: comment.text ?? comment.content ?? "",
-      timestampSeconds: comment.timestampSeconds ?? comment.timestampAt ?? 0,
-      createdAt: comment.createdAt ?? new Date().toISOString(),
-      user: {
-        id: comment.user.id ?? comment.user.userId ?? "",
-        display_name:
-          comment.user.display_name ??
-          comment.user.displayName ??
-          "Unknown User",
-      },
-    })),
-  };
-}
+      title: "Mock Track Title",
+      artist: "Mock Artist",
+      downloadUrl: "https://example.com/mock-download.mp3"
+    };
+  }
 
-export async function addTrackComment(
-  trackId: string,
-  body: AddTrackCommentBody
-): Promise<AddTrackCommentResponse> {
-  const payload = {
-    content: body.content,
-    timestampAt: body.timestampAt,
-  };
+  // Secure endpoint for premium users only 
+  const response = await api.get(`/subscriptions/offline/${trackId}`);
+  return response.data;
+};
 
-  const { data } = await api.post<AddTrackCommentResponse>(
-    `/interactions/tracks/${trackId}/comments`,
-    payload
-  );
-
-  return data;
-}
-
-export async function deleteTrackComment(commentId: string): Promise<{ message: string }> {
-  const { data } = await api.delete(`/interactions/comments/${commentId}`);
-  return data;
-}
+/**
+ * Check if the user has remaining upload quota
+ * Prevents exceeding limits as per Module 12 rules 
+ */
+export const canUserUpload = async (): Promise<boolean> => {
+  const sub = await getMySubscription();
+  // Returns true only if remaining quota is greater than 0 
+  return sub.remainingUploads > 0;
+};

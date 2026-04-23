@@ -1,7 +1,7 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import { Star } from 'lucide-react'; // Example star icon
+import { Star } from "lucide-react"; // Example star icon
 import DropdownMenu from "@/src/components/ui/DropdownMenu";
 import NavBarItem from "@/src/components/ui/NavBarItem";
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
@@ -27,7 +27,12 @@ import { useRouter } from "next/navigation";
 import { useLikeStore } from "@/src/store/likeStore";
 import { useRepostStore } from "@/src/store/repostStore";
 // --- SUBSCRIPTION IMPORTS ---
-import { getMySubscription, SubscriptionDetails } from '@/src/services/subscriptionService';
+import {
+  getMySubscription,
+  SubscriptionDetails,
+} from "@/src/services/subscriptionService";
+// 1. IMPORT THE SUBSCRIPTION MODAL COMPONENT
+import SubscriptionModal from '../subscription/SubscriptionModal';
 
 interface NavItem {
   label: string;
@@ -121,6 +126,7 @@ const NavBar: React.FC<NavBarProps> = ({
   className = "",
 }) => {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [isSubModalOpen, setIsSubModalOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null); // Ref for detecting clicks outside of the menu
 
   // --- SUBSCRIPTION STATE ---
@@ -154,39 +160,53 @@ const NavBar: React.FC<NavBarProps> = ({
   }, [user]);
 
   // --- FETCH SUBSCRIPTION ON MOUNT ---
-useEffect(() => {
-  const fetchSub = async () => {
-    try {
-      // We will call the service normally
-      const data = await getMySubscription();
-      setSub(data);
-    } catch (err) {
-      console.error("Navbar sync failed, but don't worry!");
-      
-      // Force mock data if API fails during development
-      if (process.env.NEXT_PUBLIC_USE_MOCK === "true") {
+  useEffect(() => {
+    const fetchSub = async () => {
+      try {
+        // We will call the service normally
+        const data = await getMySubscription();
+        console.log("Navbar fetched new status:", data.subscriptionType);
+        setSub(data);
+      } catch (err) {
+        console.error("Navbar sync failed, but don't worry!");
+
+        // Force mock data if API fails during development
+        if (process.env.NEXT_PUBLIC_USE_MOCK === "true") {
+        }
       }
-    }
-  };
-  fetchSub();
-}, []);
+    };
+    fetchSub();
+  }, []);
 
   // Sign-out handler — clears cookies on the backend, clears store
   const handleLogout = useCallback(async () => {
-  await logoutUser();
-  router.push("/");
-}, [router]);
+    await logoutUser();
+    router.push("/");
+  }, [router]);
 
-  
-  // Update Profile Menu to use the handle
-  const dynamicProfileMenu = useMemo(() => {
-    return profileMenu.map((item) => {
-      if (item.label === "Profile" && user?.handle) {
-        return { ...item, href: `/profiles/${user.handle}` };
+ // Update Profile Menu to use the handle and trigger Subscription Modal
+  const dynamicProfileMenu = useMemo(() => {
+    return profileMenu.map((item) => {
+      // 1. First Condition: Handle the Profile link
+      if (item.label === "Profile" && user?.handle) {
+        return { ...item, href: `/profiles/${user.handle}` };
+      }
+
+      // 2. Second Condition: Handle "Try Artist Pro" to open Modal
+      if (item.label === "Try Artist Pro") {
+        return { 
+          ...item, 
+          href: undefined, // Disable the old link to prevent navigation
+          onClick: () => {
+            setOpenMenu(null); // Close the black dropdown menu first
+            setIsSubModalOpen(true); // Open the colorful Subscription Modal
+          }
+        };
       }
-      return item;
-    });
-  }, [profileMenu, user?.handle]);
+
+      return item; // Return the rest of the items as they are
+    });
+  }, [profileMenu, user?.handle]);
 
   // Inject Logout handler
   const moreMenuWithLogout = useMemo(() => {
@@ -194,7 +214,6 @@ useEffect(() => {
       item.label === "Sign out" ? { ...item, onClick: handleLogout } : item,
     );
   }, [moreMenu, handleLogout]);
-
 
   useEffect(() => {
     // Close menus when clicking outside
@@ -299,24 +318,27 @@ useEffect(() => {
                 }}
               />
               {/* Show the user's display name and premium badge if applicable */}
-            {/* Inside the profile button area in Navbar.tsx */}
-{displayLabel && (
-  <div className="flex items-center gap-2">
-    <span className="hidden lg:block text-white text-sm font-medium max-w-24 truncate">
-      {displayLabel}
-    </span>
-    
-    {/* Check if sub exists and type is PRO or GO+ */}
-    {sub && (sub.subscriptionType === "PRO" || sub.subscriptionType === "GO+") && (
-      <div className="flex items-center bg-yellow-400 text-black text-[9px] px-1.5 py-0.5 rounded-full font-black uppercase tracking-tighter shadow-[0_0_10px_rgba(250,204,21,0.5)]">
-        <Star size={8} fill="black" className="mr-0.5" />
-        PRO
-      </div>
-    )}
-  </div>
-)}
+              {displayLabel && (
+                <div className="flex items-center gap-2">
+                  <span className="hidden lg:block text-white text-sm font-medium max-w-24 truncate">
+                    {displayLabel}
+                  </span>
+
+                  {/* Check if sub exists and type is PRO or GO+ */}
+                  {sub &&
+                    (sub.subscriptionType === "PRO" ||
+                      sub.subscriptionType === "GO+") && (
+                      <div className="flex items-center bg-yellow-400 text-black text-[9px] px-1.5 py-0.5 rounded-full font-black uppercase tracking-tighter shadow-[0_0_10px_rgba(250,204,21,0.5)]">
+                        <Star size={8} fill="black" className="mr-0.5" />
+                        PRO
+                      </div>
+                    )}
+                </div>
+              )}
               <FiChevronDown className="text-neutral-400" />
-              {openMenu === "profile" && <DropdownMenu items={dynamicProfileMenu} />}
+              {openMenu === "profile" && (
+                <DropdownMenu items={dynamicProfileMenu} />
+              )}
             </button>
           )}
 
@@ -359,7 +381,15 @@ useEffect(() => {
           )}
         </div>
       </div>
-
+{/* 5. ADD THE SUBSCRIPTION MODAL HERE */}
+      <SubscriptionModal 
+        isOpen={isSubModalOpen} 
+        onClose={() => setIsSubModalOpen(false)}
+        onUpgrade={() => {
+          setIsSubModalOpen(false);
+          router.push('/subscriptions');
+        }}
+      />
       {/* MOBILE */}
       {openMenu === "mobile" && (
         <div className="md:hidden bg-neutral-900 border-t border-neutral-700 p-4 hover:text-white">

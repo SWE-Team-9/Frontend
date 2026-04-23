@@ -27,7 +27,7 @@ export interface OfflineTrack {
  */
 let MOCK_SUBSCRIPTION: SubscriptionDetails = {
   userId: "usr_123",
-  subscriptionType: "PRO", // Starts as FREE
+  subscriptionType: "FREE", // Starts as FREE
   uploadLimit: 3, // Default for FREE tier
   uploadedTracks: 1,
   remainingUploads: 2,
@@ -67,6 +67,7 @@ export const getMySubscription = async (): Promise<SubscriptionDetails> => {
  */
 export const upgradeSubscription = async (type: "PRO" | "GO+") => {
   if (USE_MOCK) {
+    
     await new Promise((resolve) => setTimeout(resolve, 1000));
     
     // Update the mock object so other components see the change 

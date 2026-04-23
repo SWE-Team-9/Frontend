@@ -7,7 +7,7 @@ import { Cloud, Zap, Share2, RefreshCcw, PlayCircle, Globe, Mic2 } from 'lucide-
 
 export default function SubscriptionsPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false); // لحماية الزرار من الضغط المتكرر
+  const [loading, setLoading] = useState(false); 
 
 // Inside src/app/subscriptions/page.tsx
 
