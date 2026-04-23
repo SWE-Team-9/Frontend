@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useSearch } from "@/src/hooks/useSearch";
 import type { SearchType } from "@/src/types/search";
@@ -14,7 +15,7 @@ const TABS: { key: SearchType; label: string }[] = [
   { key: "playlists", label: "Playlists" },
 ];
 
-export default function SearchPage() {
+function SearchPageContent() {
   const router = useRouter();
   const sp = useSearchParams();
 
@@ -203,6 +204,23 @@ function ResultsSkeleton() {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<SearchFallback />}>
+      <SearchPageContent />
+    </Suspense>
+  );
+}
+
+function SearchFallback() {
+  return (
+    <div className="min-h-screen bg-[#121212] text-white flex items-center justify-center">
+      <div className="animate-spin w-8 h-8 border-2 border-white border-t-transparent rounded-full" />
     </div>
   );
 }
