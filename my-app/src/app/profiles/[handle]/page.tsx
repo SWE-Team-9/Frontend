@@ -7,9 +7,6 @@ import { FiShare } from "react-icons/fi";
 import { AvatarUpload } from "@/src/components/profile/AvatarUpload";
 import { CoverPhoto } from "@/src/components/profile/CoverPhoto";
 import { GrEdit } from "react-icons/gr";
-import { FaFacebook, FaTwitter, FaPinterest } from "react-icons/fa";
-import { TiSocialTumbler } from "react-icons/ti";
-import { HiOutlineEnvelope } from "react-icons/hi2";
 import { useProfileController } from "@/src/hooks/useProfileController";
 import { Stats } from "@/src/components/profile/sidebar/Stats";
 import { SocialLinksList } from "@/src/components/profile/sidebar/SocialLinksList";
@@ -22,9 +19,10 @@ import { useFollowStore } from "@/src/store/followStore";
 import { useLikeStore } from "@/src/store/likeStore";
 import { useProfileStore } from "@/src/store/useProfileStore";
 import TrackList from "@/src/components/tracks/TrackList";
-import Link from "next/dist/client/link";
+import Link from "next/link";
 import { TrackData } from "@/src/types/interactions";
 import { getUserLikes } from "@/src/services/likeService";
+import SharePopup from "@/src/components/share/SharePopup";
 
 type FollowUserShape = {
   id: string;
@@ -45,13 +43,14 @@ export default function ProfilePage({
 }: {
   params: Promise<{ handle: string }>;
 }) {
+  const [shareOpen, setShareOpen] = useState(false); // permalink state to be used in the SharePopup
   const resolvedParams = React.use(params);
   const handle = resolvedParams.handle;
   const [searchQuery, setSearchQuery] = useState("");
   const controller = useProfileController(handle);
   const setProfileData = useProfileStore((state) => state.setProfileData);
   const isOwner = controller.isOwner;
-  // ── Follow store ──────────────────────────────────────────────────────────
+  // Follow store
   const following = useFollowStore((state) => state.profileFollowing || []);
   const followers = useFollowStore((state) => state.profileFollowers || []);
   const fetchFollowing = useFollowStore((state) => state.fetchFollowing);
@@ -60,7 +59,7 @@ export default function ProfilePage({
   const checkIsFollowing = useFollowStore((state) => state.isFollowing);
   const followError = useFollowStore((state) => state.error);
 
-  // ── Like store ────────────────────────────────────────────────────────────
+  // Like store
   const likedTracks = useLikeStore((state) => state.likedTracks || []);
   const likeError = useLikeStore((state) => state.error);
   const [profileLikes, setProfileLikes] = useState<TrackData[]>([]);
@@ -73,43 +72,43 @@ export default function ProfilePage({
 
   // clear state to be used for the like
   useEffect(() => {
-  let isMounted = true; // Prevents state updates if user navigates away
+    let isMounted = true; // Prevents state updates if user navigates away
 
-  const fetchLikes = async () => {
-    if (!controller.userId) return;
+    const fetchLikes = async () => {
+      if (!controller.userId) return;
 
-    try {
-      setIsLikesLoading(true);
-      if (isOwner) {
-        // Use the local store for immediate UI updates
-        setProfileLikes(likedTracks);
-      } else {
-        const data = await getUserLikes(controller.userId);
-        
-        if (!isMounted) return;
+      try {
+        setIsLikesLoading(true);
+        if (isOwner) {
+          // Use the local store for immediate UI updates
+          setProfileLikes(likedTracks);
+        } else {
+          const data = await getUserLikes(controller.userId);
 
-        const cleanedData = data.map((t) => ({
-          ...t,
-          artistName: t.artistName ?? undefined,
-          coverArt: t.coverArt ?? undefined,
-        }));
-        
-        setProfileLikes(cleanedData as TrackData[]);
+          if (!isMounted) return;
+
+          const cleanedData = data.map((t) => ({
+            ...t,
+            artistName: t.artistName ?? undefined,
+            coverArt: t.coverArt ?? undefined,
+          }));
+
+          setProfileLikes(cleanedData as TrackData[]);
+        }
+      } catch (err) {
+        if (isMounted) console.error("Failed to fetch profile likes:", err);
+      } finally {
+        if (isMounted) setIsLikesLoading(false);
       }
-    } catch (err) {
-      if (isMounted) console.error("Failed to fetch profile likes:", err);
-    } finally {
-      if (isMounted) setIsLikesLoading(false);
-    }
-  };
+    };
 
-  fetchLikes();
+    fetchLikes();
 
-  return () => {
-    isMounted = false; // Cleanup function
-  };
-  // Use likedTracks.length to avoid unnecessary reference-check triggers
-}, [controller.userId, isOwner, likedTracks.length, handle]);
+    return () => {
+      isMounted = false; // Cleanup function
+    };
+    // Use likedTracks.length to avoid unnecessary reference-check triggers
+  }, [controller.userId, isOwner, likedTracks.length, handle]);
   // Fetch the new profile's follow data once userId is known
   useEffect(() => {
     if (controller.userId) {
@@ -135,16 +134,6 @@ export default function ProfilePage({
     setViewState,
     detailTab,
     setDetailTab,
-    isShareOpen,
-    setIsShareOpen,
-    shareTab,
-    setShareTab,
-    isShortened,
-    setIsShortened,
-    copied,
-    copyToClipboard,
-    shortLink,
-    longLink,
     showSuccessToast,
     accountType,
     setIsEditOpen,
@@ -245,7 +234,7 @@ export default function ProfilePage({
                     title: track.title,
                     likesCount: track.likesCount,
                     liked: true,
-                    artistName: track.artistName?? undefined,
+                    artistName: track.artistName ?? undefined,
                     coverArt: track.coverArt ?? undefined,
                   }}
                   isOwner={false}
@@ -486,12 +475,21 @@ export default function ProfilePage({
                     />
                   )}
 
-                  <button
-                    onClick={() => setIsShareOpen(true)}
-                    className={BUTTON_STYLE}
-                  >
-                    <FiShare size={15} /> Share
-                  </button>
+                  <div className="relative">
+                    <button
+                      onClick={() => setShareOpen((v) => !v)}
+                      className={BUTTON_STYLE}
+                    >
+                      <FiShare size={15} /> Share
+                    </button>
+
+                    {shareOpen && controller.handle && (
+                      <SharePopup
+                        permalink={`/${controller.handle}`}
+                        onClose={() => setShareOpen(false)}
+                      />
+                    )}
+                  </div>
 
                   {isOwner && (
                     <button
@@ -561,8 +559,9 @@ export default function ProfilePage({
                   </div>
                   {isLikesLoading ? (
                     <p className="text-xs text-zinc-600 font-bold uppercase animate-pulse">
-                      Loading likes...</p>
-                  ) : profileLikes.length===0 ? (
+                      Loading likes...
+                    </p>
+                  ) : profileLikes.length === 0 ? (
                     <p className="text-xs text-red-400 font-bold uppercase">
                       No liked tracks yet
                     </p>
@@ -592,7 +591,7 @@ export default function ProfilePage({
                           </p>
                           {track.artistName && (
                             <p className="text-[10px] text-zinc-500 uppercase truncate">
-                              {track.artistName|| "Unknown Artist"}
+                              {track.artistName || "Unknown Artist"}
                             </p>
                           )}
                         </div>
@@ -660,7 +659,9 @@ export default function ProfilePage({
 
         {/* ── EDIT MODAL ── */}
         <EditProfileModal
-          key={controller.isEditOpen ? "edit-profile-open" : "edit-profile-closed"}
+          key={
+            controller.isEditOpen ? "edit-profile-open" : "edit-profile-closed"
+          }
           isOpen={controller.isEditOpen}
           onClose={() => controller.setIsEditOpen(false)}
           data={{
@@ -679,113 +680,6 @@ export default function ProfilePage({
           }}
           handlers={controller}
         />
-
-        {/* ── SHARE MODAL ── */}
-        {isShareOpen && (
-          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-            <div className="bg-[#1a1a1a] w-full max-w-125 rounded-sm border border-[#333] shadow-2xl overflow-hidden relative">
-              <div className="flex border-b border-[#333]">
-                <button
-                  onClick={() => setShareTab("Share")}
-                  className={`px-6 py-4 text-sm font-bold transition-all uppercase ${shareTab === "Share" ? "text-white border-b-2 border-white" : "text-zinc-500 hover:text-white"}`}
-                >
-                  Share
-                </button>
-                <button
-                  onClick={() => setShareTab("Message")}
-                  className={`px-6 py-4 text-sm font-bold transition-all uppercase ${shareTab === "Message" ? "text-white border-b-2 border-white" : "text-zinc-500 hover:text-white"}`}
-                >
-                  Message
-                </button>
-              </div>
-              <div className="p-8 space-y-8">
-                {shareTab === "Share" ? (
-                  <>
-                    <div className="flex gap-4 mb-10">
-                      <div className="w-12.5 h-12.5 rounded-full bg-[#1DA1F2] flex items-center justify-center cursor-pointer hover:opacity-80 transition-all shadow-lg">
-                        <FaTwitter size={30} />
-                      </div>
-                      <div className="w-12.5 h-12.5 rounded-full bg-[#1877F2] flex items-center justify-center cursor-pointer hover:opacity-80 transition-all shadow-lg">
-                        <FaFacebook size={30} />
-                      </div>
-                      <div className="w-12.5 h-12.5 rounded-full bg-[#35465C] flex items-center justify-center cursor-pointer hover:opacity-80 transition-all shadow-lg">
-                        <TiSocialTumbler size={50} />
-                      </div>
-                      <div className="w-12.5 h-12.5 rounded-full bg-[#E60023] flex items-center justify-center cursor-pointer hover:opacity-80 transition-all shadow-lg">
-                        <FaPinterest size={30} />
-                      </div>
-                      <div className="w-12.5 h-12.5 rounded-full bg-[#333] flex items-center justify-center cursor-pointer hover:opacity-80 transition-all shadow-lg border border-zinc-700">
-                        <HiOutlineEnvelope size={30} />
-                      </div>
-                    </div>
-                    <div className="space-y-4">
-                      <div className="bg-[#111] border border-[#333] p-1 rounded flex items-center justify-between">
-                        <input
-                          readOnly
-                          value={isShortened ? shortLink : longLink}
-                          className="bg-transparent text-[13px] text-zinc-300 w-full outline-none px-2 font-bold"
-                        />
-                        <button
-                          onClick={copyToClipboard}
-                          className={`px-4 py-1.5 rounded text-xs font-bold transition-all uppercase ${copied ? "bg-green-600" : "bg-white text-black"}`}
-                        >
-                          {copied ? "Copied!" : "Copy"}
-                        </button>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="checkbox"
-                          id="shorten"
-                          checked={isShortened}
-                          onChange={() => setIsShortened(!isShortened)}
-                          className="w-5 h-5 accent-white"
-                        />
-                        <label
-                          htmlFor="shorten"
-                          className="text-sm text-white font-bold uppercase"
-                        >
-                          Shorten link
-                        </label>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <div className="space-y-4 animate-in fade-in duration-300 text-left">
-                    <div>
-                      <label className="block text-xs font-bold mb-1 uppercase text-zinc-400">
-                        To <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full bg-[#111] border border-[#333] p-2 rounded outline-none focus:border-white text-sm font-bold uppercase"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold mb-1 uppercase text-zinc-400">
-                        Message <span className="text-red-500">*</span>
-                      </label>
-                      <textarea
-                        defaultValue={longLink}
-                        className="w-full bg-[#111] border border-[#333] p-2 rounded h-32 outline-none focus:border-white text-sm resize-none font-bold uppercase"
-                      />
-                    </div>
-                    <div className="flex justify-end pt-2">
-                      <button className="bg-white text-black px-6 py-1.5 rounded font-bold text-sm hover:bg-zinc-200 uppercase">
-                        Send
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-              <button
-                onClick={() => setIsShareOpen(false)}
-                className="absolute top-4 right-4 text-zinc-500 hover:text-white text-xl"
-              >
-                ×
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* ── SUCCESS TOAST ── */}
         {showSuccessToast && (
