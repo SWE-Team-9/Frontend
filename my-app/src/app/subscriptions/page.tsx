@@ -3,35 +3,32 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation'; 
 import { PlanCard } from '@/src/components/subscription/PlanCard';
 import { upgradeSubscription } from '@/src/services/subscriptionService';
+import { useSubscriptionStore } from "@/src/store/useSubscriptionStore";
 import { Cloud, Zap, Share2, RefreshCcw, PlayCircle, Globe, Mic2 } from 'lucide-react';
 
 export default function SubscriptionsPage() {
+  const upgrade = useSubscriptionStore((state) => state.upgrade);
+const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const router = useRouter();
-  const [loading, setLoading] = useState(false); 
 
 // Inside src/app/subscriptions/page.tsx
 
-const handleSubscribe = async (planType: "PRO" | "GO+") => {
+const handleUpgrade = async (planType: "PRO" | "GO+") => {
   try {
-    setLoading(true);
-    
+    setLoadingPlan(planType); // Set loading state for the selected plan    
     // 1. Call the API service to upgrade the plan
-    await upgradeSubscription(planType);
-
+await upgrade(planType);
     // 2. Show a success message to the user
     alert(`Success! You are now a ${planType} member.`);
 
-    // 3. Redirect to your specific profile page
-    // We use window.location.href to force a refresh so the Navbar updates the Star badge
-    window.location.href = '/profiles/demo'; 
+    router.push('/discover'); // Redirect to Discover page after successful upgrade
     
-    // If your handle is 'gehad', change it to '/profiles/gehad'
     
   } catch (error) {
     console.error("Subscription failed:", error);
     alert("Something went wrong. Please try again.");
   } finally {
-    setLoading(false);
+    setLoadingPlan(null); // Reset loading state
   }
 };
   return (
@@ -73,7 +70,8 @@ const handleSubscribe = async (planType: "PRO" | "GO+") => {
             { text: "Distribute & monetize tracks", badge: "2X MONTH", icon: <Share2 size={28}/> },
             { text: "Track Replacement", badge: "3X MONTH", icon: <RefreshCcw size={28}/> }
           ]}
-          onSubscribe={() => handleSubscribe("PRO")}
+          onSubscribe={() => handleUpgrade("PRO")}
+          isLoading={loadingPlan === "PRO"}
         />
 
         {/* 3. ARTIST PRO PLAN - Unlimited professional tools */}
@@ -90,7 +88,8 @@ const handleSubscribe = async (planType: "PRO" | "GO+") => {
             { text: "Distribute & monetize tracks", badge: "UNLIMITED", icon: <Share2 size={28}/> },
             { text: "Replace tracks without losing stats", badge: "UNLIMITED", icon: <RefreshCcw size={28}/> }
           ]}
-          onSubscribe={() => handleSubscribe("GO+")}
+          onSubscribe={() => handleUpgrade("GO+")}
+           isLoading={loadingPlan === "GO+"}
         />
       </div>
 

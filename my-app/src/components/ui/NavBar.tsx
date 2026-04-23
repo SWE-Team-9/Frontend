@@ -27,10 +27,7 @@ import { useRouter } from "next/navigation";
 import { useLikeStore } from "@/src/store/likeStore";
 import { useRepostStore } from "@/src/store/repostStore";
 // --- SUBSCRIPTION IMPORTS ---
-import {
-  getMySubscription,
-  SubscriptionDetails,
-} from "@/src/services/subscriptionService";
+import { useSubscriptionStore } from "@/src/store/useSubscriptionStore";
 // 1. IMPORT THE SUBSCRIPTION MODAL COMPONENT
 import SubscriptionModal from '../subscription/SubscriptionModal';
 
@@ -129,8 +126,9 @@ const NavBar: React.FC<NavBarProps> = ({
   const [isSubModalOpen, setIsSubModalOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null); // Ref for detecting clicks outside of the menu
 
-  // --- SUBSCRIPTION STATE ---
-  const [sub, setSub] = useState<SubscriptionDetails | null>(null);
+  // --- SUBSCRIPTION STATE (from global store) ---
+const sub = useSubscriptionStore((state) => state.sub);
+const fetchSubscription = useSubscriptionStore((state) => state.fetchSubscription);
 
   // Read the current logged-in user from the global auth store
   const user = useAuthStore((state) => state.user);
@@ -160,23 +158,9 @@ const NavBar: React.FC<NavBarProps> = ({
   }, [user]);
 
   // --- FETCH SUBSCRIPTION ON MOUNT ---
-  useEffect(() => {
-    const fetchSub = async () => {
-      try {
-        // We will call the service normally
-        const data = await getMySubscription();
-        console.log("Navbar fetched new status:", data.subscriptionType);
-        setSub(data);
-      } catch (err) {
-        console.error("Navbar sync failed, but don't worry!");
-
-        // Force mock data if API fails during development
-        if (process.env.NEXT_PUBLIC_USE_MOCK === "true") {
-        }
-      }
-    };
-    fetchSub();
-  }, []);
+useEffect(() => {
+  fetchSubscription();
+}, [fetchSubscription]);
 
   // Sign-out handler — clears cookies on the backend, clears store
   const handleLogout = useCallback(async () => {

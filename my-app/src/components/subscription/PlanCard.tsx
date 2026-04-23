@@ -14,12 +14,14 @@ interface Feature {
 interface PlanCardProps {
   title: string;
   price: string;
+  isLoading?: boolean;
   yearlyPrice: string;
   description: string;
   features: Feature[];
   isPopular?: boolean;
   colorTheme: string; // Dynamic branding color
   onSubscribe: () => void;
+  
 }
 
 export const PlanCard: React.FC<PlanCardProps> = ({
@@ -31,6 +33,7 @@ export const PlanCard: React.FC<PlanCardProps> = ({
   isPopular,
   colorTheme,
   onSubscribe,
+  isLoading,
 }) => {
   return (
     <div 
@@ -83,13 +86,21 @@ export const PlanCard: React.FC<PlanCardProps> = ({
       <div className="mb-10">
         <button 
           onClick={onSubscribe}
+            disabled={isLoading}  
           className="w-full py-4 rounded-full font-black text-xs uppercase tracking-[0.2em] transition-all duration-300 bg-[#111] text-white hover:opacity-90"
           style={{ backgroundColor: '#111' }}
           onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = colorTheme)}
           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#111')}
         >
-          Get Started
-        </button>
+         {isLoading ? (
+    <span className="flex items-center justify-center gap-2">
+      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+      Upgrading...
+    </span>
+  ) : (
+    "Get started"
+  )}
+</button>
       </div>
 
       {/* ─── 3. FEATURES LIST SECTION ─── */}
