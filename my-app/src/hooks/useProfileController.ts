@@ -85,6 +85,9 @@ export const useProfileController = (handle?: string) => {
     "world",
     "gospel",
     "spoken-word",
+    "quran",
+    "sha3by",
+    "islamic",
   ];
 
   const loadProfile = useCallback(async () => {

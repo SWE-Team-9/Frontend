@@ -43,6 +43,9 @@ const GENRES = [
   "world",
   "gospel",
   "spoken-word",
+  "quran",
+  "sha3by",
+  "islamic",
 ];
 
 interface TrackFile {
@@ -257,6 +260,21 @@ export default function TrackDetailPage() {
             >
               {track.visibility}
             </span>
+          </div>
+        </div>
+
+        {/* Cover art */}
+        <div className="mb-6">
+          <label className="text-xs text-gray-500 uppercase tracking-widest mb-2 block">
+            Cover Art
+          </label>
+          <div className="relative w-40 h-40 rounded-xl overflow-hidden border border-[#2a2a2a] bg-[#121212]">
+            <Image
+              src={track.coverArtUrl || "/images/track-placeholder.png"}
+              alt={`${track.title} cover art`}
+              fill
+              className="object-cover"
+            />
           </div>
         </div>
 

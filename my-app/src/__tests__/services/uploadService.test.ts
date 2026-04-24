@@ -20,21 +20,34 @@ const mockMetadata = {
   releaseDate: '2026-01-01T00:00:00.000Z',
   visibility: 'PRIVATE' as const,
   description: 'A test track',
+  coverArt: null,
 };
 
 describe('uploadService', () => {
   beforeEach(() => jest.clearAllMocks());
 
   describe('uploadTrack', () => {
-    it('calls POST with a FormData body', async () => {
+    it('calls POST with FormData body including audio and optional cover art', async () => {
       mockPost.mockResolvedValue({ data: { trackId: 'trk_001', status: 'PROCESSING' } });
       const file = new File(['audio'], 'track.mp3', { type: 'audio/mpeg' });
-      const result = await uploadService.uploadTrack(file, mockMetadata);
+      const cover = new File(['image'], 'cover.png', { type: 'image/png' });
+      const result = await uploadService.uploadTrack(file, { ...mockMetadata, coverArt: cover });
       expect(mockPost).toHaveBeenCalled();
       const [url, body] = mockPost.mock.calls[0];
       expect(typeof url).toBe('string');
       expect(body).toBeInstanceOf(FormData);
+      expect((body as FormData).get('audioFile')).toBe(file);
+      expect((body as FormData).get('coverArt')).toBe(cover);
       expect(result).toEqual({ trackId: 'trk_001', status: 'PROCESSING' });
+    });
+
+    it('omits coverArt from FormData when no cover is provided', async () => {
+      mockPost.mockResolvedValue({ data: { trackId: 'trk_001', status: 'PROCESSING' } });
+      const file = new File(['audio'], 'track.mp3', { type: 'audio/mpeg' });
+      await uploadService.uploadTrack(file, { ...mockMetadata, coverArt: null });
+
+      const [, body] = mockPost.mock.calls[0];
+      expect((body as FormData).get('coverArt')).toBeNull();
     });
 
     it('rejects when API call fails', async () => {
