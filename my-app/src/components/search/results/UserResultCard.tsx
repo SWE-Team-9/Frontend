@@ -9,7 +9,7 @@ export default function UserResultCard({ user }: Props) {
   return (
     <Link
       href={`/profiles/${user.handle ?? user.id}`}
-      className="flex items-center gap-3 rounded p-2 hover:bg-gray-50"
+      className="flex items-center gap-3 rounded p-2"
     >
       <div className="h-12 w-12 overflow-hidden rounded-full bg-gray-200">
         {user.avatar_url && (
@@ -20,7 +20,7 @@ export default function UserResultCard({ user }: Props) {
           />
         )}
       </div>
-      <div className="font-medium">{user.display_name}</div>
+      <div className="font-bold">{user.display_name}</div>
     </Link>
   );
 }

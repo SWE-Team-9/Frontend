@@ -62,7 +62,7 @@ export default function SearchQuickResults({
               key={p.id}
               href={`/playlists/${p.id}`}
               onClick={onClose}
-              className="block py-1 hover:text-orange-500"
+              className="block py-1 hover:text-[#ff5500]"
             >
               {p.title}
             </Link>
@@ -73,7 +73,7 @@ export default function SearchQuickResults({
       <Link
         href={`/search?q=${encodeURIComponent(query)}`}
         onClick={onClose}
-        className="mt-2 block border-t pt-2 text-sm font-semibold text-orange-500"
+        className="mt-2 block border-t pt-2 text-sm font-semibold text-[#ff5500]"
       >
         See all results →
       </Link>

@@ -9,7 +9,7 @@ export default function PlaylistResultCard({ playlist }: Props) {
   return (
     <Link
       href={`/playlists/${playlist.id}`}
-      className="flex gap-3 rounded p-2 hover:bg-gray-50"
+      className="flex gap-3 rounded p-2"
     >
       <div className="h-14 w-14 overflow-hidden rounded bg-gray-200">
         {playlist.cover_url && (
@@ -20,7 +20,7 @@ export default function PlaylistResultCard({ playlist }: Props) {
           />
         )}
       </div>
-      <div className="font-medium">{playlist.title}</div>
+      <div className="font-bold">{playlist.title}</div>
     </Link>
   );
 }

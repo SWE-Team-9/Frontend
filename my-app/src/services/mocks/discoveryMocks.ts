@@ -59,6 +59,12 @@ export const MOCK_USERS = [
     display_name: "Mona Lisa",
     avatar_url: "https://picsum.photos/seed/u3/200/200",
   },
+  {
+    id: "usr_test_001",
+    handle: "test-user",
+    display_name: "Test User",
+    avatar_url: "https://picsum.photos/seed/testuser/200/200",
+  },
 ];
 
 export const MOCK_PLAYLISTS = [
