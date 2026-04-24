@@ -27,14 +27,14 @@ function SearchPageContent() {
   const page = Number(sp.get("page") ?? 1);
 
   //======================
-  //  Fetch results 
+  //  Fetch results
   //======================
   const { data, loading, error } = useSearch(q, {
     type,
     page,
     enabled: q.trim().length > 0,
   });
-  
+
   //========================================
   //  Update a single URL param and navigate
   //========================================
@@ -59,114 +59,119 @@ function SearchPageContent() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl p-6">
-      {/* Header */}
-      <h1 className="mb-1 text-2xl font-bold">
-        Results for <span className="text-orange-500">&quot;{q}&quot;</span>
-      </h1>
-      {data && (
-        <p className="mb-4 text-sm text-gray-500">
-          {data.meta.total_results} result
-          {data.meta.total_results === 1 ? "" : "s"} found
+    <div className="min-h-screen bg-[#121212] text-white">
+      <div className="mx-auto max-w-300 px-8 py-6">
+        {/* Header */}
+        <h1 className="mb-1 text-2xl font-bold">
+          Search results for &quot;{q}&quot;
+        </h1>
+        <p className="mb-8 text-sm text-neutral-500">
+          {data
+            ? `${data.meta.total_results} result${
+                data.meta.total_results === 1 ? "" : "s"
+              } found`
+            : "\u00A0"}
         </p>
-      )}
-
-      {/* Tabs */}
-      <div className="mb-6 flex gap-2 border-b">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setParam("type", t.key)}
-            className={`px-4 py-2 text-sm transition-colors ${
-              type === t.key
-                ? "border-b-2 border-orange-500 font-semibold text-orange-500"
-                : "text-gray-500 hover:text-gray-800"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Loading state */}
-      {loading && <ResultsSkeleton />}
-
-      {/* Error state */}
-      {error && !loading && (
-        <div className="rounded-md border border-red-200 bg-red-50 p-4 text-red-700">
-          Something went wrong: {error}
-        </div>
-      )}
-
-      {/* Results */}
-      {data && !loading && !error && (
-        <>
-          {/* No results at all */}
-          {data.data.tracks.length === 0 &&
-            data.data.users.length === 0 &&
-            data.data.playlists.length === 0 && (
-              <div className="py-12 text-center text-gray-500">
-                <p className="text-lg font-medium">No results found</p>
-                <p className="mt-1 text-sm">
-                  Try a different keyword or remove filters.
-                </p>
+        {/* Two-column layout: sidebar + results */}
+        <div className="flex gap-10">
+          {/* Sidebar */}
+          <aside className="w-70 shrink-0">
+            <nav className="flex flex-col gap-1">
+              {TABS.map((t) => {
+                const active = type === t.key;
+                return (
+                  <button
+                    key={t.key}
+                    onClick={() => setParam("type", t.key)}
+                    className={`rounded-md px-4 py-2 text-left text-sm font-semibold transition-colors ${
+                      active
+                        ? "bg-white text-black"
+                        : "text-neutral-300 hover:bg-neutral-800 hover:text-white"
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                );
+              })}
+            </nav>
+          </aside>
+          {/* Results column */}
+          <div className="min-w-0 flex-1">
+            {loading && <ResultsSkeleton />}
+            {error && !loading && (
+              <div className="rounded-md border border-red-900/50 bg-red-950/30 p-4 text-red-400">
+                Something went wrong: {error}
               </div>
             )}
-
-          {/* Tracks */}
-          {(type === "all" || type === "tracks") &&
-            data.data.tracks.length > 0 && (
-              <Section title="Tracks">
-                {data.data.tracks.map((t) => (
-                  <TrackResultCard key={t.id} track={t} />
-                ))}
-              </Section>
+            {data && !loading && !error && (
+              <>
+                {/* No results at all */}
+                {data.data.tracks.length === 0 &&
+                  data.data.users.length === 0 &&
+                  data.data.playlists.length === 0 && (
+                    <div className="py-16 text-center text-neutral-500">
+                      <p className="text-lg font-medium text-neutral-400">
+                        No results found
+                      </p>
+                      <p className="mt-1 text-sm">
+                        Try a different keyword or remove filters.
+                      </p>
+                    </div>
+                  )}
+                {/* Tracks */}
+                {(type === "all" || type === "tracks") &&
+                  data.data.tracks.length > 0 && (
+                    <Section title="Tracks">
+                      {data.data.tracks.map((t) => (
+                        <TrackResultCard key={t.id} track={t} />
+                      ))}
+                    </Section>
+                  )}
+                {/* People */}
+                {(type === "all" || type === "users") &&
+                  data.data.users.length > 0 && (
+                    <Section title="People">
+                      {data.data.users.map((u) => (
+                        <UserResultCard key={u.id} user={u} />
+                      ))}
+                    </Section>
+                  )}
+                {/* Playlists */}
+                {(type === "all" || type === "playlists") &&
+                  data.data.playlists.length > 0 && (
+                    <Section title="Playlists">
+                      {data.data.playlists.map((p) => (
+                        <PlaylistResultCard key={p.id} playlist={p} />
+                      ))}
+                    </Section>
+                  )}
+                {/* Pagination */}
+                {type !== "all" && data.meta.total_pages > 1 && (
+                  <div className="mt-8 flex items-center justify-center gap-3">
+                    <button
+                      disabled={page <= 1}
+                      onClick={() => setParam("page", String(page - 1))}
+                      className="rounded-md border border-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      ← Prev
+                    </button>
+                    <span className="text-sm text-neutral-400">
+                      Page {data.meta.current_page} of {data.meta.total_pages}
+                    </span>
+                    <button
+                      disabled={page >= data.meta.total_pages}
+                      onClick={() => setParam("page", String(page + 1))}
+                      className="rounded-md border border-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      Next →
+                    </button>
+                  </div>
+                )}
+              </>
             )}
-
-          {/* People */}
-          {(type === "all" || type === "users") &&
-            data.data.users.length > 0 && (
-              <Section title="People">
-                {data.data.users.map((u) => (
-                  <UserResultCard key={u.id} user={u} />
-                ))}
-              </Section>
-            )}
-
-          {/* Playlists */}
-          {(type === "all" || type === "playlists") &&
-            data.data.playlists.length > 0 && (
-              <Section title="Playlists">
-                {data.data.playlists.map((p) => (
-                  <PlaylistResultCard key={p.id} playlist={p} />
-                ))}
-              </Section>
-            )}
-
-          {/* Pagination — only meaningful inside a single-type tab */}
-          {type !== "all" && data.meta.total_pages > 1 && (
-            <div className="mt-8 flex items-center justify-center gap-3">
-              <button
-                disabled={page <= 1}
-                onClick={() => setParam("page", String(page - 1))}
-                className="rounded-md border px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50 hover:bg-gray-50"
-              >
-                ← Prev
-              </button>
-              <span className="text-sm text-gray-600">
-                Page {data.meta.current_page} of {data.meta.total_pages}
-              </span>
-              <button
-                disabled={page >= data.meta.total_pages}
-                onClick={() => setParam("page", String(page + 1))}
-                className="rounded-md border px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50 hover:bg-gray-50"
-              >
-                Next →
-              </button>
-            </div>
-          )}
-        </>
-      )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -183,8 +188,8 @@ function Section({
 }) {
   return (
     <div className="mb-8">
-      <h2 className="mb-3 text-lg font-semibold text-gray-800">{title}</h2>
-      <div className="space-y-1">{children}</div>
+      <h2 className="mb-3 text-lg font-semibold text-[#ff5500] pl-6">{title}</h2>
+      <div className="space-y-1 pl-6">{children}</div>
     </div>
   );
 }
@@ -207,7 +212,6 @@ function ResultsSkeleton() {
     </div>
   );
 }
-
 
 export default function SearchPage() {
   return (

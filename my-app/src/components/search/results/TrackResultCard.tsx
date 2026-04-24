@@ -9,7 +9,7 @@ export default function TrackResultCard({ track }: Props) {
   return (
     <Link
       href={`/tracks/${track.id}`}
-      className="flex gap-3 rounded p-2 hover:bg-gray-50"
+      className="flex gap-3 rounded p-2"
     >
       <div className="h-14 w-14 rounded bg-gray-200">
         {track.artwork_url && (
@@ -21,8 +21,8 @@ export default function TrackResultCard({ track }: Props) {
         )}
       </div>
       <div>
-        <div className="font-medium">{track.title}</div>
-        <div className="text-xs text-gray-500">{track.genre}</div>
+        <div className="font-bold">{track.title}</div>
+        <div className="text-md text-gray-500 font-bold">{track.genre}</div>
       </div>
     </Link>
   );
