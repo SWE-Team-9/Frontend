@@ -85,7 +85,26 @@ describe('TrackMetadataForm', () => {
         releaseDate: '2026-01-01',
         visibility: 'PRIVATE',
         description: 'A great track',
+        coverArt: null,
       });
+    });
+  });
+
+  it('includes selected cover art file in saved metadata', async () => {
+    render(<TrackMetadataForm />);
+    fillValidForm();
+
+    const cover = new File(['image'], 'cover.png', { type: 'image/png' });
+    fireEvent.change(screen.getByTestId('cover-art-input'), {
+      target: { files: [cover] },
+    });
+
+    fireEvent.click(screen.getByText('Save Info'));
+
+    await waitFor(() => {
+      expect(mockSetMetadata).toHaveBeenCalledWith(
+        expect.objectContaining({ coverArt: cover }),
+      );
     });
   });
 

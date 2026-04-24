@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import UploadButton from "@/src/components/upload/UploadButton";
 import { useUploadStore } from "@/src/store/useuploadStore";
 import DatePickerInput from "@/src/components/ui/DatePickerInput";
 import { WaveformDisplay } from "@/src/components/tracks/WaveformDisplay";
 
 const MAX_DESCRIPTION = 5000;
+const MAX_COVER_ART_SIZE = 15 * 1024 * 1024;
+const COVER_ART_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const GENRES = [
   "None",
   "electronic",
@@ -39,6 +41,9 @@ const GENRES = [
   "world",
   "gospel",
   "spoken-word",
+  "quran",
+  "sha3by",
+  "islamic",
 ];
 
 interface FormErrors {
@@ -47,6 +52,7 @@ interface FormErrors {
   tags?: string;
   releaseDate?: string;
   description?: string;
+  coverArt?: string;
 }
 
 const TrackMetadataForm = () => {
@@ -59,7 +65,61 @@ const TrackMetadataForm = () => {
   const [releaseDate, setReleaseDate] = useState("");
   const [visibility, setVisibility] = useState<"PUBLIC" | "PRIVATE">("PRIVATE");
   const [description, setDescription] = useState("");
+  const [coverArt, setCoverArt] = useState<File | null>(null);
+  const [coverArtPreview, setCoverArtPreview] = useState<string | null>(null);
   const [errors, setErrors] = useState<FormErrors>({});
+
+  useEffect(() => {
+    return () => {
+      if (coverArtPreview && typeof URL.revokeObjectURL === "function") {
+        URL.revokeObjectURL(coverArtPreview);
+      }
+    };
+  }, [coverArtPreview]);
+
+  const clearCoverArt = () => {
+    if (coverArtPreview && typeof URL.revokeObjectURL === "function") {
+      URL.revokeObjectURL(coverArtPreview);
+    }
+    setCoverArt(null);
+    setCoverArtPreview(null);
+    setErrors((prev) => ({ ...prev, coverArt: undefined }));
+  };
+
+  const handleCoverArtChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.files?.[0];
+    if (!selected) return;
+
+    if (!COVER_ART_MIME_TYPES.includes(selected.type)) {
+      setErrors((prev) => ({
+        ...prev,
+        coverArt: "Cover art must be JPEG, PNG, or WebP.",
+      }));
+      e.target.value = "";
+      return;
+    }
+
+    if (selected.size > MAX_COVER_ART_SIZE) {
+      setErrors((prev) => ({
+        ...prev,
+        coverArt: "Cover art must be 15 MB or smaller.",
+      }));
+      e.target.value = "";
+      return;
+    }
+
+    if (coverArtPreview && typeof URL.revokeObjectURL === "function") {
+      URL.revokeObjectURL(coverArtPreview);
+    }
+
+    setCoverArt(selected);
+    setCoverArtPreview(
+      typeof URL.createObjectURL === "function"
+        ? URL.createObjectURL(selected)
+        : null,
+    );
+    setErrors((prev) => ({ ...prev, coverArt: undefined }));
+  };
 
   const validate = (): boolean => {
     const newErrors: FormErrors = {};
@@ -99,6 +159,7 @@ const TrackMetadataForm = () => {
       releaseDate,
       visibility,
       description,
+      coverArt,
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
@@ -218,6 +279,59 @@ const TrackMetadataForm = () => {
                 Private
               </button>
             </div>
+          </div>
+
+          {/* Cover Art */}
+          <div className="flex flex-col gap-2 pt-4">
+            <label className="font-medium pb-2 text-xl">Cover Art (Optional)</label>
+            <input
+              id="cover-art-input"
+              data-testid="cover-art-input"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={handleCoverArtChange}
+            />
+            <label
+              htmlFor="cover-art-input"
+              className="inline-flex items-center justify-center w-full rounded border border-[#8c8c8c] px-4 py-2 text-sm font-semibold text-white hover:border-[#ff5500] hover:text-[#ff5500] transition duration-300 cursor-pointer"
+            >
+              Choose Cover Image
+            </label>
+            <p className="text-xs text-[#8c8c8c]">
+              JPEG, PNG, or WebP. Max size 15 MB.
+            </p>
+
+            {errors.coverArt && (
+              <p className="text-red-500 text-sm">{errors.coverArt}</p>
+            )}
+
+            {coverArt && (
+              <div className="mt-1 flex items-center gap-3 rounded border border-[#2a2a2a] bg-[#181818] p-2">
+                {coverArtPreview ? (
+                  <img
+                    src={coverArtPreview}
+                    alt="Cover art preview"
+                    className="h-14 w-14 rounded object-cover"
+                  />
+                ) : (
+                  <div className="h-14 w-14 rounded bg-[#2a2a2a]" />
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm text-white">{coverArt.name}</p>
+                  <p className="text-xs text-[#8c8c8c]">
+                    {(coverArt.size / (1024 * 1024)).toFixed(2)} MB
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={clearCoverArt}
+                  className="text-xs font-bold text-red-400 hover:text-red-300 transition duration-300"
+                >
+                  Remove
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

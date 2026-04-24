@@ -41,6 +41,7 @@ const METADATA = {
   tags: [] as string[],
   visibility: "PUBLIC" as const,
   description: "",
+  coverArt: null,
 };
 
 const makeFile = (name = "audio.mp3") =>
