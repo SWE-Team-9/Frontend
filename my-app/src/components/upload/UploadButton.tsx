@@ -10,6 +10,8 @@ import {
 } from "@/src/services/uploadService";
 import { useRouter } from "next/navigation";
 import { getMyProfile } from "@/src/services/profileService";
+import { useSubscriptionStore } from "@/src/store/useSubscriptionStore";
+import { decrementUploadQuota } from "@/src/services/subscriptionService";
 
 interface FileStatus {
   name: string;
@@ -25,7 +27,7 @@ const UploadButton: React.FC = () => {
   const [permissionError, setPermissionError] = useState<string | null>(null);
   const [isCheckingPermission, setIsCheckingPermission] = useState(false);
   const router = useRouter();
-
+const setSubFromStore = useSubscriptionStore((state) => state.setSubDirectly);
   const updateFileStatus = (
     fileName: string,
     status: FileStatus["status"],
@@ -128,14 +130,17 @@ const UploadButton: React.FC = () => {
         if (!metadata) throw new Error("Metadata missing");
         const data = await uploadTrack(file, metadata);
 
-        if (data.status === "PROCESSING" && data.trackId) {
-          // Set the visibility the user chose before polling starts
-          await changeTrackVisibility(data.trackId, metadata.visibility);
-          updateFileStatus(file.name, "PROCESSING", data.trackId);
-          pollTrackStatus(file.name, data.trackId);
-        } else {
-          updateFileStatus(file.name, "DONE");
-        }
+   if (data.status === "PROCESSING" && data.trackId) {
+  await changeTrackVisibility(data.trackId, metadata.visibility);
+  updateFileStatus(file.name, "PROCESSING", data.trackId);
+
+  const updatedSub = await decrementUploadQuota();
+  setSubFromStore(updatedSub);
+
+  pollTrackStatus(file.name, data.trackId);
+} else {
+  updateFileStatus(file.name, "DONE");
+}
       } catch (err: unknown) {
         updateFileStatus(
           file.name,

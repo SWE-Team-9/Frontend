@@ -11,6 +11,7 @@ interface SubscriptionStore {
   error: string | null;
   fetchSubscription: () => Promise<void>;
   upgrade: (type: "PRO" | "GO+") => Promise<void>;
+  setSubDirectly: (sub: SubscriptionDetails) => void;
 }
 
 /**
@@ -60,4 +61,7 @@ export const useSubscriptionStore = create<SubscriptionStore>((set) => ({
       set({ isLoading: false });
     }
   },
+  setSubDirectly: (sub: SubscriptionDetails) => {
+    set({ sub });
+  }
 }));

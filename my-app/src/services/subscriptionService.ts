@@ -29,8 +29,8 @@ let MOCK_SUBSCRIPTION: SubscriptionDetails = {
   userId: "usr_123",
   subscriptionType: "FREE", // Starts as FREE
   uploadLimit: 10, // Default for FREE tier
-  uploadedTracks: 1,
-  remainingUploads: 9, // Set to 0 to test the quota limit scenario
+  uploadedTracks: 10,
+  remainingUploads: 0, // Set to 0 to test the quota limit scenario
   perks: { 
     adFree: false, 
     offlineListening: false 
@@ -44,28 +44,46 @@ const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 
 /**
  * Get current user's subscription and upload quota
- * Essential for displaying user status and managing limits 
  */
 export const getMySubscription = async (): Promise<SubscriptionDetails> => {
   if (USE_MOCK) {
-    // Simulate network delay for realistic testing 
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    // --- TESTING LOGIC ---
-    // Decrease remaining count if greater than 0
-    if (MOCK_SUBSCRIPTION.remainingUploads > 0) {
-      MOCK_SUBSCRIPTION.remainingUploads -= 1; // Decrease remaining 
-      MOCK_SUBSCRIPTION.uploadedTracks += 1;   // Increase uploaded tracks 
-    }
-
-    console.log("Mock Updated - Remaining:", MOCK_SUBSCRIPTION.remainingUploads);
-    return { ...MOCK_SUBSCRIPTION }; // Return updated mock object 
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    return { ...MOCK_SUBSCRIPTION };
   }
-
-  // Real API call to GET /api/v1/subscriptions/me
   const response = await api.get("/subscriptions/me");
   return response.data;
 };
+
+/**
+ * Called ONLY after a successful uploadTrack() — mirrors what the real
+ * backend does: it decrements the quota when it receives the file.
+ */
+export const decrementUploadQuota = async (): Promise<SubscriptionDetails> => {
+  if (USE_MOCK) {
+    if (MOCK_SUBSCRIPTION.remainingUploads > 0) {
+      MOCK_SUBSCRIPTION = {
+        ...MOCK_SUBSCRIPTION,
+        remainingUploads: MOCK_SUBSCRIPTION.remainingUploads - 1,
+        uploadedTracks: MOCK_SUBSCRIPTION.uploadedTracks + 1,
+      };
+    }
+    console.log(
+      "[Mock] Upload quota decremented → remaining:",
+      MOCK_SUBSCRIPTION.remainingUploads,
+    );
+    return { ...MOCK_SUBSCRIPTION };
+  }
+  // Real backend decrements automatically on upload — just re-fetch
+  const response = await api.get("/subscriptions/me");
+  return response.data;
+};
+
+
+
+
+
+
+
 
 /**
  * Upgrade user to PRO or GO+ plan
