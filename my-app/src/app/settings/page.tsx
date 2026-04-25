@@ -16,6 +16,8 @@ import BlockedUsersList from "@/src/components/block-user/BlockedUsersList";
 import { useBlockStore } from "@/src/store/useblockStore";
 import { deactivateMyAccount } from "@/src/services/profileService";
 import { useProfileStore } from "@/src/store/useProfileStore";
+import SubscriptionSettings from "@/src/components/profile/SubscriptionSettings";
+import {  useSearchParams } from "next/navigation";
 
 // ─── Validation helpers ──────────────────────────────────────────────────────
 // Must match backend DTO rules exactly so we surface errors before the round-trip.
@@ -564,12 +566,32 @@ function AccountSection() {
 }
 
 // Page root
-type Tab = "security" | "sessions" | "privacy" | "account";
+type Tab = "security" | "sessions" | "privacy" | "subscription";
+
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<Tab>("security");
-  const user = useAuthStore((s) => s.user);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const user = useAuthStore((s) => s.user);
+
+  // Define valid tabs for validation
+  const validTabs: Tab[] = ["security", "sessions", "privacy", "subscription"];
+  
+  // Get the tab from URL query params
+  const tabFromUrl = searchParams.get("tab") as Tab;
+
+  // Initialize state directly from URL if valid, otherwise default to "security"
+  // This avoids the 'react-hooks/set-state-in-effect' error by calculating state during render
+  const [activeTab, setActiveTab] = useState<Tab>(
+    tabFromUrl && validTabs.includes(tabFromUrl) ? tabFromUrl : "security"
+  );
+
+  // Function to handle tab changes and update the URL simultaneously
+  const handleTabChange = (tabId: Tab) => {
+    setActiveTab(tabId);
+    // Sync the URL with the selected tab without triggering a page reload
+    router.push(`/settings?tab=${tabId}`, { scroll: false });
+  };
 
   const { fetchBlockedUsers, loadingUserId, blockUser, unblockUser } =
     useBlockStore();
@@ -588,11 +610,12 @@ export default function SettingsPage() {
     }
   }, [user, router]);
 
+  // Rest of your tabs array and other logic...
   const tabs: { id: Tab; label: string }[] = [
     { id: "security", label: "Security" },
     { id: "sessions", label: "Sessions" },
     { id: "privacy", label: "Privacy" },
-    { id: "account", label: "Account" },
+    { id: "subscription", label: "Subscription" },
   ];
 
   // Fetch blocked users when Privacy tab is opened
@@ -611,7 +634,7 @@ export default function SettingsPage() {
         {tabs.map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => handleTabChange(tab.id)} // Use the new handler here
             className={`pb-3 text-sm font-bold uppercase tracking-wider transition-colors ${
               activeTab === tab.id
                 ? "text-[#ff5500] border-b-2 border-[#ff5500]"
@@ -623,7 +646,7 @@ export default function SettingsPage() {
         ))}
       </div>
 
-      {/* Security tab: change password + change email */}
+      {/* Render sections based on activeTab... */}
       {activeTab === "security" && (
         <>
           <ChangePasswordSection />
@@ -631,18 +654,15 @@ export default function SettingsPage() {
         </>
       )}
 
-      {/* Sessions tab: active sessions list */}
       {activeTab === "sessions" && <SessionsSection />}
 
-      {/* Privacy tab: blocked users */}
       {activeTab === "privacy" && (
         <SectionCard title="Blocked Users">
           <BlockedUsersList loadingUserId={loadingUserId} />
         </SectionCard>
       )}
 
-      {/* Account tab: deactivate account */}
-      {activeTab === "account" && <AccountSection />}
+      {activeTab === "subscription" && <SubscriptionSettings />}
     </div>
   );
 }

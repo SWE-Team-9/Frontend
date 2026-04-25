@@ -25,6 +25,7 @@ import TrackList from "@/src/components/tracks/TrackList";
 import Link from "next/dist/client/link";
 import { TrackData } from "@/src/types/interactions";
 import { getUserLikes } from "@/src/services/likeService";
+import SubscriptionSettings from "@/src/components/profile/SubscriptionSettings";
 
 type FollowUserShape = {
   id: string;
@@ -107,7 +108,7 @@ export default function ProfilePage({
   const [likesPage, setLikesPage] = useState(1);
   const LIKES_LIMIT = 10;
   const [tracksPage, setTracksPage] = useState(1);
-const TRACKS_LIMIT = 10;
+  const TRACKS_LIMIT = 10;
   // Clear stale data immediately the moment the handle changes
   // 1. Reset data when handle changes
   useEffect(() => {
@@ -351,18 +352,20 @@ const TRACKS_LIMIT = 10;
             </p>
           </div>
         ))}
-{/* ── LIKES GRID DISPLAY & PAGINATION ── */}
+      {/* ── LIKES GRID DISPLAY & PAGINATION ── */}
       {/* This section renders the liked tracks and their specific pagination controls */}
-      {detailTab === "Likes" && (
-        profileLikes.length === 0 ? (
+      {detailTab === "Likes" &&
+        (profileLikes.length === 0 ? (
           <div className="py-20 text-center w-full">
-            <p className="text-xl font-bold text-zinc-600 uppercase">No likes found.</p>
+            <p className="text-xl font-bold text-zinc-600 uppercase">
+              No likes found.
+            </p>
           </div>
         ) : (
           <div className="flex flex-col items-center w-full">
             {/* Grid layout for displaying Track Cards */}
-<div className="grid grid-cols-1 gap-6 w-full max-w-5xl">
-                {profileLikes.map((track) => (
+            <div className="grid grid-cols-1 gap-6 w-full max-w-5xl">
+              {profileLikes.map((track) => (
                 <TrackCard
                   key={track.id}
                   track={{
@@ -371,7 +374,7 @@ const TRACKS_LIMIT = 10;
                     // artistName: track.artistName,
                     // coverArt: track.coverArt,
                     likesCount: track.likesCount,
-                    liked: true 
+                    liked: true,
                   }}
                   isOwner={isOwner}
                 />
@@ -408,8 +411,7 @@ const TRACKS_LIMIT = 10;
               </button>
             </div>
           </div>
-        )
-      )}
+        ))}
 
       {/* Back to Profile Button - Stays at the bottom of all tabs */}
       <button
@@ -462,7 +464,9 @@ const TRACKS_LIMIT = 10;
 
                   <button
                     // Disable next button if the current page covers all available tracks
-                    disabled={tracksPage * TRACKS_LIMIT >= controller.tracksCount}
+                    disabled={
+                      tracksPage * TRACKS_LIMIT >= controller.tracksCount
+                    }
                     onClick={() => {
                       setTracksPage((prev) => prev + 1);
                       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -660,6 +664,7 @@ const TRACKS_LIMIT = 10;
                 )}
 
                 <SocialLinksList links={links} />
+
 
                 {/* ── Likes preview ── */}
                 <div className="space-y-4">

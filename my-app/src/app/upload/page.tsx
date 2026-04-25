@@ -24,36 +24,38 @@ export default function UploadPage() {
   useEffect(() => {
     fetchSubscription();
   }, [fetchSubscription]);
+////////////////////comment/////////////////////
+  useEffect(() => {
+    let active = true;
 
-  // useEffect(() => {
-  //   let active = true;
+    getMyProfile()
+      .then((profile) => {
+        if (!active) return;
+        const isArtist =
+          profile.accountType?.trim().toUpperCase() === "ARTIST";
+        setCanUpload(isArtist);
+        setAccessMessage(
+          isArtist
+            ? null
+            : "Only users with ARTIST accounts can upload tracks.",
+        );
+      })
+      .catch(() => {
+        if (!active) return;
+        setCanUpload(false);
+        setAccessMessage("Could not verify upload permission. Please sign in again.");
+      })
+      .finally(() => {
+        if (!active) return;
+        setIsCheckingAccess(false);
+      });
 
-  //   getMyProfile()
-  //     .then((profile) => {
-  //       if (!active) return;
-  //       const isArtist =
-  //         profile.accountType?.trim().toUpperCase() === "ARTIST";
-  //       setCanUpload(isArtist);
-  //       setAccessMessage(
-  //         isArtist
-  //           ? null
-  //           : "Only users with ARTIST accounts can upload tracks.",
-  //       );
-  //     })
-  //     .catch(() => {
-  //       if (!active) return;
-  //       setCanUpload(false);
-  //       setAccessMessage("Could not verify upload permission. Please sign in again.");
-  //     })
-  //     .finally(() => {
-  //       if (!active) return;
-  //       setIsCheckingAccess(false);
-  //     });
+    return () => {
+      active = false;
+    };
+  }, []);
 
-  //   return () => {
-  //     active = false;
-  //   };
-  // }, []);
+  /////////////////////////comment//////////////////////////////
 
   // --- SECURITY GUARD LOGIC ---
   // Prevents Free users from exceeding their upload quota 

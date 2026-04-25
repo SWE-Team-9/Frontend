@@ -193,12 +193,26 @@ useEffect(() => {
   }, [profileMenu, user?.handle]);
 
   // Inject Logout handler
-  const moreMenuWithLogout = useMemo(() => {
-    return moreMenu.map((item) =>
-      item.label === "Sign out" ? { ...item, onClick: handleLogout } : item,
-    );
-  }, [moreMenu, handleLogout]);
+const moreMenuWithLogout = useMemo(() => {
+  return moreMenu.map((item) => {
+   
+    if (item.label === "Sign out") {
+      return { ...item, onClick: handleLogout };
+    }
 
+    if (item.label === "Subscription") {
+      return {
+        ...item,
+        onClick: () => {
+          setOpenMenu(null);      // Close the black dropdown menu first
+          setIsSubModalOpen(true); // Open the colorful Subscription Modal
+        }
+      };
+    }
+
+    return item;
+  });
+}, [moreMenu, handleLogout]);
   useEffect(() => {
     // Close menus when clicking outside
     const handleClickOutside = (event: MouseEvent) => {
@@ -371,7 +385,7 @@ useEffect(() => {
         onClose={() => setIsSubModalOpen(false)}
         onUpgrade={() => {
           setIsSubModalOpen(false);
-          router.push('/subscriptions');
+          router.push('/settings?tab=subscription');
         }}
       />
       {/* MOBILE */}

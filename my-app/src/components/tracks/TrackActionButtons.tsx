@@ -8,6 +8,7 @@ import { EngagementModal } from "@/src/components/profile/modals/EngagementModal
 import { useLikeStore } from '@/src/store/likeStore'; 
 import { useRepostStore } from '@/src/store/repostStore';
 import { TrackData } from "@/src/types/interactions";
+import { DownloadButton } from "@/src/components/tracks/DownloadButton";
 
 export interface TrackActionButtonsProps {
   trackId: string;
@@ -18,6 +19,7 @@ export interface TrackActionButtonsProps {
   liked: boolean;
   repostsCount: number;
   reposted: boolean;
+   downloadable?: boolean; 
   size?: "compact" | "full";
 }
 
@@ -107,7 +109,7 @@ export function LikeButton({
 }
 
 export function TrackActionButtons({
-  trackId, title, artistName, coverArt, likesCount:initialLikes, repostsCount, liked, reposted, size = "full",
+  trackId, title, artistName, coverArt, likesCount:initialLikes, repostsCount, liked, reposted,downloadable = false, size = "full",
 }: TrackActionButtonsProps) {
   const [modalType, setModalType] = useState<"likes" | "reposts" | null>(null);
   
@@ -175,6 +177,13 @@ export function TrackActionButtons({
           type={modalType} 
         />
       )}
+<DownloadButton
+  trackId={trackId}
+  trackTitle={title}
+  downloadable={downloadable}
+  size={size}
+/>
+
     </div>
   );
 }

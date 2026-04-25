@@ -29,8 +29,8 @@ let MOCK_SUBSCRIPTION: SubscriptionDetails = {
   userId: "usr_123",
   subscriptionType: "FREE", // Starts as FREE
   uploadLimit: 10, // Default for FREE tier
-  uploadedTracks: 10,
-  remainingUploads: 0, // Set to 0 to test the quota limit scenario
+  uploadedTracks: 9,
+  remainingUploads: 1, // Set to 0 to test the quota limit scenario
   perks: { 
     adFree: false, 
     offlineListening: false 
@@ -80,65 +80,87 @@ export const decrementUploadQuota = async (): Promise<SubscriptionDetails> => {
 
 
 
-
-
-
-
-
 /**
  * Upgrade user to PRO or GO+ plan
  * Implements the logic to update status and perks 
  */
 export const upgradeSubscription = async (type: "PRO" | "GO+") => {
-  if (USE_MOCK) {
-    
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    
-    // Update the mock object so other components see the change 
-    MOCK_SUBSCRIPTION = {
-      ...MOCK_SUBSCRIPTION,
-      subscriptionType: type,
-      uploadLimit: 100, // Default for PRO/GO+ tiers
-  uploadedTracks: 10,
-  remainingUploads: 90, // Set to 0 to test the quota limit scenario
-      perks: { 
-        adFree: true, 
-        offlineListening: true 
-      },
-    };
+  await new Promise((resolve) => setTimeout(resolve, 1500));
 
-    return { 
-      message: "Success", 
-      newType: type,
-      status: "ACTIVE" 
-    };
+  MOCK_SUBSCRIPTION.subscriptionType = type;
+  
+  if (type === "PRO") {
+    MOCK_SUBSCRIPTION.uploadLimit = 100; // 100 FOR PRO
+    MOCK_SUBSCRIPTION.perks.adFree = true;
+    MOCK_SUBSCRIPTION.perks.offlineListening = true;
+  } else if (type === "GO+") {
+    MOCK_SUBSCRIPTION.uploadLimit = 1000; // 1000 FOR GO+
+    MOCK_SUBSCRIPTION.perks.adFree = true;
+    MOCK_SUBSCRIPTION.perks.offlineListening = true;
   }
 
-  // Real API call using mocked payment method as required 
-  const response = await api.post("/subscriptions/subscribe", {
-    subscriptionType: type,
-    paymentMethodId: "mock_123"
-  });
-  return response.data;
+  MOCK_SUBSCRIPTION.remainingUploads = MOCK_SUBSCRIPTION.uploadLimit - MOCK_SUBSCRIPTION.uploadedTracks;
+
+  return { success: true, newType: type };
 };
 
+/**
+ * Cancel the current subscription — backend sets type back to FREE
+ */
+export const cancelSubscription = async (): Promise<SubscriptionDetails> => {
+  if (USE_MOCK) {
+    await new Promise((r) => setTimeout(r, 800));
+    MOCK_SUBSCRIPTION = {
+      ...MOCK_SUBSCRIPTION,
+      subscriptionType: "FREE",
+      uploadLimit: 3,
+      remainingUploads: 3 - MOCK_SUBSCRIPTION.uploadedTracks,
+      perks: { adFree: false, offlineListening: false },
+    };
+    return { ...MOCK_SUBSCRIPTION };
+  }
+  const response = await api.post("/subscriptions/cancel");
+  return response.data;
+};
 /**
  * Get secure download link for offline listening
  * Only accessible if subscription perks allow 
  */
+export class DownloadForbiddenError extends Error {
+  constructor() {
+    super("DOWNLOAD_FORBIDDEN");
+    this.name = "DownloadForbiddenError";
+  }
+}
+
 export const getOfflineTrack = async (trackId: string): Promise<OfflineTrack> => {
   if (USE_MOCK) {
+    // Guard: check the current mock subscription tier
+    if (
+      MOCK_SUBSCRIPTION.subscriptionType === "FREE" ||
+      !MOCK_SUBSCRIPTION.perks.offlineListening
+    ) {
+      // Simulate exactly what the real backend returns → 403 Forbidden
+      throw new DownloadForbiddenError();
+    }
+
     return {
       trackId,
-      title: "Mock Track Title",
+      title: "Mock PRO Track",
       artist: "Mock Artist",
-      downloadUrl: "https://example.com/mock-download.mp3"
+      downloadUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
     };
   }
 
-  // Secure endpoint for premium users only 
-  const response = await api.get(`/subscriptions/offline/${trackId}`);
-  return response.data;
+  try {
+    const response = await api.get(`/subscriptions/offline/${trackId}`);
+    return response.data;
+  } catch (err: unknown) {
+    // Re-map real backend 403 → DownloadForbiddenError
+    const status = (err as { response?: { status?: number } })?.response?.status;
+    if (status === 403) throw new DownloadForbiddenError();
+    throw err;
+  }
 };
 
 /**
