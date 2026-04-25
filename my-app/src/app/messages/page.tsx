@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import NavBar from "@/src/components/ui/NavBar";
 import ConversationList from "@/src/components/messages/ConversationList";
 import ChatWindow from "@/src/components/messages/ChatWindow";
 import NewMessageModal from "@/src/components/messages/NewMessageModal";
@@ -15,13 +16,17 @@ export default function MessagesPage() {
   }, [loadConversations]);
 
   return (
-    <main className="min-h-screen bg-[#121212] pt-16 text-white">
-      <div className="mx-auto flex max-w-7xl">
-        <ConversationList />
-        <ChatWindow />
-      </div>
+    <>
+      <NavBar />
 
-      {isNewMessageOpen && <NewMessageModal />}
-    </main>
+      <main className="min-h-screen bg-[#121212] pt-16 text-white">
+        <div className="mx-auto flex max-w-7xl">
+          <ConversationList />
+          <ChatWindow />
+        </div>
+
+        {isNewMessageOpen && <NewMessageModal />}
+      </main>
+    </>
   );
 }
