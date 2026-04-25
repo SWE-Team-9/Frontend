@@ -24,6 +24,8 @@ import { useRouter } from "next/navigation";
 // --- NEW IMPORTS ---
 import { useLikeStore } from "@/src/store/likeStore";
 import { useRepostStore } from "@/src/store/repostStore";
+import MessagesDropdown from "@/src/components/messages/MessagesDropdown";
+import { useMessageStore } from "@/src/store/messageStore";
 
 interface NavItem {
   label: string;
@@ -131,6 +133,15 @@ const NavBar: React.FC<NavBarProps> = ({
   const displayLabel = user
     ? user.displayName || user.handle || user.email.split("@")[0]
     : null;
+
+  const unreadMessageCount = useMessageStore((state) => state.unreadCount);
+  const loadUnreadCount = useMessageStore((state) => state.loadUnreadCount);
+
+  useEffect(() => {
+    if (user?.id) {
+      loadUnreadCount();
+    }
+  }, [user?.id, loadUnreadCount]);  
 
   // --- SYNC INTERACTIONS ON LOAD ---
   useEffect(() => {
@@ -294,7 +305,12 @@ const NavBar: React.FC<NavBarProps> = ({
               onClick={() => toggleMenu("messages")}
             >
               <FiMail size={20} className="text-neutral-400 hover:text-white" />
-              {openMenu === "messages" && messagesContent}
+
+              {unreadMessageCount > 0 && (
+                <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-[#ff5500]" />
+              )}
+
+              {openMenu === "messages" && <MessagesDropdown />}
             </button>
           )}
 
