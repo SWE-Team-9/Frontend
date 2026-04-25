@@ -9,7 +9,8 @@ import {
   Heart,
   MoreHorizontal,
 } from "lucide-react";
-import type { SharedPlaylist } from "@/src/types/messages";
+import type { SharedPlaylist, SharedTrack } from "@/src/types/messages";
+import { usePlayerStore, type Track as PlayerTrack } from "@/src/store/playerStore";
 
 const FALLBACK = "/images/track-placeholder.png";
 
@@ -19,10 +20,19 @@ function formatCount(n = 0) {
   return String(n);
 }
 
-function formatDuration(seconds = 0) {
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${mins}:${secs.toString().padStart(2, "0")}`;
+function mapSharedTrackToPlayerTrack(track: SharedTrack): PlayerTrack {
+  return {
+    trackId: track.id,
+    title: track.title,
+    artist: track.artist.display_name,
+    artistId: track.artist.id,
+    artistHandle: track.artist.handle,
+    artistAvatarUrl: track.artist.avatar_url ?? null,
+    cover: track.coverArtUrl || FALLBACK,
+    duration: track.durationSeconds,
+    plays: track.playCount,
+    accessState: "PLAYABLE",
+  };
 }
 
 function MockWaveform() {
@@ -49,7 +59,33 @@ export default function SharedPlaylistCard({
 }: {
   playlist: SharedPlaylist;
 }) {
+  const setTracks = usePlayerStore((s) => s.setTracks);
+  const fetchAndPlay = usePlayerStore((s) => s.fetchAndPlay);
+  const currentTrack = usePlayerStore((s) => s.currentTrack);
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
+  const toggle = usePlayerStore((s) => s.toggle);
+
+  const playlistTracks = (playlist.tracksPreview ?? []).map(mapSharedTrackToPlayerTrack);
   const firstTrack = playlist.tracksPreview?.[0];
+
+  const playPlaylistFromTrack = async (track: SharedTrack) => {
+    const playerTracks = (playlist.tracksPreview ?? []).map(mapSharedTrackToPlayerTrack);
+    const clickedTrack = mapSharedTrackToPlayerTrack(track);
+
+    if (currentTrack?.trackId === clickedTrack.trackId) {
+      await toggle();
+      return;
+    }
+
+    // Playlist queue = playlist tracks.
+    setTracks(playerTracks);
+    await fetchAndPlay(clickedTrack);
+  };
+
+  const handlePlayPlaylist = async () => {
+    if (!firstTrack) return;
+    await playPlaylistFromTrack(firstTrack);
+  };
 
   return (
     <div className="mt-3 max-w-[680px] text-white">
@@ -66,7 +102,12 @@ export default function SharedPlaylistCard({
 
         <div className="min-w-0 flex-1">
           <div className="flex items-start gap-3">
-            <button className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-black">
+            <button
+              onClick={handlePlayPlaylist}
+              disabled={playlistTracks.length === 0}
+              className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-black disabled:opacity-50"
+              aria-label="Play playlist"
+            >
               <Play className="ml-0.5 h-5 w-5 fill-black" />
             </button>
 
@@ -83,38 +124,43 @@ export default function SharedPlaylistCard({
           <MockWaveform />
 
           <div className="mt-3 space-y-2">
-            {(playlist.tracksPreview ?? []).slice(0, 5).map((track, index) => (
-              <div
-                key={track.id}
-                className="flex items-center gap-2 text-sm text-zinc-300"
-              >
-                <span className="w-4 text-right text-zinc-500">
-                  {index + 2}
-                </span>
+            {(playlist.tracksPreview ?? []).slice(0, 5).map((track, index) => {
+              const isCurrentTrack = currentTrack?.trackId === track.id;
 
-                <div className="relative h-7 w-7 shrink-0 overflow-hidden bg-zinc-800">
-                  <Image
-                    src={track.coverArtUrl || FALLBACK}
-                    alt={track.title}
-                    fill
-                    className="object-cover"
-                    unoptimized
-                  />
-                </div>
+              return (
+                <button
+                  key={track.id}
+                  onClick={() => playPlaylistFromTrack(track)}
+                  className="flex w-full items-center gap-2 text-left text-sm text-zinc-300 hover:text-white"
+                >
+                  <span className="w-4 text-right text-zinc-500">
+                    {index + 1}
+                  </span>
 
-                <span className="truncate text-zinc-400">
-                  {track.artist.display_name}
-                </span>
+                  <div className="relative h-7 w-7 shrink-0 overflow-hidden bg-zinc-800">
+                    <Image
+                      src={track.coverArtUrl || FALLBACK}
+                      alt={track.title}
+                      fill
+                      className="object-cover"
+                      unoptimized
+                    />
+                  </div>
 
-                <span className="truncate font-bold text-white">
-                  · {track.title}
-                </span>
+                  <span className="truncate text-zinc-400">
+                    {track.artist.display_name}
+                  </span>
 
-                <span className="ml-auto shrink-0 text-xs text-zinc-500">
-                  ▶ {formatCount(track.playCount)}
-                </span>
-              </div>
-            ))}
+                  <span className="truncate font-bold text-white">
+                    · {track.title}
+                  </span>
+
+                  <span className="ml-auto shrink-0 text-xs text-zinc-500">
+                    {isCurrentTrack && isPlaying ? "Playing" : `▶ ${formatCount(track.playCount)}`}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
           <button className="mt-3 text-sm font-bold text-white hover:underline">

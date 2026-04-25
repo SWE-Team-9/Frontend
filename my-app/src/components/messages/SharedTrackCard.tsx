@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { Play, Upload, Repeat2, Link2, MoreHorizontal } from "lucide-react";
 import type { SharedTrack } from "@/src/types/messages";
+import { usePlayerStore, type Track as PlayerTrack } from "@/src/store/playerStore";
 
 const FALLBACK = "/images/track-placeholder.png";
 
@@ -16,6 +17,21 @@ function formatDuration(seconds = 0) {
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
   return `${mins}:${secs.toString().padStart(2, "0")}`;
+}
+
+function mapSharedTrackToPlayerTrack(track: SharedTrack): PlayerTrack {
+  return {
+    trackId: track.id,
+    title: track.title,
+    artist: track.artist.display_name,
+    artistId: track.artist.id,
+    artistHandle: track.artist.handle,
+    artistAvatarUrl: track.artist.avatar_url ?? null,
+    cover: track.coverArtUrl || FALLBACK,
+    duration: track.durationSeconds,
+    plays: track.playCount,
+    accessState: "PLAYABLE",
+  };
 }
 
 function MockWaveform({ duration }: { duration?: number }) {
@@ -42,6 +58,27 @@ function MockWaveform({ duration }: { duration?: number }) {
 }
 
 export default function SharedTrackCard({ track }: { track: SharedTrack }) {
+  const setTracks = usePlayerStore((s) => s.setTracks);
+  const fetchAndPlay = usePlayerStore((s) => s.fetchAndPlay);
+  const currentTrack = usePlayerStore((s) => s.currentTrack);
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
+  const toggle = usePlayerStore((s) => s.toggle);
+
+  const isCurrentTrack = currentTrack?.trackId === track.id;
+
+  const handlePlay = async () => {
+    if (isCurrentTrack) {
+      await toggle();
+      return;
+    }
+
+    const playerTrack = mapSharedTrackToPlayerTrack(track);
+
+    // Single shared track should play alone.
+    setTracks([playerTrack]);
+    await fetchAndPlay(playerTrack);
+  };
+
   return (
     <div className="mt-3 max-w-[620px] text-white">
       <div className="flex gap-4">
@@ -57,7 +94,11 @@ export default function SharedTrackCard({ track }: { track: SharedTrack }) {
 
         <div className="min-w-0 flex-1">
           <div className="flex items-start gap-3">
-            <button className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-black">
+            <button
+              onClick={handlePlay}
+              className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-black"
+              aria-label={isCurrentTrack && isPlaying ? "Pause track" : "Play track"}
+            >
               <Play className="ml-0.5 h-5 w-5 fill-black" />
             </button>
 
