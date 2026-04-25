@@ -22,7 +22,7 @@ interface Props {
 
 // Main TrackList component
 export function TrackList({ tracks, canEdit = false, onRemove, onReorder }: Props) {
-  // Function to reorder tracks locally and notify parent component
+ 
   const move = (from: number, to: number) => {
     // Prevent invalid index moves
     if (to < 0 || to >= tracks.length) return;
