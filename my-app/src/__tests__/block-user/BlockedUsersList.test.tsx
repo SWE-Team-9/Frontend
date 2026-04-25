@@ -1,4 +1,4 @@
-/* eslint-disable react/display-name */
+ 
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import BlockedUsersList from '@/src/components/block-user/BlockedUsersList';
