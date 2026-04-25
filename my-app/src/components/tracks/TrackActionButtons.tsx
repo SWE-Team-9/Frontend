@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState } from "react";
 import { AiOutlineHeart, AiFillHeart } from "react-icons/ai";
 import { BiRepost } from "react-icons/bi";
-import { RiShareForwardLine } from "react-icons/ri";
 import { EngagementModal } from "@/src/components/profile/modals/EngagementModal";
 import { useLikeStore } from '@/src/store/likeStore'; 
 import { useRepostStore } from '@/src/store/repostStore';
@@ -166,8 +165,6 @@ export function TrackActionButtons({
           </span>
         )}
       </div>
-
-      <SCButton label="Share"><RiShareForwardLine size={15} /></SCButton>
       
       {modalType && (
         <EngagementModal 

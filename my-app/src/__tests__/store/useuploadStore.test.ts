@@ -11,6 +11,7 @@ const mockMetadata = {
   releaseDate: "2026-03-01",
   visibility: "PUBLIC" as const,
   description: "A test description",
+  coverArt: null,
 };
 
 describe("useUploadStore", () => {
@@ -164,6 +165,7 @@ describe("useUploadStore", () => {
       expect(stored?.releaseDate).toBe("2026-03-01");
       expect(stored?.visibility).toBe("PUBLIC");
       expect(stored?.description).toBe("A test description");
+      expect(stored?.coverArt).toBeNull();
     });
   });
 });

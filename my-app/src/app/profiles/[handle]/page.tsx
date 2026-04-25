@@ -7,9 +7,6 @@ import { FiShare } from "react-icons/fi";
 import { AvatarUpload } from "@/src/components/profile/AvatarUpload";
 import { CoverPhoto } from "@/src/components/profile/CoverPhoto";
 import { GrEdit } from "react-icons/gr";
-import { FaFacebook, FaTwitter, FaPinterest } from "react-icons/fa";
-import { TiSocialTumbler } from "react-icons/ti";
-import { HiOutlineEnvelope } from "react-icons/hi2";
 import { useProfileController } from "@/src/hooks/useProfileController";
 import { Stats } from "@/src/components/profile/sidebar/Stats";
 import { SocialLinksList } from "@/src/components/profile/sidebar/SocialLinksList";
@@ -22,10 +19,10 @@ import { useFollowStore } from "@/src/store/followStore";
 import { useLikeStore } from "@/src/store/likeStore";
 import { useProfileStore } from "@/src/store/useProfileStore";
 import TrackList from "@/src/components/tracks/TrackList";
-import Link from "next/dist/client/link";
+import Link from "next/link";
 import { TrackData } from "@/src/types/interactions";
 import { getUserLikes } from "@/src/services/likeService";
-import SubscriptionSettings from "@/src/components/profile/SubscriptionSettings";
+import SharePopup from "@/src/components/share/SharePopup";
 
 type FollowUserShape = {
   id: string;
@@ -46,10 +43,85 @@ export default function ProfilePage({
 }: {
   params: Promise<{ handle: string }>;
 }) {
+  const [shareOpen, setShareOpen] = useState(false); // permalink state to be used in the SharePopup
   const resolvedParams = React.use(params);
   const handle = resolvedParams.handle;
   const [searchQuery, setSearchQuery] = useState("");
   const controller = useProfileController(handle);
+  const setProfileData = useProfileStore((state) => state.setProfileData);
+  const isOwner = controller.isOwner;
+  // Follow store
+  const following = useFollowStore((state) => state.profileFollowing || []);
+  const followers = useFollowStore((state) => state.profileFollowers || []);
+  const fetchFollowing = useFollowStore((state) => state.fetchFollowing);
+  const fetchFollowers = useFollowStore((state) => state.fetchFollowers);
+  const storeToggleFollow = useFollowStore((state) => state.toggleFollow);
+  const checkIsFollowing = useFollowStore((state) => state.isFollowing);
+  const followError = useFollowStore((state) => state.error);
+
+  // Like store
+  const likedTracks = useLikeStore((state) => state.likedTracks || []);
+  const likeError = useLikeStore((state) => state.error);
+  const [profileLikes, setProfileLikes] = useState<TrackData[]>([]);
+  const [isLikesLoading, setIsLikesLoading] = useState(false);
+
+  // Clear stale data immediately the moment the handle changes
+  useEffect(() => {
+    useFollowStore.setState({ profileFollowing: [], profileFollowers: [] });
+  }, [handle]);
+
+  // clear state to be used for the like
+  useEffect(() => {
+    let isMounted = true; // Prevents state updates if user navigates away
+
+    const fetchLikes = async () => {
+      if (!controller.userId) return;
+
+      try {
+        setIsLikesLoading(true);
+        if (isOwner) {
+          // Use the local store for immediate UI updates
+          setProfileLikes(likedTracks);
+        } else {
+          const data = await getUserLikes(controller.userId);
+
+          if (!isMounted) return;
+
+          const cleanedData = data.map((t) => ({
+            ...t,
+            artistName: t.artistName ?? undefined,
+            coverArt: t.coverArt ?? undefined,
+          }));
+
+          setProfileLikes(cleanedData as TrackData[]);
+        }
+      } catch (err) {
+        if (isMounted) console.error("Failed to fetch profile likes:", err);
+      } finally {
+        if (isMounted) setIsLikesLoading(false);
+      }
+    };
+
+    fetchLikes();
+
+    return () => {
+      isMounted = false; // Cleanup function
+    };
+    // Use likedTracks.length to avoid unnecessary reference-check triggers
+  }, [controller.userId, isOwner, likedTracks.length, handle]);
+  // Fetch the new profile's follow data once userId is known
+  useEffect(() => {
+    if (controller.userId) {
+      fetchFollowing(controller.userId, { syncProfileList: true });
+      fetchFollowers(controller.userId, { syncProfileList: true });
+    }
+  }, [controller.userId, fetchFollowing, fetchFollowers]);
+
+  const router = useRouter();
+
+  const BUTTON_STYLE =
+    "bg-zinc-800/50 border border-zinc-700 px-4 py-1 rounded text-xs font-bold hover:bg-zinc-700 transition-colors uppercase flex items-center gap-2";
+
   const {
     displayName,
     location,
@@ -62,16 +134,6 @@ export default function ProfilePage({
     setViewState,
     detailTab,
     setDetailTab,
-    isShareOpen,
-    setIsShareOpen,
-    shareTab,
-    setShareTab,
-    isShortened,
-    setIsShortened,
-    copied,
-    copyToClipboard,
-    shortLink,
-    longLink,
     showSuccessToast,
     accountType,
     setIsEditOpen,
@@ -79,111 +141,7 @@ export default function ProfilePage({
     avatarUrl,
     coverUrl,
     handleCoverUpload,
-    bio,
-    website,
-    genres,
-    isPrivate,
-    error,
-    isSaving,
   } = controller;
-  const setProfileData = useProfileStore((state) => state.setProfileData);
-  const isOwner = controller.isOwner;
-  // ── Follow store ──────────────────────────────────────────────────────────
-  const following = useFollowStore((state) => state.profileFollowing || []);
-  const followers = useFollowStore((state) => state.profileFollowers || []);
-  const fetchFollowing = useFollowStore((state) => state.fetchFollowing);
-  const fetchFollowers = useFollowStore((state) => state.fetchFollowers);
-  const storeToggleFollow = useFollowStore((state) => state.toggleFollow);
-  const checkIsFollowing = useFollowStore((state) => state.isFollowing);
-  const followError = useFollowStore((state) => state.error);
-  const [followingPage, setFollowingPage] = useState(1);
-  const FOLLOW_LIMIT = 20; // Number of items per page for following pagination
-  const [followersPage, setFollowersPage] = useState(1);
-
-  // ── Like store ────────────────────────────────────────────────────────────
-  const likedTracks = useLikeStore((state) => state.likedTracks || []);
-  const likeError = useLikeStore((state) => state.error);
-  const [profileLikes, setProfileLikes] = useState<TrackData[]>([]);
-  const [isLikesLoading, setIsLikesLoading] = useState(false);
-  const [likesPage, setLikesPage] = useState(1);
-  const LIKES_LIMIT = 10;
-  const [tracksPage, setTracksPage] = useState(1);
-  const TRACKS_LIMIT = 10;
-  // Clear stale data immediately the moment the handle changes
-  // 1. Reset data when handle changes
-  useEffect(() => {
-    useFollowStore.setState({ profileFollowing: [], profileFollowers: [] });
-  }, [handle]);
-
-  // 2. Fetch profile likes based on the current page
-  useEffect(() => {
-    let isMounted = true;
-
-    const fetchLikes = async () => {
-      if (!controller.userId) return;
-
-      try {
-        setIsLikesLoading(true);
-        // Ensure getUserLikes is called with userId, page, and limit
-        const data = await getUserLikes(
-          controller.userId,
-          likesPage,
-          LIKES_LIMIT,
-        );
-
-        if (!isMounted) return;
-
-        const cleanedData = data.map((t: TrackData) => ({
-          ...t,
-          artistName: t.artistName ?? undefined,
-          coverArt: t.coverArt ?? undefined,
-        }));
-
-        setProfileLikes(cleanedData as TrackData[]);
-      } catch (err) {
-        if (isMounted) console.error("Failed to fetch profile likes:", err);
-      } finally {
-        if (isMounted) setIsLikesLoading(false);
-      }
-    };
-
-    if (detailTab === "Likes") {
-      fetchLikes();
-    }
-
-    return () => {
-      isMounted = false;
-    };
-  }, [controller.userId, likesPage, detailTab]);
-  // Fetch Following data based on current page
-  useEffect(() => {
-    if (controller.userId && detailTab === "Following") {
-      useFollowStore.setState({ profileFollowing: [] });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (fetchFollowing as any)(controller.userId, {
-        syncProfileList: true,
-        page: followingPage,
-        limit: FOLLOW_LIMIT,
-      });
-    }
-  }, [controller.userId, followingPage, detailTab, fetchFollowing]);
-
-  // Fetch Followers based on current page
-  useEffect(() => {
-    if (controller.userId && detailTab === "Followers") {
-      useFollowStore.setState({ profileFollowers: [] });
-      fetchFollowers(controller.userId, {
-        syncProfileList: true,
-        page: followersPage,
-        limit: FOLLOW_LIMIT,
-      });
-    }
-  }, [controller.userId, followersPage, detailTab, fetchFollowers]);
-
-  const router = useRouter();
-
-  const BUTTON_STYLE =
-    "bg-zinc-800/50 border border-zinc-700 px-4 py-1 rounded text-xs font-bold hover:bg-zinc-700 transition-colors uppercase flex items-center gap-2";
 
   const sourceUsers = detailTab === "Following" ? following : followers;
 
@@ -229,7 +187,6 @@ export default function ProfilePage({
               onClick={() => {
                 setDetailTab(t);
                 setSearchQuery("");
-                setFollowingPage(1); // Reset to page 1 when switching tabs
               }}
               className={`pb-2 cursor-pointer border-b-2 transition-all ${
                 detailTab === t
@@ -243,10 +200,52 @@ export default function ProfilePage({
         </ul>
       </div>
 
-      {/* ── FOLLOWING / FOLLOWERS TAB ── */}
-      {(detailTab === "Following" || detailTab === "Followers") &&
-        (filteredUsers.length > 0 ? (
-          <div className="flex flex-col items-center w-full">
+      {(detailTab === "Following" || detailTab === "Followers") && (
+        <div className="max-w-md mb-8">
+          <input
+            type="text"
+            placeholder={`Search ${detailTab.toLowerCase()}...`}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-zinc-900 border border-zinc-800 text-white px-4 py-2 rounded-md focus:outline-none focus:border-white transition-all text-sm"
+          />
+        </div>
+      )}
+
+      <div className="py-10 flex flex-col items-center">
+        {followError && (
+          <p className="mb-4 text-sm text-red-400">{followError}</p>
+        )}
+        {likeError && <p className="mb-4 text-sm text-red-400">{likeError}</p>}
+
+        {/* ── LIKES TAB ── */}
+        {detailTab === "Likes" &&
+          (profileLikes.length === 0 ? (
+            <p className="text-2xl font-bold text-zinc-500 uppercase py-24">
+              No likes yet.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 gap-6 w-full">
+              {profileLikes.map((track) => (
+                <TrackCard
+                  key={track.id}
+                  track={{
+                    trackId: track.id,
+                    title: track.title,
+                    likesCount: track.likesCount,
+                    liked: true,
+                    artistName: track.artistName ?? undefined,
+                    coverArt: track.coverArt ?? undefined,
+                  }}
+                  isOwner={false}
+                />
+              ))}
+            </div>
+          ))}
+
+        {/* ── FOLLOWING / FOLLOWERS TAB ── */}
+        {(detailTab === "Following" || detailTab === "Followers") &&
+          (filteredUsers.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8">
               {filteredUsers.map((user) => {
                 const name =
@@ -254,9 +253,11 @@ export default function ProfilePage({
                 const avatar =
                   user.avatar_url || user.avatarUrl || user.avatar || null;
                 const followerCount =
-                  (user as FollowUserShape).followersCount || 0;
+                  user.followersCount ||
+                  user.followers_count ||
+                  user.followers ||
+                  0;
                 const isFollowing = checkIsFollowing(user.id);
-
                 return (
                   <div
                     key={`${detailTab}-${user.id}`}
@@ -299,7 +300,11 @@ export default function ProfilePage({
                           avatar_url: avatar ?? "",
                         })
                       }
-                      className={`px-4 py-1.5 rounded text-[10px] font-bold uppercase transition-all ${isFollowing ? "bg-zinc-800 text-zinc-400 border border-zinc-700" : "bg-white text-black hover:bg-zinc-200"}`}
+                      className={`px-4 py-1.5 rounded text-[10px] font-bold uppercase transition-all ${
+                        isFollowing
+                          ? "bg-zinc-800 text-zinc-400 border border-zinc-700"
+                          : "bg-white text-black hover:bg-zinc-200"
+                      }`}
                     >
                       {isFollowing ? "Following" : "Follow"}
                     </button>
@@ -307,122 +312,24 @@ export default function ProfilePage({
                 );
               })}
             </div>
-
-            {/* ── PAGINATION CONTROLS (Common for both) ── */}
-            <div className="flex justify-center items-center gap-6 mt-12">
-              <button
-                disabled={
-                  detailTab === "Following"
-                    ? followingPage === 1
-                    : followersPage === 1
-                }
-                onClick={() => {
-                  if (detailTab === "Following")
-                    setFollowingPage((prev) => prev - 1);
-                  else setFollowersPage((prev) => prev - 1);
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-                className="px-6 py-2 bg-zinc-800 text-white rounded-full font-bold disabled:opacity-30 hover:bg-zinc-700 transition uppercase text-xs border border-zinc-700"
-              >
-                Previous
-              </button>
-
-              <span className="text-white font-black text-sm uppercase tracking-widest">
-                Page {detailTab === "Following" ? followingPage : followersPage}
-              </span>
-
-              <button
-                disabled={filteredUsers.length < FOLLOW_LIMIT}
-                onClick={() => {
-                  if (detailTab === "Following")
-                    setFollowingPage((prev) => prev + 1);
-                  else setFollowersPage((prev) => prev + 1);
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-                className="px-6 py-2 bg-zinc-800 text-white rounded-full font-bold disabled:opacity-30 hover:bg-zinc-700 transition uppercase text-xs border border-zinc-700"
-              >
-                Next
-              </button>
+          ) : (
+            <div className="py-20 text-center">
+              <p className="text-xl font-bold text-zinc-600 uppercase mb-8">
+                Nothing found.
+              </p>
             </div>
-          </div>
-        ) : (
-          <div className="py-20 text-center">
-            <p className="text-xl font-bold text-zinc-600 uppercase mb-8">
-              Nothing found.
-            </p>
-          </div>
-        ))}
-      {/* ── LIKES GRID DISPLAY & PAGINATION ── */}
-      {/* This section renders the liked tracks and their specific pagination controls */}
-      {detailTab === "Likes" &&
-        (profileLikes.length === 0 ? (
-          <div className="py-20 text-center w-full">
-            <p className="text-xl font-bold text-zinc-600 uppercase">
-              No likes found.
-            </p>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center w-full">
-            {/* Grid layout for displaying Track Cards */}
-            <div className="grid grid-cols-1 gap-6 w-full max-w-5xl">
-              {profileLikes.map((track) => (
-                <TrackCard
-                  key={track.id}
-                  track={{
-                    trackId: track.id,
-                    title: track.title,
-                    // artistName: track.artistName,
-                    // coverArt: track.coverArt,
-                    likesCount: track.likesCount,
-                    liked: true,
-                  }}
-                  isOwner={isOwner}
-                />
-              ))}
-            </div>
+          ))}
 
-            {/* Pagination Controls for Likes Tab */}
-            <div className="flex justify-center items-center gap-6 mt-12">
-              <button
-                disabled={likesPage === 1}
-                onClick={() => {
-                  setLikesPage((prev) => prev - 1);
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-                className="px-6 py-2 bg-zinc-800 text-white rounded-full font-bold disabled:opacity-30 hover:bg-zinc-700 transition uppercase text-xs border border-zinc-700"
-              >
-                Previous
-              </button>
-
-              <span className="text-white font-black text-sm uppercase tracking-widest">
-                Page {likesPage}
-              </span>
-
-              <button
-                // Disable Next button if current page items are fewer than the limit
-                disabled={profileLikes.length < LIKES_LIMIT}
-                onClick={() => {
-                  setLikesPage((prev) => prev + 1);
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-                className="px-6 py-2 bg-zinc-800 text-white rounded-full font-bold disabled:opacity-30 hover:bg-zinc-700 transition uppercase text-xs border border-zinc-700"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        ))}
-
-      {/* Back to Profile Button - Stays at the bottom of all tabs */}
-      <button
-        onClick={() => {
-          setViewState("profile");
-          setSearchQuery("");
-        }}
-        className="mt-12 bg-white text-black px-6 py-2 rounded-full font-bold hover:bg-zinc-200 transition-all uppercase"
-      >
-        ← Back to Profile
-      </button>
+        <button
+          onClick={() => {
+            setViewState("profile");
+            setSearchQuery("");
+          }}
+          className="mt-12 bg-white text-black px-6 py-2 rounded-full font-bold hover:bg-zinc-200 transition-all uppercase"
+        >
+          ← Back to Profile
+        </button>
+      </div>
     </div>
   );
 
@@ -432,58 +339,18 @@ export default function ProfilePage({
       return (
         <div className="flex-1 border-r border-zinc-900/50 pr-12">
           {controller.userId ? (
-            <div className="flex flex-col">
-              {/* Main Track List with Pagination Props */}
-              <TrackList
-                userId={controller.userId ?? ""}
-                page={tracksPage}
-                limit={TRACKS_LIMIT}
-                type="tracks"
-                isOwner={isOwner}
-                onTracksTotalChange={handleTracksTotalChange}
-              />
-
-              {/* ── TRACKS PAGINATION CONTROLS ── */}
-              {/* Only show pagination if there are tracks to navigate through */}
-              {controller.tracksCount > 0 && (
-                <div className="flex justify-center items-center gap-6 mt-12 mb-10">
-                  <button
-                    disabled={tracksPage === 1}
-                    onClick={() => {
-                      setTracksPage((prev) => prev - 1);
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    }}
-                    className="px-6 py-2 bg-zinc-800 text-white rounded-full font-bold disabled:opacity-30 hover:bg-zinc-700 transition uppercase text-xs border border-zinc-700"
-                  >
-                    Previous
-                  </button>
-
-                  <span className="text-white font-black text-sm uppercase tracking-widest">
-                    Page {tracksPage}
-                  </span>
-
-                  <button
-                    // Disable next button if the current page covers all available tracks
-                    disabled={
-                      tracksPage * TRACKS_LIMIT >= controller.tracksCount
-                    }
-                    onClick={() => {
-                      setTracksPage((prev) => prev + 1);
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    }}
-                    className="px-6 py-2 bg-zinc-800 text-white rounded-full font-bold disabled:opacity-30 hover:bg-zinc-700 transition uppercase text-xs border border-zinc-700"
-                  >
-                    Next
-                  </button>
-                </div>
-              )}
-            </div>
+            <TrackList
+              userId={controller.userId ?? ""}
+              isOwner={isOwner}
+              onTracksTotalChange={handleTracksTotalChange}
+            />
           ) : (
             <p className="text-sm text-zinc-500">Loading tracks...</p>
           )}
         </div>
       );
     }
+
     if (activeTab === "Playlists") {
       return (
         <div className="flex-1 text-center py-20 border-r border-zinc-900/50 pr-12 flex flex-col items-center justify-center">
@@ -608,12 +475,21 @@ export default function ProfilePage({
                     />
                   )}
 
-                  <button
-                    onClick={() => setIsShareOpen(true)}
-                    className={BUTTON_STYLE}
-                  >
-                    <FiShare size={15} /> Share
-                  </button>
+                  <div className="relative">
+                    <button
+                      onClick={() => setShareOpen((v) => !v)}
+                      className={BUTTON_STYLE}
+                    >
+                      <FiShare size={15} /> Share
+                    </button>
+
+                    {shareOpen && controller.handle && (
+                      <SharePopup
+                        permalink={`/${controller.handle}`}
+                        onClose={() => setShareOpen(false)}
+                      />
+                    )}
+                  </div>
 
                   {isOwner && (
                     <button
@@ -664,7 +540,6 @@ export default function ProfilePage({
                 )}
 
                 <SocialLinksList links={links} />
-
 
                 {/* ── Likes preview ── */}
                 <div className="space-y-4">
@@ -805,113 +680,6 @@ export default function ProfilePage({
           }}
           handlers={controller}
         />
-
-        {/* ── SHARE MODAL ── */}
-        {isShareOpen && (
-          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-            <div className="bg-[#1a1a1a] w-full max-w-125 rounded-sm border border-[#333] shadow-2xl overflow-hidden relative">
-              <div className="flex border-b border-[#333]">
-                <button
-                  onClick={() => setShareTab("Share")}
-                  className={`px-6 py-4 text-sm font-bold transition-all uppercase ${shareTab === "Share" ? "text-white border-b-2 border-white" : "text-zinc-500 hover:text-white"}`}
-                >
-                  Share
-                </button>
-                <button
-                  onClick={() => setShareTab("Message")}
-                  className={`px-6 py-4 text-sm font-bold transition-all uppercase ${shareTab === "Message" ? "text-white border-b-2 border-white" : "text-zinc-500 hover:text-white"}`}
-                >
-                  Message
-                </button>
-              </div>
-              <div className="p-8 space-y-8">
-                {shareTab === "Share" ? (
-                  <>
-                    <div className="flex gap-4 mb-10">
-                      <div className="w-12.5 h-12.5 rounded-full bg-[#1DA1F2] flex items-center justify-center cursor-pointer hover:opacity-80 transition-all shadow-lg">
-                        <FaTwitter size={30} />
-                      </div>
-                      <div className="w-12.5 h-12.5 rounded-full bg-[#1877F2] flex items-center justify-center cursor-pointer hover:opacity-80 transition-all shadow-lg">
-                        <FaFacebook size={30} />
-                      </div>
-                      <div className="w-12.5 h-12.5 rounded-full bg-[#35465C] flex items-center justify-center cursor-pointer hover:opacity-80 transition-all shadow-lg">
-                        <TiSocialTumbler size={50} />
-                      </div>
-                      <div className="w-12.5 h-12.5 rounded-full bg-[#E60023] flex items-center justify-center cursor-pointer hover:opacity-80 transition-all shadow-lg">
-                        <FaPinterest size={30} />
-                      </div>
-                      <div className="w-12.5 h-12.5 rounded-full bg-[#333] flex items-center justify-center cursor-pointer hover:opacity-80 transition-all shadow-lg border border-zinc-700">
-                        <HiOutlineEnvelope size={30} />
-                      </div>
-                    </div>
-                    <div className="space-y-4">
-                      <div className="bg-[#111] border border-[#333] p-1 rounded flex items-center justify-between">
-                        <input
-                          readOnly
-                          value={isShortened ? shortLink : longLink}
-                          className="bg-transparent text-[13px] text-zinc-300 w-full outline-none px-2 font-bold"
-                        />
-                        <button
-                          onClick={copyToClipboard}
-                          className={`px-4 py-1.5 rounded text-xs font-bold transition-all uppercase ${copied ? "bg-green-600" : "bg-white text-black"}`}
-                        >
-                          {copied ? "Copied!" : "Copy"}
-                        </button>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="checkbox"
-                          id="shorten"
-                          checked={isShortened}
-                          onChange={() => setIsShortened(!isShortened)}
-                          className="w-5 h-5 accent-white"
-                        />
-                        <label
-                          htmlFor="shorten"
-                          className="text-sm text-white font-bold uppercase"
-                        >
-                          Shorten link
-                        </label>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <div className="space-y-4 animate-in fade-in duration-300 text-left">
-                    <div>
-                      <label className="block text-xs font-bold mb-1 uppercase text-zinc-400">
-                        To <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full bg-[#111] border border-[#333] p-2 rounded outline-none focus:border-white text-sm font-bold uppercase"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold mb-1 uppercase text-zinc-400">
-                        Message <span className="text-red-500">*</span>
-                      </label>
-                      <textarea
-                        defaultValue={longLink}
-                        className="w-full bg-[#111] border border-[#333] p-2 rounded h-32 outline-none focus:border-white text-sm resize-none font-bold uppercase"
-                      />
-                    </div>
-                    <div className="flex justify-end pt-2">
-                      <button className="bg-white text-black px-6 py-1.5 rounded font-bold text-sm hover:bg-zinc-200 uppercase">
-                        Send
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-              <button
-                onClick={() => setIsShareOpen(false)}
-                className="absolute top-4 right-4 text-zinc-500 hover:text-white text-xl"
-              >
-                ×
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* ── SUCCESS TOAST ── */}
         {showSuccessToast && (

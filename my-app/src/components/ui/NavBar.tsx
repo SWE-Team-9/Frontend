@@ -9,10 +9,10 @@ import { MdPerson, MdPersonAddAlt1, MdStars, MdBarChart } from "react-icons/md";
 import { BsPersonCheckFill } from "react-icons/bs";
 import { ImHeart } from "react-icons/im";
 import { PiWaveformBold } from "react-icons/pi";
+import SearchBar from "@/src/components/search/SearchBar";
 import { IoRadio } from "react-icons/io5";
 import { TbArrowLeftRight } from "react-icons/tb";
 import {
-  FiSearch,
   FiBell,
   FiMail,
   FiList,
@@ -270,16 +270,8 @@ const moreMenuWithLogout = useMemo(() => {
 
         {/* CENTER SECTION */}
         {showSearch && (
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search"
-              className="bg-neutral-800 text-white text-sm px-4 py-1 rounded-md outline-none w-32 sm:w-48 md:w-72 lg:w-86"
-            />
-            <FiSearch
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none"
-              size={18}
-            />
+          <div className="w-32 sm:w-48 md:w-72 lg:w-86">
+            <SearchBar />
           </div>
         )}
 
