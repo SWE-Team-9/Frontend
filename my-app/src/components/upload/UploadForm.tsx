@@ -5,6 +5,7 @@ import Dropzone from "@/src/components/upload/Dropzone";
 import { useUploadStore } from "@/src/store/useuploadStore";
 import { useSubscriptionStore } from "@/src/store/useSubscriptionStore";
 import { MdDeleteForever } from "react-icons/md";
+import Link from "next/link";
 
 interface Props {
   onNext: () => void;
@@ -72,12 +73,12 @@ const UploadForm: React.FC<Props> = ({ onNext }) => {
           <p className="text-zinc-400 text-sm">
             Upgrade to Artist Pro for unlimited uploads.
           </p>
-          <a
+          <Link
             href="/subscriptions"
             className="mt-2 px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-black font-black rounded-full transition duration-200 text-sm uppercase tracking-wide"
           >
             Upgrade to Pro
-          </a>
+          </Link>
         </div>
       ) : (
         // ── Normal upload UI ──────────────────────────────────────

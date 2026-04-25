@@ -7,6 +7,7 @@ import {
   getOfflineTrack,
   DownloadForbiddenError,
 } from "@/src/services/subscriptionService";
+import  Link  from "next/link";
 
 interface DownloadButtonProps {
   trackId: string;
@@ -154,13 +155,13 @@ try {
             <p className="text-zinc-400 text-[11px] mb-2 leading-tight">
               Offline listening is available for Artist Pro members only.
             </p>
-            <a
+            <Link
               href="/subscriptions"
               onClick={(e) => e.stopPropagation()}
               className="block w-full py-1.5 bg-amber-500 hover:bg-amber-400 text-black text-[11px] font-black uppercase tracking-wide rounded transition-colors"
             >
               Upgrade to Pro
-            </a>
+            </Link>
             <button
               onClick={(e) => {
                 e.stopPropagation();

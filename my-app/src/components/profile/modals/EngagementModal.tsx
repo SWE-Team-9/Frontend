@@ -2,7 +2,8 @@ import React, { useEffect, useState, useCallback } from "react";
 import {
   getTrackEngagements,
   PaginatedEngagements,
-} from "@/src/services/interactionService";import { FollowUser } from "@/src/services/followService";
+} from "@/src/services/interactionService";
+import { FollowUser } from "@/src/services/followService";
 import FollowButton from "@/src/components/profile/sidebar/FollowButton";
 import { IoClose } from "react-icons/io5";
 import Image from "next/image";
@@ -36,13 +37,16 @@ export const EngagementModal: React.FC<EngagementModalProps> = ({ isOpen, onClos
       
       await new Promise(resolve => setTimeout(resolve, 300));
       
+      // ─── التعديل المطلوب تم هنا ───
       const result: PaginatedEngagements = await getTrackEngagements(
-  trackId,
-  type as "likes" | "reposts",
-  1,   // page
-  50,  // limit - fetch more to reduce chance of empty list if user has many engagements
-);
-if (isMounted) setUsers(result.items); // Only update state if component is still mounted
+        trackId,
+        type as "likes" | "reposts",
+        1,   // page
+        50,  // limit
+      );
+      if (isMounted) setUsers(result.items); // ← استخراج المصفوفة من الـ items
+      // ───────────────────────────
+      
     } catch (error) {
       console.error("Error fetching engagements:", error);
     } finally {

@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React from "react";
+import { useSubscriptionStore } from "@/src/store/useSubscriptionStore";
+
 import {
   render,
   screen,
@@ -28,6 +30,41 @@ jest.mock("@/src/components/ui/FileStatusBadge", () => ({
   default: ({ status }: { status: string }) => (
     <span data-testid="badge">{status}</span>
   ),
+}));
+// Add after the existing jest.mock blocks
+// jest.mock('@/src/services/subscriptionService', () => ({
+//   decrementUploadQuota: jest.fn().mockResolvedValue({
+//     userId: 'usr_test',
+//     subscriptionType: 'FREE',
+//     uploadLimit: 3,
+//     uploadedTracks: 2,
+//     remainingUploads: 1,
+//     perks: { adFree: false, offlineListening: false },
+//   }),
+// }));
+
+// Mock useSubscriptionStore — must expose setSubDirectly as a stable function
+// so UploadButton can call it after a successful upload without throwing.
+const mockSetSubDirectly = jest.fn();
+
+jest.mock('@/src/store/useSubscriptionStore', () => ({
+  useSubscriptionStore: jest.fn((selector) =>
+    selector({
+      setSubDirectly: mockSetSubDirectly,
+      setSubFromStore: jest.fn(),
+    })
+  ),
+}));
+
+jest.mock('@/src/services/subscriptionService', () => ({
+  decrementUploadQuota: jest.fn().mockResolvedValue({
+    userId: "usr_test",
+    subscriptionType: "FREE",
+    uploadLimit: 3,
+    uploadedTracks: 2,
+    remainingUploads: 1,
+    perks: { adFree: false, offlineListening: false },
+  }),
 }));
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -72,7 +109,15 @@ beforeEach(() => {
   jest.useFakeTimers();
   (useRouter as jest.Mock).mockReturnValue({ push: mockPush });
   (getMyProfile as jest.Mock).mockResolvedValue({ accountType: "ARTIST" });
+
+
+  
 });
+
+
+ 
+
+
 
 afterEach(() => {
   jest.runAllTimers();
