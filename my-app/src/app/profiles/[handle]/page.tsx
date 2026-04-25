@@ -111,7 +111,7 @@ export default function ProfilePage({
       isMounted = false; // Cleanup function
     };
     // Use likedTracks.length to avoid unnecessary reference-check triggers
-  }, [controller.userId, isOwner, likedTracks.length, handle]);
+  }, [controller.userId, isOwner, likedTracks, handle]);
   // Fetch the new profile's follow data once userId is known
   useEffect(() => {
     if (controller.userId) {
