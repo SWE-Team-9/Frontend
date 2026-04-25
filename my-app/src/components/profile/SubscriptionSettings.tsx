@@ -8,6 +8,7 @@ import {
   LuShieldCheck, LuCheck, LuStar,
 } from "react-icons/lu";
 import { SiVisa, SiMastercard, SiAmericanexpress } from "react-icons/si";
+import { PLAN_CONFIG } from "@/src/config/plans";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -195,11 +196,11 @@ export default function SubscriptionSettings() {
               )}
               <div>
                 <h3 className="text-white font-black text-xl leading-tight">{planLabel}</h3>
-                <p className="text-zinc-400 text-sm mt-0.5">
-                  {isPro
-                    ? "Unlimited upload space and all advanced features."
-                    : "Artist Pro plans include unlimited upload space and advanced features."}
-                </p>
+               <p className="text-zinc-400 text-sm mt-0.5">
+  {isPro
+    ? `${PLAN_CONFIG[sub!.subscriptionType as "PRO" | "GO+"].uploadLimit.toLocaleString()} track uploads · Ad-free · Offline listening`
+    : `${PLAN_CONFIG.FREE.uploadLimit} track uploads · Ad-supported streaming`}
+</p>
               </div>
             </div>
 
@@ -214,11 +215,11 @@ export default function SubscriptionSettings() {
               </button>
             ) : (
               <button
-                onClick={() => router.push("/subscriptions/checkout?plan=pro")}
-                className="shrink-0 px-5 py-2 bg-white text-black rounded-lg text-sm font-bold hover:bg-[#ff5500] hover:text-white transition-colors"
-              >
-                Try Artist Pro
-              </button>
+  onClick={() => router.push("/subscriptions/checkout?plan=pro")}
+  className="shrink-0 px-5 py-2 bg-white text-black rounded-lg text-sm font-bold hover:bg-[#ff5500] hover:text-white transition-colors"
+>
+  Try Artist Pro — ${PLAN_CONFIG.PRO.monthlyPrice}/mo
+</button>
             )}
           </div>
 

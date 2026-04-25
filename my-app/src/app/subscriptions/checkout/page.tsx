@@ -8,37 +8,26 @@ import {
   SiVisa, SiMastercard, SiAmericanexpress, SiPaypal, SiApplepay,
 } from "react-icons/si";
 import { LuShieldCheck, LuLoader } from "react-icons/lu";
+import { PLAN_CONFIG } from "@/src/config/plans";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type BillingCycle = "yearly" | "monthly";
 type PaymentMethod = "apple" | "card" | "paypal" | null;
 
-// ─── Plan config ─────────────────────────────────────────────────────────────
+// ─── Plan config — reads from single source of truth ─────────────────────────
 const PLANS = {
   pro: {
-    name: "Artist Pro",
-    yearlyMonthly: 74.99,
-    yearlyTotal: 899.88,
-    monthlyTotal: 149.99,
-    renewLabel: "EGP 899.88 every year",
+    name: PLAN_CONFIG.PRO.label,
+    monthlyPrice: PLAN_CONFIG.PRO.monthlyPrice,
     upgradeType: "PRO" as const,
+    renewLabel: `$${PLAN_CONFIG.PRO.monthlyPrice} every month`,
   },
-  artist: {
-    name: "Artist",
-    yearlyMonthly: 29.99,
-    yearlyTotal: 359.88,
-    monthlyTotal: 59.99,
-    renewLabel: "EGP 359.88 every year",
-    upgradeType: "PRO" as const,
+  goplus: {
+    name: PLAN_CONFIG["GO+"].label,
+    monthlyPrice: PLAN_CONFIG["GO+"].monthlyPrice,
+    upgradeType: "GO+" as const,
+    renewLabel: `$${PLAN_CONFIG["GO+"].monthlyPrice} every month`,
   },
 };
-
-// ─── Helper: next renewal date ───────────────────────────────────────────────
-function getNextRenewalDate(cycle: BillingCycle) {
-  const d = new Date();
-  cycle === "yearly" ? d.setFullYear(d.getFullYear() + 1) : d.setMonth(d.getMonth() + 1);
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-}
 
 // ─── Radio option ─────────────────────────────────────────────────────────────
 function RadioOption({
@@ -67,7 +56,6 @@ function CheckoutContent() {
   const planKey = (searchParams.get("plan") ?? "pro") as keyof typeof PLANS;
   const plan = PLANS[planKey] ?? PLANS.pro;
 
-  const [billing, setBilling] = useState<BillingCycle>("yearly");
   const [payment, setPayment] = useState<PaymentMethod>(null);
   const [couponOpen, setCouponOpen] = useState(false);
   const [coupon, setCoupon] = useState("");
@@ -75,9 +63,6 @@ function CheckoutContent() {
 
   const upgrade = useSubscriptionStore((s) => s.upgrade);
   const isLoading = useSubscriptionStore((s) => s.isLoading);
-
-  const total = billing === "yearly" ? plan.yearlyTotal : plan.monthlyTotal;
-  const renewalDate = getNextRenewalDate(billing);
 
   const handleBuy = async () => {
     if (!payment) {
@@ -87,7 +72,6 @@ function CheckoutContent() {
     setBuyError(null);
     try {
       await upgrade(plan.upgradeType);
-      // ✅ Upgrade succeeded → go back to discover with success flag
       router.push("/discover?upgraded=true");
     } catch {
       setBuyError("Payment failed. Please try again.");
@@ -96,62 +80,34 @@ function CheckoutContent() {
 
   return (
     <div className="min-h-screen bg-white">
+
       {/* ── Top bar ─────────────────────────────────────────────── */}
-     <header className="bg-black px-8 py-4 flex items-center justify-between shadow-md">
-  <div className="relative w-[100px] h-[32px]">
-    <Image 
-      src="/logo.png" 
-      alt="Logo" 
-      fill
-      className="object-contain" 
-    />
-  </div>
-</header>
+      <header className="bg-black px-8 py-4 flex items-center justify-between shadow-md">
+        <div className="relative w-[100px] h-[32px]">
+          <Image
+            src="/logo.png"
+            alt="Logo"
+            fill
+            className="object-contain"
+          />
+        </div>
+      </header>
+
       <div className="max-w-5xl mx-auto px-6 py-10 grid grid-cols-1 lg:grid-cols-2 gap-12">
 
         {/* ════ LEFT COLUMN ════════════════════════════════════════ */}
         <div className="flex flex-col gap-8">
 
-          {/* ── 1. Billing Cycle ─────────────────────────────────── */}
-          <section>
-            <h2 className="text-xl font-bold text-zinc-900 mb-4">
-              1. Billing cycle
-            </h2>
-            <div className="flex flex-col gap-3">
-              <RadioOption selected={billing === "yearly"} onClick={() => setBilling("yearly")}>
-                <div className="flex flex-1 items-center justify-between">
-                  <div>
-                    <p className="font-semibold text-zinc-900 text-sm">Yearly billing</p>
-                    <p className="text-zinc-500 text-xs mt-0.5">
-                      EGP {plan.yearlyTotal}, that&apos;s EGP {plan.yearlyMonthly}/month
-                    </p>
-                  </div>
-                  <span className="ml-3 shrink-0 bg-[#ff5500] text-white text-[10px] font-black uppercase px-2 py-0.5 rounded">
-                    50% YEARLY DISCOUNT
-                  </span>
-                </div>
-              </RadioOption>
-
-              <RadioOption selected={billing === "monthly"} onClick={() => setBilling("monthly")}>
-                <div>
-                  <p className="font-semibold text-zinc-900 text-sm">Monthly billing</p>
-                  <p className="text-zinc-500 text-xs mt-0.5">
-                    EGP {plan.monthlyTotal}/month
-                  </p>
-                </div>
-              </RadioOption>
-            </div>
-          </section>
-
-          {/* ── 2. Payment Details ───────────────────────────────── */}
+          {/* ── 1. Payment Details ───────────────────────────────── */}
           <section>
             <h2 className="text-xl font-bold text-zinc-900 mb-1 flex items-center gap-2">
-              2. Payment details
+              1. Payment details
               <LuShieldCheck size={18} className="text-zinc-400" />
             </h2>
             <p className="text-zinc-500 text-sm mb-4">Add new payment methods</p>
 
             <div className="flex flex-col gap-3">
+
               {/* Apple Pay */}
               <RadioOption selected={payment === "apple"} onClick={() => setPayment("apple")}>
                 <div className="flex flex-1 items-center justify-between">
@@ -179,27 +135,32 @@ function CheckoutContent() {
                   <SiPaypal size={20} className="text-[#003087]" />
                 </div>
               </RadioOption>
+
             </div>
 
             {/* Card form — only shown if card selected */}
             {payment === "card" && (
               <div className="mt-4 p-4 border border-zinc-200 rounded-lg bg-zinc-50 flex flex-col gap-3">
                 <input
-                  type="text" placeholder="Card number"
+                  type="text"
+                  placeholder="Card number"
                   className="w-full border border-zinc-300 rounded px-3 py-2 text-sm outline-none focus:border-[#ff5500]"
                 />
                 <div className="flex gap-3">
                   <input
-                    type="text" placeholder="MM / YY"
+                    type="text"
+                    placeholder="MM / YY"
                     className="flex-1 border border-zinc-300 rounded px-3 py-2 text-sm outline-none focus:border-[#ff5500]"
                   />
                   <input
-                    type="text" placeholder="CVC"
+                    type="text"
+                    placeholder="CVC"
                     className="flex-1 border border-zinc-300 rounded px-3 py-2 text-sm outline-none focus:border-[#ff5500]"
                   />
                 </div>
                 <input
-                  type="text" placeholder="Name on card"
+                  type="text"
+                  placeholder="Name on card"
                   className="w-full border border-zinc-300 rounded px-3 py-2 text-sm outline-none focus:border-[#ff5500]"
                 />
                 <p className="text-[11px] text-zinc-400">
@@ -213,20 +174,20 @@ function CheckoutContent() {
         {/* ════ RIGHT COLUMN ═══════════════════════════════════════ */}
         <div className="flex flex-col gap-6">
           <h2 className="text-xl font-bold text-zinc-900">
-            3. Review your purchase
+            2. Review your purchase
           </h2>
 
-          {/* Plan card */}
+          {/* Plan summary card */}
           <div className="flex items-center gap-4 p-4 border border-zinc-200 rounded-lg">
-           <div className="w-12 h-12 bg-white border border-zinc-200 rounded-lg flex items-center justify-center shrink-0 shadow-sm p-1">
-    <Image 
-      src="/logo.png" 
-      alt="Logo" 
-      width={40} 
-      height={40} 
-className="object-contain opacity-90 brightness-0"
-    />
-  </div>
+            <div className="w-12 h-12 bg-white border border-zinc-200 rounded-lg flex items-center justify-center shrink-0 shadow-sm p-1">
+              <Image
+                src="/logo.png"
+                alt="Logo"
+                width={40}
+                height={40}
+                className="object-contain opacity-90 brightness-0"
+              />
+            </div>
             <span className="font-bold text-zinc-900">{plan.name}</span>
           </div>
 
@@ -257,20 +218,18 @@ className="object-contain opacity-90 brightness-0"
           <div className="bg-zinc-100 rounded-xl p-5 flex flex-col gap-3">
             <div className="flex justify-between items-center">
               <span className="font-bold text-zinc-900">Total</span>
-              <span className="font-bold text-zinc-900">EGP {total}</span>
+              <span className="font-bold text-zinc-900">${plan.monthlyPrice}/mo</span>
             </div>
             <div className="flex justify-between items-center text-sm">
               <span className="text-zinc-600">Billing cycle</span>
-              <span className="text-zinc-800 font-medium capitalize">{billing}</span>
+              <span className="text-zinc-800 font-medium">Monthly</span>
             </div>
             <div className="border-t border-zinc-200 pt-3">
               <p className="text-xs text-zinc-500 leading-relaxed">
-                Subscription will automatically renew at EGP {total} every{" "}
-                {billing === "yearly" ? "year" : "month"}, starting{" "}
-                {renewalDate}, unless you cancel before the day of your next
-                renewal in your subscription settings.
+                Subscription renews at ${plan.monthlyPrice}/month.
+                Cancel anytime in your subscription settings.
               </p>
-              <p className="text-xs text-zinc-400 mt-2">All prices in EGP</p>
+              <p className="text-xs text-zinc-400 mt-2">All prices in USD</p>
             </div>
           </div>
 
@@ -283,8 +242,21 @@ className="object-contain opacity-90 brightness-0"
           <button
             onClick={handleBuy}
             disabled={isLoading}
-            className="w-full py-4 bg-zinc-700 hover:bg-zinc-600 disabled:bg-zinc-400 text-white font-bold text-base rounded-lg transition-colors flex items-center justify-center gap-2 disabled:cursor-not-allowed"
-          >
+className="w-full py-4 rounded-lg font-bold text-base flex items-center justify-center gap-2 transition-all duration-200 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+style={
+  plan.upgradeType === "GO+"
+    ? {
+        background: "linear-gradient(135deg, #F5C518 0%, #D4920A 50%, #B8780A 100%)",
+        border: "1px solid #C9940C",
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.25), 0 2px 8px rgba(180,120,0,0.4)",
+      }
+    : plan.upgradeType === "PRO"
+    ? {
+        background: "linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)",
+        boxShadow: "0 2px 8px rgba(109,40,217,0.4)",
+      }
+    : { backgroundColor: "#3f3f46" }
+}          >
             {isLoading ? (
               <>
                 <LuLoader size={18} className="animate-spin" />
@@ -317,7 +289,11 @@ className="object-contain opacity-90 brightness-0"
 // Wrap in Suspense for useSearchParams
 export default function CheckoutPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-white flex items-center justify-center text-zinc-400">Loading...</div>}>
+    <Suspense fallback={
+      <div className="min-h-screen bg-white flex items-center justify-center text-zinc-400">
+        Loading...
+      </div>
+    }>
       <CheckoutContent />
     </Suspense>
   );

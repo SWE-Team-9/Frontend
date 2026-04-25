@@ -1,56 +1,103 @@
+"use client";
+
 import React from "react";
 import { Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-/** * Interface for individual plan features
- */
-interface Feature {
-  text: string;
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export type BadgeVariant = "purple" | "gold" | "none";
+
+export interface PlanFeature {
+  icon?: string;        // "upload" | "boost" | "distribute" | "check"
+  label: string;
   badge?: string;
-  icon?: React.ReactNode;
-  planKey?: "pro" | "artist";
+  badgeVariant?: BadgeVariant;
 }
 
-/** * Props for the PlanCard component
- */
-interface PlanCardProps {
-  title: string;
-  price: string;
+export interface PlanCardProps {
+  // Identity
+  planKey?: "pro" | "goplus";
+  name: string;
+  subtitle: string;
+
+  // Pricing — monthly only
+  monthlyPrice: string;  // e.g. "9.99"
+
+  // Style variant controls the color theme
+  variant: "artist" | "pro";
+
+  // Features
+  features: PlanFeature[];
+
+  // Optional decorators
+  mostPopular?: boolean;
+  showSeeAllBenefits?: boolean;
   isLoading?: boolean;
-  yearlyPrice: string;
-  description: string;
-  features: Feature[];
-  isPopular?: boolean;
-  planKey?: "pro" | "artist";
-  colorTheme: string; // Dynamic branding color
-  onSubscribe: () => void;
+
+  // Action
+  onGetStarted?: () => void;
 }
+
+// ─── Color themes ─────────────────────────────────────────────────────────────
+
+const THEME: Record<"artist" | "pro", string> = {
+  artist: "#7c3aed",  // violet — PRO
+  pro: "#d97706",     // amber  — GO+
+};
+
+// ─── Badge ────────────────────────────────────────────────────────────────────
+
+function FeatureBadge({ text, variant }: { text: string; variant: BadgeVariant }) {
+  if (!text || variant === "none") return null;
+  const styles: Record<Exclude<BadgeVariant, "none">, string> = {
+    purple: "bg-violet-50 text-violet-600 border border-violet-300",
+    gold:   "bg-amber-50  text-amber-600  border border-amber-300",
+  };
+  return (
+    <span className={`ml-auto shrink-0 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded ${styles[variant as Exclude<BadgeVariant, "none">]}`}>
+      {text}
+    </span>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 export const PlanCard: React.FC<PlanCardProps> = ({
-  title,
-  price,
-  yearlyPrice,
-  description,
+  planKey = "pro",
+  name,
+  subtitle,
+  monthlyPrice,
+  variant,
   features,
-  isPopular,
-  colorTheme,
-  onSubscribe,
-  isLoading,
-  planKey = "PRO",
+  mostPopular = false,
+  showSeeAllBenefits = false,
+  isLoading = false,
+  onGetStarted,
 }) => {
   const router = useRouter();
+  const colorTheme = THEME[variant];
+
+  const handleClick = () => {
+    if (onGetStarted) {
+      onGetStarted();
+    } else {
+      router.push(`/subscriptions/checkout?plan=${planKey}`);
+    }
+  };
+
   return (
     <div
       className={`relative p-10 rounded-2xl bg-white transition-all duration-500 flex flex-col h-full ${
-        isPopular
+        mostPopular
           ? "border-2 shadow-2xl scale-105 z-10"
           : "border border-zinc-200 shadow-sm"
       }`}
-      style={{ borderColor: isPopular ? colorTheme : undefined }}
+      style={{ borderColor: mostPopular ? colorTheme : undefined }}
     >
-      {/* ─── MOST POPULAR BADGE ─── */}
-      {isPopular && (
-        <div className="absolute top-0 left-0 right-0 transform translate-y-[-100%]">
+      {/* ── Most Popular ribbon ──────────────────────────────── */}
+      {mostPopular && (
+        <div className="absolute top-0 left-0 right-0 -translate-y-full">
           <div
             className="text-white px-6 py-2 rounded-t-2xl text-[10px] font-black uppercase tracking-widest text-center"
             style={{ backgroundColor: colorTheme }}
@@ -60,49 +107,68 @@ export const PlanCard: React.FC<PlanCardProps> = ({
         </div>
       )}
 
-      {/* ─── 1. HEADER & PRICING SECTION ─── */}
-      {/* min-h ensures buttons stay aligned even if descriptions vary in length */}
+      {/* ── 1. Header & Price ────────────────────────────────── */}
       <div className="min-h-[220px] mb-6 flex flex-col">
         <div className="flex items-center gap-2 mb-4">
-          <h3 className="text-3xl font-black text-black tracking-tight">
-            {title}
-          </h3>
+          <h3 className="text-3xl font-black text-black tracking-tight">{name}</h3>
           <span style={{ color: colorTheme }} className="text-4xl font-bold">
-            {isPopular ? "✪" : "✦"}
+            {mostPopular ? "✪" : "✦"}
           </span>
         </div>
 
-        {/* Description with fixed min-height for vertical alignment */}
         <p className="text-zinc-500 text-[14px] font-medium mb-8 leading-relaxed min-h-[40px]">
-          {description}
+          {subtitle}
         </p>
 
-        {/* Pricing details pushed to the bottom of the header section */}
+        {/* Price — monthly only */}
         <div className="mt-auto">
           <div className="flex items-baseline gap-2">
             <span className="text-4xl font-black" style={{ color: colorTheme }}>
-              {price}
+              ${monthlyPrice}
             </span>
             <span className="text-zinc-400 text-[11px] font-bold uppercase tracking-tighter">
               / Month
             </span>
           </div>
-          <p className="text-zinc-400 text-[10px] mt-1 italic tracking-tight">
-            Billed yearly for {yearlyPrice}
-          </p>
         </div>
       </div>
 
-      {/* ─── 2. ACTION BUTTON SECTION ─── */}
-      {/* Fixed position relative to the header section */}
+      {/* ── 2. CTA Button ────────────────────────────────────── */}
       <div className="mb-10">
-        <button 
-          onClick={() => router.push(`/subscriptions/checkout?plan=${planKey}`)}
-          disabled={isLoading}  
-          className="w-full py-4 rounded-full font-black text-xs uppercase tracking-[0.2em] transition-all duration-300 text-white hover:opacity-90"
-          style={{ backgroundColor: '#111' }}
-          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = colorTheme)}
-          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#111')}
+        <button
+          onClick={handleClick}
+          disabled={isLoading}
+          className="w-full py-4 rounded-full font-black text-xs uppercase tracking-[0.2em] transition-all duration-300 text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+        style={
+  variant === "pro"  // GO+ card
+    ? {
+        background: "linear-gradient(135deg, #F5C518 0%, #D4920A 50%, #B8780A 100%)",
+        border: "1px solid #C9940C",
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.25), 0 2px 8px rgba(180,120,0,0.4)",
+      }
+    : { backgroundColor: "#111" }
+}
+onMouseEnter={(e) => {
+  if (isLoading) return;
+  if (variant === "pro") {
+    e.currentTarget.style.background =
+      "linear-gradient(135deg, #FFD700 0%, #E4A010 50%, #C8850C 100%)";
+    e.currentTarget.style.boxShadow =
+      "inset 0 1px 0 rgba(255,255,255,0.3), 0 4px 16px rgba(180,120,0,0.5)";
+  } else {
+    e.currentTarget.style.backgroundColor = colorTheme;
+  }
+}}
+onMouseLeave={(e) => {
+  if (variant === "pro") {
+    e.currentTarget.style.background =
+      "linear-gradient(135deg, #F5C518 0%, #D4920A 50%, #B8780A 100%)";
+    e.currentTarget.style.boxShadow =
+      "inset 0 1px 0 rgba(255,255,255,0.25), 0 2px 8px rgba(180,120,0,0.4)";
+  } else {
+    e.currentTarget.style.backgroundColor = "#111";
+  }
+}}
         >
           {isLoading ? (
             <span className="flex items-center justify-center gap-2">
@@ -115,41 +181,43 @@ export const PlanCard: React.FC<PlanCardProps> = ({
         </button>
       </div>
 
-      {/* ─── 3. FEATURES LIST SECTION ─── */}
-      {/* flex-grow fills the remaining card space */}
+      {/* ── 3. Features List ─────────────────────────────────── */}
       <ul className="space-y-6 flex-grow">
         {features.map((feature, index) => (
-          <li
-            key={index}
-            className="flex items-center justify-between group min-h-[24px]"
-          >
+          <li key={index} className="flex items-center justify-between group min-h-[24px]">
             <div className="flex items-center gap-4">
-              {/* Feature Icon Container */}
               <span
-                className="text-zinc-400 group-hover:scale-110 transition-transform"
+                className="group-hover:scale-110 transition-transform"
                 style={{ color: colorTheme }}
               >
-                {/* Renders the passed icon or the default Check icon if none is provided */}
-                {feature.icon || <Check size={40} />}
+                <Check size={18} strokeWidth={2.5} />
               </span>
               <span className="text-[13px] font-bold text-zinc-800">
-                {feature.text}
+                {feature.label}
               </span>
             </div>
             {feature.badge && (
-              <span
-                className="px-2 py-1 rounded text-[9px] font-black uppercase tracking-tighter"
-                style={{
-                  backgroundColor: `${colorTheme}15`,
-                  color: colorTheme,
-                }}
-              >
-                {feature.badge}
-              </span>
+              <FeatureBadge
+                text={feature.badge}
+                variant={feature.badgeVariant ?? "none"}
+              />
             )}
           </li>
         ))}
       </ul>
+
+      {/* ── See all benefits ─────────────────────────────────── */}
+      {showSeeAllBenefits && (
+        <div className="pt-6 mt-auto text-center border-t border-zinc-100">
+          <button
+            className="text-blue-500 hover:text-blue-700 text-sm font-semibold transition-colors"
+          >
+            See all benefits
+          </button>
+        </div>
+      )}
     </div>
   );
 };
+
+export default PlanCard;

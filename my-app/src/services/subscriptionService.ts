@@ -1,5 +1,5 @@
 import api from "./api";
-
+import { PLAN_CONFIG } from "@/src/config/plans";
 /**
  * Data structures for Subscription and Offline tracks
  */
@@ -27,16 +27,12 @@ export interface OfflineTrack {
  */
 let MOCK_SUBSCRIPTION: SubscriptionDetails = {
   userId: "usr_123",
-  subscriptionType: "FREE", // Starts as FREE
-  uploadLimit: 10, // Default for FREE tier
-  uploadedTracks: 9,
-  remainingUploads: 1, // Set to 0 to test the quota limit scenario
-  perks: { 
-    adFree: false, 
-    offlineListening: false 
-  },
+  subscriptionType: "FREE",
+  uploadLimit: PLAN_CONFIG.FREE.uploadLimit,   
+  uploadedTracks: 1,
+  remainingUploads: PLAN_CONFIG.FREE.uploadLimit - 1,
+  perks: { adFree: false, offlineListening: false },
 };
-
 /**
  * Helper to check if we should use mock data from environment variables
  */
@@ -87,17 +83,13 @@ export const decrementUploadQuota = async (): Promise<SubscriptionDetails> => {
 export const upgradeSubscription = async (type: "PRO" | "GO+") => {
   await new Promise((resolve) => setTimeout(resolve, 1500));
 
-  MOCK_SUBSCRIPTION.subscriptionType = type;
-  
-  if (type === "PRO") {
-    MOCK_SUBSCRIPTION.uploadLimit = 100; // 100 FOR PRO
-    MOCK_SUBSCRIPTION.perks.adFree = true;
-    MOCK_SUBSCRIPTION.perks.offlineListening = true;
-  } else if (type === "GO+") {
-    MOCK_SUBSCRIPTION.uploadLimit = 1000; // 1000 FOR GO+
-    MOCK_SUBSCRIPTION.perks.adFree = true;
-    MOCK_SUBSCRIPTION.perks.offlineListening = true;
-  }
+  MOCK_SUBSCRIPTION = {
+  ...MOCK_SUBSCRIPTION,
+  subscriptionType: type,
+  uploadLimit: PLAN_CONFIG[type].uploadLimit,       // ← 100 for PRO / 1000 for GO+
+  remainingUploads: PLAN_CONFIG[type].uploadLimit - MOCK_SUBSCRIPTION.uploadedTracks,
+  perks: { adFree: true, offlineListening: true },
+};
 
   MOCK_SUBSCRIPTION.remainingUploads = MOCK_SUBSCRIPTION.uploadLimit - MOCK_SUBSCRIPTION.uploadedTracks;
 
@@ -107,16 +99,17 @@ export const upgradeSubscription = async (type: "PRO" | "GO+") => {
 /**
  * Cancel the current subscription — backend sets type back to FREE
  */
-export const cancelSubscription = async (): Promise<SubscriptionDetails> => {
+export const cancelSubscription = async (): Promise<SubscriptionDetails> => 
+    {
   if (USE_MOCK) {
     await new Promise((r) => setTimeout(r, 800));
     MOCK_SUBSCRIPTION = {
-      ...MOCK_SUBSCRIPTION,
-      subscriptionType: "FREE",
-      uploadLimit: 3,
-      remainingUploads: 3 - MOCK_SUBSCRIPTION.uploadedTracks,
-      perks: { adFree: false, offlineListening: false },
-    };
+  ...MOCK_SUBSCRIPTION,
+  subscriptionType: "FREE",
+  uploadLimit: PLAN_CONFIG.FREE.uploadLimit,        // ← 3
+  remainingUploads: PLAN_CONFIG.FREE.uploadLimit - MOCK_SUBSCRIPTION.uploadedTracks,
+  perks: { adFree: false, offlineListening: false },
+};
     return { ...MOCK_SUBSCRIPTION };
   }
   const response = await api.post("/subscriptions/cancel");
