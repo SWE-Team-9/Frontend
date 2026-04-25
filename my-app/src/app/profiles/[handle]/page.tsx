@@ -25,6 +25,8 @@ import TrackList from "@/src/components/tracks/TrackList";
 import Link from "next/dist/client/link";
 import { TrackData } from "@/src/types/interactions";
 import { getUserLikes } from "@/src/services/likeService";
+import { MyPlaylistsSection } from "@/src/components/profile/MyPlaylistsSection";
+
 
 type FollowUserShape = {
   id: string;
@@ -73,43 +75,43 @@ export default function ProfilePage({
 
   // clear state to be used for the like
   useEffect(() => {
-  let isMounted = true; // Prevents state updates if user navigates away
+    let isMounted = true; // Prevents state updates if user navigates away
 
-  const fetchLikes = async () => {
-    if (!controller.userId) return;
+    const fetchLikes = async () => {
+      if (!controller.userId) return;
 
-    try {
-      setIsLikesLoading(true);
-      if (isOwner) {
-        // Use the local store for immediate UI updates
-        setProfileLikes(likedTracks);
-      } else {
-        const data = await getUserLikes(controller.userId);
-        
-        if (!isMounted) return;
+      try {
+        setIsLikesLoading(true);
+        if (isOwner) {
+          // Use the local store for immediate UI updates
+          setProfileLikes(likedTracks);
+        } else {
+          const data = await getUserLikes(controller.userId);
 
-        const cleanedData = data.map((t) => ({
-          ...t,
-          artistName: t.artistName ?? undefined,
-          coverArt: t.coverArt ?? undefined,
-        }));
-        
-        setProfileLikes(cleanedData as TrackData[]);
+          if (!isMounted) return;
+
+          const cleanedData = data.map((t) => ({
+            ...t,
+            artistName: t.artistName ?? undefined,
+            coverArt: t.coverArt ?? undefined,
+          }));
+
+          setProfileLikes(cleanedData as TrackData[]);
+        }
+      } catch (err) {
+        if (isMounted) console.error("Failed to fetch profile likes:", err);
+      } finally {
+        if (isMounted) setIsLikesLoading(false);
       }
-    } catch (err) {
-      if (isMounted) console.error("Failed to fetch profile likes:", err);
-    } finally {
-      if (isMounted) setIsLikesLoading(false);
-    }
-  };
+    };
 
-  fetchLikes();
+    fetchLikes();
 
-  return () => {
-    isMounted = false; // Cleanup function
-  };
-  // Use likedTracks.length to avoid unnecessary reference-check triggers
-}, [controller.userId, isOwner, likedTracks.length, handle]);
+    return () => {
+      isMounted = false; // Cleanup function
+    };
+    // Use likedTracks.length to avoid unnecessary reference-check triggers
+  }, [controller.userId, isOwner, likedTracks.length, handle]);
   // Fetch the new profile's follow data once userId is known
   useEffect(() => {
     if (controller.userId) {
@@ -168,6 +170,8 @@ export default function ProfilePage({
     [setProfileData],
   );
 
+  /// ─── MY PLAYLISTS SECTION (SIDEBAR) ─────────────────────────────────────────
+  <MyPlaylistsSection />
   // ─── DETAILS VIEW ─────────────────────────────────────────────────────────
   const renderDetailsPage = () => (
     <div className="container mx-auto px-8 py-10 animate-in fade-in duration-500">
@@ -199,11 +203,10 @@ export default function ProfilePage({
                 setDetailTab(t);
                 setSearchQuery("");
               }}
-              className={`pb-2 cursor-pointer border-b-2 transition-all ${
-                detailTab === t
+              className={`pb-2 cursor-pointer border-b-2 transition-all ${detailTab === t
                   ? "text-white border-white"
                   : "border-transparent hover:text-zinc-200"
-              }`}
+                }`}
             >
               {t}
             </li>
@@ -245,7 +248,7 @@ export default function ProfilePage({
                     title: track.title,
                     likesCount: track.likesCount,
                     liked: true,
-                    artistName: track.artistName?? undefined,
+                    artistName: track.artistName ?? undefined,
                     coverArt: track.coverArt ?? undefined,
                   }}
                   isOwner={false}
@@ -311,11 +314,10 @@ export default function ProfilePage({
                           avatar_url: avatar ?? "",
                         })
                       }
-                      className={`px-4 py-1.5 rounded text-[10px] font-bold uppercase transition-all ${
-                        isFollowing
+                      className={`px-4 py-1.5 rounded text-[10px] font-bold uppercase transition-all ${isFollowing
                           ? "bg-zinc-800 text-zinc-400 border border-zinc-700"
                           : "bg-white text-black hover:bg-zinc-200"
-                      }`}
+                        }`}
                     >
                       {isFollowing ? "Following" : "Follow"}
                     </button>
@@ -463,11 +465,10 @@ export default function ProfilePage({
                     <li
                       key={tab}
                       onClick={() => setActiveTab(tab)}
-                      className={`cursor-pointer transition-colors h-full flex items-center border-b-2 ${
-                        activeTab === tab
+                      className={`cursor-pointer transition-colors h-full flex items-center border-b-2 ${activeTab === tab
                           ? "text-white border-white"
                           : "border-transparent hover:text-white"
-                      }`}
+                        }`}
                     >
                       {tab}
                     </li>
@@ -562,7 +563,7 @@ export default function ProfilePage({
                   {isLikesLoading ? (
                     <p className="text-xs text-zinc-600 font-bold uppercase animate-pulse">
                       Loading likes...</p>
-                  ) : profileLikes.length===0 ? (
+                  ) : profileLikes.length === 0 ? (
                     <p className="text-xs text-red-400 font-bold uppercase">
                       No liked tracks yet
                     </p>
@@ -592,7 +593,7 @@ export default function ProfilePage({
                           </p>
                           {track.artistName && (
                             <p className="text-[10px] text-zinc-500 uppercase truncate">
-                              {track.artistName|| "Unknown Artist"}
+                              {track.artistName || "Unknown Artist"}
                             </p>
                           )}
                         </div>
