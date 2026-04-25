@@ -7,6 +7,7 @@ import MessageComposer from "@/src/components/messages/MessageComposer";
 import SharedTrackCard from "@/src/components/messages/SharedTrackCard";
 import SharedPlaylistCard from "@/src/components/messages/SharedPlaylistCard";
 import ArchiveConversationPopover from "@/src/components/messages/ArchiveConversationPopover";
+import MessageText from "./MessageText";
 
 function timeLabel(date: string) {
   return new Date(date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -95,10 +96,14 @@ export default function ChatWindow() {
                     </span>
                     </div>
 
-                    <p className="whitespace-pre-wrap text-sm text-zinc-300">
-                    {message.text}
-                    </p>
-
+                    <MessageText
+                    text={message.text}
+                    hiddenUrls={[
+                        message.sharedTrack?.permalink ?? "",
+                        message.sharedPlaylist?.permalink ?? "",
+                    ]}
+                    />
+                    
                     {message.sharedTrack && (
                     <SharedTrackCard track={message.sharedTrack} />
                     )}

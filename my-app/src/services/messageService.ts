@@ -26,6 +26,7 @@ const mockUsers: MessageUser[] = [
 const mockTrack: SharedTrack = {
   id: "trk_mock_1",
   title: "Panic! At The Disco - House Of Memories",
+  permalink: "https://soundcloud.com/user-582410143/panic-at-the-disco-house-of-memories",
   slug: "panic-at-the-disco-house-of-memories",
   artist: { id: "usr_artist", display_name: "Quality", handle: "quality", avatar_url: null },
   coverArtUrl: "/images/track-placeholder.png",
@@ -43,6 +44,7 @@ const mockTrack: SharedTrack = {
 const mockPlaylist: SharedPlaylist = {
   id: "pl_mock_1",
   title: "Testing",
+  permalink: "https://soundcloud.com/maryamsol37/sets/testing",
   slug: "testing",
   owner: {
     id: meId,

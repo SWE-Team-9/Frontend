@@ -11,6 +11,7 @@ export interface MessageUser {
 export interface SharedTrack {
   id: string;
   title: string;
+  permalink?: string;
   slug?: string;
   artist: MessageUser;
   coverArtUrl?: string | null;
@@ -28,6 +29,7 @@ export interface SharedTrack {
 export interface SharedPlaylist {
   id: string;
   title: string;
+  permalink?: string;
   slug?: string;
   owner: MessageUser;
   coverArtUrl?: string | null;
