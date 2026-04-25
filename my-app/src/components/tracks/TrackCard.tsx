@@ -204,6 +204,7 @@ export const TrackCard: React.FC<TrackCardProps> = ({
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleCopyTrackLink = async () => {
     if (typeof window === "undefined") return;
     await navigator.clipboard.writeText(
