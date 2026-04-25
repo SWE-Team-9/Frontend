@@ -1,7 +1,9 @@
 "use client";
 
+// Component responsible for rendering a list of tracks inside a playlist
 import { TrackItem } from "./TrackItem";
 
+// Track data structure definition
 interface Track {
   trackId: string;
   title: string;
@@ -10,6 +12,7 @@ interface Track {
   duration?: number;
 }
 
+// Props for TrackList component
 interface Props {
   tracks: Track[];
   canEdit?: boolean;
@@ -17,15 +20,27 @@ interface Props {
   onReorder?: (orderedTrackIds: string[]) => void;
 }
 
+// Main TrackList component
 export function TrackList({ tracks, canEdit = false, onRemove, onReorder }: Props) {
+  // Function to reorder tracks locally and notify parent component
   const move = (from: number, to: number) => {
+    // Prevent invalid index moves
     if (to < 0 || to >= tracks.length) return;
+
+    // Create a copy of tracks array
     const next = [...tracks];
+
+    // Remove item from original position
     const [item] = next.splice(from, 1);
+
+    // Insert item at new position
     next.splice(to, 0, item);
+
+    // Emit reordered track IDs to parent
     onReorder?.(next.map((t) => t.trackId));
   };
 
+  // Empty state when no tracks exist
   if (tracks.length === 0) {
     return (
       <p className="text-center text-zinc-500 text-sm py-12">
