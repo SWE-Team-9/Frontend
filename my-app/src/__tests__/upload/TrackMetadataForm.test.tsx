@@ -1,4 +1,4 @@
-/* eslint-disable react/display-name */
+ 
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import TrackMetadataForm from '@/src/components/upload/TrackMetadataForm';

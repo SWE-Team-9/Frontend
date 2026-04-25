@@ -1,5 +1,7 @@
 "use client";
 import Image from "next/image";
+import Link from "next/link";
+import { Star } from "lucide-react"; // Example star icon
 import DropdownMenu from "@/src/components/ui/DropdownMenu";
 import NavBarItem from "@/src/components/ui/NavBarItem";
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
@@ -24,6 +26,10 @@ import { useRouter } from "next/navigation";
 // --- NEW IMPORTS ---
 import { useLikeStore } from "@/src/store/likeStore";
 import { useRepostStore } from "@/src/store/repostStore";
+// --- SUBSCRIPTION IMPORTS ---
+import { useSubscriptionStore } from "@/src/store/useSubscriptionStore";
+// 1. IMPORT THE SUBSCRIPTION MODAL COMPONENT
+import SubscriptionModal from '../subscription/SubscriptionModal';
 
 interface NavItem {
   label: string;
@@ -59,7 +65,7 @@ const NavBar: React.FC<NavBarProps> = ({
   ],
 
   rightRoutes = [
-    { label: "Try ArtistPro", href: "/pro" },
+    { label: "Try ArtistPro", href: "/subscriptions" },
     { label: "For Artists", href: "/artists" },
     { label: "Upload", href: "/upload" },
   ],
@@ -117,7 +123,12 @@ const NavBar: React.FC<NavBarProps> = ({
   className = "",
 }) => {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [isSubModalOpen, setIsSubModalOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null); // Ref for detecting clicks outside of the menu
+
+  // --- SUBSCRIPTION STATE (from global store) ---
+const sub = useSubscriptionStore((state) => state.sub);
+const fetchSubscription = useSubscriptionStore((state) => state.fetchSubscription);
 
   // Read the current logged-in user from the global auth store
   const user = useAuthStore((state) => state.user);
@@ -146,29 +157,62 @@ const NavBar: React.FC<NavBarProps> = ({
     setProfileImageSrc(user?.avatarUrl || "/images/profile.png");
   }, [user]);
 
+  // --- FETCH SUBSCRIPTION ON MOUNT ---
+useEffect(() => {
+  fetchSubscription();
+}, [fetchSubscription]);
+
   // Sign-out handler — clears cookies on the backend, clears store
   const handleLogout = useCallback(async () => {
     await logoutUser();
     router.push("/");
   }, [router]);
 
-  // Update Profile Menu to use the handle
-  const dynamicProfileMenu = useMemo(() => {
-    return profileMenu.map((item) => {
-      if (item.label === "Profile" && user?.handle) {
-        return { ...item, href: `/profiles/${user.handle}` };
+ // Update Profile Menu to use the handle and trigger Subscription Modal
+  const dynamicProfileMenu = useMemo(() => {
+    return profileMenu.map((item) => {
+      // 1. First Condition: Handle the Profile link
+      if (item.label === "Profile" && user?.handle) {
+        return { ...item, href: `/profiles/${user.handle}` };
+      }
+
+      // 2. Second Condition: Handle "Try Artist Pro" to open Modal
+      if (item.label === "Try Artist Pro") {
+        return { 
+          ...item, 
+          href: undefined, // Disable the old link to prevent navigation
+          onClick: () => {
+            setOpenMenu(null); // Close the black dropdown menu first
+            setIsSubModalOpen(true); // Open the colorful Subscription Modal
+          }
+        };
       }
-      return item;
-    });
-  }, [profileMenu, user?.handle]);
+
+      return item; // Return the rest of the items as they are
+    });
+  }, [profileMenu, user?.handle]);
 
   // Inject Logout handler
-  const moreMenuWithLogout = useMemo(() => {
-    return moreMenu.map((item) =>
-      item.label === "Sign out" ? { ...item, onClick: handleLogout } : item,
-    );
-  }, [moreMenu, handleLogout]);
+const moreMenuWithLogout = useMemo(() => {
+  return moreMenu.map((item) => {
+   
+    if (item.label === "Sign out") {
+      return { ...item, onClick: handleLogout };
+    }
 
+    if (item.label === "Subscription") {
+      return {
+        ...item,
+        onClick: () => {
+          setOpenMenu(null);      // Close the black dropdown menu first
+          setIsSubModalOpen(true); // Open the colorful Subscription Modal
+        }
+      };
+    }
+
+    return item;
+  });
+}, [moreMenu, handleLogout]);
   useEffect(() => {
     // Close menus when clicking outside
     const handleClickOutside = (event: MouseEvent) => {
@@ -263,11 +307,23 @@ const NavBar: React.FC<NavBarProps> = ({
                   e.currentTarget.src = "/images/profile.png";
                 }}
               />
-              {/* Show the user's display name (or handle / email prefix) when logged in */}
+              {/* Show the user's display name and premium badge if applicable */}
               {displayLabel && (
-                <span className="hidden lg:block text-white text-sm font-medium max-w-24 truncate">
-                  {displayLabel}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="hidden lg:block text-white text-sm font-medium max-w-24 truncate">
+                    {displayLabel}
+                  </span>
+
+                  {/* Check if sub exists and type is PRO or GO+ */}
+                  {sub &&
+                    (sub.subscriptionType === "PRO" ||
+                      sub.subscriptionType === "GO+") && (
+                      <div className="flex items-center bg-yellow-400 text-black text-[9px] px-1.5 py-0.5 rounded-full font-black uppercase tracking-tighter shadow-[0_0_10px_rgba(250,204,21,0.5)]">
+                        <Star size={8} fill="black" className="mr-0.5" />
+                        PRO
+                      </div>
+                    )}
+                </div>
               )}
               <FiChevronDown className="text-neutral-400" />
               {openMenu === "profile" && (
@@ -315,7 +371,15 @@ const NavBar: React.FC<NavBarProps> = ({
           )}
         </div>
       </div>
-
+{/* 5. ADD THE SUBSCRIPTION MODAL HERE */}
+      <SubscriptionModal 
+        isOpen={isSubModalOpen} 
+        onClose={() => setIsSubModalOpen(false)}
+        onUpgrade={() => {
+          setIsSubModalOpen(false);
+          router.push('/settings?tab=subscription');
+        }}
+      />
       {/* MOBILE */}
       {openMenu === "mobile" && (
         <div className="md:hidden bg-neutral-900 border-t border-neutral-700 p-4 hover:text-white">

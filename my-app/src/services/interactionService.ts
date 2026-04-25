@@ -1,11 +1,12 @@
 import api from "./api";
 import { FollowUser } from "@/src/services/followService";
 import type {
-  TrackComment,
   GetTrackCommentsResponse,
   AddTrackCommentBody,
   AddTrackCommentResponse,
 } from "@/src/types/interactions";
+
+// ─── Internal backend shapes ──────────────────────────────────────────────────
 
 interface BackendUser {
   userId: string;
@@ -19,28 +20,53 @@ interface InteractionItem {
   user: BackendUser;
 }
 
+// ─── Engagements (Likes / Reposts) ────────────────────────────────────────────
+
+export interface PaginatedEngagements {
+  items: FollowUser[];
+  total: number;
+  hasMore: boolean;
+}
+
+/**
+ * Fetch users who liked or reposted a track.
+ * Supports pagination via page + limit.
+ * Used by EngagementModal and TrackActionButtons.
+ */
 export const getTrackEngagements = async (
   trackId: string,
-  type: "likes" | "reposts"
-): Promise<FollowUser[]> => {
+  type: "likes" | "reposts",
+  page = 1,
+  limit = 20,
+): Promise<PaginatedEngagements> => {
   const endpoint = type === "likes" ? "likers" : "reposters";
 
-  const response = await api.get(`/interactions/tracks/${trackId}/${endpoint}`);
-  const items = response.data.items || [];
+  const response = await api.get(
+    `/interactions/tracks/${trackId}/${endpoint}`,
+    { params: { page, limit } },
+  );
 
-  return items.map((item: InteractionItem) => ({
-    id: item.user.userId,
-    display_name: item.user.displayName,
-    handle:
-      item.user.handle ||
-      item.user.displayName.toLowerCase().replace(/\s+/g, ""),
-    avatar_url: item.user.avatarUrl || "",
-  }));
+  const rawItems: InteractionItem[] = response.data.items || [];
+  const total: number =
+    response.data.total ??
+    response.data.pagination?.total ??
+    rawItems.length;
+
+  return {
+    items: rawItems.map((item) => ({
+      id: item.user.userId,
+      display_name: item.user.displayName,
+      handle:
+        item.user.handle ||
+        item.user.displayName.toLowerCase().replace(/\s+/g, ""),
+      avatar_url: item.user.avatarUrl || "",
+    })),
+    total,
+    hasMore: page * limit < total,
+  };
 };
 
-// ===============================
-// COMMENTS
-// ===============================
+// ─── Comments ─────────────────────────────────────────────────────────────────
 
 interface BackendTrackComment {
   id?: string;
@@ -68,22 +94,26 @@ type BackendGetTrackCommentsResponse =
       comments?: BackendTrackComment[];
     };
 
-    
+/**
+ * Fetch timestamped comments for a track.
+ */
 export async function getTrackComments(
   trackId: string,
   page = 1,
-  limit = 100
+  limit = 100,
 ): Promise<GetTrackCommentsResponse> {
   const { data } = await api.get<BackendGetTrackCommentsResponse>(
-    `/interactions/tracks/${trackId}/comments?page=${page}&limit=${limit}`
+    `/interactions/tracks/${trackId}/comments?page=${page}&limit=${limit}`,
   );
 
-  const rawComments = Array.isArray(data) ? data : data.comments ?? [];
+  const rawComments = Array.isArray(data) ? data : (data.comments ?? []);
 
   return {
-    page: Array.isArray(data) ? page : data.page ?? page,
-    limit: Array.isArray(data) ? limit : data.limit ?? limit,
-    total: Array.isArray(data) ? rawComments.length : data.total ?? rawComments.length,
+    page: Array.isArray(data) ? page : (data.page ?? page),
+    limit: Array.isArray(data) ? limit : (data.limit ?? limit),
+    total: Array.isArray(data)
+      ? rawComments.length
+      : (data.total ?? rawComments.length),
     comments: rawComments.map((comment) => ({
       commentId: comment.commentId ?? comment.id ?? "",
       trackId,
@@ -101,9 +131,12 @@ export async function getTrackComments(
   };
 }
 
+/**
+ * Post a new timestamped comment on a track.
+ */
 export async function addTrackComment(
   trackId: string,
-  body: AddTrackCommentBody
+  body: AddTrackCommentBody,
 ): Promise<AddTrackCommentResponse> {
   const payload = {
     content: body.content,
@@ -112,13 +145,18 @@ export async function addTrackComment(
 
   const { data } = await api.post<AddTrackCommentResponse>(
     `/interactions/tracks/${trackId}/comments`,
-    payload
+    payload,
   );
 
   return data;
 }
 
-export async function deleteTrackComment(commentId: string): Promise<{ message: string }> {
+/**
+ * Delete a comment by its ID.
+ */
+export async function deleteTrackComment(
+  commentId: string,
+): Promise<{ message: string }> {
   const { data } = await api.delete(`/interactions/comments/${commentId}`);
   return data;
 }

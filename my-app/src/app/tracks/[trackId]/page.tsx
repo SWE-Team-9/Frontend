@@ -10,6 +10,7 @@ import {
   changeTrackVisibility,
 } from "@/src/services/uploadService";
 import { WaveformDisplay } from "@/src/components/tracks/WaveformDisplay";
+import { DownloadButton } from "@/src/components/tracks/DownloadButton";
 
 const GENRES = [
   "None",
@@ -430,14 +431,21 @@ export default function TrackDetailPage() {
             </p>
           </div>
 
-          <div>
-            <label className="text-xs text-gray-500 uppercase tracking-widest mb-1 block">
-              Downloadable
-            </label>
-            <p className="text-white text-sm">
-              {track.downloadable ? "Yes" : "No"}
-            </p>
-          </div>
+         <div>
+  <label className="text-xs text-gray-500 uppercase tracking-widest mb-1 block">
+    Downloadable
+  </label>
+  {track.downloadable ? (
+    <DownloadButton
+      trackId={track.trackId}
+      trackTitle={track.title}
+      downloadable={track.downloadable}
+      size="full"
+    />
+  ) : (
+    <p className="text-zinc-500 text-sm italic">Not available</p>
+  )}
+</div>
         </div>
 
         {/* Visibility toggle — edit mode only */}
