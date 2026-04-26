@@ -23,6 +23,7 @@ export default function MessageComposer({
     const [attachment, setAttachment] = useState<AttachResource | null>(initialAttachment);
     const [showPicker, setShowPicker] = useState(false);
     const [isSending, setIsSending] = useState(false);
+    const [sendError, setSendError] = useState<string | null>(null);
 
     const handleAttach = (resource: AttachResource) => {
         setAttachment(resource);
@@ -34,12 +35,17 @@ export default function MessageComposer({
     };
 
     const handleSend = async () => {
-        if (disabled || !receiverId || !text.trim()) return;
+        if (!receiverId || !text.trim()) return;
+
         setIsSending(true);
+        setSendError(null);
+
         try {
             await onSend(text, attachment);
             setText("");
             setAttachment(null);
+        } catch {
+            setSendError("Failed to send message. Please try again.");
         } finally {
             setIsSending(false);
         }
@@ -77,6 +83,12 @@ export default function MessageComposer({
                 </p>
             )}
 
+            {sendError && (
+                <p className="mt-3 rounded border border-red-900/50 bg-red-950/30 px-3 py-2 text-sm text-red-300">
+                    {sendError}
+                </p>
+            )}
+
             <div className="mt-3 flex justify-between">
                 <button
                     onClick={() => setShowPicker((v) => !v)}
@@ -91,7 +103,7 @@ export default function MessageComposer({
                     disabled={disabled || isSending || !receiverId || !text.trim()}
                     className="rounded bg-white px-5 py-2 text-sm font-bold text-black disabled:opacity-50"
                 >
-                    Send
+                    {isSending ? "Sending..." : "Send"}
                 </button>
             </div>
         </div>

@@ -17,6 +17,7 @@ interface MessageState {
     hasMore: boolean;
     unreadCount: number;
     isLoading: boolean;
+    isLoadingOlder: boolean;
     isSending: boolean;
     isNewMessageOpen: boolean;
     error: string | null;
@@ -45,6 +46,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
     hasMore: false,
     unreadCount: 0,
     isLoading: false,
+    isLoadingOlder: false,
     isSending: false,
     isNewMessageOpen: false,
     error: null,
@@ -151,20 +153,25 @@ export const useMessageStore = create<MessageState>((set, get) => ({
 
     loadOlderMessages: async () => {
         const selected = get().selectedConversation;
-        if (!selected || !get().hasMore || get().isLoading) return;
+        if (!selected || !get().hasMore || get().isLoadingOlder) return;
 
         const nextPage = get().page + 1;
-        set({ isLoading: true });
+        set({ isLoadingOlder: true });
 
         try {
-            const data = await messageService.getConversationMessages(selected.conversationId, nextPage, 10);
+            const data = await messageService.getConversationMessages(
+                selected.conversationId,
+                nextPage,
+                10,
+            );
+
             set((state) => ({
                 messages: [...data.messages, ...state.messages],
                 page: nextPage,
                 hasMore: data.hasMore,
             }));
         } finally {
-            set({ isLoading: false });
+            set({ isLoadingOlder: false });
         }
     },
 

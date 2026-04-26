@@ -24,6 +24,10 @@ export default function ChatWindow() {
     const conversationView = useMessageStore((s) => s.conversationView);
     const [showArchive, setShowArchive] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
+    const isLoading = useMessageStore((s) => s.isLoading);
+    const isLoadingOlder = useMessageStore((s) => s.isLoadingOlder);
+    const error = useMessageStore((s) => s.error);
+
 
     useEffect(() => {
         scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
@@ -31,8 +35,13 @@ export default function ChatWindow() {
 
     if (!selected) {
         return (
-            <section className="flex h-[calc(100vh-64px)] flex-1 items-center justify-center text-zinc-500">
-                Select a conversation
+            <section className="flex h-[calc(100vh-64px)] flex-1 items-center justify-center bg-[#121212] p-8 text-center">
+                <div>
+                    <p className="text-2xl font-bold text-white">Select a conversation</p>
+                    <p className="mt-2 text-sm text-zinc-500">
+                        Choose a chat from the sidebar or start a new message.
+                    </p>
+                </div>
             </section>
         );
     }
@@ -103,7 +112,45 @@ export default function ChatWindow() {
                 }}
                 className="flex-1 overflow-y-auto pr-4"
             >
+                {isLoadingOlder && (
+                    <div className="mb-4 text-center text-xs font-bold text-zinc-500">
+                        Loading older messages...
+                    </div>
+                )}
+
+                {error && (
+                    <div className="mb-4 rounded border border-red-900/50 bg-red-950/20 px-4 py-3 text-sm text-red-300">
+                        {error}
+                    </div>
+                )}
+
+                {isLoading && messages.length === 0 && (
+                    <div className="space-y-6">
+                        {[1, 2, 3].map((item) => (
+                            <div key={item} className="flex animate-pulse gap-4">
+                                <div className="h-12 w-12 rounded-full bg-zinc-800" />
+                                <div className="flex-1 space-y-3">
+                                    <div className="h-3 w-20 rounded bg-zinc-800" />
+                                    <div className="h-4 w-64 rounded bg-zinc-900" />
+                                    <div className="h-20 w-full max-w-lg rounded bg-zinc-900" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
                 <div className="space-y-6 pb-8">
+                    {!isLoading && messages.length === 0 && (
+                        <div className="py-20 text-center">
+                            <p className="text-lg font-bold text-zinc-400">
+                                No messages in this conversation yet.
+                            </p>
+                            <p className="mt-2 text-sm text-zinc-500">
+                                Send a message below to start the conversation.
+                            </p>
+                        </div>
+                    )}
+
                     {messages.map((message) => {
                         const isMe = message.senderId === "me";
 
