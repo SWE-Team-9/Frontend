@@ -20,7 +20,7 @@ export default function LandingPage() {
         "https://a-v2.sndcdn.com/assets/images/front-hero-artist-fan-534fb484.jpeg",
       title: "Discover. Get Discovered.",
       description:
-        "Discover your next obsession, or become someone else’s.IQA3 is the only community where fans and artists come together to discover and connect through music.",
+        "Discover your next obsession, or become someone else’s. IQA3 is the only community where fans and artists come together to discover and connect through music.",
       buttonText: "Get Started",
       buttonColor: "bg-white/90",
       secondaryLink: null,

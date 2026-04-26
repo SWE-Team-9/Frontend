@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { SearchResponse } from "@/src/types/search";
+import UserResultCard from "@/src/components/search/results/UserResultCard";
 
 interface Props {
   query: string;
@@ -43,14 +44,12 @@ export default function SearchQuickResults({
       {users.length > 0 && (
         <Section title="People">
           {users.slice(0, 3).map((u) => (
-            <Link
+            <UserResultCard
               key={u.id}
-              href={`/profiles/${u.handle ?? u.id}`}
-              onClick={onClose}
-              className="block py-1 hover:text-orange-500"
-            >
-              {u.display_name}
-            </Link>
+              user={u}
+              compact
+              onNavigate={onClose}
+            />
           ))}
         </Section>
       )}
