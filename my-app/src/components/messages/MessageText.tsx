@@ -3,63 +3,72 @@
 const URL_REGEX = /(https?:\/\/[^\s]+)|(www\.[^\s]+)/gi;
 
 function normalizeUrl(url: string) {
-  if (url.startsWith("http")) return url;
-  return `https://${url}`;
+    if (url.startsWith("http")) return url;
+    return `https://${url}`;
 }
 
 function escapeRegex(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 export default function MessageText({
-  text,
-  hiddenUrls = [],
+    text,
+    hiddenUrls = [],
 }: {
-  text: string;
-  hiddenUrls?: string[];
+    text: string;
+    hiddenUrls?: string[];
 }) {
-  let visibleText = text;
+    let visibleText = text;
 
-  hiddenUrls.forEach((url) => {
-    if (!url) return;
+    hiddenUrls.forEach((url) => {
+        if (!url) return;
 
-    const escapedUrl = escapeRegex(url);
-    visibleText = visibleText
-      .replace(new RegExp(escapedUrl, "g"), "")
-      .replace(/\n{3,}/g, "\n\n")
-      .trim();
-  });
+        const normalizedHidden = url.replace(/^https?:\/\//, "").replace(/\/$/, "");
 
-  const parts = visibleText.split(URL_REGEX);
+        visibleText = visibleText
+            .split(/\s+/)
+            .filter((word) => {
+                const normalizedWord = word
+                    .replace(/^https?:\/\//, "")
+                    .replace(/\/$/, "")
+                    .replace(/[.,!?)]$/, "");
 
-  if (!visibleText) return null;
+                return normalizedWord !== normalizedHidden;
+            })
+            .join(" ")
+            .trim();
+    });
 
-  return (
-    <p className="whitespace-pre-wrap text-sm text-zinc-300">
-      {parts.map((part, index) => {
-        if (!part) return null;
+    const parts = visibleText.split(URL_REGEX);
 
-        const isUrl =
-          part.startsWith("http://") ||
-          part.startsWith("https://") ||
-          part.startsWith("www.");
+    if (!visibleText) return null;
 
-        if (isUrl) {
-          return (
-            <a
-              key={index}
-              href={normalizeUrl(part)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-500 underline hover:text-blue-400"
-            >
-              {part}
-            </a>
-          );
-        }
+    return (
+        <p className="whitespace-pre-wrap text-sm text-zinc-300">
+            {parts.map((part, index) => {
+                if (!part) return null;
 
-        return <span key={index}>{part}</span>;
-      })}
-    </p>
-  );
+                const isUrl =
+                    part.startsWith("http://") ||
+                    part.startsWith("https://") ||
+                    part.startsWith("www.");
+
+                if (isUrl) {
+                    return (
+                        <a
+                            key={index}
+                            href={normalizeUrl(part)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-500 underline hover:text-blue-400"
+                        >
+                            {part}
+                        </a>
+                    );
+                }
+
+                return <span key={index}>{part}</span>;
+            })}
+        </p>
+    );
 }
