@@ -563,7 +563,7 @@ function AccountSection() {
 
 // ─── Tab type ─────────────────────────────────────────────────────────────────
 
-type Tab = "security" | "sessions" | "privacy" | "subscription";
+type Tab = "security" | "sessions" | "privacy" | "subscription" | "account";
 
 // ─── SettingsContent — uses useSearchParams so must live inside <Suspense> ────
 
@@ -573,7 +573,7 @@ function SettingsContent() {
   const user = useAuthStore((s) => s.user);
 
   // Valid tab ids for URL-param validation
-  const validTabs: Tab[] = ["security", "sessions", "privacy", "subscription"];
+  const validTabs: Tab[] = ["security", "sessions", "privacy", "subscription", "account"];
 
   // Initialise active tab from the URL query param if valid, else default
   const tabFromUrl = searchParams.get("tab") as Tab;
@@ -614,6 +614,7 @@ function SettingsContent() {
     { id: "sessions",     label: "Sessions" },
     { id: "privacy",      label: "Privacy" },
     { id: "subscription", label: "Subscription" },
+    { id: "account",      label: "Account" },
   ];
 
   return (
@@ -657,13 +658,13 @@ function SettingsContent() {
 
       {/* Subscription tab: plan management + payment methods */}
       {activeTab === "subscription" && <SubscriptionSettings />}
+
+      {/* Account tab: delete account */}
+      {activeTab === "account" && <AccountSection />}
+
     </div>
   );
 }
-
-// ─── Page export — wraps SettingsContent in Suspense ─────────────────────────
-// Next.js 15 requires useSearchParams() to be inside a Suspense boundary
-// to allow static pre-rendering of the rest of the page.
 
 export default function SettingsPage() {
   return (
