@@ -1,7 +1,9 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import { Star } from "lucide-react"; // Example star icon
+import { useNotificationStore } from "@/src/store/notificationsStore";
+import { NotificationDropdown } from "@/src/components/notifications/NotificationDropdown";
+import { Star } from "lucide-react";
 import DropdownMenu from "@/src/components/ui/DropdownMenu";
 import NavBarItem from "@/src/components/ui/NavBarItem";
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
@@ -23,13 +25,10 @@ import {
 import { useAuthStore } from "@/src/store/useAuthStore";
 import { logoutUser } from "@/src/services/authService";
 import { useRouter } from "next/navigation";
-// --- NEW IMPORTS ---
 import { useLikeStore } from "@/src/store/likeStore";
 import { useRepostStore } from "@/src/store/repostStore";
-// --- SUBSCRIPTION IMPORTS ---
 import { useSubscriptionStore } from "@/src/store/useSubscriptionStore";
-// 1. IMPORT THE SUBSCRIPTION MODAL COMPONENT
-import SubscriptionModal from '../subscription/SubscriptionModal';
+import SubscriptionModal from "@/src/components/subscription/SubscriptionModal";
 
 interface NavItem {
   label: string;
@@ -51,7 +50,6 @@ interface NavBarProps {
   showMoreMenu?: boolean;
   showSearch?: boolean;
 
-  notificationsContent?: React.ReactNode;
   messagesContent?: React.ReactNode;
 
   className?: string;
@@ -65,8 +63,7 @@ const NavBar: React.FC<NavBarProps> = ({
   ],
 
   rightRoutes = [
-    { label: "Try ArtistPro", href: "/subscriptions" },
-    { label: "For Artists", href: "/artists" },
+    { label: "ArtistPro", href: "/subscriptions" },
     { label: "Upload", href: "/upload" },
   ],
 
@@ -77,7 +74,7 @@ const NavBar: React.FC<NavBarProps> = ({
     { label: "Stations", icon: IoRadio },
     { label: "Following", icon: BsPersonCheckFill },
     { label: "Who to follow", icon: MdPersonAddAlt1 },
-    { label: "Try Artist Pro", icon: MdStars },
+    { label: "ArtistPro", icon: MdStars },
     { label: "Tracks", icon: PiWaveformBold },
     { label: "Insights", icon: MdBarChart },
     { label: "Distribute", icon: TbArrowLeftRight },
@@ -108,12 +105,6 @@ const NavBar: React.FC<NavBarProps> = ({
   showProfile = true,
   showMoreMenu = true,
 
-  notificationsContent = (
-    <div className="absolute top-10 right-0 bg-neutral-900 text-white rounded-md shadow-md w-56 p-3 border border-neutral-700">
-      <p className="text-sm text-neutral-400">No new notifications</p>
-    </div>
-  ),
-
   messagesContent = (
     <div className="absolute top-10 right-0 bg-neutral-900 text-white rounded-md shadow-md w-56 p-3 border border-neutral-700">
       <p className="text-sm text-neutral-400">No messages</p>
@@ -126,9 +117,14 @@ const NavBar: React.FC<NavBarProps> = ({
   const [isSubModalOpen, setIsSubModalOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null); // Ref for detecting clicks outside of the menu
 
-  // --- SUBSCRIPTION STATE (from global store) ---
-const sub = useSubscriptionStore((state) => state.sub);
-const fetchSubscription = useSubscriptionStore((state) => state.fetchSubscription);
+  // SUBSCRIPTION STATE
+  const sub = useSubscriptionStore((state) => state.sub);
+  const fetchSubscription = useSubscriptionStore(
+    (state) => state.fetchSubscription,
+  );
+
+  // NOTIFICATIONS
+  const unreadCount = useNotificationStore((state) => state.unreadCount);
 
   // Read the current logged-in user from the global auth store
   const user = useAuthStore((state) => state.user);
@@ -158,9 +154,9 @@ const fetchSubscription = useSubscriptionStore((state) => state.fetchSubscriptio
   }, [user]);
 
   // --- FETCH SUBSCRIPTION ON MOUNT ---
-useEffect(() => {
-  fetchSubscription();
-}, [fetchSubscription]);
+  useEffect(() => {
+    fetchSubscription();
+  }, [fetchSubscription]);
 
   // Sign-out handler — clears cookies on the backend, clears store
   const handleLogout = useCallback(async () => {
@@ -168,51 +164,50 @@ useEffect(() => {
     router.push("/");
   }, [router]);
 
- // Update Profile Menu to use the handle and trigger Subscription Modal
-  const dynamicProfileMenu = useMemo(() => {
-    return profileMenu.map((item) => {
+  // Update Profile Menu to use the handle and trigger Subscription Modal
+  const dynamicProfileMenu = useMemo(() => {
+    return profileMenu.map((item) => {
       // 1. First Condition: Handle the Profile link
-      if (item.label === "Profile" && user?.handle) {
-        return { ...item, href: `/profiles/${user.handle}` };
-      }
+      if (item.label === "Profile" && user?.handle) {
+        return { ...item, href: `/profiles/${user.handle}` };
+      }
 
       // 2. Second Condition: Handle "Try Artist Pro" to open Modal
       if (item.label === "Try Artist Pro") {
-        return { 
-          ...item, 
+        return {
+          ...item,
           href: undefined, // Disable the old link to prevent navigation
           onClick: () => {
             setOpenMenu(null); // Close the black dropdown menu first
             setIsSubModalOpen(true); // Open the colorful Subscription Modal
-          }
+          },
         };
       }
 
-      return item; // Return the rest of the items as they are
-    });
-  }, [profileMenu, user?.handle]);
+      return item; // Return the rest of the items as they are
+    });
+  }, [profileMenu, user?.handle]);
 
   // Inject Logout handler
-const moreMenuWithLogout = useMemo(() => {
-  return moreMenu.map((item) => {
-   
-    if (item.label === "Sign out") {
-      return { ...item, onClick: handleLogout };
-    }
+  const moreMenuWithLogout = useMemo(() => {
+    return moreMenu.map((item) => {
+      if (item.label === "Sign out") {
+        return { ...item, onClick: handleLogout };
+      }
 
-    if (item.label === "Subscription") {
-      return {
-        ...item,
-        onClick: () => {
-          setOpenMenu(null);      // Close the black dropdown menu first
-          setIsSubModalOpen(true); // Open the colorful Subscription Modal
-        }
-      };
-    }
+      if (item.label === "Subscription") {
+        return {
+          ...item,
+          onClick: () => {
+            setOpenMenu(null); // Close the black dropdown menu first
+            setIsSubModalOpen(true); // Open the colorful Subscription Modal
+          },
+        };
+      }
 
-    return item;
-  });
-}, [moreMenu, handleLogout]);
+      return item;
+    });
+  }, [moreMenu, handleLogout]);
   useEffect(() => {
     // Close menus when clicking outside
     const handleClickOutside = (event: MouseEvent) => {
@@ -337,9 +332,17 @@ const moreMenuWithLogout = useMemo(() => {
             <button
               className="relative cursor-pointer"
               onClick={() => toggleMenu("notifications")}
+              aria-label="Notifications"
             >
               <FiBell size={20} className="text-neutral-400 hover:text-white" />
-              {openMenu === "notifications" && notificationsContent}
+
+              {unreadCount > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#ff5500] px-1 text-[10px] font-bold text-white">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
+
+              {openMenu === "notifications" && <NotificationDropdown />}
             </button>
           )}
 
@@ -371,13 +374,13 @@ const moreMenuWithLogout = useMemo(() => {
           )}
         </div>
       </div>
-{/* 5. ADD THE SUBSCRIPTION MODAL HERE */}
-      <SubscriptionModal 
-        isOpen={isSubModalOpen} 
+      {/* 5. ADD THE SUBSCRIPTION MODAL HERE */}
+      <SubscriptionModal
+        isOpen={isSubModalOpen}
         onClose={() => setIsSubModalOpen(false)}
         onUpgrade={() => {
           setIsSubModalOpen(false);
-          router.push('/settings?tab=subscription');
+          router.push("/settings?tab=subscription");
         }}
       />
       {/* MOBILE */}

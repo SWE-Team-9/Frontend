@@ -20,7 +20,7 @@ export default function LandingPage() {
         "https://a-v2.sndcdn.com/assets/images/front-hero-artist-fan-534fb484.jpeg",
       title: "Discover. Get Discovered.",
       description:
-        "Discover your next obsession, or become someone else’s.SoundCloud is the only community where fans and artists come together to discover and connect through music.",
+        "Discover your next obsession, or become someone else’s.IQA3 is the only community where fans and artists come together to discover and connect through music.",
       buttonText: "Get Started",
       buttonColor: "bg-white/90",
       secondaryLink: null,
@@ -30,7 +30,7 @@ export default function LandingPage() {
         "https://a-v2.sndcdn.com/assets/images/front-hero-artist-db39c288.jpeg",
       title: "It all starts with an upload.",
       description:
-        "From bedrooms and broom closets to studios and stadiums, SoundCloud is where you define what’s next in music. Just hit upload.",
+        "From bedrooms and broom closets to studios and stadiums, IQA3 is where you define what’s next in music. Just hit upload.",
       buttonText: "Upload",
       buttonColor: "bg-white/90",
       secondaryLink: "Explore Artist Pro",
@@ -279,7 +279,7 @@ export default function LandingPage() {
         {/* TRENDING */}
         <section className="pt-4 pb-10 text-center">
           <h2 className="text-md xs:text-lg md:text-2xl font-bold text-white">
-            Here’s what’s trending for free in the SoundCloud community
+            Here’s what’s trending for free in the IQA3 community
           </h2>
         </section>
       </div>
