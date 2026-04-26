@@ -75,7 +75,7 @@ export default function MessageComposer({
 
         <button
           onClick={handleSend}
-          disabled={isSending || !text.trim()}
+          disabled={isSending || !receiverId || !text.trim()}
           className="rounded bg-white px-5 py-2 text-sm font-bold text-black disabled:opacity-50"
         >
           Send
