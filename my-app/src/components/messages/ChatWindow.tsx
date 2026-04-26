@@ -20,6 +20,8 @@ export default function ChatWindow() {
     const sendMessage = useMessageStore((s) => s.sendMessage);
     const markUnread = useMessageStore((s) => s.markUnread);
     const archiveConversation = useMessageStore((s) => s.archiveConversation);
+    const unarchiveConversation = useMessageStore((s) => s.unarchiveConversation);
+    const conversationView = useMessageStore((s) => s.conversationView);
     const [showArchive, setShowArchive] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -52,12 +54,22 @@ export default function ChatWindow() {
                         Mark as unread
                     </button>
 
-                    <button
-                        onClick={() => setShowArchive((v) => !v)}
-                        className="rounded bg-zinc-800 p-2 text-white hover:bg-zinc-700"
-                    >
-                        <Trash2 className="h-4 w-4" />
-                    </button>
+                    {conversationView === "active" ? (
+                        <button
+                            onClick={() => setShowArchive((v) => !v)}
+                            className="rounded bg-zinc-800 p-2 text-white hover:bg-zinc-700"
+                            title="Archive conversation"
+                        >
+                            <Trash2 className="h-4 w-4" />
+                        </button>
+                    ) : (
+                        <button
+                            onClick={() => unarchiveConversation(selected.conversationId)}
+                            className="rounded bg-zinc-800 px-4 py-2 text-sm font-bold text-white hover:bg-zinc-700"
+                        >
+                            Unarchive
+                        </button>
+                    )}
 
                     {showArchive && (
                         <ArchiveConversationPopover
