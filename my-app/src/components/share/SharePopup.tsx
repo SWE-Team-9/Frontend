@@ -53,12 +53,12 @@ export default function SharePopup({
   const initialAttachment: AttachResource | null =
     resourceType && resourceId
       ? {
-          type: resourceType,
-          id: resourceId,
-          title: resourceTitle || "Shared item",
-          permalink: fullUrl,
-          coverArtUrl: resourceCoverArtUrl ?? null,
-        }
+        type: resourceType,
+        id: resourceId,
+        title: resourceTitle || "Shared item",
+        permalink: fullUrl,
+        coverArtUrl: resourceCoverArtUrl ?? null,
+      }
       : null;
 
   useEffect(() => {
@@ -107,170 +107,168 @@ export default function SharePopup({
   };
 
   return (
-    <div
-      ref={ref}
-      className={`absolute right-0 top-10 z-50 rounded-md border border-zinc-700 bg-[#121212] p-4 text-white shadow-xl ${
-        activeTab === "Message" ? "w-[520px]" : "w-80"
-      }`}
-    >
-      <button
-        onClick={onClose}
-        className="absolute right-3 top-3 text-zinc-500 hover:text-white"
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 p-4">
+      <div
+        ref={ref}
+        className={`relative max-h-[90vh] overflow-y-auto rounded-md border border-zinc-700 bg-[#121212] p-4 text-white shadow-xl ${activeTab === "Message" ? "w-full max-w-[560px]" : "w-full max-w-sm"
+          }`}
       >
-        <X className="h-4 w-4" />
-      </button>
-
-      <div className="mb-5 flex gap-6 border-b border-zinc-800">
         <button
-          onClick={() => setActiveTab("Share")}
-          className={`pb-3 text-lg font-bold ${
-            activeTab === "Share"
-              ? "border-b-2 border-white text-white"
-              : "text-zinc-500 hover:text-white"
-          }`}
+          onClick={onClose}
+          className="absolute right-3 top-3 text-zinc-500 hover:text-white"
         >
-          Share
+          <X className="h-4 w-4" />
         </button>
 
-        <button
-          onClick={() => setActiveTab("Message")}
-          className={`pb-3 text-lg font-bold ${
-            activeTab === "Message"
-              ? "border-b-2 border-white text-white"
-              : "text-zinc-500 hover:text-white"
-          }`}
-        >
-          Message
-        </button>
-      </div>
-
-      {activeTab === "Share" ? (
-        <>
-          <p className="mb-2 text-xs font-bold uppercase text-zinc-400">
-            Share link
-          </p>
-
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              readOnly
-              value={fullUrl}
-              onFocus={(e) => e.target.select()}
-              className="flex-1 truncate rounded border border-zinc-700 bg-[#1e1e1e] px-2 py-1.5 text-xs text-white outline-none"
-            />
-
-            <button
-              onClick={handleCopy}
-              className={`flex items-center gap-1 rounded px-3 py-1.5 text-xs font-bold transition-colors ${
-                copied
-                  ? "bg-green-600 text-white"
-                  : "bg-white text-black hover:bg-zinc-200"
+        <div className="mb-5 flex gap-6 border-b border-zinc-800">
+          <button
+            onClick={() => setActiveTab("Share")}
+            className={`pb-3 text-lg font-bold ${activeTab === "Share"
+                ? "border-b-2 border-white text-white"
+                : "text-zinc-500 hover:text-white"
               }`}
-            >
-              {copied ? (
-                <>
-                  <Check className="h-3 w-3" /> Copied
-                </>
+          >
+            Share
+          </button>
+
+          <button
+            onClick={() => setActiveTab("Message")}
+            className={`pb-3 text-lg font-bold ${activeTab === "Message"
+                ? "border-b-2 border-white text-white"
+                : "text-zinc-500 hover:text-white"
+              }`}
+          >
+            Message
+          </button>
+        </div>
+
+        {activeTab === "Share" ? (
+          <>
+            <p className="mb-2 text-xs font-bold uppercase text-zinc-400">
+              Share link
+            </p>
+
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                readOnly
+                value={fullUrl}
+                onFocus={(e) => e.target.select()}
+                className="flex-1 truncate rounded border border-zinc-700 bg-[#1e1e1e] px-2 py-1.5 text-xs text-white outline-none"
+              />
+
+              <button
+                onClick={handleCopy}
+                className={`flex items-center gap-1 rounded px-3 py-1.5 text-xs font-bold transition-colors ${copied
+                    ? "bg-green-600 text-white"
+                    : "bg-white text-black hover:bg-zinc-200"
+                  }`}
+              >
+                {copied ? (
+                  <>
+                    <Check className="h-3 w-3" /> Copied
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-3 w-3" /> Copy
+                  </>
+                )}
+              </button>
+            </div>
+          </>
+        ) : (
+          <div>
+            <div className="mb-5">
+              <label className="mb-2 block text-sm font-bold">
+                To <span className="text-red-500">*</span>
+              </label>
+
+              {selectedUser ? (
+                <div className="flex w-fit items-center gap-2 rounded bg-zinc-900 px-3 py-2">
+                  <Image
+                    src={selectedUser.avatar_url || FALLBACK}
+                    alt={selectedUser.display_name}
+                    width={22}
+                    height={22}
+                    className="rounded-full"
+                  />
+
+                  <span className="text-sm font-bold">
+                    {selectedUser.display_name}
+                  </span>
+
+                  <button
+                    onClick={() => setSelectedUser(null)}
+                    className="text-zinc-400 hover:text-white"
+                  >
+                    ×
+                  </button>
+                </div>
               ) : (
                 <>
-                  <Copy className="h-3 w-3" /> Copy
+                  <input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    className="w-full rounded border border-zinc-600 bg-[#2a2a2a] px-3 py-2 text-sm text-white outline-none focus:border-white"
+                  />
+
+                  {query && (
+                    <div className="mt-2 max-h-44 overflow-y-auto rounded border border-zinc-700 bg-[#1e1e1e]">
+                      {filtered.length === 0 ? (
+                        <p className="px-3 py-2 text-sm text-zinc-500">
+                          No followed users found
+                        </p>
+                      ) : (
+                        filtered.map((u) => (
+                          <button
+                            key={u.id}
+                            onClick={() => {
+                              setSelectedUser(u);
+                              setQuery("");
+                            }}
+                            className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-zinc-800"
+                          >
+                            <Image
+                              src={u.avatar_url || FALLBACK}
+                              alt={u.display_name}
+                              width={32}
+                              height={32}
+                              className="rounded-full"
+                            />
+
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-bold">
+                                {u.display_name}
+                              </p>
+                              <p className="truncate text-xs text-zinc-500">
+                                @{u.handle}
+                              </p>
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
                 </>
               )}
-            </button>
+            </div>
+
+            <MessageComposer
+              receiverId={selectedUser?.id ?? ""}
+              initialText={fullUrl}
+              initialAttachment={initialAttachment}
+              onSend={async (text, attachment) => {
+                if (!selectedUser) return;
+
+                await sendMessage(selectedUser.id, text, attachment);
+                await loadConversations();
+                await loadUnreadCount();
+                onClose();
+              }}
+            />
           </div>
-        </>
-      ) : (
-        <div>
-          <div className="mb-5">
-            <label className="mb-2 block text-sm font-bold">
-              To <span className="text-red-500">*</span>
-            </label>
-
-            {selectedUser ? (
-              <div className="flex w-fit items-center gap-2 rounded bg-zinc-900 px-3 py-2">
-                <Image
-                  src={selectedUser.avatar_url || FALLBACK}
-                  alt={selectedUser.display_name}
-                  width={22}
-                  height={22}
-                  className="rounded-full"
-                />
-
-                <span className="text-sm font-bold">
-                  {selectedUser.display_name}
-                </span>
-
-                <button
-                  onClick={() => setSelectedUser(null)}
-                  className="text-zinc-400 hover:text-white"
-                >
-                  ×
-                </button>
-              </div>
-            ) : (
-              <>
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  className="w-full rounded border border-zinc-600 bg-[#2a2a2a] px-3 py-2 text-sm text-white outline-none focus:border-white"
-                />
-
-                {query && (
-                  <div className="mt-2 max-h-44 overflow-y-auto rounded border border-zinc-700 bg-[#1e1e1e]">
-                    {filtered.length === 0 ? (
-                      <p className="px-3 py-2 text-sm text-zinc-500">
-                        No followed users found
-                      </p>
-                    ) : (
-                      filtered.map((u) => (
-                        <button
-                          key={u.id}
-                          onClick={() => {
-                            setSelectedUser(u);
-                            setQuery("");
-                          }}
-                          className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-zinc-800"
-                        >
-                          <Image
-                            src={u.avatar_url || FALLBACK}
-                            alt={u.display_name}
-                            width={32}
-                            height={32}
-                            className="rounded-full"
-                          />
-
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-bold">
-                              {u.display_name}
-                            </p>
-                            <p className="truncate text-xs text-zinc-500">
-                              @{u.handle}
-                            </p>
-                          </div>
-                        </button>
-                      ))
-                    )}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-
-          <MessageComposer
-            receiverId={selectedUser?.id ?? ""}
-            initialText={fullUrl}
-            initialAttachment={initialAttachment}
-            onSend={async (text, attachment) => {
-              if (!selectedUser) return;
-
-              await sendMessage(selectedUser.id, text, attachment);
-              await loadConversations();
-              await loadUnreadCount();
-              onClose();
-            }}
-          />
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
