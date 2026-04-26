@@ -41,7 +41,20 @@ export default function ChatWindow() {
         <section className="flex h-[calc(100vh-64px)] flex-1 flex-col p-8">
             <header className="mb-6 flex shrink-0 items-center justify-between">
                 <div className="flex items-center gap-8">
-                    <h2 className="text-lg font-bold">{selected.participant.display_name}</h2>
+                    <div>
+                        <h2 className="text-lg font-bold">{selected.participant.display_name}</h2>
+
+                        {!selected.canMessage && (
+                            <p className="mt-1 text-xs text-red-400">
+                                {selected.blockReason ||
+                                    (selected.isBlockedByMe
+                                        ? "You blocked this user."
+                                        : selected.hasBlockedMe
+                                            ? "This user cannot receive your messages."
+                                            : "Messaging unavailable.")}
+                            </p>
+                        )}
+                    </div>
                     <button className="text-sm font-bold text-white">Block</button>
                     <button className="text-sm font-bold text-white">Report</button>
                 </div>
@@ -135,6 +148,15 @@ export default function ChatWindow() {
                 <div className="pb-8">
                     <MessageComposer
                         receiverId={selected.participant.id}
+                        disabled={!selected.canMessage}
+                        disabledReason={
+                            selected.blockReason ||
+                            (selected.isBlockedByMe
+                                ? "You blocked this user. Unblock them to send messages."
+                                : selected.hasBlockedMe
+                                    ? "You cannot message this user."
+                                    : "Messaging is unavailable for this conversation.")
+                        }
                         onSend={(text, attachment) =>
                             sendMessage(selected.participant.id, text, attachment)
                         }

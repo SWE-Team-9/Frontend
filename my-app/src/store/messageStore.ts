@@ -106,8 +106,28 @@ export const useMessageStore = create<MessageState>((set, get) => ({
                 null;
 
             const updatedConversation = conversation
-                ? { ...conversation, unreadCount: 0 }
-                : null;
+                ? {
+                    ...conversation,
+                    unreadCount: 0,
+                    isBlockedByMe: data.isBlockedByMe,
+                    hasBlockedMe: data.hasBlockedMe,
+                    canMessage: data.canMessage,
+                    blockReason: data.blockReason,
+                }
+                : {
+                    conversationId,
+                    participant: data.participant,
+                    lastMessage: data.messages[data.messages.length - 1] ?? null,
+                    unreadCount: 0,
+                    updatedAt:
+                        data.messages[data.messages.length - 1]?.createdAt ??
+                        new Date().toISOString(),
+                    isArchived: false,
+                    isBlockedByMe: data.isBlockedByMe,
+                    hasBlockedMe: data.hasBlockedMe,
+                    canMessage: data.canMessage,
+                    blockReason: data.blockReason,
+                };
 
             set((state) => ({
                 selectedConversation: updatedConversation,
