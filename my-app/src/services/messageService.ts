@@ -40,14 +40,103 @@ const mockTrack: SharedTrack = {
   createdAt: new Date().toISOString(),
 };
 
+const mockPlaylistTracks: SharedTrack[] = [
+  mockTrack,
+  {
+    id: "trk_mock_2",
+    title: "Warriors - Imagine Dragons",
+    slug: "warriors-imagine-dragons",
+    artist: { id: "usr_10", display_name: "Oofie", handle: "oofie", avatar_url: null },
+    coverArtUrl: "/images/track-placeholder.png",
+    durationSeconds: 156,
+    waveformData: [0.1, 0.4, 0.7, 0.3],
+    playCount: 2450000,
+    commentsCount: 80,
+    likesCount: 1200,
+    repostsCount: 90,
+    liked: false,
+    reposted: false,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "trk_mock_3",
+    title: "Centuries - Fall Out Boy",
+    slug: "centuries-fall-out-boy",
+    artist: { id: "usr_3", display_name: "Fall Out Boy", handle: "fall-out-boy", avatar_url: null },
+    coverArtUrl: "/images/track-placeholder.png",
+    durationSeconds: 228,
+    waveformData: [0.2, 0.5, 0.9, 0.4],
+    playCount: 5330000,
+    commentsCount: 160,
+    likesCount: 3200,
+    repostsCount: 210,
+    liked: true,
+    reposted: false,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "trk_mock_4",
+    title: "The Phoenix",
+    slug: "the-phoenix",
+    artist: { id: "usr_3", display_name: "Fall Out Boy", handle: "fall-out-boy", avatar_url: null },
+    coverArtUrl: "/images/track-placeholder.png",
+    durationSeconds: 244,
+    waveformData: [0.3, 0.6, 0.8, 0.2],
+    playCount: 870000,
+    commentsCount: 44,
+    likesCount: 760,
+    repostsCount: 55,
+    liked: false,
+    reposted: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "trk_mock_5",
+    title: "Immortals",
+    slug: "immortals",
+    artist: { id: "usr_3", display_name: "Fall Out Boy", handle: "fall-out-boy", avatar_url: null },
+    coverArtUrl: "/images/track-placeholder.png",
+    durationSeconds: 189,
+    waveformData: [0.4, 0.8, 0.5, 0.7],
+    playCount: 771000,
+    commentsCount: 63,
+    likesCount: 980,
+    repostsCount: 71,
+    liked: false,
+    reposted: false,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "trk_mock_6",
+    title: "Runnin'",
+    slug: "runnin",
+    artist: { id: "usr_11", display_name: "Adam Lambert", handle: "adam-lambert", avatar_url: null },
+    coverArtUrl: "/images/track-placeholder.png",
+    durationSeconds: 205,
+    waveformData: [0.2, 0.3, 0.9, 0.6],
+    playCount: 405000,
+    commentsCount: 29,
+    likesCount: 510,
+    repostsCount: 36,
+    liked: false,
+    reposted: false,
+    createdAt: new Date().toISOString(),
+  },
+];
+
 const mockPlaylist: SharedPlaylist = {
   id: "pl_mock_1",
   title: "Testing",
   slug: "testing",
-  owner: { id: meId, display_name: "Maryam Soliman", handle: "maryamsol37", avatar_url: null },
+  owner: {
+    id: meId,
+    display_name: "Maryam Soliman",
+    handle: "maryamsol37",
+    avatar_url: null,
+  },
   coverArtUrl: "/images/track-placeholder.png",
-  tracksCount: 3,
-  tracksPreview: [mockTrack],
+  tracksCount: mockPlaylistTracks.length,
+  tracksPreview: mockPlaylistTracks.slice(0, 5),
 };
 
 let mockMessages: Message[] = [
@@ -405,6 +494,59 @@ export const messageService = {
     const res = await api.delete(`/messages/${messageId}`);
     return res.data;
   },
+
+    async getPlaylistDetailsForSharing(playlistId: string): Promise<SharedPlaylist> {
+    if (USE_MOCK) {
+        await new Promise((r) => setTimeout(r, 300));
+
+        return {
+        ...mockPlaylist,
+        id: playlistId,
+        tracksCount: mockPlaylistTracks.length,
+        tracksPreview: mockPlaylistTracks,
+        };
+    }
+
+    const res = await api.get(`/playlists/${playlistId}`);
+
+    return {
+        id: res.data.playlistId ?? res.data.id,
+        title: res.data.title,
+        slug: res.data.slug,
+        owner: {
+        id: res.data.owner.id,
+        display_name: res.data.owner.display_name,
+        handle: res.data.owner.handle,
+        avatar_url: res.data.owner.avatar_url ?? null,
+        },
+        coverArtUrl: res.data.coverArtUrl ?? null,
+        tracksCount: res.data.tracks?.length ?? 0,
+        tracksPreview: (res.data.tracks ?? []).map((track: any) => ({
+        id: track.id ?? track.trackId,
+        title: track.title,
+        slug: track.slug,
+        artist: {
+            id: track.artist?.id ?? track.artistId ?? "unknown",
+            display_name:
+            track.artist?.display_name ??
+            track.artistName ??
+            "Unknown Artist",
+            handle: track.artist?.handle ?? track.artistHandle ?? "",
+            avatar_url: track.artist?.avatar_url ?? null,
+        },
+        coverArtUrl: track.coverArtUrl ?? track.coverArt ?? null,
+        durationSeconds: track.durationSeconds ?? 0,
+        waveformData: track.waveformData ?? [],
+        playCount: track.playCount ?? 0,
+        commentsCount: track.commentsCount ?? 0,
+        likesCount: track.likesCount ?? 0,
+        repostsCount: track.repostsCount ?? 0,
+        liked: track.liked ?? false,
+        reposted: track.reposted ?? false,
+        createdAt: track.createdAt ?? new Date().toISOString(),
+        })),
+    };
+    },
 
   async getMockAttachResources(): Promise<AttachResource[]> {
     return [

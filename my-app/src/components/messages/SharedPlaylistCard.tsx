@@ -10,6 +10,7 @@ import type { SharedPlaylist, SharedTrack } from "@/src/types/messages";
 import { usePlayerStore, type Track as PlayerTrack } from "@/src/store/playerStore";
 import SharePopup from "@/src/components/share/SharePopup";
 import { buildFullShareUrl, buildPlaylistPermalink } from "@/src/lib/permalinks";
+import { messageService } from "@/src/services/messageService";
 
 const FALLBACK = "/images/track-placeholder.png";
 
@@ -64,6 +65,14 @@ export default function SharedPlaylistCard({
     );
     const [playlistLiked, setPlaylistLiked] = useState(false);
 
+    const [expandedPlaylist, setExpandedPlaylist] = useState<SharedPlaylist | null>(null);
+    const [isLoadingFullPlaylist, setIsLoadingFullPlaylist] = useState(false);
+    const [playlistError, setPlaylistError] = useState<string | null>(null);
+
+    const visiblePlaylist = expandedPlaylist ?? playlist;
+    const visibleTracks = visiblePlaylist.tracksPreview ?? [];
+    const isExpanded = !!expandedPlaylist;
+
     const playlistHref = buildPlaylistPermalink({
         playlistId: playlist.id,
         ownerHandle: playlist.owner?.handle,
@@ -89,11 +98,11 @@ export default function SharedPlaylistCard({
     const isPlaying = usePlayerStore((s) => s.isPlaying);
     const toggle = usePlayerStore((s) => s.toggle);
 
-    const playlistTracks = (playlist.tracksPreview ?? []).map(mapSharedTrackToPlayerTrack);
-    const firstTrack = playlist.tracksPreview?.[0];
+    const playlistTracks = visibleTracks.map(mapSharedTrackToPlayerTrack);
+    const firstTrack = visibleTracks[0];
 
     const playPlaylistFromTrack = async (track: SharedTrack) => {
-        const playerTracks = (playlist.tracksPreview ?? []).map(mapSharedTrackToPlayerTrack);
+        const playerTracks = visibleTracks.map(mapSharedTrackToPlayerTrack);
         const clickedTrack = mapSharedTrackToPlayerTrack(track);
 
         if (currentTrack?.trackId === clickedTrack.trackId) {
@@ -109,6 +118,25 @@ export default function SharedPlaylistCard({
     const handlePlayPlaylist = async () => {
         if (!firstTrack) return;
         await playPlaylistFromTrack(firstTrack);
+    };
+
+    const handleViewTracks = async () => {
+        if (isExpanded) {
+            setExpandedPlaylist(null);
+            return;
+        }
+
+        try {
+            setIsLoadingFullPlaylist(true);
+            setPlaylistError(null);
+
+            const fullPlaylist = await messageService.getPlaylistDetailsForSharing(playlist.id);
+            setExpandedPlaylist(fullPlaylist);
+        } catch {
+            setPlaylistError("Could not load full playlist.");
+        } finally {
+            setIsLoadingFullPlaylist(false);
+        }
     };
 
     return (
@@ -148,7 +176,7 @@ export default function SharedPlaylistCard({
                     <MockWaveform />
 
                     <div className="mt-3 space-y-2">
-                        {(playlist.tracksPreview ?? []).slice(0, 5).map((track, index) => {
+                        {visibleTracks.map((track, index) => {
                             const isCurrentTrack = currentTrack?.trackId === track.id;
 
                             return (
@@ -187,9 +215,23 @@ export default function SharedPlaylistCard({
                         })}
                     </div>
 
-                    <button className="mt-3 text-sm font-bold text-white hover:underline">
-                        View {playlist.tracksCount ?? 0} tracks
-                    </button>
+                    <div className="mt-3">
+                        <button
+                            onClick={handleViewTracks}
+                            disabled={isLoadingFullPlaylist}
+                            className="text-sm font-bold text-white hover:underline disabled:opacity-50"
+                        >
+                            {isLoadingFullPlaylist
+                                ? "Loading tracks..."
+                                : isExpanded
+                                    ? "Show less"
+                                    : `View ${playlist.tracksCount ?? 0} tracks`}
+                        </button>
+
+                        {playlistError && (
+                            <p className="mt-2 text-xs text-red-400">{playlistError}</p>
+                        )}
+                    </div>
 
                     <div className="mt-4 flex items-center gap-3">
                         <button
@@ -204,10 +246,10 @@ export default function SharedPlaylistCard({
                             <button
                                 onClick={handleCopy}
                                 className={`rounded p-2 text-zinc-300 hover:bg-zinc-700 ${copyStatus === "success"
-                                        ? "bg-green-700"
-                                        : copyStatus === "error"
-                                            ? "bg-red-700"
-                                            : "bg-zinc-800"
+                                    ? "bg-green-700"
+                                    : copyStatus === "error"
+                                        ? "bg-red-700"
+                                        : "bg-zinc-800"
                                     }`}
                                 title={
                                     copyStatus === "success"
