@@ -1,53 +1,16 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-import {
-  getTrackDetails,
-  updateTrackMetadata,
-  changeTrackVisibility,
-} from "@/src/services/uploadService";
+import { FaPlay, FaPause } from "react-icons/fa";
+import { getTrackDetails } from "@/src/services/uploadService";
 import { WaveformDisplay } from "@/src/components/tracks/WaveformDisplay";
 import { DownloadButton } from "@/src/components/tracks/DownloadButton";
-
-const GENRES = [
-  "None",
-  "electronic",
-  "hip-hop",
-  "pop",
-  "rock",
-  "alternative",
-  "ambient",
-  "classical",
-  "jazz",
-  "r-b-soul",
-  "metal",
-  "folk-singer-songwriter",
-  "country",
-  "reggaeton",
-  "dancehall",
-  "drum-bass",
-  "house",
-  "techno",
-  "deep-house",
-  "trance",
-  "lo-fi",
-  "indie",
-  "punk",
-  "blues",
-  "latin",
-  "afrobeat",
-  "trap",
-  "experimental",
-  "world",
-  "gospel",
-  "spoken-word",
-  "quran",
-  "sha3by",
-  "islamic",
-];
+import {
+  usePlayerStore,
+  type Track as PlayerTrack,
+} from "@/src/store/playerStore";
 
 interface TrackFile {
   id: string;
@@ -86,6 +49,9 @@ interface Track {
   files: TrackFile[];
 }
 
+const DEFAULT_GRADIENT_CLASS =
+  "bg-linear-to-r from-[#8D8284] via-[#89747C] to-[#866975]";
+
 const formatDuration = (ms: number) => {
   const totalSeconds = Math.floor(ms / 1000);
   const minutes = Math.floor(totalSeconds / 60);
@@ -108,24 +74,105 @@ const formatDate = (iso: string | null) => {
   });
 };
 
+const timeAgo = (iso: string | null) => {
+  if (!iso) return "";
+  const diff = Date.now() - new Date(iso).getTime();
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  if (days < 1) return "today";
+  if (days === 1) return "1 day ago";
+  if (days < 30) return `${days} days ago`;
+  const months = Math.floor(days / 30);
+  if (months === 1) return "1 month ago";
+  if (months < 12) return `${months} months ago`;
+  const years = Math.floor(months / 12);
+  return years === 1 ? "1 year ago" : `${years} years ago`;
+};
+
+// Sample three vertical bands of the cover art and return a left→right gradient.
+// Falls back silently to null if CORS / loading fails so the default stays in place.
+async function extractGradientFromImage(src: string): Promise<string | null> {
+  return new Promise((resolve) => {
+    if (typeof window === "undefined") return resolve(null);
+
+    const img = document.createElement("img");
+    img.crossOrigin = "anonymous";
+
+    img.onload = () => {
+      try {
+        const size = 50;
+        const canvas = document.createElement("canvas");
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return resolve(null);
+        ctx.drawImage(img, 0, 0, size, size);
+        const { data } = ctx.getImageData(0, 0, size, size);
+
+        const sampleBand = (xStart: number, xEnd: number) => {
+          let r = 0;
+          let g = 0;
+          let b = 0;
+          let count = 0;
+          for (let y = 0; y < size; y++) {
+            for (let x = xStart; x < xEnd; x++) {
+              const i = (y * size + x) * 4;
+              r += data[i];
+              g += data[i + 1];
+              b += data[i + 2];
+              count++;
+            }
+          }
+          return `rgb(${Math.round(r / count)}, ${Math.round(g / count)}, ${Math.round(b / count)})`;
+        };
+
+        const third = Math.floor(size / 3);
+        const c1 = sampleBand(0, third);
+        const c2 = sampleBand(third, third * 2);
+        const c3 = sampleBand(third * 2, size);
+
+        resolve(`linear-gradient(to right, ${c1}, ${c2}, ${c3})`);
+      } catch {
+        resolve(null);
+      }
+    };
+
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+}
+
 export default function TrackDetailPage() {
   const router = useRouter();
   const { trackId } = useParams<{ trackId: string }>();
+
   const [track, setTrack] = useState<Track | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isEditing, setIsEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [dynamicGradient, setDynamicGradient] = useState<string | null>(null);
 
-  // Edit form state
-  const [editTitle, setEditTitle] = useState("");
-  const [editGenre, setEditGenre] = useState("");
-  const [editTags, setEditTags] = useState("");
-  const [editDescription, setEditDescription] = useState("");
-  const [editReleaseDate, setEditReleaseDate] = useState("");
-  const [editVisibility, setEditVisibility] = useState<"PUBLIC" | "PRIVATE">(
-    "PRIVATE",
+  // Player
+  const currentTrack = usePlayerStore((state) => state.currentTrack);
+  const isPlaying = usePlayerStore((state) => state.isPlaying);
+  const fetchAndPlay = usePlayerStore((state) => state.fetchAndPlay);
+  const toggle = usePlayerStore((state) => state.toggle);
+  const currentTime = usePlayerStore((state) => state.currentTime);
+  const duration = usePlayerStore((state) => state.duration);
+  const seekTo = usePlayerStore((state) => state.seekTo);
+  const isResolvingPlayback = usePlayerStore(
+    (state) => state.isResolvingPlayback,
   );
+  const isProcessingPlayback = usePlayerStore((state) => state.isProcessing);
+  const accessState = usePlayerStore((state) => state.accessState);
+
+  const isCurrentTrack = currentTrack?.trackId === track?.trackId;
+  const waveformProgress =
+    isCurrentTrack && duration > 0 ? currentTime / duration : 0;
+  const isPlayDisabled =
+    !track ||
+    track.status === "PROCESSING" ||
+    isResolvingPlayback ||
+    isProcessingPlayback ||
+    accessState === "BLOCKED";
 
   useEffect(() => {
     getTrackDetails(trackId)
@@ -133,74 +180,50 @@ export default function TrackDetailPage() {
         setError(null);
         setTrack(data as unknown as Track);
       })
-      .catch(() => {
-        setError("Could not load track details.");
-      })
+      .catch(() => setError("Could not load track details."))
       .finally(() => setLoading(false));
   }, [trackId]);
 
-  const enterEditMode = () => {
-    if (!track) return;
-    setEditTitle(track.title);
-    setEditGenre(track.genre ?? "");
-    setEditTags(track.tags?.join(", ") ?? "");
-    setEditDescription(track.description ?? "");
-    setEditReleaseDate(track.releaseDate?.split("T")[0] ?? "");
-    setEditVisibility(track.visibility);
-    setIsEditing(true);
-  };
+  useEffect(() => {
+    if (!track?.coverArtUrl) {
+      setDynamicGradient(null);
+      return;
+    }
+    extractGradientFromImage(track.coverArtUrl).then(setDynamicGradient);
+  }, [track?.coverArtUrl]);
 
-  const handleSave = async () => {
+  async function handlePlayClick() {
     if (!track) return;
-    setSaving(true);
+    if (isPlayDisabled) return;
     try {
       setError(null);
-      await updateTrackMetadata(track.trackId, {
-        title: editTitle,
-        genre: editGenre,
-        tags: editTags
-          .split(",")
-          .map((t) => t.trim())
-          .filter(Boolean),
-        releaseDate: editReleaseDate ? new Date(editReleaseDate).toISOString() : undefined,
-        description: editDescription,
-      });
-
-      if (editVisibility !== track.visibility) {
-        await changeTrackVisibility(track.trackId, editVisibility);
+      if (isCurrentTrack) {
+        await toggle();
+        return;
       }
-
-      setTrack((prev) =>
-        prev
-          ? {
-              ...prev,
-              title: editTitle,
-              genre: editGenre,
-              tags: editTags
-                .split(",")
-                .map((t) => t.trim())
-                .filter(Boolean),
-              description: editDescription,
-              releaseDate: editReleaseDate,
-              visibility: editVisibility,
-            }
-          : prev,
-      );
-      setIsEditing(false);
+      const playerTrack: PlayerTrack = {
+        trackId: track.trackId,
+        title: track.title,
+        artist: track.artist ?? "Unknown Artist",
+        artistId: track.artistId ?? "",
+        artistHandle: track.artistHandle ?? undefined,
+        artistAvatarUrl: track.artistAvatarUrl ?? null,
+        cover: track.coverArtUrl || "/images/track-placeholder.png",
+        duration: track.durationMs
+          ? Math.floor(track.durationMs / 1000)
+          : undefined,
+        genre: track.genre ?? undefined,
+      };
+      await fetchAndPlay(playerTrack);
     } catch {
-      setError("Failed to save track changes. Please try again.");
-    } finally {
-      setSaving(false);
+      setError("Could not start playback. Please try again.");
     }
-  };
+  }
 
-  const handleViewOnProfile = () => {
-    if (track?.artistHandle) {
-      router.push(`/profiles/${track.artistHandle}`);
-    } else {
-      router.push("/profile");
-    }
-  };
+  async function handleWaveformSeek(progress: number) {
+    if (!isCurrentTrack || duration <= 0) return;
+    await seekTo(progress * duration);
+  }
 
   if (loading)
     return (
@@ -217,382 +240,256 @@ export default function TrackDetailPage() {
     );
 
   return (
-    <main className="min-h-screen bg-[#121212] flex items-start justify-center p-6 pt-12">
-      <div className="w-full max-w-3xl bg-[#1a1a1a] rounded-2xl p-8 shadow-xl border border-[#2a2a2a]">
-        {error && <p className="mb-4 text-sm text-red-400">{error}</p>}
-        {/* Header row */}
-        <div className="flex items-start justify-between mb-6">
-          <div className="flex-1">
-            {isEditing ? (
-              <input
-                className="text-3xl font-bold bg-transparent border-b border-[#8c8c8c] text-white w-full focus:outline-none focus:border-white pb-1"
-                value={editTitle}
-                onChange={(e) => setEditTitle(e.target.value)}
-              />
-            ) : (
-              <h1 className="text-3xl font-bold text-white">{track.title}</h1>
-            )}
-            {track.artistHandle && (
-              <p className="text-[#ff5500] mt-1 text-sm">
-                @{track.artistHandle}
-              </p>
-            )}
-          </div>
+    <main className="min-h-screen bg-[#121212] text-white">
+      {/* HERO */}
+      <section
+        className={dynamicGradient ? "" : DEFAULT_GRADIENT_CLASS}
+        style={dynamicGradient ? { background: dynamicGradient } : undefined}
+      >
+        <div className="mx-auto max-w-7xl px-6 py-8">
+          <div className="flex flex-col md:flex-row items-start gap-6">
+            {/* Left: play + title + waveform */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start gap-4 mb-6">
+                <button
+                  type="button"
+                  onClick={handlePlayClick}
+                  disabled={isPlayDisabled}
+                  className="h-14 w-14 shrink-0 rounded-full bg-black flex items-center justify-center hover:scale-105 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label={isCurrentTrack && isPlaying ? "Pause" : "Play"}
+                >
+                  {isCurrentTrack && isPlaying ? (
+                    <FaPause className="text-white" size={18} />
+                  ) : (
+                    <FaPlay className="text-white ml-1" size={18} />
+                  )}
+                </button>
 
-          {/* Status + Visibility badges */}
-          <div className="flex flex-col items-end gap-2 ml-4">
-            <span
-              className={`text-xs font-semibold px-3 py-1 rounded-full border ${
-                track.status === "FINISHED"
-                  ? "border-green-500 text-green-400"
-                  : track.status === "FAILED"
-                    ? "border-red-500 text-red-400"
-                    : "border-yellow-500 text-yellow-400"
-              }`}
-            >
-              {track.status}
-            </span>
-            <span
-              className={`text-xs font-semibold px-3 py-1 rounded-full border ${
-                track.visibility === "PUBLIC"
-                  ? "border-blue-400 text-blue-400"
-                  : "border-gray-500 text-gray-400"
-              }`}
-            >
-              {track.visibility}
-            </span>
-          </div>
-        </div>
+                <div className="flex-1 min-w-0">
+                  <div className="bg-black/50 backdrop-blur-sm px-3 py-2 inline-block rounded">
+                    <h1 className="text-xl md:text-2xl font-bold leading-tight">
+                      {track.title}
+                    </h1>
+                  </div>
+                  {(track.artist || track.artistHandle) && (
+                    <div className="mt-1">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          track.artistHandle &&
+                          router.push(`/profiles/${track.artistHandle}`)
+                        }
+                        className="bg-black/50 backdrop-blur-sm px-2 py-1 inline-block rounded text-sm hover:bg-black/70"
+                      >
+                        {track.artist ?? `@${track.artistHandle}`}
+                      </button>
+                    </div>
+                  )}
+                </div>
 
-        {/* Cover art */}
-        <div className="mb-6">
-          <label className="text-xs text-gray-500 uppercase tracking-widest mb-2 block">
-            Cover Art
-          </label>
-          <div className="relative w-40 h-40 rounded-xl overflow-hidden border border-[#2a2a2a] bg-[#121212]">
-            <Image
-              src={track.coverArtUrl || "/images/track-placeholder.png"}
-              alt={`${track.title} cover art`}
-              fill
-              className="object-cover"
-            />
-          </div>
-        </div>
+                <div className="hidden sm:block text-sm text-white/80 shrink-0">
+                  {timeAgo(track.createdAt)}
+                </div>
+              </div>
 
-        {/* Artist row */}
-        <div className="flex items-center gap-3 mb-6 pb-6 border-b border-[#2a2a2a]">
-          {track.artistAvatarUrl ? (
-            <Image
-              src={track.artistAvatarUrl}
-              alt={track.artist ?? "Artist"}
-              className="w-10 h-10 rounded-full object-cover"
-            />
-          ) : (
-            <div className="w-10 h-10 rounded-full bg-[#2a2a2a] flex items-center justify-center text-gray-500 text-sm font-bold">
-              {track.artist?.charAt(0) ?? "?"}
-            </div>
-          )}
-          <div>
-            <p className="text-white font-medium">
-              {track.artist ?? "Unknown Artist"}
-            </p>
-            {track.artistHandle && (
-              <p className="text-gray-500 text-sm">@{track.artistHandle}</p>
-            )}
-          </div>
-        </div>
-
-        {/* Description */}
-        <div className="mb-6">
-          <label className="text-xs text-gray-500 uppercase tracking-widest mb-1 block">
-            Description
-          </label>
-          {isEditing ? (
-            <textarea
-              className="w-full bg-[#121212] border border-[#8c8c8c] rounded p-2 text-white text-sm resize-none min-h-25 focus:outline-none focus:border-white"
-              value={editDescription}
-              maxLength={5000}
-              onChange={(e) => setEditDescription(e.target.value)}
-            />
-          ) : (
-            <p className="text-gray-300 text-sm leading-relaxed">
-              {track.description ?? (
-                <span className="text-gray-600 italic">No description</span>
-              )}
-            </p>
-          )}
-        </div>
-
-        {/* Metadata grid */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div>
-            <label className="text-xs text-gray-500 uppercase tracking-widest mb-1 block">
-              Genre
-            </label>
-            {isEditing ? (
-              <select
-                value={editGenre || "None"}
-                onChange={(e) =>
-                  setEditGenre(e.target.value === "None" ? "" : e.target.value)
-                }
-                className="w-full bg-[#121212] border border-[#8c8c8c] rounded p-2 text-white text-sm focus:outline-none focus:border-white"
-              >
-                {GENRES.map((g) => (
-                  <option key={g} value={g} className="bg-[#1a1a1a]">
-                    {g}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <p className="text-white text-sm">{track.genre ?? "—"}</p>
-            )}
-          </div>
-
-          <div>
-            <label className="text-xs text-gray-500 uppercase tracking-widest mb-1 block">
-              Release Date
-            </label>
-            {isEditing ? (
-              <input
-                type="date"
-                className="w-full bg-[#121212] border border-[#8c8c8c] rounded p-2 text-white text-sm focus:outline-none focus:border-white"
-                value={editReleaseDate}
-                onChange={(e) => setEditReleaseDate(e.target.value)}
-              />
-            ) : (
-              <p className="text-white text-sm">
-                {formatDate(track.releaseDate)}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label className="text-xs text-gray-500 uppercase tracking-widest mb-1 block">
-              Tags
-            </label>
-            {isEditing ? (
-              <input
-                className="w-full bg-[#121212] border border-[#8c8c8c] rounded p-2 text-white text-sm focus:outline-none focus:border-white"
-                placeholder="Comma separated"
-                value={editTags}
-                onChange={(e) => setEditTags(e.target.value)}
-              />
-            ) : (
-              <div className="flex flex-wrap gap-1">
-                {track.tags?.length ? (
-                  track.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="text-xs bg-[#2a2a2a] text-gray-300 px-2 py-1 rounded-full"
-                    >
-                      {tag}
-                    </span>
-                  ))
-                ) : (
-                  <span className="text-gray-600 italic text-sm">No tags</span>
+              {/* Waveform */}
+              <div className="h-24">
+                {track.waveformData && (
+                  <WaveformDisplay
+                    progress={waveformProgress}
+                    onSeek={handleWaveformSeek}
+                  />
                 )}
               </div>
-            )}
-          </div>
+            </div>
 
-          <div>
-            <label className="text-xs text-gray-500 uppercase tracking-widest mb-1 block">
-              Duration
-            </label>
-            <p className="text-white text-sm">
-              {track.durationMs ? formatDuration(track.durationMs) : "—"}
-            </p>
-          </div>
-
-          <div>
-            <label className="text-xs text-gray-500 uppercase tracking-widest mb-1 block">
-              License
-            </label>
-            <p className="text-white text-sm">
-              {track.license?.replace(/_/g, " ") ?? "—"}
-            </p>
-          </div>
-
-          <div>
-            <label className="text-xs text-gray-500 uppercase tracking-widest mb-1 block">
-              Slug
-            </label>
-            <p className="text-gray-400 text-sm font-mono">
-              {track.slug ?? "—"}
-            </p>
-          </div>
-
-          <div>
-            <label className="text-xs text-gray-500 uppercase tracking-widest mb-1 block">
-              Comments
-            </label>
-            <p className="text-white text-sm">
-              {track.allowComments ? "Enabled" : "Disabled"}
-            </p>
-          </div>
-
-         <div>
-  <label className="text-xs text-gray-500 uppercase tracking-widest mb-1 block">
-    Downloadable
-  </label>
-  {track.downloadable ? (
-    <DownloadButton
-      trackId={track.trackId}
-      trackTitle={track.title}
-      downloadable={track.downloadable}
-      size="full"
-    />
-  ) : (
-    <p className="text-zinc-500 text-sm italic">Not available</p>
-  )}
-</div>
-        </div>
-
-        {/* Visibility toggle — edit mode only */}
-        {isEditing && (
-          <div className="mb-6">
-            <label className="text-xs text-gray-500 uppercase tracking-widest mb-2 block">
-              Visibility
-            </label>
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setEditVisibility("PUBLIC")}
-                className={`flex-1 py-2 rounded border font-bold transition duration-300 text-sm ${
-                  editVisibility === "PUBLIC"
-                    ? "bg-white text-black border-white"
-                    : "bg-transparent text-[#8c8c8c] border-[#8c8c8c]"
-                }`}
-              >
-                Public
-              </button>
-              <button
-                type="button"
-                onClick={() => setEditVisibility("PRIVATE")}
-                className={`flex-1 py-2 rounded border font-bold transition duration-300 text-sm ${
-                  editVisibility === "PRIVATE"
-                    ? "bg-white text-black border-white"
-                    : "bg-transparent text-[#8c8c8c] border-[#8c8c8c]"
-                }`}
-              >
-                Private
-              </button>
+            {/* Right: large cover */}
+            <div className="relative w-48 h-48 md:w-64 md:h-64 shrink-0 rounded overflow-hidden bg-black">
+              <Image
+                src={track.coverArtUrl || "/images/track-placeholder.png"}
+                alt={`${track.title} cover art`}
+                fill
+                className="object-cover"
+              />
             </div>
           </div>
-        )}
-
-        {/* Waveform Preview */}
-        <div className="mt-6">
-          <label className="font-medium pb-2 text-xl block mb-2 text-white">
-            Waveform Preview
-          </label>
-          <div className="w-full h-20 rounded overflow-hidden">
-            <WaveformDisplay />
-          </div>
         </div>
+      </section>
 
-        {/* Files */}
-        {track.files?.length > 0 && (
-          <div className="mb-6">
-            <label className="text-xs text-gray-500 uppercase tracking-widest mb-2 block">
-              Files
-            </label>
-            <div className="space-y-2">
-              {track.files.map((f) => (
-                <div
-                  key={f.id}
-                  className="flex items-center justify-between bg-[#121212] border border-[#2a2a2a] rounded-lg px-4 py-3"
-                >
-                  <div>
-                    <span className="text-white text-sm font-medium uppercase">
-                      {f.format}
-                    </span>
-                    <span className="text-gray-500 text-xs ml-2">
-                      {f.mimeType}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <span className="text-gray-400 text-xs">
-                      {formatBytes(f.size)}
-                    </span>
+      {/* BODY */}
+      <div className="mx-auto max-w-7xl px-6 py-6">
+        {error && <p className="mb-4 text-sm text-red-400">{error}</p>}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* LEFT COLUMN */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Description */}
+            <section className="bg-[#1a1a1a] rounded-lg p-6 border border-[#2a2a2a]">
+              <h2 className="text-xs uppercase tracking-widest text-gray-500 mb-3">
+                Description
+              </h2>
+              <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-line">
+                {track.description ?? (
+                  <span className="text-gray-600 italic">No description</span>
+                )}
+              </p>
+            </section>
+
+            {/* Artist */}
+            <section className="bg-[#1a1a1a] rounded-lg p-6 border border-[#2a2a2a] flex items-center gap-3">
+              {track.artistAvatarUrl ? (
+                <Image
+                  src={track.artistAvatarUrl}
+                  alt={track.artist ?? "Artist"}
+                  width={48}
+                  height={48}
+                  className="w-12 h-12 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-[#2a2a2a] flex items-center justify-center text-gray-500 text-sm font-bold">
+                  {track.artist?.charAt(0) ?? "?"}
+                </div>
+              )}
+              <div>
+                <p className="text-white font-medium">
+                  {track.artist ?? "Unknown Artist"}
+                </p>
+                {track.artistHandle && (
+                  <p className="text-gray-500 text-sm">@{track.artistHandle}</p>
+                )}
+              </div>
+            </section>
+          </div>
+
+          {/* RIGHT COLUMN — track details */}
+          <aside className="space-y-4">
+            <section className="bg-[#1a1a1a] rounded-lg p-5 border border-[#2a2a2a]">
+              <h3 className="text-xs uppercase tracking-widest text-gray-500 mb-4">
+                Track Details
+              </h3>
+
+              <dl className="space-y-3 text-sm">
+                <DetailRow label="Genre" value={track.genre ?? "—"} />
+                <DetailRow
+                  label="Release Date"
+                  value={formatDate(track.releaseDate)}
+                />
+                <DetailRow
+                  label="Duration"
+                  value={
+                    track.durationMs ? formatDuration(track.durationMs) : "—"
+                  }
+                />
+                <DetailRow label="License" value={track.license} />
+                <DetailRow
+                  label="Visibility"
+                  value={
                     <span
-                      className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${
-                        f.status === "READY"
-                          ? "border-green-500 text-green-400"
-                          : "border-yellow-500 text-yellow-400"
+                      className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full border ${
+                        track.visibility === "PUBLIC"
+                          ? "border-blue-400 text-blue-400"
+                          : "border-gray-500 text-gray-400"
                       }`}
                     >
-                      {f.status}
+                      {track.visibility}
                     </span>
+                  }
+                />
+                <DetailRow
+                  label="Status"
+                  value={
+                    <span
+                      className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full border ${
+                        track.status === "FINISHED"
+                          ? "border-green-500 text-green-400"
+                          : track.status === "FAILED"
+                            ? "border-red-500 text-red-400"
+                            : "border-yellow-500 text-yellow-400"
+                      }`}
+                    >
+                      {track.status}
+                    </span>
+                  }
+                />
+                <DetailRow
+                  label="Comments"
+                  value={track.allowComments ? "Allowed" : "Disabled"}
+                />
+                <DetailRow
+                  label="Downloadable"
+                  value={track.downloadable ? "Yes" : "No"}
+                />
+                <DetailRow
+                  label="Created"
+                  value={formatDate(track.createdAt)}
+                />
+                <DetailRow
+                  label="Updated"
+                  value={formatDate(track.updatedAt)}
+                />
+              </dl>
+
+              {track.tags?.length > 0 && (
+                <div className="mt-5">
+                  <h4 className="text-xs uppercase tracking-widest text-gray-500 mb-2">
+                    Tags
+                  </h4>
+                  <div className="flex flex-wrap gap-1">
+                    {track.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="text-xs bg-[#2a2a2a] text-gray-300 px-2 py-1 rounded-full"
+                      >
+                        #{tag}
+                      </span>
+                    ))}
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Timestamps */}
-        <div className="grid grid-cols-2 gap-4 mb-8 text-xs text-gray-600 border-t border-[#2a2a2a] pt-4">
-          <div>
-            <span className="uppercase tracking-widest">Published</span>
-            <p className="text-gray-500 mt-0.5">
-              {formatDate(track.publishedAt)}
-            </p>
-          </div>
-          <div>
-            <span className="uppercase tracking-widest">Created</span>
-            <p className="text-gray-500 mt-0.5">
-              {formatDate(track.createdAt)}
-            </p>
-          </div>
-          <div>
-            <span className="uppercase tracking-widest">Last Updated</span>
-            <p className="text-gray-500 mt-0.5">
-              {formatDate(track.updatedAt)}
-            </p>
-          </div>
-        </div>
-
-        {/* Action buttons */}
-        <div className="flex gap-3">
-          {isEditing ? (
-            <>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="flex-1 bg-white text-black font-bold py-2 px-4 rounded hover:bg-[#ff5500] transition disabled:opacity-50"
-              >
-                {saving ? "Saving..." : "Save Changes"}
-              </button>
-              <button
-                onClick={() => setIsEditing(false)}
-                disabled={saving}
-                className="flex-1 border border-[#8c8c8c] text-[#8c8c8c] font-bold py-2 px-4 rounded hover:border-white hover:text-white transition"
-              >
-                Cancel
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                onClick={enterEditMode}
-                className="bg-white text-black font-bold py-2 px-6 rounded hover:bg-[#ff5500] transition"
-              >
-                Edit
-              </button>
-
-              {track.artistHandle && (
-                <button
-                  onClick={handleViewOnProfile}
-                  className="border border-[#8c8c8c] text-[#8c8c8c] font-bold py-2 px-6 rounded hover:border-[#ff5500] hover:text-[#ff5500] transition"
-                >
-                  View on Profile
-                </button>
               )}
-            </>
-          )}
+            </section>
+
+            {track.files?.length > 0 && (
+              <section className="bg-[#1a1a1a] rounded-lg p-5 border border-[#2a2a2a]">
+                <h3 className="text-xs uppercase tracking-widest text-gray-500 mb-4">
+                  Files
+                </h3>
+                <ul className="space-y-2 text-sm">
+                  {track.files.map((file) => (
+                    <li
+                      key={file.id}
+                      className="flex items-center justify-between"
+                    >
+                      <span className="text-gray-400 capitalize">
+                        {file.role.toLowerCase()}
+                      </span>
+                      <span className="text-white">
+                        {file.format} · {formatBytes(file.size)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            {track.downloadable && <DownloadButton trackId={track.trackId} />}
+          </aside>
         </div>
       </div>
     </main>
+  );
+}
+
+function DetailRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <dt className="text-gray-500">{label}</dt>
+      <dd className="text-white text-right">{value}</dd>
+    </div>
   );
 }

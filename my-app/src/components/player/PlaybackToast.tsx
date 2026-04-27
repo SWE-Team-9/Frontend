@@ -68,7 +68,7 @@ export function PlaybackToast() {
     <div
       key={`${accessState ?? "none"}-${accessReason ?? "none"}-${streamError ?? "none"}-${isProcessing ? "processing" : "idle"}`}
       className="
-        fixed bottom-[68px] left-4 z-50
+        fixed bottom-17 left-4 z-50
         flex items-start gap-3
         bg-[#1a1a1a] border border-[#2e2e2e]
         rounded-lg px-4 py-3 shadow-2xl
@@ -77,7 +77,7 @@ export function PlaybackToast() {
       "
     >
       {/* Icon */}
-      <span className="flex-shrink-0 mt-0.5 text-[#ccc]">
+      <span className="shrink-0 mt-0.5 text-[#ccc]">
         {toast.icon}
       </span>
 
@@ -101,7 +101,7 @@ export function PlaybackToast() {
       {/* Dismiss button */}
       <button
         onClick={() => setVisible(false)}
-        className="text-[#666] hover:text-white flex-shrink-0 mt-0.5"
+        className="text-[#666] hover:text-white shrink-0 mt-0.5"
         aria-label="Dismiss"
       >
         <MdOutlineCancel size={16} />
