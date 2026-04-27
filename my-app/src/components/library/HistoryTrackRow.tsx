@@ -74,6 +74,9 @@ export default function HistoryTrackRow({ track }: HistoryTrackRowProps) {
       id: track.trackId,
       title: track.title,
       artistName: track.artist,
+      artistId: track.artistId,
+      artistHandle: track.artistHandle,
+      artistAvatarUrl: track.artistAvatarUrl ?? null,
       likesCount: baselineLikes,
       repostsCount: baselineReposts,
       coverArtUrl: track.coverArtUrl || null,
@@ -113,7 +116,7 @@ export default function HistoryTrackRow({ track }: HistoryTrackRowProps) {
 
   return (
     <div className="mb-10 flex gap-5">
-      <div className="relative h-[150px] w-[150px] shrink-0 overflow-hidden rounded-sm bg-zinc-900">
+      <div className="relative h-37.5 w-37.5 shrink-0 overflow-hidden rounded-sm bg-zinc-900">
         <Image
           src={track.coverArtUrl || FALLBACK_IMAGE}
           alt={track.title}
@@ -149,6 +152,8 @@ export default function HistoryTrackRow({ track }: HistoryTrackRowProps) {
         <div className="mb-5 w-full">
           <TimestampedCommentsSection
             trackId={track.trackId}
+            trackTitle={track.title}
+            trackOwnerId={track.artistId}
             durationSeconds={track.durationSeconds ?? 0}
             waveformSeed={track.trackId}
             waveformProgress={waveformProgress}
@@ -164,6 +169,9 @@ export default function HistoryTrackRow({ track }: HistoryTrackRowProps) {
                 id: track.trackId,
                 title: track.title,
                 artistName: track.artist,
+                artistId: track.artistId,
+                artistHandle: track.artistHandle,
+                artistAvatarUrl: track.artistAvatarUrl ?? null,
                 likesCount: baselineLikes,
                 repostsCount: 0,
                 coverArtUrl: track.coverArtUrl || null,

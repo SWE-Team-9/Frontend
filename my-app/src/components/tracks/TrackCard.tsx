@@ -429,6 +429,8 @@ export const TrackCard: React.FC<TrackCardProps> = ({
               ) : (
                 <TimestampedCommentsSection
                   trackId={track.trackId}
+                  trackTitle={savedData.title}
+                  trackOwnerId={track.artistId ?? undefined}
                   durationSeconds={playerTrack.duration ?? 0}
                   waveformData={track.waveformData ?? null}
                   waveformSeed={track.trackId}
@@ -448,6 +450,9 @@ export const TrackCard: React.FC<TrackCardProps> = ({
                 likesCount={track.likesCount ?? 0}
                 liked={track.liked ?? false}
                 artistName={getArtistLabel(track.artistName ?? track.artist)}
+                artistId={track.artistId ?? undefined}
+                artistHandle={track.artistHandle ?? undefined}
+                artistAvatarUrl={track.artistAvatarUrl ?? null}
                 coverArt={track.coverArt || track.coverArtUrl || FALLBACK_IMAGE}
                 repostsCount={track.repostsCount ?? 0}
                 reposted={track.reposted ?? false}

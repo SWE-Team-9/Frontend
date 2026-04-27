@@ -87,6 +87,21 @@ const NOTIFICATION_ENTITY_TYPES: NotificationEntityType[] = [
   "playlist",
 ];
 
+function mapNotificationTypeToBackend(
+  type?: NotificationType,
+): Uppercase<NotificationType> | undefined {
+  if (!type) return undefined;
+  return type.toUpperCase() as Uppercase<NotificationType>;
+}
+
+function mapNotificationStatusToBackendIsRead(
+  status?: GetNotificationsParams["status"],
+): boolean | undefined {
+  if (status === "read") return true;
+  if (status === "unread") return false;
+  return undefined;
+}
+
 function pickString(...values: unknown[]): string | undefined {
   for (const value of values) {
     if (typeof value === "string") {
@@ -232,6 +247,9 @@ function normalizeNotificationsResponse(payload: unknown): NotificationsResponse
   };
 }
 
+// ===============================
+//  GET NOTIFICATIONS
+// ===============================
 export async function getNotifications(
   params: GetNotificationsParams = {}
 ): Promise<NotificationsResponse> {
@@ -244,14 +262,17 @@ export async function getNotifications(
     params: {
       page: params.page,
       limit: params.limit,
-      type: params.type,
-      status: params.status && params.status !== "all" ? params.status : undefined,
+      type: mapNotificationTypeToBackend(params.type),
+      isRead: mapNotificationStatusToBackendIsRead(params.status),
     },
   });
 
   return normalizeNotificationsResponse(data);
 }
 
+// =================================
+//  GET UNREAD NOTIFICATIONS COUNT
+// =================================
 export async function getUnreadNotificationCount(): Promise<UnreadNotificationCountResponse> {
   if (USE_MOCK) {
     await new Promise((resolve) => setTimeout(resolve, 200));
@@ -262,6 +283,9 @@ export async function getUnreadNotificationCount(): Promise<UnreadNotificationCo
   return data;
 }
 
+// ===============================
+//  MARK NOTIFICATION AS READ
+// ===============================
 export async function markNotificationAsRead(notificationId: string): Promise<{ message: string }> {
   if (USE_MOCK) {
     await new Promise((resolve) => setTimeout(resolve, 200));
@@ -272,6 +296,9 @@ export async function markNotificationAsRead(notificationId: string): Promise<{ 
   return data;
 }
 
+// ===============================
+//  MARK ALL NOTIFICATIONS AS READ
+// ===============================
 export async function markAllNotificationsAsRead(): Promise<{ message: string }> {
   if (USE_MOCK) {
     await new Promise((resolve) => setTimeout(resolve, 200));
@@ -282,6 +309,9 @@ export async function markAllNotificationsAsRead(): Promise<{ message: string }>
   return data;
 }
 
+// ===============================
+//  DELETE NOTIFICATION
+// ===============================
 export async function deleteNotification(notificationId: string): Promise<void> {
   if (USE_MOCK) {
     await new Promise((resolve) => setTimeout(resolve, 200));
@@ -292,6 +322,9 @@ export async function deleteNotification(notificationId: string): Promise<void> 
   await api.delete(`/notifications/${notificationId}`);
 }
 
+// ===============================
+//  GET NOTOFICATION PREFERENCES
+// ===============================
 export async function getNotificationPreferences(): Promise<NotificationPreferences> {
   if (USE_MOCK) {
     await new Promise((resolve) => setTimeout(resolve, 200));
@@ -302,6 +335,9 @@ export async function getNotificationPreferences(): Promise<NotificationPreferen
   return data;
 }
 
+// ===============================
+//  UPDATE NOTIFICATION PREFERENCES
+// ===============================
 export async function updateNotificationPreferences(
   preferences: NotificationPreferences
 ): Promise<{ message: string }> {
@@ -314,6 +350,9 @@ export async function updateNotificationPreferences(
   return data;
 }
 
+// ===================================
+//  REGISTER PUSH NOTIFICATION DEVICE
+// ===================================
 export async function registerPushNotificationDevice(payload: {
   deviceToken: string;
   platform: "ios" | "android" | "web";
@@ -327,6 +366,9 @@ export async function registerPushNotificationDevice(payload: {
   return data;
 }
 
+// =================================
+//  REMOVE PUSH NOTIFICATION DEVICE
+// =================================
 export async function removePushNotificationDevice(deviceId: string): Promise<{ message: string }> {
   if (USE_MOCK) {
     await new Promise((resolve) => setTimeout(resolve, 200));
