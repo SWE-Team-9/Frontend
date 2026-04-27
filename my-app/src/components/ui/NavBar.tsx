@@ -164,10 +164,12 @@ const NavBar: React.FC<NavBarProps> = ({
     setProfileImageSrc(user?.avatarUrl || "/images/profile.png");
   }, [user]);
 
-  // --- FETCH SUBSCRIPTION ON MOUNT ---
-  useEffect(() => {
+  // --- FETCH SUBSCRIPTION ON MOUNT (only when authenticated) ---
+useEffect(() => {
+  if (user) {
     fetchSubscription();
-  }, [fetchSubscription]);
+  }
+}, [user, fetchSubscription]);
 
   // Sign-out handler — clears cookies on the backend, clears store
   const handleLogout = useCallback(async () => {

@@ -54,9 +54,6 @@ export function DownloadButton({
 try {
     // Call the subscription service to fetch the secure download URL
     const result = await getOfflineTrack(trackId);
-    
-    // Set UI state to 'loading' while the browser prepares the file
-    setDlState("loading");
 
     // Create a virtual anchor element to programmatically trigger the download
     const link = document.createElement("a");
@@ -86,11 +83,16 @@ try {
   } catch (err) {
     // Log the error for debugging purposes
     console.error("Download Error:", err);
-    
-    setDlState("error"); 
-    
-    // Reset back to 'idle' after 3 seconds so the user can try again
-    setTimeout(() => setDlState("idle"), 3000);
+
+    if (err instanceof DownloadForbiddenError) {
+      // Backend confirmed this user cannot download (e.g. plan expired mid-session)
+      setDlState("forbidden");
+      setShowUpgradeHint(true);
+    } else {
+      setDlState("error");
+      // Reset back to 'idle' after 3 seconds so the user can try again
+      setTimeout(() => setDlState("idle"), 3000);
+    }
   }
   };
 
