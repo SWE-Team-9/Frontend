@@ -58,6 +58,19 @@ function SearchPageContent() {
     );
   }
 
+  const tracksToRender =
+    data && (type === "all" || type === "tracks") ? data.data.tracks : [];
+  const usersToRender =
+    data && (type === "all" || type === "users") ? data.data.users : [];
+  const playlistsToRender =
+    data && (type === "all" || type === "playlists")
+      ? data.data.playlists
+      : [];
+  const hasVisibleResults =
+    tracksToRender.length > 0 ||
+    usersToRender.length > 0 ||
+    playlistsToRender.length > 0;
+
   return (
     <div className="min-h-screen bg-[#121212] text-white">
       <div className="mx-auto max-w-300 px-8 py-6">
@@ -106,45 +119,29 @@ function SearchPageContent() {
             {data && !loading && !error && (
               <>
                 {/* No results at all */}
-                {data.data.tracks.length === 0 &&
-                  data.data.users.length === 0 &&
-                  data.data.playlists.length === 0 && (
-                    <div className="py-16 text-center text-neutral-500">
+                {!hasVisibleResults && (
+                  <div className="py-16 text-center text-neutral-500">
                       <p className="text-lg font-medium text-neutral-400">
                         No results found
                       </p>
                       <p className="mt-1 text-sm">
                         Try a different keyword or remove filters.
                       </p>
-                    </div>
-                  )}
-                {/* Tracks */}
-                {(type === "all" || type === "tracks") &&
-                  data.data.tracks.length > 0 && (
-                    <Section title="Tracks">
-                      {data.data.tracks.map((t) => (
-                        <TrackResultCard key={t.id} track={t} />
-                      ))}
-                    </Section>
-                  )}
-                {/* People */}
-                {(type === "all" || type === "users") &&
-                  data.data.users.length > 0 && (
-                    <Section title="People">
-                      {data.data.users.map((u) => (
-                        <UserResultCard key={u.id} user={u} />
-                      ))}
-                    </Section>
-                  )}
-                {/* Playlists */}
-                {(type === "all" || type === "playlists") &&
-                  data.data.playlists.length > 0 && (
-                    <Section title="Playlists">
-                      {data.data.playlists.map((p) => (
-                        <PlaylistResultCard key={p.id} playlist={p} />
-                      ))}
-                    </Section>
-                  )}
+                  </div>
+                )}
+                {hasVisibleResults && (
+                  <div className="space-y-1 pl-6">
+                    {tracksToRender.map((t) => (
+                      <TrackResultCard key={t.id} track={t} />
+                    ))}
+                    {usersToRender.map((u) => (
+                      <UserResultCard key={u.id} user={u} />
+                    ))}
+                    {playlistsToRender.map((p) => (
+                      <PlaylistResultCard key={p.id} playlist={p} />
+                    ))}
+                  </div>
+                )}
                 {/* Pagination */}
                 {type !== "all" && data.meta.total_pages > 1 && (
                   <div className="mt-8 flex items-center justify-center gap-3">
@@ -172,24 +169,6 @@ function SearchPageContent() {
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-//======================
-// Local subcomponents
-//======================
-function Section({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="mb-8">
-      <h2 className="mb-3 text-lg font-semibold text-[#ff5500] pl-6">{title}</h2>
-      <div className="space-y-1 pl-6">{children}</div>
     </div>
   );
 }

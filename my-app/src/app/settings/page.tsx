@@ -17,6 +17,7 @@ import { useBlockStore } from "@/src/store/useblockStore";
 import { deactivateMyAccount } from "@/src/services/profileService";
 import { useProfileStore } from "@/src/store/useProfileStore";
 import SubscriptionSettings from "@/src/components/profile/SubscriptionSettings";
+import { NotificationPreferences } from "@/src/components/notifications/NotificationPreferences";
 
 // ─── Validation helpers ───────────────────────────────────────────────────────
 // Must match backend DTO rules exactly so we surface errors before the round-trip.
@@ -563,7 +564,13 @@ function AccountSection() {
 
 // ─── Tab type ─────────────────────────────────────────────────────────────────
 
-type Tab = "security" | "sessions" | "privacy" | "subscription" | "account";
+type Tab =
+  | "security"
+  | "sessions"
+  | "privacy"
+  | "subscription"
+  | "account"
+  | "notifications";
 
 // ─── SettingsContent — uses useSearchParams so must live inside <Suspense> ────
 
@@ -573,7 +580,14 @@ function SettingsContent() {
   const user = useAuthStore((s) => s.user);
 
   // Valid tab ids for URL-param validation
-  const validTabs: Tab[] = ["security", "sessions", "privacy", "subscription", "account"];
+  const validTabs: Tab[] = [
+    "security",
+    "sessions",
+    "privacy",
+    "subscription",
+    "account",
+    "notifications",
+  ];
 
   // Initialise active tab from the URL query param if valid, else default
   const tabFromUrl = searchParams.get("tab") as Tab;
@@ -610,11 +624,12 @@ function SettingsContent() {
   }, [activeTab, fetchBlockedUsers]);
 
   const tabs: { id: Tab; label: string }[] = [
-    { id: "security",     label: "Security" },
-    { id: "sessions",     label: "Sessions" },
-    { id: "privacy",      label: "Privacy" },
+    { id: "security", label: "Security" },
+    { id: "sessions", label: "Sessions" },
+    { id: "privacy", label: "Privacy" },
     { id: "subscription", label: "Subscription" },
-    { id: "account",      label: "Account" },
+    { id: "account", label: "Account" },
+    { id: "notifications", label: "Notifications" },
   ];
 
   return (
@@ -657,11 +672,25 @@ function SettingsContent() {
       )}
 
       {/* Subscription tab: plan management + payment methods */}
-      {activeTab === "subscription" && <SubscriptionSettings />}
+      {activeTab === "subscription" && (
+        <SectionCard title="Subscription">
+          <SubscriptionSettings />
+        </SectionCard>
+      )}
 
       {/* Account tab: delete account */}
-      {activeTab === "account" && <AccountSection />}
+      {activeTab === "account" && (
+        <SectionCard title="Account">
+          <AccountSection />
+        </SectionCard>
+      )}
 
+      {/* Notifications tab: notification preferences */}
+      {activeTab === "notifications" && (
+        <SectionCard title="Notifications">
+          <NotificationPreferences />
+        </SectionCard>
+      )}
     </div>
   );
 }

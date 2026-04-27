@@ -1,5 +1,9 @@
 import api from "./api";
 import { TrackData, UserInteractionResponse } from "../types/interactions";
+import {
+  TrackInteractionNotificationMeta,
+  triggerTrackInteractionNotification,
+} from "@/src/services/interactionNotificationService";
 
 export interface RepostResponse {
   message: string;
@@ -8,8 +12,14 @@ export interface RepostResponse {
   reposted: boolean;
 }
 
-export const repostTrack = async (trackId: string): Promise<RepostResponse> => {
+export const repostTrack = async (
+  trackId: string,
+  notificationMeta?: TrackInteractionNotificationMeta,
+): Promise<RepostResponse> => {
   const response = await api.post(`/interactions/tracks/${trackId}/repost`);
+
+  triggerTrackInteractionNotification("repost", trackId, notificationMeta);
+
   return response.data;
 };
 

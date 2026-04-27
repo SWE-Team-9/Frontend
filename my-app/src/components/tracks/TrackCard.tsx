@@ -4,6 +4,7 @@ import TimestampedCommentsSection from "@/src/components/tracks/TimestampedComme
 import React, { useState, Fragment } from "react";
 import { Share2 } from "lucide-react";
 import SharePopup from "@/src/components/share/SharePopup";
+import Link from "next/link";
 import Image from "next/image";
 import {
   Menu,
@@ -36,6 +37,7 @@ import {
   usePlayerStore,
   type Track as PlayerTrack,
 } from "@/src/store/playerStore";
+import { buildTrackPermalink } from "@/src/lib/permalinks";
 
 const FALLBACK_IMAGE = "/images/track-placeholder.png";
 
@@ -82,18 +84,13 @@ export const TrackCard: React.FC<TrackCardProps> = ({
   onDelete,
   onEdit,
 }) => {
-  const normalizedArtistHandle = track.artistHandle?.trim();
-  const normalizedSlug = track.slug?.trim();
-  const hasCanonicalTrackRoute =
-    !!normalizedArtistHandle &&
-    !!normalizedSlug &&
-    normalizedArtistHandle.toLowerCase() !== "undefined" &&
-    normalizedArtistHandle.toLowerCase() !== "null" &&
-    normalizedSlug.toLowerCase() !== "undefined" &&
-    normalizedSlug.toLowerCase() !== "null";
-  const trackHref = hasCanonicalTrackRoute
-    ? `/${normalizedArtistHandle}/${normalizedSlug}`
-    : `/tracks/${track.trackId}`;
+const trackHref = buildTrackPermalink({
+  trackId: track.trackId,
+  artistHandle: track.artistHandle,
+  slug: track.slug,
+});
+
+const hasCanonicalTrackRoute = !trackHref.startsWith("/tracks/");
 
   const toEditData = (
     source: Pick<
@@ -380,19 +377,21 @@ export const TrackCard: React.FC<TrackCardProps> = ({
                   <p className="text-zinc-400 text-sm">
                     {getArtistLabel(track.artistName ?? track.artist)}
                   </p>
-                  <h4 className="text-white text-xl font-bold truncate">
+                  <Link
+                    href={`/tracks/${track.trackId}`}
+                    className="text-white text-xl font-bold truncate hover:text-neutral-700 transition duration-200"
+                  >
                     {savedData.title}
-                  </h4>
+                  </Link>
                 </div>
               </div>
 
               <div className="flex items-center gap-2 relative">
                 <span
-                  className={`text-[10px] px-2 py-0.5 rounded font-bold ${
-                    visibility === "PUBLIC"
+                  className={`text-[10px] px-2 py-0.5 rounded font-bold ${visibility === "PUBLIC"
                       ? "bg-green-900/30 text-green-400"
                       : "bg-zinc-800 text-zinc-500"
-                  }`}
+                    }`}
                 >
                   {visibility}
                 </span>
@@ -414,6 +413,10 @@ export const TrackCard: React.FC<TrackCardProps> = ({
                 {shareOpen && hasCanonicalTrackRoute && (
                   <SharePopup
                     permalink={trackHref}
+                    resourceType="TRACK"
+                    resourceId={track.trackId}
+                    resourceTitle={savedData.title}
+                    resourceCoverArtUrl={track.coverArtUrl || track.coverArt || null}
                     onClose={() => setShareOpen(false)}
                   />
                 )}
@@ -429,6 +432,8 @@ export const TrackCard: React.FC<TrackCardProps> = ({
               ) : (
                 <TimestampedCommentsSection
                   trackId={track.trackId}
+                  trackTitle={savedData.title}
+                  trackOwnerId={track.artistId ?? undefined}
                   durationSeconds={playerTrack.duration ?? 0}
                   waveformData={track.waveformData ?? null}
                   waveformSeed={track.trackId}
@@ -448,6 +453,9 @@ export const TrackCard: React.FC<TrackCardProps> = ({
                 likesCount={track.likesCount ?? 0}
                 liked={track.liked ?? false}
                 artistName={getArtistLabel(track.artistName ?? track.artist)}
+                artistId={track.artistId ?? undefined}
+                artistHandle={track.artistHandle ?? undefined}
+                artistAvatarUrl={track.artistAvatarUrl ?? null}
                 coverArt={track.coverArt || track.coverArtUrl || FALLBACK_IMAGE}
                 repostsCount={track.repostsCount ?? 0}
                 reposted={track.reposted ?? false}

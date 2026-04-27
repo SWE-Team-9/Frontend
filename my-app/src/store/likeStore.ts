@@ -55,7 +55,10 @@ export const useLikeStore = create<LikeStore>((set, get) => ({
       if (isAlreadyLiked) {
         await unlikeTrack(trackId);
       } else {
-        await likeTrack(trackId);
+        await likeTrack(trackId, {
+          trackTitle: track.title,
+          targetUserId: track.artistId,
+        });
       }
       // If successful, we keep the optimistic state
     } catch (error: unknown) {

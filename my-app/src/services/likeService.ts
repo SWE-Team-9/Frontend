@@ -1,5 +1,9 @@
 import api from "./api";
 import { TrackData, UserInteractionResponse } from "../types/interactions";
+import {
+  TrackInteractionNotificationMeta,
+  triggerTrackInteractionNotification,
+} from "@/src/services/interactionNotificationService";
 
 // Mock data array representing liked tracks for testing pagination
 const MOCK_LIKES: TrackData[] = Array.from({ length: 24 }).map((_, i) => ({
@@ -20,8 +24,14 @@ export interface LikeResponse {
   liked: boolean;
 }
 
-export const likeTrack = async (trackId: string): Promise<LikeResponse> => {
+export const likeTrack = async (
+  trackId: string,
+  notificationMeta?: TrackInteractionNotificationMeta,
+): Promise<LikeResponse> => {
   const response = await api.post(`/interactions/tracks/${trackId}/like`);
+
+  triggerTrackInteractionNotification("like", trackId, notificationMeta);
+
   return response.data;
 };
 
