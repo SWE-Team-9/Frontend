@@ -3,6 +3,11 @@ import React from "react";
 import { act, render } from "@testing-library/react";
 import PlayerAudioSync from "@/src/components/player/PlayerAudioSync";
 
+jest.mock("@/src/store/useAuthStore", () => ({
+  useAuthStore: (selector: (s: { isAuthenticated: boolean }) => unknown) =>
+    selector({ isAuthenticated: true }),
+}));
+
 const mockUsePlayerStore: jest.Mock = jest.fn();
 const mockGetAudioElement: jest.Mock = jest.fn();
 const mockGetState: jest.Mock = jest.fn();
