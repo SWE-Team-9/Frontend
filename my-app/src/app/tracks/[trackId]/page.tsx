@@ -185,11 +185,24 @@ export default function TrackDetailPage() {
   }, [trackId]);
 
   useEffect(() => {
+    let cancelled = false;
+
     if (!track?.coverArtUrl) {
-      setDynamicGradient(null);
-      return;
+      Promise.resolve().then(() => {
+        if (!cancelled) setDynamicGradient(null);
+      });
+      return () => {
+        cancelled = true;
+      };
     }
-    extractGradientFromImage(track.coverArtUrl).then(setDynamicGradient);
+
+    extractGradientFromImage(track.coverArtUrl).then((gradient) => {
+      if (!cancelled) setDynamicGradient(gradient);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [track?.coverArtUrl]);
 
   async function handlePlayClick() {
