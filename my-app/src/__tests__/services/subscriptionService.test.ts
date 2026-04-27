@@ -6,6 +6,8 @@
  * and response normalization (GO_PLUS → "GO+", adsEnabled → perks.adFree).
  */
 
+export {};
+
 const mockApiGet = jest.fn();
 const mockApiPost = jest.fn();
 

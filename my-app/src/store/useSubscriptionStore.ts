@@ -3,50 +3,31 @@ import {
   getMySubscription,
   upgradeSubscription,
   cancelSubscription,
+  resumeSubscription,
+  changePlan as changePlanService,
+  getInvoices,
   SubscriptionDetails,
+  Invoice,
 } from "@/src/services/subscriptionService";
-
-// ─── Mock saved payment methods (يتجوا من الـ backend حقيقي) ───────────────
-export interface SavedCard {
-  id: string;
-  last4: string;
-  brand: string;   // "visa" | "mastercard" | "amex"
-  expMonth: number;
-  expYear: number;
-  isDefault: boolean;
-}
-
-let MOCK_CARDS: SavedCard[] = [
-  {
-    id: "card_mock_001",
-    last4: "4242",
-    brand: "visa",
-    expMonth: 12,
-    expYear: 28,
-    isDefault: true,
-  },
-];
 
 interface SubscriptionStore {
   sub: SubscriptionDetails | null;
-  cards: SavedCard[];
+  invoices: Invoice[];
   isLoading: boolean;
   error: string | null;
 
   fetchSubscription: () => Promise<void>;
   upgrade: (type: "PRO" | "GO+") => Promise<void>;
   cancel: () => Promise<void>;
+  resume: () => Promise<void>;
+  changePlan: (type: "PRO" | "GO+") => Promise<void>;
+  fetchInvoices: () => Promise<void>;
   setSubDirectly: (sub: SubscriptionDetails) => void;
-
-  // Payment methods
-  addCard: (card: Omit<SavedCard, "id" | "isDefault">) => void;
-  removeCard: (cardId: string) => void;
-  setDefaultCard: (cardId: string) => void;
 }
 
 export const useSubscriptionStore = create<SubscriptionStore>((set, get) => ({
   sub: null,
-  cards: MOCK_CARDS,
+  invoices: [],
   isLoading: false,
   error: null,
 
@@ -88,25 +69,39 @@ export const useSubscriptionStore = create<SubscriptionStore>((set, get) => ({
     }
   },
 
+  resume: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const updated = await resumeSubscription();
+      set({ sub: updated });
+    } catch {
+      set({ error: "Failed to resume subscription." });
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  changePlan: async (type) => {
+    set({ isLoading: true, error: null });
+    try {
+      const updated = await changePlanService(type);
+      set({ sub: updated });
+    } catch {
+      set({ error: "Plan change failed." });
+      throw new Error("Plan change failed");
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  fetchInvoices: async () => {
+    try {
+      const data = await getInvoices();
+      set({ invoices: data });
+    } catch {
+      // Non-fatal — purchase history just shows empty
+    }
+  },
+
   setSubDirectly: (sub) => set({ sub }),
-
-  addCard: (card) => {
-    const newCard: SavedCard = {
-      ...card,
-      id: `card_mock_${Date.now()}`,
-      isDefault: get().cards.length === 0,
-    };
-    MOCK_CARDS = [...get().cards, newCard];
-    set({ cards: MOCK_CARDS });
-  },
-
-  removeCard: (cardId) => {
-    MOCK_CARDS = get().cards.filter((c) => c.id !== cardId);
-    set({ cards: MOCK_CARDS });
-  },
-
-  setDefaultCard: (cardId) => {
-    MOCK_CARDS = get().cards.map((c) => ({ ...c, isDefault: c.id === cardId }));
-    set({ cards: MOCK_CARDS });
-  },
 }));

@@ -47,6 +47,9 @@ function mockStore(subscriptionType: "FREE" | "PRO" | "GO+" | null) {
                 uploadLimit: subscriptionType === "FREE" ? 3 : 100,
                 uploadedTracks: 0,
                 remainingUploads: subscriptionType === "FREE" ? 3 : 100,
+                cancelAtPeriodEnd: false,
+                currentPeriodEnd: null,
+                paymentMethodSummary: null,
                 perks: {
                   adFree: subscriptionType !== "FREE",
                   offlineListening: subscriptionType !== "FREE",
@@ -113,23 +116,15 @@ describe("DownloadButton", () => {
         trackId: TRACK_ID,
         title: "Test Track",
         artist: "Artist",
-        handle: "artist",
         downloadUrl: "https://s3.example.com/track.mp3",
-        expiresAt: new Date(Date.now() + 900_000).toISOString(),
-        expiresInSeconds: 900,
-        planCode: "PRO",
-        offlineTokenId: "tok_abc",
-        durationMs: 180_000,
       });
 
       // Suppress the DOM warning about creating anchor elements in tests
+      const originalCreateElement = document.createElement.bind(document);
       const createElementSpy = jest
         .spyOn(document, "createElement")
         .mockImplementation((tag: string) => {
-          const el = document.createElement.call(
-            document,
-            tag,
-          ) as HTMLAnchorElement;
+          const el = originalCreateElement(tag) as HTMLAnchorElement;
           el.click = jest.fn();
           return el;
         });
