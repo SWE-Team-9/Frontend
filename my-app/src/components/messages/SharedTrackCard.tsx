@@ -70,7 +70,9 @@ function MockWaveform({ duration }: { duration?: number }) {
 
 export default function SharedTrackCard({ track }: { track: SharedTrack }) {
     const [shareOpen, setShareOpen] = useState(false);
-    const [copied, setCopied] = useState(false);
+    const [copyStatus, setCopyStatus] = useState<"idle" | "success" | "error">(
+        "idle",
+    );
 
     const setTracks = usePlayerStore((s) => s.setTracks);
     const fetchAndPlay = usePlayerStore((s) => s.fetchAndPlay);
@@ -123,9 +125,14 @@ export default function SharedTrackCard({ track }: { track: SharedTrack }) {
     };
 
     const handleCopy = async () => {
-        await navigator.clipboard.writeText(fullUrl);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1200);
+        try {
+            await navigator.clipboard.writeText(fullUrl);
+            setCopyStatus("success");
+        } catch {
+            setCopyStatus("error");
+        }
+
+        setTimeout(() => setCopyStatus("idle"), 1500);
     };
 
     return (
@@ -172,13 +179,35 @@ export default function SharedTrackCard({ track }: { track: SharedTrack }) {
                             <FiShare className="h-4 w-4" />
                         </button>
 
-                        <button
-                            onClick={handleCopy}
-                            className="rounded bg-zinc-800 p-2 text-zinc-300 hover:bg-zinc-700"
-                            title={copied ? "Copied" : "Copy link"}
-                        >
-                            <TbCopy className="h-4 w-4" />
-                        </button>
+                        <div className="relative">
+                            <button
+                                onClick={handleCopy}
+                                className={`rounded p-2 text-zinc-300 hover:bg-zinc-700 ${copyStatus === "success"
+                                        ? "bg-green-700"
+                                        : copyStatus === "error"
+                                            ? "bg-red-700"
+                                            : "bg-zinc-800"
+                                    }`}
+                                title={
+                                    copyStatus === "success"
+                                        ? "Copied!"
+                                        : copyStatus === "error"
+                                            ? "Copy failed"
+                                            : "Copy link"
+                                }
+                            >
+                                <TbCopy className="h-4 w-4" />
+                            </button>
+
+                            {copyStatus !== "idle" && (
+                                <span
+                                    className={`absolute left-1/2 top-10 z-20 -translate-x-1/2 whitespace-nowrap rounded px-2 py-1 text-xs font-bold text-white shadow ${copyStatus === "success" ? "bg-green-700" : "bg-red-700"
+                                        }`}
+                                >
+                                    {copyStatus === "success" ? "Copied!" : "Copy failed"}
+                                </span>
+                            )}
+                        </div>
 
                         <button
                             onClick={() => toggleLike(trackData)}

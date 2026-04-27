@@ -59,21 +59,28 @@ export default function SharedPlaylistCard({
     playlist: SharedPlaylist;
 }) {
     const [shareOpen, setShareOpen] = useState(false);
-    const [copied, setCopied] = useState(false);
+    const [copyStatus, setCopyStatus] = useState<"idle" | "success" | "error">(
+        "idle",
+    );
     const [playlistLiked, setPlaylistLiked] = useState(false);
 
     const playlistHref = buildPlaylistPermalink({
-    playlistId: playlist.id,
-    ownerHandle: playlist.owner?.handle,
-    slug: playlist.slug,
+        playlistId: playlist.id,
+        ownerHandle: playlist.owner?.handle,
+        slug: playlist.slug,
     });
 
     const fullUrl = buildFullShareUrl(playlistHref);
 
     const handleCopy = async () => {
-        await navigator.clipboard.writeText(fullUrl);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1200);
+        try {
+            await navigator.clipboard.writeText(fullUrl);
+            setCopyStatus("success");
+        } catch {
+            setCopyStatus("error");
+        }
+
+        setTimeout(() => setCopyStatus("idle"), 1500);
     };
 
     const setTracks = usePlayerStore((s) => s.setTracks);
@@ -193,13 +200,35 @@ export default function SharedPlaylistCard({
                             <FiShare className="h-4 w-4" />
                         </button>
 
-                        <button
-                            onClick={handleCopy}
-                            className="rounded bg-zinc-800 p-2 text-zinc-300 hover:bg-zinc-700"
-                            title={copied ? "Copied" : "Copy link"}
-                        >
-                            <TbCopy className="h-4 w-4" />
-                        </button>
+                        <div className="relative">
+                            <button
+                                onClick={handleCopy}
+                                className={`rounded p-2 text-zinc-300 hover:bg-zinc-700 ${copyStatus === "success"
+                                        ? "bg-green-700"
+                                        : copyStatus === "error"
+                                            ? "bg-red-700"
+                                            : "bg-zinc-800"
+                                    }`}
+                                title={
+                                    copyStatus === "success"
+                                        ? "Copied!"
+                                        : copyStatus === "error"
+                                            ? "Copy failed"
+                                            : "Copy link"
+                                }
+                            >
+                                <TbCopy className="h-4 w-4" />
+                            </button>
+
+                            {copyStatus !== "idle" && (
+                                <span
+                                    className={`absolute left-1/2 top-10 z-20 -translate-x-1/2 whitespace-nowrap rounded px-2 py-1 text-xs font-bold text-white shadow ${copyStatus === "success" ? "bg-green-700" : "bg-red-700"
+                                        }`}
+                                >
+                                    {copyStatus === "success" ? "Copied!" : "Copy failed"}
+                                </span>
+                            )}
+                        </div>
 
                         <button
                             onClick={() => setPlaylistLiked((v) => !v)}

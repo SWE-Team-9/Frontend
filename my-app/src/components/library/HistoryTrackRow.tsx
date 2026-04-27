@@ -32,6 +32,9 @@ function formatTime(seconds?: number) {
 
 export default function HistoryTrackRow({ track }: HistoryTrackRowProps) {
   const [shareOpen, setShareOpen] = useState(false);
+  const [copyStatus, setCopyStatus] = useState<"idle" | "success" | "error">(
+    "idle",
+  );
 
   const trackHref = buildTrackPermalink({
     trackId: track.trackId,
@@ -41,7 +44,14 @@ export default function HistoryTrackRow({ track }: HistoryTrackRowProps) {
   const fullTrackUrl = buildFullShareUrl(trackHref);
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(fullTrackUrl);
+    try {
+      await navigator.clipboard.writeText(fullTrackUrl);
+      setCopyStatus("success");
+    } catch {
+      setCopyStatus("error");
+    }
+
+    setTimeout(() => setCopyStatus("idle"), 1500);
   };
 
   const {
@@ -223,13 +233,35 @@ export default function HistoryTrackRow({ track }: HistoryTrackRowProps) {
             )}
           </div>
 
-          <button
-            onClick={handleCopy}
-            className="rounded bg-zinc-800 px-4 py-2 text-white transition hover:opacity-80"
-            title="Copy link"
-          >
-            <TbCopy />
-          </button>
+          <div className="relative">
+            <button
+              onClick={handleCopy}
+              className={`rounded px-4 py-2 text-white transition hover:opacity-80 ${copyStatus === "success"
+                  ? "bg-green-700"
+                  : copyStatus === "error"
+                    ? "bg-red-700"
+                    : "bg-zinc-800"
+                }`}
+              title={
+                copyStatus === "success"
+                  ? "Copied!"
+                  : copyStatus === "error"
+                    ? "Copy failed"
+                    : "Copy link"
+              }
+            >
+              <TbCopy />
+            </button>
+
+            {copyStatus !== "idle" && (
+              <span
+                className={`absolute left-1/2 top-11 z-20 -translate-x-1/2 whitespace-nowrap rounded px-2 py-1 text-xs font-bold text-white shadow ${copyStatus === "success" ? "bg-green-700" : "bg-red-700"
+                  }`}
+              >
+                {copyStatus === "success" ? "Copied!" : "Copy failed"}
+              </span>
+            )}
+          </div>
 
           <button className="rounded bg-zinc-800 px-4 py-2 text-white transition hover:opacity-80">
             <HiDotsHorizontal />
