@@ -91,13 +91,13 @@ export const TrackCard: React.FC<TrackCardProps> = ({
   onDelete,
   onEdit,
 }) => {
-const trackHref = buildTrackPermalink({
-  trackId: track.trackId,
-  artistHandle: track.artistHandle,
-  slug: track.slug,
-});
+  const trackHref = buildTrackPermalink({
+    trackId: track.trackId,
+    artistHandle: track.artistHandle,
+    slug: track.slug,
+  });
 
-const hasCanonicalTrackRoute = !trackHref.startsWith("/tracks/");
+  const hasCanonicalTrackRoute = !trackHref.startsWith("/tracks/");
 
   const toEditData = (
     source: Pick<
@@ -114,18 +114,6 @@ const hasCanonicalTrackRoute = !trackHref.startsWith("/tracks/");
     (state) => state.deleteRepostAction,
   );
   const isReposted = useRepostStore((state) => state.isReposted(track.trackId));
-  const handleDeleteClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.stopPropagation(); // Prevent card click
-    if (!isOwner && isReposted) {
-      if (confirm("Do you want to remove your repost?")) {
-        await deleteRepostAction(track.trackId);
-      }
-      return;
-    }
-    if (onDelete) {
-      onDelete(track.trackId, savedData.title);
-    }
-  };
 
   const [shareOpen, setShareOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -218,24 +206,24 @@ const hasCanonicalTrackRoute = !trackHref.startsWith("/tracks/");
       `${window.location.origin}${trackHref}`,
     );
   };
-    const handleShare = async () => {
-      const url = `${window.location.origin}${trackHref}`;
+  const handleShare = async () => {
+    const url = `${window.location.origin}${trackHref}`;
 
-      try {
-        if (navigator.share) {
-          await navigator.share({
-            title: savedData.title,
-            url,
-          });
-        } else {
-          await navigator.clipboard.writeText(url);
-          toast.success("Link copied");
-        }
-      } catch {
-        toast.error("Share failed");
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: savedData.title,
+          url,
+        });
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast.success("Link copied");
       }
-    };
-  
+    } catch {
+      toast.error("Share failed");
+    }
+  };
+
 
   const handleToggleVisibility = async () => {
     const newVisibility = visibility === "PUBLIC" ? "PRIVATE" : "PUBLIC";
@@ -331,11 +319,15 @@ const hasCanonicalTrackRoute = !trackHref.startsWith("/tracks/");
 
   const handleWaveformSeek = async (progress: number) => {
     if (!isCurrentTrack || duration <= 0) return;
-    
+
     const nextTime = progress * duration;
     await seekTo(nextTime);
   };
-    
+
+  const handleAddTrackToNextUp = () => {
+    toast.info("Add to Next Up is not implemented yet.");
+  };
+
   return (
     <div className="bg-[#1e1e1e] p-5 rounded-lg flex gap-6 items-start hover:bg-[#252525] transition-colors relative group">
       {/* Artwork */}
@@ -452,8 +444,8 @@ const hasCanonicalTrackRoute = !trackHref.startsWith("/tracks/");
               <div className="flex items-center gap-2 relative">
                 <span
                   className={`text-[10px] px-2 py-0.5 rounded font-bold ${visibility === "PUBLIC"
-                      ? "bg-green-900/30 text-green-400"
-                      : "bg-zinc-800 text-zinc-500"
+                    ? "bg-green-900/30 text-green-400"
+                    : "bg-zinc-800 text-zinc-500"
                     }`}
                 >
                   {visibility}
@@ -505,7 +497,7 @@ const hasCanonicalTrackRoute = !trackHref.startsWith("/tracks/");
                   currentPlaybackSeconds={isCurrentTrack ? currentTime : 0}
                 />
               )}
-
+            </div>
             {/* Bottom Actions */}
             <div className="flex items-center justify-between mt-auto">
               <TrackActionButtons
@@ -535,6 +527,7 @@ const hasCanonicalTrackRoute = !trackHref.startsWith("/tracks/");
                   </button>
 
                   {/* Add to Next Up */}
+
                   <button
                     onClick={handleAddTrackToNextUp}
                     className="w-9 h-9 rounded bg-[#1a1a1a] hover:bg-zinc-800 border border-zinc-800 flex items-center justify-center text-zinc-300"
@@ -606,9 +599,8 @@ const hasCanonicalTrackRoute = !trackHref.startsWith("/tracks/");
                           {({ focus }) => (
                             <button
                               onClick={handleAddTrackToNextUp}
-                              className={`w-full flex items-center gap-3 px-4 py-2 text-xs text-white ${
-                                focus ? "bg-zinc-800" : ""
-                              }`}
+                              className={`w-full flex items-center gap-3 px-4 py-2 text-xs text-white ${focus ? "bg-zinc-800" : ""
+                                }`}
                             >
                               <ListPlus className="w-3 h-3 text-zinc-400" />
                               Add to Next Up
@@ -620,9 +612,8 @@ const hasCanonicalTrackRoute = !trackHref.startsWith("/tracks/");
                           {({ focus }) => (
                             <button
                               onClick={handleDeleteClick}
-                              className={`w-full flex items-center gap-3 px-4 py-2 text-xs text-white ${
-                                focus ? "bg-zinc-800" : ""
-                              }`}
+                              className={`w-full flex items-center gap-3 px-4 py-2 text-xs text-white ${focus ? "bg-zinc-800" : ""
+                                }`}
                             >
                               <Trash2 className="w-3 h-3 text-zinc-400" />
                               Delete
@@ -639,9 +630,8 @@ const hasCanonicalTrackRoute = !trackHref.startsWith("/tracks/");
                                 <button
                                   onClick={enterEdit}
                                   disabled={isPreparingEdit}
-                                  className={`w-full flex items-center gap-3 px-4 py-2 text-xs text-white disabled:opacity-50 ${
-                                    focus ? "bg-zinc-800" : ""
-                                  }`}
+                                  className={`w-full flex items-center gap-3 px-4 py-2 text-xs text-white disabled:opacity-50 ${focus ? "bg-zinc-800" : ""
+                                    }`}
                                 >
                                   <Edit2 className="w-3 h-3 text-zinc-400" />
                                   Edit
@@ -654,9 +644,8 @@ const hasCanonicalTrackRoute = !trackHref.startsWith("/tracks/");
                                 <button
                                   onClick={handleToggleVisibility}
                                   disabled={isTogglingVisibility}
-                                  className={`w-full flex items-center gap-3 px-4 py-2 text-xs text-white disabled:opacity-50 ${
-                                    focus ? "bg-zinc-800" : ""
-                                  }`}
+                                  className={`w-full flex items-center gap-3 px-4 py-2 text-xs text-white disabled:opacity-50 ${focus ? "bg-zinc-800" : ""
+                                    }`}
                                 >
                                   {visibility === "PUBLIC" ? (
                                     <EyeOff className="w-3 h-3 text-zinc-400" />
@@ -674,10 +663,12 @@ const hasCanonicalTrackRoute = !trackHref.startsWith("/tracks/");
                   </Menu>
 
                 </div>
-              </div>
-              
+              )}
+
+            </div>
+
           </>
-          
+
         )}
       </div>
     </div>

@@ -24,6 +24,7 @@ import { TrackData } from "@/src/types/interactions";
 import { getUserLikes } from "@/src/services/likeService";
 import SharePopup from "@/src/components/share/SharePopup";
 import { buildUserPermalink } from "@/src/lib/permalinks";
+import {MyPlaylistsSection} from "@/src/components/profile/MyPlaylistsSection";
 
 type FollowUserShape = {
   id: string;
