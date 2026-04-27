@@ -17,6 +17,7 @@ export interface RecentlyPlayedItem {
 export interface ListeningHistoryItem {
   trackId: string;
   title: string;
+  slug?: string;
   artist: string;
   artistId: string;
   artistHandle?: string;

@@ -27,6 +27,8 @@ import { logoutUser } from "@/src/services/authService";
 import { useRouter } from "next/navigation";
 import { useLikeStore } from "@/src/store/likeStore";
 import { useRepostStore } from "@/src/store/repostStore";
+import MessagesDropdown from "@/src/components/messages/MessagesDropdown";
+import { useMessageStore } from "@/src/store/messageStore";
 import { useSubscriptionStore } from "@/src/store/useSubscriptionStore";
 import SubscriptionModal from "@/src/components/subscription/SubscriptionModal";
 
@@ -138,6 +140,15 @@ const NavBar: React.FC<NavBarProps> = ({
   const displayLabel = user
     ? user.displayName || user.handle || user.email.split("@")[0]
     : null;
+
+  const unreadMessageCount = useMessageStore((state) => state.unreadCount);
+  const loadUnreadCount = useMessageStore((state) => state.loadUnreadCount);
+
+  useEffect(() => {
+    if (user?.id) {
+      loadUnreadCount();
+    }
+  }, [user?.id, loadUnreadCount]);
 
   // --- SYNC INTERACTIONS ON LOAD ---
   useEffect(() => {
@@ -353,7 +364,14 @@ const NavBar: React.FC<NavBarProps> = ({
               onClick={() => toggleMenu("messages")}
             >
               <FiMail size={20} className="text-neutral-400 hover:text-white" />
-              {openMenu === "messages" && messagesContent}
+
+              {unreadMessageCount > 0 && (
+                <span className="absolute -right-2 -top-2 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-[#ff5500] px-1 text-[10px] font-bold leading-none text-white">
+                  {unreadMessageCount > 99 ? "99+" : unreadMessageCount}
+                </span>
+              )}
+
+              {openMenu === "messages" && <MessagesDropdown />}
             </button>
           )}
 
