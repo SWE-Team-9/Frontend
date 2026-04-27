@@ -1,6 +1,6 @@
 import { Track } from "./track";
 
-export type PlaylistVisibility = "PUBLIC" | "PRIVATE";
+export type PlaylistVisibility = "PUBLIC" | "PRIVATE" | "SECRET";
 
 export interface PlaylistOwner {
   id: string;
@@ -24,6 +24,7 @@ export interface CreatePlaylistInput {
   title: string;
   description?: string;
   visibility: PlaylistVisibility;
+  trackIds?: string[];
 }
 
 export interface UpdatePlaylistInput {

@@ -7,12 +7,20 @@ import {
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 const BASE = `${API_BASE_URL}/api/v1/playlists`;
 
+function getAuthToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("accessToken");
+}
+
 async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
+  const token = getAuthToken();
+
   const res = await fetch(url, {
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(options.headers || {}),
     },
     ...options,
@@ -48,11 +56,11 @@ export const playlistsApi = {
   getMyPlaylists: (page = 1, limit = 20) =>
     request<unknown>(`${BASE}/me?page=${page}&limit=${limit}`),
 
-  getPlaylistById: (playlistId: string) =>
-    request<unknown>(`${BASE}/${playlistId}`),
+  getPlaylistById: (playlistId: string, limit = 100, offset = 0) =>
+    request<unknown>(`${BASE}/${playlistId}?limit=${limit}&offset=${offset}`),
 
   updatePlaylist: (playlistId: string, data: UpdatePlaylistInput) =>
-    request<{ message: string }>(`${BASE}/${playlistId}`, {
+    request<{ message: string; playlist: unknown }>(`${BASE}/${playlistId}`, {
       method: "PATCH",
       body: JSON.stringify(data),
     }),
@@ -80,41 +88,53 @@ export const playlistsApi = {
   getSecretPlaylist: (secretToken: string) =>
     request<unknown>(`${BASE}/secret/${secretToken}`),
 
-  getEmbedCode: (playlistId: string) =>
-    request<{ playlistId: string; embedCode: string }>(`${BASE}/${playlistId}/embed`),
+  getEmbedCode: (
+    playlistId: string,
+    options?: {
+      theme?: "light" | "dark";
+      autoplay?: boolean;
+      start?: number;
+      hideArtwork?: boolean;
+      width?: number;
+      height?: number;
+    }
+  ) => {
+    const qs = new URLSearchParams();
+    if (options) {
+      Object.entries(options).forEach(([k, v]) => {
+        if (v !== undefined) qs.set(k, String(v));
+      });
+    }
+    const suffix = qs.toString() ? `?${qs}` : "";
+    return request<{ playlistId: string; embedCode: string }>(
+      `${BASE}/${playlistId}/embed${suffix}`
+    );
+  },
 };
 
-// Normalize different backend response shapes into a flat Playlist[]
 export function normalizePlaylistList(raw: unknown): Playlist[] {
   if (!raw) return [];
-
+  
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const r = raw as any;
 
   let list: unknown[] = [];
-
-  if (Array.isArray(r)) {
-    list = r;
-  } else if (Array.isArray(r.playlists)) {
-    list = r.playlists;
-  } else if (Array.isArray(r.data?.playlists)) {
-    list = r.data.playlists;
-  } else if (Array.isArray(r.data)) {
-    list = r.data;
-  } else if (Array.isArray(r.items)) {
-    list = r.items;
-  } else if (Array.isArray(r.results)) {
-    list = r.results;
-  }
+  if (Array.isArray(r))                       list = r;
+  else if (Array.isArray(r.playlists))        list = r.playlists;
+  else if (Array.isArray(r.data?.playlists))  list = r.data.playlists;
+  else if (Array.isArray(r.data))             list = r.data;
+  else if (Array.isArray(r.items))            list = r.items;
+  else if (Array.isArray(r.results))          list = r.results;
 
   return list.map(normalizePlaylist);
 }
 
-// Normalize one playlist (handles id/playlistId/_id field variations)
+
 export function normalizePlaylist(raw: unknown): Playlist {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const r = (raw ?? {}) as any;
-  const inner = r.data ?? r;
+  // Update endpoint returns { message, playlist: {...} }
+  const inner = r.playlist ?? r.data ?? r;
 
   return {
     ...inner,
@@ -134,7 +154,7 @@ export function normalizePlaylist(raw: unknown): Playlist {
   };
 }
 
-// Extract optional message field from secret playlist response
+
 export function extractMessage(raw: unknown): string | null {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const r = (raw ?? {}) as any;
