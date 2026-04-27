@@ -20,11 +20,26 @@ jest.mock('react-icons/md', () => ({
   MdDeleteForever: () => <span>Delete</span>,
 }));
 
+// ── Subscription store mock ───────────────────────────────────────────────────
+const mockFetchSubscription = jest.fn();
+let mockSubState: { sub: null | object; isLoading: boolean } = { sub: null, isLoading: false };
+
+jest.mock('@/src/store/useSubscriptionStore', () => ({
+  useSubscriptionStore: jest.fn((selector: (s: object) => unknown) =>
+    selector({
+      sub: mockSubState.sub,
+      isLoading: mockSubState.isLoading,
+      fetchSubscription: mockFetchSubscription,
+    }),
+  ),
+}));
+
 describe('UploadForm', () => {
   const mockOnNext = jest.fn();
 
   beforeEach(() => {
     mockFiles = [];
+    mockSubState = { sub: null, isLoading: false };
     jest.clearAllMocks();
   });
 
@@ -83,5 +98,46 @@ describe('UploadForm', () => {
     render(<UploadForm onNext={mockOnNext} />);
     fireEvent.click(screen.getByText('Next'));
     expect(mockOnNext).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls fetchSubscription on mount', () => {
+    render(<UploadForm onNext={mockOnNext} />);
+    expect(mockFetchSubscription).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows "Checking quota..." while subscription is loading', () => {
+    mockSubState = { sub: null, isLoading: true };
+    render(<UploadForm onNext={mockOnNext} />);
+    expect(screen.getByText('Checking quota...')).toBeInTheDocument();
+  });
+
+  it('shows quota display when subscription is loaded', () => {
+    mockSubState = {
+      isLoading: false,
+      sub: { subscriptionType: 'FREE', uploadLimit: 3, uploadedTracks: 1, remainingUploads: 2, perks: { adFree: false, offlineListening: false } },
+    };
+    render(<UploadForm onNext={mockOnNext} />);
+    expect(screen.getByText('2 / 3 remaining')).toBeInTheDocument();
+  });
+
+  it('shows paywall block when quota is exhausted (remainingUploads=0)', () => {
+    mockSubState = {
+      isLoading: false,
+      sub: { subscriptionType: 'FREE', uploadLimit: 3, uploadedTracks: 3, remainingUploads: 0, perks: { adFree: false, offlineListening: false } },
+    };
+    render(<UploadForm onNext={mockOnNext} />);
+    expect(screen.getByText(/reached your upload limit/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /upgrade to pro/i })).toBeInTheDocument();
+    expect(screen.queryByTestId('dropzone')).not.toBeInTheDocument();
+  });
+
+  it('shows normal upload UI when quota is not exhausted', () => {
+    mockSubState = {
+      isLoading: false,
+      sub: { subscriptionType: 'PRO', uploadLimit: 100, uploadedTracks: 5, remainingUploads: 95, perks: { adFree: true, offlineListening: true } },
+    };
+    render(<UploadForm onNext={mockOnNext} />);
+    expect(screen.getByTestId('dropzone')).toBeInTheDocument();
+    expect(screen.queryByText(/reached your upload limit/i)).not.toBeInTheDocument();
   });
 });
