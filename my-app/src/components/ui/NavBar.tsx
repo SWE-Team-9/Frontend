@@ -157,10 +157,12 @@ const fetchSubscription = useSubscriptionStore((state) => state.fetchSubscriptio
     setProfileImageSrc(user?.avatarUrl || "/images/profile.png");
   }, [user]);
 
-  // --- FETCH SUBSCRIPTION ON MOUNT ---
+  // --- FETCH SUBSCRIPTION ON MOUNT (only when authenticated) ---
 useEffect(() => {
-  fetchSubscription();
-}, [fetchSubscription]);
+  if (user) {
+    fetchSubscription();
+  }
+}, [user, fetchSubscription]);
 
   // Sign-out handler — clears cookies on the backend, clears store
   const handleLogout = useCallback(async () => {

@@ -142,12 +142,25 @@ const setSubFromStore = useSubscriptionStore((state) => state.setSubDirectly);
   updateFileStatus(file.name, "DONE");
 }
       } catch (err: unknown) {
-        updateFileStatus(
-          file.name,
-          "ERROR",
-          undefined,
-          (err as Error).message || "Upload error",
-        );
+        // Extract backend error message from response body (e.g. 403 UPLOAD_LIMIT_REACHED)
+        const axiosErr = err as {
+          response?: { data?: { message?: string; code?: string }; status?: number };
+          message?: string;
+        };
+        const errorMessage =
+          axiosErr?.response?.data?.message || axiosErr?.message || "Upload error";
+
+        updateFileStatus(file.name, "ERROR", undefined, errorMessage);
+
+        // On quota-exceeded (403), refresh subscription so UploadForm shows paywall
+        if (axiosErr?.response?.status === 403) {
+          try {
+            const freshSub = await decrementUploadQuota();
+            setSubFromStore(freshSub);
+          } catch {
+            // ignore refresh failure
+          }
+        }
       }
     }
 

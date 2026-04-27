@@ -41,13 +41,37 @@ const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 /**
  * Get current user's subscription and upload quota
  */
+/**
+ * Normalize the backend /subscriptions/me response to the frontend SubscriptionDetails shape.
+ * Backend uses planCode "GO_PLUS" and top-level adsEnabled/canDownload fields.
+ * Frontend expects subscriptionType "GO+" and a perks object.
+ */
+function normalizeBackendSubscription(raw: Record<string, unknown>): SubscriptionDetails {
+  const planCode = (raw.planCode as string) ?? "FREE";
+  const subscriptionType: "FREE" | "PRO" | "GO+" =
+    planCode === "GO_PLUS" ? "GO+" : planCode === "PRO" ? "PRO" : "FREE";
+  const adsEnabled = (raw.adsEnabled as boolean) ?? true;
+  const canDownload = (raw.canDownload as boolean) ?? false;
+  return {
+    userId: (raw.userId as string) ?? "",
+    subscriptionType,
+    uploadLimit: (raw.uploadLimit as number) ?? 3,
+    uploadedTracks: (raw.uploadedTracks as number) ?? 0,
+    remainingUploads: (raw.remainingUploads as number) ?? 3,
+    perks: {
+      adFree: !adsEnabled,
+      offlineListening: canDownload,
+    },
+  };
+}
+
 export const getMySubscription = async (): Promise<SubscriptionDetails> => {
   if (USE_MOCK) {
     await new Promise((resolve) => setTimeout(resolve, 300));
     return { ...MOCK_SUBSCRIPTION };
   }
   const response = await api.get("/subscriptions/me");
-  return response.data;
+  return normalizeBackendSubscription(response.data);
 };
 
 /**
@@ -69,9 +93,9 @@ export const decrementUploadQuota = async (): Promise<SubscriptionDetails> => {
     );
     return { ...MOCK_SUBSCRIPTION };
   }
-  // Real backend decrements automatically on upload — just re-fetch
+  // Real backend decrements automatically on upload — just re-fetch and normalize
   const response = await api.get("/subscriptions/me");
-  return response.data;
+  return normalizeBackendSubscription(response.data);
 };
 
 
@@ -81,6 +105,13 @@ export const decrementUploadQuota = async (): Promise<SubscriptionDetails> => {
  * Implements the logic to update status and perks 
  */
 export const upgradeSubscription = async (type: "PRO" | "GO+") => {
+  if (!USE_MOCK) {
+    // Map frontend plan key to backend planCode
+    const planCode = type === "GO+" ? "GO_PLUS" : "PRO";
+    const response = await api.post("/subscriptions/checkout", { planCode });
+    return response.data;
+  }
+
   await new Promise((resolve) => setTimeout(resolve, 1500));
 
   MOCK_SUBSCRIPTION = {
@@ -112,8 +143,11 @@ export const cancelSubscription = async (): Promise<SubscriptionDetails> =>
 };
     return { ...MOCK_SUBSCRIPTION };
   }
-  const response = await api.post("/subscriptions/cancel");
-  return response.data;
+  // POST to cancel (backend schedules cancel at period end), then re-fetch to get
+  // the updated subscription (still active, cancelAtPeriodEnd=true)
+  await api.post("/subscriptions/cancel", {});
+  const refreshed = await api.get("/subscriptions/me");
+  return normalizeBackendSubscription(refreshed.data);
 };
 /**
  * Get secure download link for offline listening
