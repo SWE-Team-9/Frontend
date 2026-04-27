@@ -72,6 +72,16 @@ export interface ArtistTracksResponse {
   limit: number;
 }
 
+export interface UploadTrackMetadata {
+  title: string;
+  genre: string;
+  tags: string[];
+  releaseDate: string;
+  visibility: TrackVisibility;
+  description: string;
+  coverArt?: File | null;
+}
+
 export interface UploadResponse {
   trackId: string;
   title: string;
@@ -82,6 +92,7 @@ export interface UploadResponse {
   visibility: TrackVisibility;
   waveformData: number[] | null;
   description: string;
+  coverArtUrl?: string | null;
 }
 
 // ============================================================
@@ -108,6 +119,7 @@ export interface RawTrackDetails {
   allowComments?: boolean;
   downloadable?: boolean;
   coverArtUrl?: string | null;
+  coverArt?: string | null;
   secretToken?: string | null;
   publishedAt?: string | null;
   createdAt?: string;
@@ -123,6 +135,7 @@ export interface RawArtistTrack {
   status: TrackStatus;
   visibility?: TrackVisibility;
   coverArtUrl?: string | null;
+  coverArt?: string | null;
   createdAt?: string;
   waveformData?: number[] | null;
   genre?: string | null;

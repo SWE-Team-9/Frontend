@@ -1,26 +1,37 @@
-import Link from "next/link";
+import { UserCard } from "@/src/components/user/UserCard";
 import type { SearchUser } from "@/src/types/search";
 
 interface Props {
   user: SearchUser;
+  compact?: boolean;
+  onNavigate?: () => void;
 }
 
-export default function UserResultCard({ user }: Props) {
+export default function UserResultCard({
+  user,
+  compact = true,
+  onNavigate,
+}: Props) {
   return (
-    <Link
-      href={`/profiles/${user.handle ?? user.id}`}
-      className="flex items-center gap-3 rounded p-2"
+    <div
+      onClick={(event) => {
+        if (!onNavigate) return;
+
+        const target = event.target as HTMLElement | null;
+        if (target?.closest("a")) {
+          onNavigate();
+        }
+      }}
     >
-      <div className="h-12 w-12 overflow-hidden rounded-full bg-gray-200">
-        {user.avatar_url && (
-          <img
-            src={user.avatar_url}
-            alt={user.display_name}
-            className="h-full w-full object-cover"
-          />
-        )}
-      </div>
-      <div className="font-bold">{user.display_name}</div>
-    </Link>
+      <UserCard
+        compact={compact}
+        user={{
+          userId: user.id,
+          displayName: user.display_name,
+          handle: user.handle,
+          avatarUrl: user.avatar_url,
+        }}
+      />
+    </div>
   );
 }

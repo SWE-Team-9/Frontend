@@ -36,14 +36,17 @@ describe('EngagementModal', () => {
   });
 
   test('fetches and displays users when opened', async () => {
-    mockedInteractions.getTrackEngagements.mockResolvedValue(mockUsers);
+    // FIXED: Return PaginatedEngagements object instead of plain array
+    mockedInteractions.getTrackEngagements.mockResolvedValue({ 
+      items: mockUsers, 
+      total: 2, 
+      hasMore: false 
+    });
 
     render(<EngagementModal isOpen={true} onClose={jest.fn()} trackId="t1" type="likes" />);
 
-    
     expect(screen.getByText(/updating/i)).toBeInTheDocument();
 
-    
     await waitFor(() => {
       expect(screen.getByText('User Two')).toBeInTheDocument();
       expect(screen.getByText('2 likes')).toBeInTheDocument();
@@ -51,12 +54,16 @@ describe('EngagementModal', () => {
   });
 
   test('hides FollowButton for the current logged-in user', async () => {
-    mockedInteractions.getTrackEngagements.mockResolvedValue(mockUsers);
+    // FIXED: Return PaginatedEngagements object instead of plain array
+    mockedInteractions.getTrackEngagements.mockResolvedValue({ 
+      items: mockUsers, 
+      total: 2, 
+      hasMore: false 
+    });
 
     render(<EngagementModal isOpen={true} onClose={jest.fn()} trackId="t1" type="likes" />);
 
     await waitFor(() => {
-      
       const followButtons = screen.getAllByTestId('follow-btn');
       expect(followButtons).toHaveLength(1);
     });
@@ -78,7 +85,12 @@ describe('EngagementModal', () => {
   });
 
   test('shows empty state when no users are returned', async () => {
-    mockedInteractions.getTrackEngagements.mockResolvedValue([]);
+    // FIXED: Return empty PaginatedEngagements object instead of []
+    mockedInteractions.getTrackEngagements.mockResolvedValue({ 
+      items: [], 
+      total: 0, 
+      hasMore: false 
+    });
 
     render(<EngagementModal isOpen={true} onClose={jest.fn()} trackId="t1" type="reposts" />);
 

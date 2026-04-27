@@ -1,20 +1,13 @@
 import { create } from "zustand";
+import type { UploadTrackMetadata } from "@/src/types/upload";
 
-interface Metadata {
-  title: string;
-  genre: string;
-  tags: string[];
-  releaseDate: string;
-  visibility: "PUBLIC" | "PRIVATE";
-  description: string;
-}
 interface UploadStore {
   files: File[];
-  metadata: Metadata | null;
+  metadata: UploadTrackMetadata | null;
   setFiles: (files: File[]) => void; // Function to set the entire files array
   addFile: (file: File) => void; // Function to add a single file to the array
   removeFile: (index: number) => void; // Function to remove a file by its index
-  setMetadata: (metadata: Metadata) => void; // Function to set the metadata for the track
+  setMetadata: (metadata: UploadTrackMetadata) => void; // Function to set the metadata for the track
 }
 
 export const useUploadStore = create<UploadStore>((set) => ({

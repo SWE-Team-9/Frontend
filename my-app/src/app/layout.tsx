@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import AuthProvider from "@/src/components/providers/AuthProvider";
 import { Player } from "@/src/components/player/Player";
 import PlayerAudioSync from "@/src/components/player/PlayerAudioSync";
+import { NotificationSocketBridge } from "@/src/components/notifications/NotificationSocketBridge";
 
 
 const geistSans = Geist({
@@ -33,6 +34,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <AuthProvider>
+          <NotificationSocketBridge />
           <div className="pb-24">
             {children}
           </div>

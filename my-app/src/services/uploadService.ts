@@ -7,6 +7,7 @@ import type {
   TrackFile,
   NormalizedArtist,
   UploadResponse,
+  UploadTrackMetadata,
   ArtistTracksResponse,
   RawTrackDetails,
   RawArtistTrack,
@@ -50,7 +51,7 @@ function normalizeTrackDetails(raw: RawTrackDetails): TrackDetails {
     waveformData: raw.waveformData ?? null,
     visibility: raw.visibility ?? "PUBLIC",
     status: raw.status,
-    coverArtUrl: raw.coverArtUrl ?? null,
+    coverArtUrl: raw.coverArtUrl ?? raw.coverArt ?? null,
     createdAt: raw.createdAt ?? null,
     updatedAt: raw.updatedAt ?? null,
     publishedAt: raw.publishedAt ?? null,
@@ -90,7 +91,7 @@ function normalizeArtistTrack(
     waveformData: raw.waveformData ?? null,
     visibility: raw.visibility ?? "PUBLIC",
     status: raw.status,
-    coverArtUrl: raw.coverArtUrl ?? null,
+    coverArtUrl: raw.coverArtUrl ?? raw.coverArt ?? null,
     createdAt: raw.createdAt ?? null,
     artist: artistObj.displayName,
     artistId: artistObj.id,
@@ -105,13 +106,7 @@ function normalizeArtistTrack(
 // ===============================
 export const uploadTrack = async (
   file: File,
-  metadata: {
-    title: string;
-    genre: string;
-    tags: string[];
-    releaseDate: string;
-    description: string;
-  },
+  metadata: UploadTrackMetadata,
 ): Promise<UploadResponse> => {
   if (USE_MOCK) {
     await new Promise((r) => setTimeout(r, 1500));
@@ -130,6 +125,7 @@ export const uploadTrack = async (
       visibility: "PRIVATE",
       waveformData: null,
       description: metadata.description,
+      coverArtUrl: null,
     };
   }
 
@@ -139,6 +135,9 @@ export const uploadTrack = async (
   formData.append("releaseDate", metadata.releaseDate);
   metadata.tags.forEach((tag) => formData.append("tags[]", tag));
   formData.append("audioFile", file);
+  if (metadata.coverArt) {
+    formData.append("coverArt", metadata.coverArt);
+  }
   formData.append("description", metadata.description);
 
   const res = await api.post<UploadResponse>("/tracks", formData);
