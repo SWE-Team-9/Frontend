@@ -1,4 +1,5 @@
 import api from "@/src/services/api";
+import { triggerFollowNotification } from "@/src/services/interactionNotificationService";
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 
@@ -227,6 +228,9 @@ export const followUser = async (userId: string): Promise<FollowActionResponse> 
       mockFollowing.push(user);
       mockSuggestions = mockSuggestions.filter((u) => u.id !== userId);
     }
+
+    triggerFollowNotification(userId);
+
     return {
       message: "User followed successfully",
       targetUserId: userId,
@@ -236,6 +240,9 @@ export const followUser = async (userId: string): Promise<FollowActionResponse> 
   }
 
   const res = await api.post(`/social/follow/${userId}`);
+
+  triggerFollowNotification(userId);
+
   return res.data;
 };
 

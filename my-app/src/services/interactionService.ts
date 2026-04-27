@@ -1,5 +1,9 @@
 import api from "./api";
 import { FollowUser } from "@/src/services/followService";
+import {
+  TrackInteractionNotificationMeta,
+  triggerTrackInteractionNotification,
+} from "@/src/services/interactionNotificationService";
 import type {
   GetTrackCommentsResponse,
   AddTrackCommentBody,
@@ -137,6 +141,7 @@ export async function getTrackComments(
 export async function addTrackComment(
   trackId: string,
   body: AddTrackCommentBody,
+  notificationMeta?: TrackInteractionNotificationMeta,
 ): Promise<AddTrackCommentResponse> {
   const payload = {
     content: body.content,
@@ -147,6 +152,8 @@ export async function addTrackComment(
     `/interactions/tracks/${trackId}/comments`,
     payload,
   );
+
+  triggerTrackInteractionNotification("comment", trackId, notificationMeta);
 
   return data;
 }

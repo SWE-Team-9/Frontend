@@ -4,6 +4,7 @@ import TimestampedCommentsSection from "@/src/components/tracks/TimestampedComme
 import React, { useState, Fragment } from "react";
 import { Share2 } from "lucide-react";
 import SharePopup from "@/src/components/share/SharePopup";
+import Link from "next/link";
 import Image from "next/image";
 import {
   Menu,
@@ -380,9 +381,12 @@ export const TrackCard: React.FC<TrackCardProps> = ({
                   <p className="text-zinc-400 text-sm">
                     {getArtistLabel(track.artistName ?? track.artist)}
                   </p>
-                  <h4 className="text-white text-xl font-bold truncate">
+                  <Link
+                    href={`/tracks/${track.trackId}`}
+                    className="text-white text-xl font-bold truncate hover:text-neutral-700 transition duration-200"
+                  >
                     {savedData.title}
-                  </h4>
+                  </Link>
                 </div>
               </div>
 
@@ -429,6 +433,8 @@ export const TrackCard: React.FC<TrackCardProps> = ({
               ) : (
                 <TimestampedCommentsSection
                   trackId={track.trackId}
+                  trackTitle={savedData.title}
+                  trackOwnerId={track.artistId ?? undefined}
                   durationSeconds={playerTrack.duration ?? 0}
                   waveformData={track.waveformData ?? null}
                   waveformSeed={track.trackId}
@@ -448,6 +454,9 @@ export const TrackCard: React.FC<TrackCardProps> = ({
                 likesCount={track.likesCount ?? 0}
                 liked={track.liked ?? false}
                 artistName={getArtistLabel(track.artistName ?? track.artist)}
+                artistId={track.artistId ?? undefined}
+                artistHandle={track.artistHandle ?? undefined}
+                artistAvatarUrl={track.artistAvatarUrl ?? null}
                 coverArt={track.coverArt || track.coverArtUrl || FALLBACK_IMAGE}
                 repostsCount={track.repostsCount ?? 0}
                 reposted={track.reposted ?? false}
