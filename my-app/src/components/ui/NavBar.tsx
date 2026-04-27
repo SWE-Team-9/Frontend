@@ -141,7 +141,7 @@ const NavBar: React.FC<NavBarProps> = ({
     if (user?.id) {
       loadUnreadCount();
     }
-  }, [user?.id, loadUnreadCount]);  
+  }, [user?.id, loadUnreadCount]);
 
   // --- SYNC INTERACTIONS ON LOAD ---
   useEffect(() => {
@@ -307,7 +307,9 @@ const NavBar: React.FC<NavBarProps> = ({
               <FiMail size={20} className="text-neutral-400 hover:text-white" />
 
               {unreadMessageCount > 0 && (
-                <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-[#ff5500]" />
+                <span className="absolute -right-2 -top-2 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-[#ff5500] px-1 text-[10px] font-bold leading-none text-white">
+                  {unreadMessageCount > 99 ? "99+" : unreadMessageCount}
+                </span>
               )}
 
               {openMenu === "messages" && <MessagesDropdown />}
