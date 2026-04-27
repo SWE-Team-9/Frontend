@@ -181,6 +181,8 @@ const TRACKS_LIMIT = 10;
     },
     [setProfileData],
   );
+  
+  <MyPlaylistsSection />
 
   // ─── DETAILS VIEW ─────────────────────────────────────────────────────────
   const renderDetailsPage = () => (

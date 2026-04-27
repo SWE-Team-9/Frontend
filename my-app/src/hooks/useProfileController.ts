@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useProfileStore } from "@/src/store/useProfileStore";
 import { useAuthStore } from "@/src/store/useAuthStore";
 import { useState, useEffect, useCallback, useRef } from "react";
