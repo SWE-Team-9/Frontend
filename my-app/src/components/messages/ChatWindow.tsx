@@ -10,6 +10,11 @@ import ArchiveConversationPopover from "@/src/components/messages/ArchiveConvers
 import MessageText from "./MessageText";
 import Image from "next/image";
 import { useAuthStore } from "@/src/store/useAuthStore";
+import {
+    buildFullShareUrl,
+    buildPlaylistPermalink,
+    buildTrackPermalink,
+} from "@/src/lib/permalinks";
 
 const FALLBACK = "/images/profile.png";
 
@@ -167,11 +172,23 @@ export default function ChatWindow() {
                             : selected.participant.display_name;
 
                         const hiddenSharedUrls = [
-                            message.sharedTrack?.artist?.handle && message.sharedTrack?.slug
-                                ? `https://iqa3.tech/${message.sharedTrack.artist.handle}/${message.sharedTrack.slug}`
+                            message.sharedTrack
+                                ? buildFullShareUrl(
+                                    buildTrackPermalink({
+                                        trackId: message.sharedTrack.id,
+                                        artistHandle: message.sharedTrack.artist?.handle,
+                                        slug: message.sharedTrack.slug,
+                                    }),
+                                )
                                 : "",
-                            message.sharedPlaylist?.owner?.handle && message.sharedPlaylist?.slug
-                                ? `https://iqa3.tech/${message.sharedPlaylist.owner.handle}/sets/${message.sharedPlaylist.slug}`
+                            message.sharedPlaylist
+                                ? buildFullShareUrl(
+                                    buildPlaylistPermalink({
+                                        playlistId: message.sharedPlaylist.id,
+                                        ownerHandle: message.sharedPlaylist.owner?.handle,
+                                        slug: message.sharedPlaylist.slug,
+                                    }),
+                                )
                                 : "",
                         ];
 
