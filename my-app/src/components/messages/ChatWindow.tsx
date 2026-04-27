@@ -156,10 +156,10 @@ export default function ChatWindow() {
 
                         const hiddenSharedUrls = [
                             message.sharedTrack?.artist?.handle && message.sharedTrack?.slug
-                                ? `https://soundcloud.com/${message.sharedTrack.artist.handle}/${message.sharedTrack.slug}`
+                                ? `https://iqa3.tech/${message.sharedTrack.artist.handle}/${message.sharedTrack.slug}`
                                 : "",
                             message.sharedPlaylist?.owner?.handle && message.sharedPlaylist?.slug
-                                ? `https://soundcloud.com/${message.sharedPlaylist.owner.handle}/sets/${message.sharedPlaylist.slug}`
+                                ? `https://iqa3.tech/${message.sharedPlaylist.owner.handle}/sets/${message.sharedPlaylist.slug}`
                                 : "",
                         ];
 

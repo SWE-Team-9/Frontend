@@ -46,6 +46,15 @@ export default function HistoryTrackRow({ track }: HistoryTrackRowProps) {
   const trackHref = hasCanonicalTrackRoute
     ? `/${normalizedArtistHandle}/${normalizedSlug}`
     : `/tracks/${track.trackId}`;
+  const fullTrackUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}${trackHref}`
+      : trackHref;
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(fullTrackUrl);
+  };
+
   const {
     currentTrack,
     isPlaying,
@@ -225,7 +234,11 @@ export default function HistoryTrackRow({ track }: HistoryTrackRowProps) {
             )}
           </div>
 
-          <button className="rounded bg-zinc-800 px-4 py-2 text-white transition hover:opacity-80">
+          <button
+            onClick={handleCopy}
+            className="rounded bg-zinc-800 px-4 py-2 text-white transition hover:opacity-80"
+            title="Copy link"
+          >
             <TbCopy />
           </button>
 
