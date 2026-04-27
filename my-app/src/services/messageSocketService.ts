@@ -14,6 +14,10 @@ export function getMessageSocket() {
       withCredentials: true,
       transports: ["websocket"],
       autoConnect: false,
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 2000,
+      reconnectionDelayMax: 30000,
     });
   }
 

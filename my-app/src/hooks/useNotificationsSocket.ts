@@ -1,33 +1,23 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { io, Socket } from "socket.io-client";
 import { NotificationSocketEvent } from "@/src/types/notifications";
 import { pushMockNotification } from "@/src/services/mocks/notificationsMocks";
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
+const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL;
 
 interface UseNotificationsSocketOptions {
   enabled: boolean;
   onEvent: (event: NotificationSocketEvent) => void;
 }
 
-function getWebSocketUrl() {
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-  if (apiBaseUrl) {
-    return apiBaseUrl.replace(/^http/, "ws") + "/api/v1/notifications";
-  }
-
-  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  return `${protocol}//${window.location.host}/api/v1/notifications`;
-}
-
 export function useNotificationsSocket({
   enabled,
   onEvent,
 }: UseNotificationsSocketOptions) {
-  const socketRef = useRef<WebSocket | null>(null);
-  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const socketRef = useRef<Socket | null>(null);
   const mockTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -64,37 +54,28 @@ export function useNotificationsSocket({
       };
     }
 
-    let isMounted = true;
+    const socket = io(`${SOCKET_URL}/notifications`, {
+      withCredentials: true,
+      transports: ["websocket"],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 2000,
+      reconnectionDelayMax: 30000,
+    });
 
-    function connect() {
-      if (!isMounted) return;
+    socketRef.current = socket;
 
-      const socket = new WebSocket(getWebSocketUrl());
-      socketRef.current = socket;
+    socket.on("new_notification", (payload: unknown) => {
+      onEvent(payload as NotificationSocketEvent);
+    });
 
-      socket.onmessage = (message) => {
-        try {
-          const event = JSON.parse(message.data) as NotificationSocketEvent;
-          onEvent(event);
-        } catch {
-          return;
-        }
-      };
-
-      socket.onclose = () => {
-        if (!isMounted) return;
-        reconnectTimerRef.current = setTimeout(() => {
-          connect();
-        }, 3000);
-      };
-    }
-
-    connect();
+    socket.on("unread_count_updated", (payload: unknown) => {
+      onEvent(payload as NotificationSocketEvent);
+    });
 
     return () => {
-      isMounted = false;
-      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
-      socketRef.current?.close();
+      socket.disconnect();
+      socketRef.current = null;
     };
   }, [enabled, onEvent]);
 }
