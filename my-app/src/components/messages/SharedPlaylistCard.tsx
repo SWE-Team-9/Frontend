@@ -11,6 +11,7 @@ import { usePlayerStore, type Track as PlayerTrack } from "@/src/store/playerSto
 import SharePopup from "@/src/components/share/SharePopup";
 import { buildFullShareUrl, buildPlaylistPermalink } from "@/src/lib/permalinks";
 import { messageService } from "@/src/services/messageService";
+import MessageWaveform from "@/src/components/messages/MessageWaveform";
 
 const FALLBACK = "/images/track-placeholder.png";
 
@@ -33,25 +34,6 @@ function mapSharedTrackToPlayerTrack(track: SharedTrack): PlayerTrack {
         plays: track.playCount,
         accessState: "PLAYABLE",
     };
-}
-
-function MockWaveform() {
-    const bars = Array.from({ length: 110 }, (_, i) => {
-        const h = 10 + Math.abs(Math.sin(i * 0.48)) * 32 + (i % 5) * 2;
-        return h;
-    });
-
-    return (
-        <div className="relative mt-3 flex h-14 items-center gap-[2px]">
-            {bars.map((height, i) => (
-                <span
-                    key={i}
-                    className="w-[2px] bg-zinc-300"
-                    style={{ height: `${height}px` }}
-                />
-            ))}
-        </div>
-    );
 }
 
 export default function SharedPlaylistCard({
@@ -98,8 +80,29 @@ export default function SharedPlaylistCard({
     const isPlaying = usePlayerStore((s) => s.isPlaying);
     const toggle = usePlayerStore((s) => s.toggle);
 
+    const currentTime = usePlayerStore((s) => s.currentTime);
+    const duration = usePlayerStore((s) => s.duration);
+    const seekTo = usePlayerStore((s) => s.seekTo);
+
     const playlistTracks = visibleTracks.map(mapSharedTrackToPlayerTrack);
     const firstTrack = visibleTracks[0];
+
+    const currentPlaylistTrack =
+        visibleTracks.find((track) => track.id === currentTrack?.trackId) ?? null;
+
+    const waveformTrack = currentPlaylistTrack ?? firstTrack;
+
+    const isWaveformTrackCurrent =
+        !!waveformTrack && currentTrack?.trackId === waveformTrack.id;
+
+    const waveformProgress =
+        isWaveformTrackCurrent && duration > 0 ? currentTime / duration : 0;
+
+    const handleWaveformSeek = async (progress: number) => {
+        if (!isWaveformTrackCurrent || duration <= 0) return;
+
+        await seekTo(progress * duration);
+    };
 
     const playPlaylistFromTrack = async (track: SharedTrack) => {
         const playerTracks = visibleTracks.map(mapSharedTrackToPlayerTrack);
@@ -173,7 +176,16 @@ export default function SharedPlaylistCard({
                         </div>
                     </div>
 
-                    <MockWaveform />
+                    {waveformTrack && (
+                        <MessageWaveform
+                            waveformData={waveformTrack.waveformData}
+                            waveformSeed={waveformTrack.id}
+                            progress={waveformProgress}
+                            currentSeconds={isWaveformTrackCurrent ? currentTime : 0}
+                            durationSeconds={waveformTrack.durationSeconds ?? 0}
+                            onSeek={isWaveformTrackCurrent ? handleWaveformSeek : undefined}
+                        />
+                    )}
 
                     <div className="mt-3 space-y-2">
                         {visibleTracks.map((track, index) => {

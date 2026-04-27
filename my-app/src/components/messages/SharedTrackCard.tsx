@@ -14,6 +14,7 @@ import { useRepostStore } from "@/src/store/repostStore";
 import type { TrackData } from "@/src/types/interactions";
 import SharePopup from "@/src/components/share/SharePopup";
 import { buildFullShareUrl, buildTrackPermalink } from "@/src/lib/permalinks";
+import MessageWaveform from "@/src/components/messages/MessageWaveform";
 
 const FALLBACK = "/images/track-placeholder.png";
 const ACCENT = "#ff5500";
@@ -45,28 +46,6 @@ function mapSharedTrackToPlayerTrack(track: SharedTrack): PlayerTrack {
     };
 }
 
-function MockWaveform({ duration }: { duration?: number }) {
-    const bars = Array.from({ length: 120 }, (_, i) => {
-        const h = 12 + Math.abs(Math.sin(i * 0.55)) * 34 + (i % 7) * 2;
-        return h;
-    });
-
-    return (
-        <div className="relative mt-3 flex h-14 items-center gap-[2px]">
-            {bars.map((height, i) => (
-                <span
-                    key={i}
-                    className="w-[2px] bg-zinc-300"
-                    style={{ height: `${height}px` }}
-                />
-            ))}
-
-            <span className="absolute bottom-0 right-0 rounded bg-black px-1 text-[10px] text-white">
-                {formatDuration(duration)}
-            </span>
-        </div>
-    );
-}
 
 export default function SharedTrackCard({ track }: { track: SharedTrack }) {
     const [shareOpen, setShareOpen] = useState(false);
@@ -80,6 +59,10 @@ export default function SharedTrackCard({ track }: { track: SharedTrack }) {
     const isPlaying = usePlayerStore((s) => s.isPlaying);
     const toggle = usePlayerStore((s) => s.toggle);
 
+    const currentTime = usePlayerStore((s) => s.currentTime);
+    const duration = usePlayerStore((s) => s.duration);
+    const seekTo = usePlayerStore((s) => s.seekTo);
+
     const toggleLike = useLikeStore((s) => s.toggleLike);
     const isLiked = useLikeStore((s) => s.isLiked);
     const likeLoadingIds = useLikeStore((s) => s.loadingIds);
@@ -89,6 +72,16 @@ export default function SharedTrackCard({ track }: { track: SharedTrack }) {
     const repostLoadingIds = useRepostStore((s) => s.loadingIds);
 
     const isCurrentTrack = currentTrack?.trackId === track.id;
+
+    const waveformProgress =
+        isCurrentTrack && duration > 0 ? currentTime / duration : 0;
+
+    const handleWaveformSeek = async (progress: number) => {
+        if (!isCurrentTrack || duration <= 0) return;
+
+        await seekTo(progress * duration);
+    };
+
     const currentlyLiked = isLiked(track.id);
     const currentlyReposted = isReposted(track.id);
     const isLikeLoading = likeLoadingIds.includes(String(track.id));
@@ -168,7 +161,14 @@ export default function SharedTrackCard({ track }: { track: SharedTrack }) {
                         </div>
                     </div>
 
-                    <MockWaveform duration={track.durationSeconds} />
+                    <MessageWaveform
+                        waveformData={track.waveformData}
+                        waveformSeed={track.id}
+                        progress={waveformProgress}
+                        currentSeconds={isCurrentTrack ? currentTime : 0}
+                        durationSeconds={track.durationSeconds ?? 0}
+                        onSeek={isCurrentTrack ? handleWaveformSeek : undefined}
+                    />
 
                     <div className="mt-3 flex items-center gap-2">
                         <button
@@ -183,10 +183,10 @@ export default function SharedTrackCard({ track }: { track: SharedTrack }) {
                             <button
                                 onClick={handleCopy}
                                 className={`rounded p-2 text-zinc-300 hover:bg-zinc-700 ${copyStatus === "success"
-                                        ? "bg-green-700"
-                                        : copyStatus === "error"
-                                            ? "bg-red-700"
-                                            : "bg-zinc-800"
+                                    ? "bg-green-700"
+                                    : copyStatus === "error"
+                                        ? "bg-red-700"
+                                        : "bg-zinc-800"
                                     }`}
                                 title={
                                     copyStatus === "success"
