@@ -23,6 +23,7 @@ import Link from "next/link";
 import { TrackData } from "@/src/types/interactions";
 import { getUserLikes } from "@/src/services/likeService";
 import SharePopup from "@/src/components/share/SharePopup";
+import { buildUserPermalink } from "@/src/lib/permalinks";
 
 type FollowUserShape = {
   id: string;
@@ -46,6 +47,7 @@ export default function ProfilePage({
   const [shareOpen, setShareOpen] = useState(false); // permalink state to be used in the SharePopup
   const resolvedParams = React.use(params);
   const handle = resolvedParams.handle;
+  const profileHref = buildUserPermalink(handle);
   const [searchQuery, setSearchQuery] = useState("");
   const controller = useProfileController(handle);
   const setProfileData = useProfileStore((state) => state.setProfileData);
@@ -188,11 +190,10 @@ export default function ProfilePage({
                 setDetailTab(t);
                 setSearchQuery("");
               }}
-              className={`pb-2 cursor-pointer border-b-2 transition-all ${
-                detailTab === t
+              className={`pb-2 cursor-pointer border-b-2 transition-all ${detailTab === t
                   ? "text-white border-white"
                   : "border-transparent hover:text-zinc-200"
-              }`}
+                }`}
             >
               {t}
             </li>
@@ -300,11 +301,10 @@ export default function ProfilePage({
                           avatar_url: avatar ?? "",
                         })
                       }
-                      className={`px-4 py-1.5 rounded text-[10px] font-bold uppercase transition-all ${
-                        isFollowing
+                      className={`px-4 py-1.5 rounded text-[10px] font-bold uppercase transition-all ${isFollowing
                           ? "bg-zinc-800 text-zinc-400 border border-zinc-700"
                           : "bg-white text-black hover:bg-zinc-200"
-                      }`}
+                        }`}
                     >
                       {isFollowing ? "Following" : "Follow"}
                     </button>
@@ -452,11 +452,10 @@ export default function ProfilePage({
                     <li
                       key={tab}
                       onClick={() => setActiveTab(tab)}
-                      className={`cursor-pointer transition-colors h-full flex items-center border-b-2 ${
-                        activeTab === tab
+                      className={`cursor-pointer transition-colors h-full flex items-center border-b-2 ${activeTab === tab
                           ? "text-white border-white"
                           : "border-transparent hover:text-white"
-                      }`}
+                        }`}
                     >
                       {tab}
                     </li>
@@ -485,7 +484,7 @@ export default function ProfilePage({
 
                     {shareOpen && controller.handle && (
                       <SharePopup
-                        permalink={`/${controller.handle}`}
+                        permalink={profileHref}
                         onClose={() => setShareOpen(false)}
                       />
                     )}

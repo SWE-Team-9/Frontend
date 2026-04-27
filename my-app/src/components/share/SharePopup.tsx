@@ -8,6 +8,7 @@ import { useAuthStore } from "@/src/store/useAuthStore";
 import { useMessageStore } from "@/src/store/messageStore";
 import MessageComposer from "@/src/components/messages/MessageComposer";
 import type { AttachResource, ShareResourceType } from "@/src/types/messages";
+import { buildFullShareUrl } from "@/src/lib/permalinks";
 
 const FALLBACK = "/images/profile.png";
 
@@ -45,10 +46,7 @@ export default function SharePopup({
   const loadUnreadCount = useMessageStore((s) => s.loadUnreadCount);
 
   // Build the full absolute URL the user will share
-  const fullUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}${permalink}`
-      : permalink;
+  const fullUrl = buildFullShareUrl(permalink);
 
   const initialAttachment: AttachResource | null =
     resourceType && resourceId

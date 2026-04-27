@@ -14,6 +14,7 @@ import { useRepostStore } from "@/src/store/repostStore";
 import { TrackData } from "@/src/types/interactions";
 import TimestampedCommentsSection from "@/src/components/tracks/TimestampedCommentsSection";
 import SharePopup from "@/src/components/share/SharePopup";
+import { buildFullShareUrl, buildTrackPermalink } from "@/src/lib/permalinks";
 
 const FALLBACK_IMAGE = "/images/track-placeholder.png";
 const ACCENT = "#ff5500";
@@ -32,24 +33,12 @@ function formatTime(seconds?: number) {
 export default function HistoryTrackRow({ track }: HistoryTrackRowProps) {
   const [shareOpen, setShareOpen] = useState(false);
 
-  const normalizedArtistHandle = track.artistHandle?.trim();
-  const normalizedSlug = track.slug?.trim();
-
-  const hasCanonicalTrackRoute =
-    !!normalizedArtistHandle &&
-    !!normalizedSlug &&
-    normalizedArtistHandle.toLowerCase() !== "undefined" &&
-    normalizedArtistHandle.toLowerCase() !== "null" &&
-    normalizedSlug.toLowerCase() !== "undefined" &&
-    normalizedSlug.toLowerCase() !== "null";
-
-  const trackHref = hasCanonicalTrackRoute
-    ? `/${normalizedArtistHandle}/${normalizedSlug}`
-    : `/tracks/${track.trackId}`;
-  const fullTrackUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}${trackHref}`
-      : trackHref;
+  const trackHref = buildTrackPermalink({
+    trackId: track.trackId,
+    artistHandle: track.artistHandle,
+    slug: track.slug,
+  });
+  const fullTrackUrl = buildFullShareUrl(trackHref);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(fullTrackUrl);

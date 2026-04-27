@@ -9,6 +9,7 @@ import { FaHeart } from "react-icons/fa";
 import type { SharedPlaylist, SharedTrack } from "@/src/types/messages";
 import { usePlayerStore, type Track as PlayerTrack } from "@/src/store/playerStore";
 import SharePopup from "@/src/components/share/SharePopup";
+import { buildFullShareUrl, buildPlaylistPermalink } from "@/src/lib/permalinks";
 
 const FALLBACK = "/images/track-placeholder.png";
 
@@ -61,15 +62,13 @@ export default function SharedPlaylistCard({
     const [copied, setCopied] = useState(false);
     const [playlistLiked, setPlaylistLiked] = useState(false);
 
-    const playlistHref =
-        playlist.owner?.handle && playlist.slug
-            ? `/${playlist.owner.handle}/sets/${playlist.slug}`
-            : `/playlists/${playlist.id}`;
+    const playlistHref = buildPlaylistPermalink({
+    playlistId: playlist.id,
+    ownerHandle: playlist.owner?.handle,
+    slug: playlist.slug,
+    });
 
-    const fullUrl =
-        typeof window !== "undefined"
-            ? `${window.location.origin}${playlistHref}`
-            : playlistHref;
+    const fullUrl = buildFullShareUrl(playlistHref);
 
     const handleCopy = async () => {
         await navigator.clipboard.writeText(fullUrl);

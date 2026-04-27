@@ -36,6 +36,7 @@ import {
   usePlayerStore,
   type Track as PlayerTrack,
 } from "@/src/store/playerStore";
+import { buildTrackPermalink } from "@/src/lib/permalinks";
 
 const FALLBACK_IMAGE = "/images/track-placeholder.png";
 
@@ -82,18 +83,13 @@ export const TrackCard: React.FC<TrackCardProps> = ({
   onDelete,
   onEdit,
 }) => {
-  const normalizedArtistHandle = track.artistHandle?.trim();
-  const normalizedSlug = track.slug?.trim();
-  const hasCanonicalTrackRoute =
-    !!normalizedArtistHandle &&
-    !!normalizedSlug &&
-    normalizedArtistHandle.toLowerCase() !== "undefined" &&
-    normalizedArtistHandle.toLowerCase() !== "null" &&
-    normalizedSlug.toLowerCase() !== "undefined" &&
-    normalizedSlug.toLowerCase() !== "null";
-  const trackHref = hasCanonicalTrackRoute
-    ? `/${normalizedArtistHandle}/${normalizedSlug}`
-    : `/tracks/${track.trackId}`;
+const trackHref = buildTrackPermalink({
+  trackId: track.trackId,
+  artistHandle: track.artistHandle,
+  slug: track.slug,
+});
+
+const hasCanonicalTrackRoute = !trackHref.startsWith("/tracks/");
 
   const toEditData = (
     source: Pick<
