@@ -32,8 +32,12 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Only attempt refresh for 401 errors, and only once per request
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    const isAuthEndpoint =
+      originalRequest.url?.includes("/auth/refresh") ||
+      originalRequest.url?.includes("/auth/login") ||
+      originalRequest.url?.includes("/auth/me");
+
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       originalRequest._retry = true;
 
       try {
@@ -50,20 +54,17 @@ api.interceptors.response.use(
         // Retry the original request — the new cookie is now set
         return api(originalRequest);
       } catch {
-        // Refresh failed — the session was revoked or the token expired.
-        // Clear the user from the store and send them back to the home page.
-        // We import useAuthStore lazily here to avoid circular-import issues
-        // (api.ts is used inside authService.ts which is used by the store).
         try {
           const { useAuthStore } = await import("@/src/store/useAuthStore");
           const { useProfileStore } = await import("@/src/store/useProfileStore");
+          const wasAuthenticated = useAuthStore.getState().isAuthenticated;
           useAuthStore.getState().logout();
           useProfileStore.getState().resetProfile();
+          if (wasAuthenticated && typeof window !== "undefined") {
+            window.location.replace("/");
+          }
         } catch {
-          // If the store import fails for any reason, proceed to redirect anyway
-        }
-        if (typeof window !== "undefined") {
-          window.location.replace("/");
+          // store import failed, nothing to clean up
         }
         return Promise.reject(error);
       }

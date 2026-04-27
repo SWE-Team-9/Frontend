@@ -2,17 +2,20 @@
 
 import { useEffect } from "react";
 import { getAudioElement, usePlayerStore } from "@/src/store/playerStore";
+import { useAuthStore } from "@/src/store/useAuthStore";
 
 export default function PlayerAudioSync() {
   const currentTrack = usePlayerStore((s) => s.currentTrack);
   const isPlaying = usePlayerStore((s) => s.isPlaying);
   const hydratedFromSession = usePlayerStore((s) => s.hydratedFromSession);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     const store = usePlayerStore.getState();
     console.log("[PlayerAudioSync] calling hydratePlayerSession()");
     store.hydratePlayerSession();
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     const audio = getAudioElement();
@@ -92,8 +95,24 @@ export default function PlayerAudioSync() {
   useEffect(() => {
     const handleBeforeUnload = () => {
       const state = usePlayerStore.getState();
+      if (!useAuthStore.getState().isAuthenticated) return;
       state.persistProgress();
-      state.persistPlayerSession();
+
+      if (typeof navigator !== "undefined" && navigator.sendBeacon) {
+        const { currentTrack, currentTime, isPlaying, volume, queue, isShuffleOn, loopMode } = state;
+        const payload = JSON.stringify({
+          currentTrackId: currentTrack?.trackId ?? null,
+          positionSeconds: Math.floor(currentTime),
+          isPlaying,
+          volume: volume / 100,
+          queueTrackIds: queue.map((t) => t.trackId),
+          shuffle: isShuffleOn,
+          repeatMode: loopMode,
+        });
+        navigator.sendBeacon("/api/v1/player/session", new Blob([payload], { type: "application/json" }));
+      } else {
+        state.persistPlayerSession();
+      }
     };
 
     window.addEventListener("beforeunload", handleBeforeUnload);

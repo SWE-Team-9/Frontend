@@ -1,5 +1,8 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { getTrackEngagements } from "@/src/services/interactionService";
+import {
+  getTrackEngagements,
+  PaginatedEngagements,
+} from "@/src/services/interactionService";
 import { FollowUser } from "@/src/services/followService";
 import FollowButton from "@/src/components/profile/sidebar/FollowButton";
 import { IoClose } from "react-icons/io5";
@@ -34,8 +37,16 @@ export const EngagementModal: React.FC<EngagementModalProps> = ({ isOpen, onClos
       
       await new Promise(resolve => setTimeout(resolve, 300));
       
-      const data = await getTrackEngagements(trackId, type);
-      if (isMounted) setUsers(data);
+      // ─── التعديل المطلوب تم هنا ───
+      const result: PaginatedEngagements = await getTrackEngagements(
+        trackId,
+        type as "likes" | "reposts",
+        1,   // page
+        50,  // limit
+      );
+      if (isMounted) setUsers(result.items); // ← استخراج المصفوفة من الـ items
+      // ───────────────────────────
+      
     } catch (error) {
       console.error("Error fetching engagements:", error);
     } finally {

@@ -25,11 +25,19 @@ type FollowStore = {
   isFollowing: (userId: string | number | undefined) => boolean;
   fetchFollowing: (
     userId: string,
-    options?: { syncProfileList?: boolean },
+    options?: {
+      syncProfileList?: boolean;
+      page?: number;
+      limit?: number;
+    }
   ) => Promise<void>;
   fetchFollowers: (
     userId: string,
-    options?: { syncProfileList?: boolean },
+    options?: { 
+      syncProfileList?: boolean;
+      page?: number;
+      limit?: number;
+    }
   ) => Promise<void>;
   fetchSuggestions: (limit?: number) => Promise<void>;
 };
@@ -132,15 +140,22 @@ export const useFollowStore = create<FollowStore>((set, get) => ({
     if (!userId) return;
 
     const syncProfileList = options?.syncProfileList ?? true;
+    
+    // START: PAGINATION PARAMS
+    // Extract page and limit from options to support independent page loading
+    const page = options?.page ?? 1;
+    const limit = options?.limit ?? 20;
+    // END: PAGINATION PARAMS
 
     try {
       set({ error: null });
-      const data = await getFollowing(userId);
+      
+      // Fetching data from service with pagination support
+      const data = await getFollowing(userId, page, limit);
       const followingList = data.following || [];
       const profileState = useProfileStore.getState();
       const isActiveProfile = profileState.userId === userId;
 
-      // Keep profile counts aligned with server totals (avoid page-size list lengths)
       if (syncProfileList && isActiveProfile && typeof data.total === "number") {
         useProfileStore.setState({ followingCount: data.total });
       }
@@ -152,8 +167,8 @@ export const useFollowStore = create<FollowStore>((set, get) => ({
         nextState.following = followingList;
       }
 
-      // Prevent stale profile bleed from unrelated fetches (e.g., player refresh)
       if (syncProfileList && isActiveProfile) {
+        // Replacing the list with the current page's data for clean navigation
         nextState.profileFollowing = followingList;
       }
 
@@ -165,19 +180,25 @@ export const useFollowStore = create<FollowStore>((set, get) => ({
     }
   },
 
-  fetchFollowers: async (userId, options) => {
+fetchFollowers: async (userId, options) => {
     if (!userId) return;
 
     const syncProfileList = options?.syncProfileList ?? true;
 
+    // 1. Extract page and limit from options for pagination support
+    const page = options?.page ?? 1;
+    const limit = options?.limit ?? 20;
+
     try {
       set({ error: null });
-      const data = await getFollowers(userId);
+
+      // 2. Pass pagination parameters to the API service
+      const data = await getFollowers(userId, page, limit);
       const followersList = data.followers || [];
       const profileState = useProfileStore.getState();
       const isActiveProfile = profileState.userId === userId;
 
-      // Keep profile counts aligned with server totals (avoid page-size list lengths)
+      // Update total count in profile store to stay synced with backend
       if (syncProfileList && isActiveProfile && typeof data.total === "number") {
         useProfileStore.setState({ followersCount: data.total });
       }
@@ -185,11 +206,12 @@ export const useFollowStore = create<FollowStore>((set, get) => ({
       const currentUserId = useAuthStore.getState().user?.id;
       const nextState: Partial<FollowStore> = {};
 
+      // Update main followers list if it's the current user's profile
       if (userId === currentUserId) {
         nextState.followers = followersList;
       }
 
-      // Prevent stale profile bleed when navigating between profiles quickly
+      // 3. Replace the list with new page data for clean independent pagination
       if (syncProfileList && isActiveProfile) {
         nextState.profileFollowers = followersList;
       }

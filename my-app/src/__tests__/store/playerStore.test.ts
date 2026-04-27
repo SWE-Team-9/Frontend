@@ -248,8 +248,8 @@ describe("playerStore", () => {
       isPlaying: true,
       volume: 0.8,
       queueTrackIds: ["trk_2"],
-      isShuffleOn: true,
-      loopMode: "ALL",
+      shuffle: true,
+      repeatMode: "ALL",
     });
   });
 
@@ -575,8 +575,8 @@ describe("playerStore", () => {
       isPlaying: true,
       volume: 0.5,
       queue: [{ trackId: "t2", title: "Two" }],
-      isShuffleOn: true,
-      loopMode: "ONE",
+      shuffle: true,
+      repeatMode: "ONE",
     });
 
     const { usePlayerStore, getAudioElement } = await import("@/src/store/playerStore");

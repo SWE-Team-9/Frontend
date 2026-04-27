@@ -11,6 +11,8 @@ interface TrackListProps {
   userId: string;
   type?: "tracks" | "reposts" | "all";
   isOwner?: boolean;
+  page?: number;
+  limit?: number;
   onTracksTotalChange?: (count: number) => void;
 }
 
@@ -33,6 +35,8 @@ const TrackList: React.FC<TrackListProps> = ({
   userId,
   type = "tracks",
   isOwner = false,
+  page = 1,
+  limit = 10,
   onTracksTotalChange,
 }) => {
   const [tracks, setTracks] = useState<TrackDetails[]>([]);
@@ -89,7 +93,7 @@ const TrackList: React.FC<TrackListProps> = ({
         }
       } else {
         // 3. Standard "All/Tracks" tab: Fetch this user's uploads
-        const data = await getUserTracks(userId);
+const data = await getUserTracks(userId, page, limit);
         const nextTracks = data.tracks || [];
         const nextTotal =
           typeof data.totalTracks === "number" ? data.totalTracks : nextTracks.length;
@@ -110,8 +114,7 @@ const TrackList: React.FC<TrackListProps> = ({
   loadTracks();
   // We include repostedTracks.length to refresh the list instantly 
   // if you repost/unrepost a track while looking at your own list.
-}, [userId, type, isOwner, repostedTracks.length, onTracksTotalChange]);
-
+}, [userId, type, isOwner, repostedTracks.length, onTracksTotalChange, page, limit]); 
   const handleEdit = (track: TrackDetails) => {
     setNotice(`Edit \"${track.title}\" is not available yet.`);
     setTimeout(() => setNotice(null), 2500);

@@ -1,3 +1,5 @@
+export {};
+
 const mockApiGet = jest.fn();
 
 jest.mock("@/src/services/api", () => ({

@@ -8,6 +8,8 @@ import type { TrackComment } from "@/src/types/interactions";
 
 interface TimestampedCommentsSectionProps {
     trackId: string;
+    trackTitle?: string;
+    trackOwnerId?: string;
     durationSeconds?: number;
     waveformData?: number[] | null;
     waveformSeed?: string | number;
@@ -27,6 +29,8 @@ function formatTime(seconds: number) {
 
 export default function TimestampedCommentsSection({
     trackId,
+    trackTitle,
+    trackOwnerId,
     durationSeconds = 0,
     waveformData,
     waveformSeed,
@@ -108,10 +112,20 @@ export default function TimestampedCommentsSection({
         try {
             setIsSubmitting(true);
 
-            await addTrackComment(trackId, {
+            const commentPayload = {
                 content: trimmed,
                 timestampAt: snapshotTimestamp,
-            });
+            };
+
+            const notificationMeta = trackTitle || trackOwnerId
+                ? { trackTitle, targetUserId: trackOwnerId }
+                : undefined;
+
+            if (notificationMeta) {
+                await addTrackComment(trackId, commentPayload, notificationMeta);
+            } else {
+                await addTrackComment(trackId, commentPayload);
+            }
 
             setText("");
             await loadComments();
@@ -146,7 +160,7 @@ export default function TimestampedCommentsSection({
 
             {activeComment && (
                 <div
-                    className="absolute left-0 top-[72px] z-20 rounded bg-zinc-800 px-2 py-1 text-xs text-white shadow-lg"
+                    className="absolute left-0 top-18 z-20 rounded bg-zinc-800 px-2 py-1 text-xs text-white shadow-lg"
                     style={{
                         left: `${Math.min(
                             92,

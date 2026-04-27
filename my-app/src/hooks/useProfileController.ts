@@ -29,19 +29,14 @@ type ProfileDraft = {
 
 export const useProfileController = (handle?: string) => {
   const store = useProfileStore();
-
+  
   const [userId, setUserId] = useState<string | null>(null);
   const currentUserId = useAuthStore((state) => state.user?.id);  
   const isOwner = userId === currentUserId;
-
   const [activeTab, setActiveTab] = useState("Tracks");
   const [viewState, setViewState] = useState("profile");
   const [detailTab, setDetailTab] = useState("Following");
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isShareOpen, setIsShareOpen] = useState(false);
-  const [shareTab, setShareTab] = useState("Share");
-  const [isShortened, setIsShortened] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -91,13 +86,10 @@ export const useProfileController = (handle?: string) => {
     "world",
     "gospel",
     "spoken-word",
+    "quran",
+    "sha3by",
+    "islamic",
   ];
-
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const longLink = store.handle
-    ? `${origin}/profiles/${store.handle}`
-    : `${origin}/profiles`;
-  const shortLink = longLink;
 
   const loadProfile = useCallback(async () => {
     if (hasRequestedProfileRef.current) return;
@@ -273,16 +265,6 @@ const handleSave = async (draft: ProfileDraft) => {
     }
   };
 
-  const copyToClipboard = async () => {
-    try {
-      await navigator.clipboard.writeText(isShortened ? shortLink : longLink);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setError("Could not copy link. Please copy it manually.");
-    }
-  };
-
   const setProfileData = (data: Parameters<typeof store.setProfileData>[0]) => {
     store.setProfileData(data);
   };
@@ -301,20 +283,10 @@ const handleSave = async (draft: ProfileDraft) => {
     setDetailTab,
     isEditOpen,
     setIsEditOpen,
-    isShareOpen,
-    setIsShareOpen,
-    shareTab,
-    setShareTab,
-    isShortened,
-    setIsShortened,
-    copied,
-    copyToClipboard,
     error,
     handleSave,
     genres,
     showSuccessToast,
-    longLink,
-    shortLink,
     isSaving,
     isLoading,
     isAvatarUploading,

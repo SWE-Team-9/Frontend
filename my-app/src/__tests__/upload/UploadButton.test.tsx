@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React from "react";
+import { useSubscriptionStore } from "@/src/store/useSubscriptionStore";
+
 import {
   render,
   screen,
@@ -29,6 +31,41 @@ jest.mock("@/src/components/ui/FileStatusBadge", () => ({
     <span data-testid="badge">{status}</span>
   ),
 }));
+// Add after the existing jest.mock blocks
+// jest.mock('@/src/services/subscriptionService', () => ({
+//   decrementUploadQuota: jest.fn().mockResolvedValue({
+//     userId: 'usr_test',
+//     subscriptionType: 'FREE',
+//     uploadLimit: 3,
+//     uploadedTracks: 2,
+//     remainingUploads: 1,
+//     perks: { adFree: false, offlineListening: false },
+//   }),
+// }));
+
+// Mock useSubscriptionStore — must expose setSubDirectly as a stable function
+// so UploadButton can call it after a successful upload without throwing.
+const mockSetSubDirectly = jest.fn();
+
+jest.mock('@/src/store/useSubscriptionStore', () => ({
+  useSubscriptionStore: jest.fn((selector) =>
+    selector({
+      setSubDirectly: mockSetSubDirectly,
+      setSubFromStore: jest.fn(),
+    })
+  ),
+}));
+
+jest.mock('@/src/services/subscriptionService', () => ({
+  decrementUploadQuota: jest.fn().mockResolvedValue({
+    userId: "usr_test",
+    subscriptionType: "FREE",
+    uploadLimit: 3,
+    uploadedTracks: 2,
+    remainingUploads: 1,
+    perks: { adFree: false, offlineListening: false },
+  }),
+}));
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -41,6 +78,7 @@ const METADATA = {
   tags: [] as string[],
   visibility: "PUBLIC" as const,
   description: "",
+  coverArt: null,
 };
 
 const makeFile = (name = "audio.mp3") =>
@@ -71,7 +109,15 @@ beforeEach(() => {
   jest.useFakeTimers();
   (useRouter as jest.Mock).mockReturnValue({ push: mockPush });
   (getMyProfile as jest.Mock).mockResolvedValue({ accountType: "ARTIST" });
+
+
+  
 });
+
+
+ 
+
+
 
 afterEach(() => {
   jest.runAllTimers();
@@ -392,6 +438,33 @@ describe("UploadButton", () => {
 
       expect(uploadTrack).toHaveBeenCalledWith(file, METADATA);
     });
+
+    it("shows backend UPLOAD_LIMIT_REACHED message when backend returns 403", async () => {
+      const file = makeFile("track.mp3");
+      setupStore([file]);
+      const err = Object.assign(new Error("Request failed with status code 403"), {
+        response: {
+          status: 403,
+          data: {
+            code: "UPLOAD_LIMIT_REACHED",
+            message: "You have reached your upload limit. Upgrade your plan to upload more tracks.",
+          },
+        },
+      });
+      (uploadTrack as jest.Mock).mockRejectedValue(err);
+
+      render(<UploadButton />);
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button"));
+      });
+
+      expect(screen.getByTestId("badge")).toHaveTextContent("ERROR");
+      expect(
+        screen.getByText(
+          "You have reached your upload limit. Upgrade your plan to upload more tracks.",
+        ),
+      ).toBeInTheDocument();
+    });
   });
 
   // ── pollTrackStatus ────────────────────────────────────────────────────────
@@ -552,6 +625,49 @@ describe("UploadButton", () => {
       await waitFor(() => {
         expect(getTrackDetails).toHaveBeenCalledWith("p1");
       });
+    });
+  });
+
+  // ── Cover art FormData ─────────────────────────────────────────────────────
+
+  describe("cover art in FormData", () => {
+    it("passes coverArt File in metadata to uploadTrack when present", async () => {
+      const audioFile = makeFile("song.mp3");
+      const coverFile = new File(["img"], "cover.jpg", { type: "image/jpeg" });
+      const metadataWithCover = { ...METADATA, coverArt: coverFile };
+
+      (useUploadStore as unknown as jest.Mock).mockReturnValue({
+        files: [audioFile],
+        setFiles: mockSetFiles,
+        metadata: metadataWithCover,
+      });
+      (uploadTrack as jest.Mock).mockResolvedValue({ status: "DONE" });
+
+      render(<UploadButton />);
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button"));
+      });
+
+      expect(uploadTrack).toHaveBeenCalledWith(
+        audioFile,
+        expect.objectContaining({ coverArt: coverFile }),
+      );
+    });
+
+    it("passes null coverArt when no cover art is selected", async () => {
+      const file = makeFile("song.mp3");
+      setupStore([file]);
+      (uploadTrack as jest.Mock).mockResolvedValue({ status: "DONE" });
+
+      render(<UploadButton />);
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button"));
+      });
+
+      expect(uploadTrack).toHaveBeenCalledWith(
+        file,
+        expect.objectContaining({ coverArt: null }),
+      );
     });
   });
 });

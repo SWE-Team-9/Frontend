@@ -8,6 +8,14 @@ jest.mock("@/src/services/api", () => ({
   },
 }));
 
+// 1. Define Interface outside to remove any error
+interface InteractionUser {
+  id: string;
+  display_name: string;
+  handle: string;
+  avatar_url: string;
+}
+
 const getMockApi = () =>
   jest.requireMock("@/src/services/api").default as {
     get: jest.Mock;
@@ -41,15 +49,17 @@ describe("interactionService", () => {
     const { getTrackEngagements } = await import("@/src/services/interactionService");
     const result = await getTrackEngagements("trk_1", "likes");
 
-    expect(getMockApi().get).toHaveBeenCalledWith("/interactions/tracks/trk_1/likers");
-    expect(result).toEqual([
-      {
-        id: "usr_1",
-        display_name: "Ahmed Hassan",
-        handle: "ahmed",
-        avatar_url: "/avatar.jpg",
-      },
-    ]);
+    // Updated with exact params matching
+    expect(getMockApi().get).toHaveBeenCalledWith(
+      "/interactions/tracks/trk_1/likers",
+      { params: { page: 1, limit: 20 } },
+    );
+
+    expect(result).toEqual({
+      items: [{ id: "usr_1", display_name: "Ahmed Hassan", handle: "ahmed", avatar_url: "/avatar.jpg" }],
+      total: 1,
+      hasMore: false,
+    });
   });
 
   it("getTrackEngagements derives handle when missing", async () => {
@@ -71,9 +81,17 @@ describe("interactionService", () => {
     const { getTrackEngagements } = await import("@/src/services/interactionService");
     const result = await getTrackEngagements("trk_1", "reposts");
 
-    expect(getMockApi().get).toHaveBeenCalledWith("/interactions/tracks/trk_1/reposters");
-    expect(result[0].handle).toBe("maryamsoliman");
-    expect(result[0].avatar_url).toBe("");
+    // Solution: adding params to match Received in terminal
+    expect(getMockApi().get).toHaveBeenCalledWith(
+      "/interactions/tracks/trk_1/reposters",
+      { params: { page: 1, limit: 20 } },
+    );
+
+    // Accessing items directly from the result object as per the latest update
+    // Solution: Accessing items with the correct type casting to avoid 'any' and 'unused' errors
+    const paginatedResult = result as unknown as { items: InteractionUser[] };
+    expect(paginatedResult.items[0].handle).toBe("maryamsoliman");
+    expect(paginatedResult.items[0].avatar_url).toBe("");
   });
 
   it("getTrackComments normalizes array response shape", async () => {

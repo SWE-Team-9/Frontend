@@ -2,6 +2,9 @@
 
 import TimestampedCommentsSection from "@/src/components/tracks/TimestampedCommentsSection";
 import React, { useState, Fragment } from "react";
+import { Share2 } from "lucide-react";
+import SharePopup from "@/src/components/share/SharePopup";
+import Link from "next/link";
 import Image from "next/image";
 import { toast } from "sonner";
 import {
@@ -28,6 +31,7 @@ import {
 
 
 import { WaveformDisplay } from "@/src/components/tracks/WaveformDisplay";
+import { TrackActionButtons } from "@/src/components/tracks/TrackActionButtons";
 import { useRepostStore } from "@/src/store/repostStore";
 import { useLikeStore } from "@/src/store/likeStore";
 import {
@@ -41,6 +45,7 @@ import {
   type Track as PlayerTrack,
 } from "@/src/store/playerStore";
 import type { TrackData } from "@/src/types/interactions";
+import { buildTrackPermalink } from "@/src/lib/permalinks";
 
 const FALLBACK_IMAGE = "/images/track-placeholder.png";
 
@@ -86,18 +91,13 @@ export const TrackCard: React.FC<TrackCardProps> = ({
   onDelete,
   onEdit,
 }) => {
-  const normalizedArtistHandle = track.artistHandle?.trim();
-  const normalizedSlug = track.slug?.trim();
-  const hasCanonicalTrackRoute =
-    !!normalizedArtistHandle &&
-    !!normalizedSlug &&
-    normalizedArtistHandle.toLowerCase() !== "undefined" &&
-    normalizedArtistHandle.toLowerCase() !== "null" &&
-    normalizedSlug.toLowerCase() !== "undefined" &&
-    normalizedSlug.toLowerCase() !== "null";
-  const trackHref = hasCanonicalTrackRoute
-    ? `/${normalizedArtistHandle}/${normalizedSlug}`
-    : `/tracks/${track.trackId}`;
+const trackHref = buildTrackPermalink({
+  trackId: track.trackId,
+  artistHandle: track.artistHandle,
+  slug: track.slug,
+});
+
+const hasCanonicalTrackRoute = !trackHref.startsWith("/tracks/");
 
   const toEditData = (
     source: Pick<
@@ -110,17 +110,24 @@ export const TrackCard: React.FC<TrackCardProps> = ({
     releaseDate: source.releaseDate?.split("T")[0] ?? "",
     description: source.description ?? "",
   });
-
   const deleteRepostAction = useRepostStore(
     (state) => state.deleteRepostAction,
   );
-  const isReposted = useRepostStore((state) =>
-    state.isReposted(track.trackId),
-  );
+  const isReposted = useRepostStore((state) => state.isReposted(track.trackId));
+  const handleDeleteClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation(); // Prevent card click
+    if (!isOwner && isReposted) {
+      if (confirm("Do you want to remove your repost?")) {
+        await deleteRepostAction(track.trackId);
+      }
+      return;
+    }
+    if (onDelete) {
+      onDelete(track.trackId, savedData.title);
+    }
+  };
 
-  const handleAddTrackToNextUp = () => {
-  toast.success("Added to Next Up");
-};
+  const [shareOpen, setShareOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isPreparingEdit, setIsPreparingEdit] = useState(false);
@@ -433,21 +440,50 @@ export const TrackCard: React.FC<TrackCardProps> = ({
                   <p className="text-zinc-400 text-sm">
                     {getArtistLabel(track.artistName ?? track.artist)}
                   </p>
-                  <h4 className="text-white text-xl font-bold truncate">
+                  <Link
+                    href={`/tracks/${track.trackId}`}
+                    className="text-white text-xl font-bold truncate hover:text-neutral-700 transition duration-200"
+                  >
                     {savedData.title}
-                  </h4>
+                  </Link>
                 </div>
               </div>
 
-              <span
-                className={`text-[10px] px-2 py-0.5 rounded font-bold ${
-                  visibility === "PUBLIC"
-                    ? "bg-green-900/30 text-green-400"
-                    : "bg-zinc-800 text-zinc-500"
-                }`}
-              >
-                {visibility}
-              </span>
+              <div className="flex items-center gap-2 relative">
+                <span
+                  className={`text-[10px] px-2 py-0.5 rounded font-bold ${visibility === "PUBLIC"
+                      ? "bg-green-900/30 text-green-400"
+                      : "bg-zinc-800 text-zinc-500"
+                    }`}
+                >
+                  {visibility}
+                </span>
+
+                {/* Share button */}
+                <button
+                  onClick={() => setShareOpen((v) => !v)}
+                  disabled={!hasCanonicalTrackRoute}
+                  title={
+                    hasCanonicalTrackRoute
+                      ? "Share this track"
+                      : "Permalink not available yet"
+                  }
+                  className="flex items-center gap-1 rounded border border-zinc-700 px-2 py-1 text-xs text-zinc-300 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Share2 className="h-3 w-3" /> Share
+                </button>
+
+                {shareOpen && hasCanonicalTrackRoute && (
+                  <SharePopup
+                    permalink={trackHref}
+                    resourceType="TRACK"
+                    resourceId={track.trackId}
+                    resourceTitle={savedData.title}
+                    resourceCoverArtUrl={track.coverArtUrl || track.coverArt || null}
+                    onClose={() => setShareOpen(false)}
+                  />
+                )}
+              </div>
             </div>
 
             {/* Waveform + Timestamped Comments */}
@@ -457,22 +493,40 @@ export const TrackCard: React.FC<TrackCardProps> = ({
                   Processing...
                 </div>
               ) : (
-                <>
-                  <WaveformDisplay
-                    progress={waveformProgress}
-                    onSeek={handleWaveformSeek}
-                  />
-                  <TimestampedCommentsSection
-                 trackId={track.trackId}
-                currentPlaybackSeconds={isCurrentTrack ? currentTime : 0}
-                  />
-                </>
+                <TimestampedCommentsSection
+                  trackId={track.trackId}
+                  trackTitle={savedData.title}
+                  trackOwnerId={track.artistId ?? undefined}
+                  durationSeconds={playerTrack.duration ?? 0}
+                  waveformData={track.waveformData ?? null}
+                  waveformSeed={track.trackId}
+                  waveformProgress={waveformProgress}
+                  onSeek={isCurrentTrack ? handleWaveformSeek : undefined}
+                  currentPlaybackSeconds={isCurrentTrack ? currentTime : 0}
+                />
               )}
 
-                   {/* Action row */}
-                <div className="flex items-center gap-2 mt-3">
+            {/* Bottom Actions */}
+            <div className="flex items-center justify-between mt-auto">
+              <TrackActionButtons
+                key={track.trackId}
+                trackId={track.trackId}
+                title={savedData.title}
+                likesCount={track.likesCount ?? 0}
+                liked={track.liked ?? false}
+                artistName={getArtistLabel(track.artistName ?? track.artist)}
+                artistId={track.artistId ?? undefined}
+                artistHandle={track.artistHandle ?? undefined}
+                artistAvatarUrl={track.artistAvatarUrl ?? null}
+                coverArt={track.coverArt || track.coverArtUrl || FALLBACK_IMAGE}
+                repostsCount={track.repostsCount ?? 0}
+                reposted={track.reposted ?? false}
+                size="full"
+              />
 
-                  {/* Share button */}
+              {/* Owner Actions */}
+              {isOwner && (
+                <div className="flex items-center gap-2">
                   <button
                     onClick={handleShare}
                     className="w-9 h-9 rounded bg-[#1a1a1a] hover:bg-zinc-800 border border-zinc-800 flex items-center justify-center text-zinc-300"
@@ -509,10 +563,33 @@ export const TrackCard: React.FC<TrackCardProps> = ({
                     )}
                   </button>
 
-                  {/* Stats button (owner only) */}
-                  {isOwner && (
-                    <button className="w-9 h-9 rounded bg-[#1a1a1a] hover:bg-zinc-800 border border-zinc-800 flex items-center justify-center text-zinc-300">
-                      <BarChart2 size={12} />
+                  {(isOwner || track.reposted) && (
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+
+                        // Case 1: If the user is a reposter (and not the owner), remove the repost
+                        if (!isOwner && track.reposted) {
+                          try {
+                            // Use the dedicated delete action from your store
+                            await useRepostStore
+                              .getState()
+                              .deleteRepostAction(track.trackId);
+                          } catch (err) {
+                            console.error("Failed to remove repost:", err);
+                          }
+                          return;
+                        }
+
+                        // Case 2: If the user is the owner, trigger the original onDelete callback
+                        if (isOwner && onDelete) {
+                          onDelete(track.trackId, savedData.title);
+                        }
+                      }}
+                      className="p-2 rounded bg-[#2a2a2a] text-red-500 hover:bg-red-900/20 transition-colors"
+                      title={isOwner ? "Delete Track" : "Remove Repost"}
+                    >
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   )}
 

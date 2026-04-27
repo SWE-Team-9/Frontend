@@ -3,6 +3,9 @@ export interface TrackData {
   trackId?: string;
   title: string;
   artistName?: string | null;
+  artistId?: string;
+  artistHandle?: string;
+  artistAvatarUrl?: string | null;
   likesCount: number;
   repostsCount: number;
   coverArtUrl: string | null;

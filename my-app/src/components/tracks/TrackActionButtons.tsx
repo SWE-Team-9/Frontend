@@ -1,23 +1,27 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState } from "react";
 import { AiOutlineHeart, AiFillHeart } from "react-icons/ai";
 import { BiRepost } from "react-icons/bi";
-import { RiShareForwardLine } from "react-icons/ri";
 import { EngagementModal } from "@/src/components/profile/modals/EngagementModal";
 import { useLikeStore } from '@/src/store/likeStore'; 
 import { useRepostStore } from '@/src/store/repostStore';
 import { TrackData } from "@/src/types/interactions";
+import { DownloadButton } from "@/src/components/tracks/DownloadButton";
 
 export interface TrackActionButtonsProps {
   trackId: string;
   title: string;
   artistName: string;
+  artistId?: string;
+  artistHandle?: string;
+  artistAvatarUrl?: string | null;
   coverArt?: string;
   likesCount: number;
   liked: boolean;
   repostsCount: number;
   reposted: boolean;
+   downloadable?: boolean; 
   size?: "compact" | "full";
 }
 
@@ -53,8 +57,18 @@ function SCButton({ active, onClick, label, children, disabled }: SCButtonProps)
 }
 
 export function RepostButton({
-  trackId, title, artistName, coverArt, repostsCount, size = "full",
-}: { trackId: string; title: string; artistName: string; coverArt?: string; repostsCount: number; size?: "compact" | "full"; }) {
+  trackId, title, artistName, artistId, artistHandle, artistAvatarUrl, coverArt, repostsCount, size = "full",
+}: {
+  trackId: string;
+  title: string;
+  artistName: string;
+  artistId?: string;
+  artistHandle?: string;
+  artistAvatarUrl?: string | null;
+  coverArt?: string;
+  repostsCount: number;
+  size?: "compact" | "full";
+}) {
   const { toggleRepost, isReposted, loadingIds } = useRepostStore();
   const active = isReposted(trackId);
   const isLoading = loadingIds.includes(String(trackId));
@@ -65,6 +79,9 @@ export function RepostButton({
       id: trackId,
       title,
       artistName,
+      artistId,
+      artistHandle,
+      artistAvatarUrl,
       coverArt,
       repostsCount: repostsCount, 
       likesCount: 0,
@@ -80,8 +97,18 @@ export function RepostButton({
 }
 
 export function LikeButton({
-  trackId, title, artistName, coverArt, likesCount, size = "full",
-}: { trackId: string; title: string; artistName: string; coverArt?: string; likesCount: number; size?: "compact" | "full" }) {
+  trackId, title, artistName, artistId, artistHandle, artistAvatarUrl, coverArt, likesCount, size = "full",
+}: {
+  trackId: string;
+  title: string;
+  artistName: string;
+  artistId?: string;
+  artistHandle?: string;
+  artistAvatarUrl?: string | null;
+  coverArt?: string;
+  likesCount: number;
+  size?: "compact" | "full"
+}) {
   const { toggleLike, isLiked, loadingIds } = useLikeStore();
   const active = isLiked(trackId);
   const isLoading = loadingIds.includes(String(trackId));
@@ -92,6 +119,9 @@ export function LikeButton({
       id: trackId, 
       title, 
       artistName, 
+      artistId,
+      artistHandle,
+      artistAvatarUrl,
       coverArt, 
       likesCount: likesCount, 
       repostsCount: 0, 
@@ -107,7 +137,7 @@ export function LikeButton({
 }
 
 export function TrackActionButtons({
-  trackId, title, artistName, coverArt, likesCount:initialLikes, repostsCount, liked, reposted, size = "full",
+  trackId, title, artistName, artistId, artistHandle, artistAvatarUrl, coverArt, likesCount:initialLikes, repostsCount, liked, reposted,downloadable = false, size = "full",
 }: TrackActionButtonsProps) {
   const [modalType, setModalType] = useState<"likes" | "reposts" | null>(null);
   
@@ -138,6 +168,9 @@ export function TrackActionButtons({
       <div className="flex items-center gap-1">
         <LikeButton 
           trackId={trackId} title={title} artistName={artistName} coverArt={coverArt}
+          artistId={artistId}
+          artistHandle={artistHandle}
+          artistAvatarUrl={artistAvatarUrl}
           likesCount={initialLikes}
         />
         {displayLikes > 0 && (
@@ -153,6 +186,9 @@ export function TrackActionButtons({
       <div className="flex items-center gap-1">
         <RepostButton 
           trackId={trackId} title={title} artistName={artistName} coverArt={coverArt}
+          artistId={artistId}
+          artistHandle={artistHandle}
+          artistAvatarUrl={artistAvatarUrl}
           repostsCount={displayReposts} 
         />
         {displayReposts > 0 && (
@@ -164,8 +200,6 @@ export function TrackActionButtons({
           </span>
         )}
       </div>
-
-      <SCButton label="Share"><RiShareForwardLine size={15} /></SCButton>
       
       {modalType && (
         <EngagementModal 
@@ -175,6 +209,13 @@ export function TrackActionButtons({
           type={modalType} 
         />
       )}
+<DownloadButton
+  trackId={trackId}
+  trackTitle={title}
+  downloadable={downloadable}
+  size={size}
+/>
+
     </div>
   );
 }

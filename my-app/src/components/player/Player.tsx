@@ -11,6 +11,7 @@ import { useAuthStore } from "@/src/store/useAuthStore";
 import { SlUserFollow, SlUserFollowing } from "react-icons/sl";
 import { PiQueue } from "react-icons/pi";
 import { PlaybackToast } from "./PlaybackToast";
+import { AdBanner } from "@/src/components/ui/AdBanner";
 
 export function Player() {
   const {
@@ -122,7 +123,9 @@ export function Player() {
   return (
     <>
       <PlaybackToast />
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#333] border-t border-[#222] shadow-2xl h-15 flex items-center">
+      <div className="fixed bottom-0 left-0 right-0 z-50">
+        <AdBanner />
+        <div className="bg-[#333] border-t border-[#222] shadow-2xl h-15 flex items-center">
         <div className="flex items-center w-full px-4 gap-6">
           <div className="flex items-center gap-4 flex-1">
             <PlayerControls />
@@ -190,6 +193,7 @@ export function Player() {
               </button>
             </div>
           </div>
+        </div>
         </div>
       </div>
     </>

@@ -23,7 +23,7 @@ describe('EngagementModal Component (Followers/Likes UI)', () => {
 
   beforeEach(() => {
     // Reset the mock and define the resolved value before each test
-    mockedGetEngagements.mockResolvedValue(mockUsers);
+mockedGetEngagements.mockResolvedValue({ items: mockUsers, total: mockUsers.length, hasMore: false });
   });
 
   /**
@@ -47,7 +47,7 @@ describe('EngagementModal Component (Followers/Likes UI)', () => {
    * TEST 2: Verify the empty state UI when no engagement data is returned.
    */
   test('displays an empty state message when no users have interacted', async () => {
-    mockedGetEngagements.mockResolvedValue([]); // Simulate an empty response
+    mockedGetEngagements.mockResolvedValue({ items: [], total: 0, hasMore: false }); // Simulate an empty response
     render(<EngagementModal {...defaultProps} />);
 
     // Wait for the UI to update and show the fallback message

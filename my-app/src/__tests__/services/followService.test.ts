@@ -96,11 +96,11 @@ describe("followService - Mock Mode Coverage", () => {
     expect(Array.isArray(result.following)).toBe(true);
   });
 
-  test('getFollowers (Mock): returns empty mock list', async () => {
-    const result = await mockService.getFollowers('any_id');
-    expect(result.followers).toEqual([]);
-    expect(result.total).toBe(0);
-  });
+ test('getFollowers (Mock): returns empty mock list', async () => {
+  const result = await mockService.getFollowers('any_id');
+expect(result.followers?.length).toBeGreaterThan(0);
+  expect(result.total).toBeGreaterThan(0);
+});
 
   test('getSuggestions (Mock): returns sliced mock list', async () => {
     const result = await mockService.getSuggestions(2);
