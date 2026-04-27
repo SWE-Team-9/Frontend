@@ -7,9 +7,6 @@ function normalizeUrl(url: string) {
     return `https://${url}`;
 }
 
-function escapeRegex(value: string) {
-    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
 
 export default function MessageText({
     text,

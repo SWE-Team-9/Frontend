@@ -19,20 +19,40 @@ export default function NewMessageModal() {
     const [following, setFollowing] = useState<FollowUser[]>([]);
     const [query, setQuery] = useState("");
     const [selectedUser, setSelectedUser] = useState<FollowUser | null>(null);
-    const [isFollowingLoading, setIsFollowingLoading] = useState(false);
+    const [isFollowingLoading, setIsFollowingLoading] = useState(true);
     const [followingError, setFollowingError] = useState<string | null>(null);
 
 
     useEffect(() => {
-        if (!userId) return;
+        if (!userId) {
+            setIsFollowingLoading(false);
+            return;
+        }
 
-        setIsFollowingLoading(true);
-        setFollowingError(null);
+        const currentUserId = userId;
+        let isMounted = true;
 
-        getFollowing(userId, 1, 50)
-            .then((res) => setFollowing(res.following ?? []))
-            .catch(() => setFollowingError("Could not load the users you follow."))
-            .finally(() => setIsFollowingLoading(false));
+        async function loadFollowing() {
+            try {
+                const res = await getFollowing(currentUserId, 1, 50);
+                if (!isMounted) return;
+
+                setFollowing(res.following ?? []);
+                setFollowingError(null);
+            } catch {
+                if (!isMounted) return;
+                setFollowingError("Could not load the users you follow.");
+            } finally {
+                if (!isMounted) return;
+                setIsFollowingLoading(false);
+            }
+        }
+
+        loadFollowing();
+
+        return () => {
+            isMounted = false;
+        };
     }, [userId]);
 
     const filtered = useMemo(() => {

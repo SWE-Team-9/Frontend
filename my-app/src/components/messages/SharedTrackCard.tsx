@@ -25,11 +25,6 @@ function formatCount(n = 0) {
     return String(n);
 }
 
-function formatDuration(seconds = 0) {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-}
 
 function mapSharedTrackToPlayerTrack(track: SharedTrack): PlayerTrack {
     return {
