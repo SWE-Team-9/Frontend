@@ -8,6 +8,10 @@ import SharedTrackCard from "@/src/components/messages/SharedTrackCard";
 import SharedPlaylistCard from "@/src/components/messages/SharedPlaylistCard";
 import ArchiveConversationPopover from "@/src/components/messages/ArchiveConversationPopover";
 import MessageText from "./MessageText";
+import Image from "next/image";
+import { useAuthStore } from "@/src/store/useAuthStore";
+
+const FALLBACK = "/images/profile.png";
 
 function timeLabel(date: string) {
     return new Date(date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -27,7 +31,7 @@ export default function ChatWindow() {
     const isLoading = useMessageStore((s) => s.isLoading);
     const isLoadingOlder = useMessageStore((s) => s.isLoadingOlder);
     const error = useMessageStore((s) => s.error);
-
+    const currentUser = useAuthStore((s) => s.user);
 
     useEffect(() => {
         scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
@@ -154,6 +158,14 @@ export default function ChatWindow() {
                     {messages.map((message) => {
                         const isMe = message.senderId === "me";
 
+                        const avatarSrc = isMe
+                            ? currentUser?.avatarUrl || FALLBACK
+                            : selected.participant.avatar_url || FALLBACK;
+
+                        const avatarAlt = isMe
+                            ? currentUser?.displayName || "Me"
+                            : selected.participant.display_name;
+
                         const hiddenSharedUrls = [
                             message.sharedTrack?.artist?.handle && message.sharedTrack?.slug
                                 ? `https://iqa3.tech/${message.sharedTrack.artist.handle}/${message.sharedTrack.slug}`
@@ -165,8 +177,17 @@ export default function ChatWindow() {
 
                         return (
                             <div key={message.id} className="flex gap-4">
-                                <div className="h-12 w-12 shrink-0 rounded-full bg-gradient-to-br from-[#d7837b] to-[#b66]" />
-
+                                <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-zinc-700">
+                                    <Image
+                                        src={avatarSrc}
+                                        alt={avatarAlt}
+                                        fill
+                                        className="object-cover"
+                                        onError={(e) => {
+                                            e.currentTarget.src = FALLBACK;
+                                        }}
+                                    />
+                                </div>
                                 <div className="min-w-0 flex-1">
                                     <div className="mb-1 flex justify-between">
                                         <p className="font-bold text-white">
