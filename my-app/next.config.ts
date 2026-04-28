@@ -6,7 +6,8 @@
 
 // export default nextConfig;
 
-const BACKEND_URL = "https://dev.iqa3.tech";
+const IS_LOCAL = false;
+const BACKEND_URL = IS_LOCAL ? "http://localhost:3006" : "https://dev.iqa3.tech";
 
 const nextConfig = {
   reactStrictMode: true,
@@ -38,6 +39,14 @@ const nextConfig = {
       {
         protocol: "https",
         hostname: "iqa3-media-storage.s3.eu-north-1.amazonaws.com",
+      },
+      {
+        protocol: "https",
+        hostname: "iqa3-media-storage.s3.amazonaws.com",
+      },
+      {
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
       },
     ],
   },
