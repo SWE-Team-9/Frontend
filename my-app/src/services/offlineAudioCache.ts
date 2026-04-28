@@ -96,9 +96,9 @@ export async function saveOfflineTrack(
   meta: Omit<CachedTrackMeta, "cachedAt" | "expiresAt"> & {
     expiresInSeconds: number;
   },
-  presignedUrl: string,
+  audioUrl: string,
 ): Promise<void> {
-  const response = await fetch(presignedUrl);
+  const response = await fetch(audioUrl, { credentials: "include" });
   if (!response.ok) {
     throw new Error(`Failed to fetch audio: ${response.status} ${response.statusText}`);
   }

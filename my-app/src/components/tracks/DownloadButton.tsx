@@ -70,10 +70,10 @@ export function DownloadButton({
       // 1. Ask backend for a presigned S3 URL (no file write happens here)
       const result = await getOfflineTrack(trackId);
 
-      // 2. Fetch the audio directly from the S3 presigned URL and store the
-      //    Blob in IndexedDB. S3 CORS is already configured for this domain
-      //    (the audio player uses S3 URLs for streaming). The audio never
-      //    touches the device file system — it lives in private browser storage.
+      // 2. Fetch audio bytes through the NestJS stream proxy (server fetches
+      //    from S3, so no browser-side CORS issue). Bytes are stored in IndexedDB
+      //    for offline playback — never written to the device file system.
+      const streamUrl = `${process.env.NEXT_PUBLIC_API_URL}/subscriptions/offline/${result.trackId}/stream`;
       await saveOfflineTrack(
         {
           trackId: result.trackId,
@@ -81,9 +81,9 @@ export function DownloadButton({
           artist: result.artist ?? null,
           coverArtUrl: null,
           durationMs: null,
-          expiresInSeconds: 900, // match backend default TTL
+          expiresInSeconds: 900,
         },
-        result.downloadUrl,
+        streamUrl,
       );
 
       setDlState("cached");
