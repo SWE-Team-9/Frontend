@@ -45,7 +45,7 @@ type BackendPlaylistTrack = {
 
 const mockUsers: MessageUser[] = [
     { id: "usr_1", display_name: "Baymax", handle: "baymax", avatar_url: "/images/profile.png" },
-    { id: "usr_2", display_name: "Patrik Fehér", handle: "patrik", avatar_url: "/images/profile.png" },
+    { id: "usr_2", display_name: "Patrik FehÃ©r", handle: "patrik", avatar_url: "/images/profile.png" },
     { id: "usr_3", display_name: "Fall Out Boy", handle: "fall-out-boy", avatar_url: "/images/profile.png" },
     { id: "usr_4", display_name: "Menna Hesham", handle: "menna", avatar_url: "/images/profile.png" },
 ];
@@ -577,22 +577,47 @@ export const messageService = {
         };
     },
 
-    async getMockAttachResources(): Promise<AttachResource[]> {
-        return [
-            {
-                type: "TRACK",
-                id: "trk_mock_1",
-                title: "Panic! At The Disco - House Of Memories",
-                permalink: "https://iqa3.tech/user-582410143/panic-at-the-disco-house-of-memories",
-                coverArtUrl: "/images/track-placeholder.png",
-            },
-            {
-                type: "PLAYLIST",
-                id: "pl_mock_1",
-                title: "Testing",
-                permalink: "https://iqa3.tech/maryamsol37/sets/testing",
-                coverArtUrl: "/images/track-placeholder.png",
-            },
-        ];
+    async getAttachResources(userId: string, handle: string): Promise<AttachResource[]> {
+        const [tracksRes, playlistsRes] = await Promise.all([
+            api.get<{
+                tracks: Array<{
+                    trackId: string;
+                    title: string;
+                    slug: string;
+                    coverArtUrl?: string | null;
+                    artist: { handle?: string | null };
+                }>;
+            }>(`/users/${userId}/tracks?page=1&limit=50`),
+            api.get<{
+                playlists: Array<{
+                    playlistId: string;
+                    title: string;
+                    slug: string;
+                    coverArtUrl?: string | null;
+                }>;
+            }>(`/playlists/me?page=1&limit=50`),
+        ]);
+
+        const tracks: AttachResource[] = (tracksRes.data.tracks ?? []).map((t) => ({
+            type: "TRACK" as const,
+            id: t.trackId,
+            title: t.title,
+            permalink: t.artist?.handle && t.slug
+                ? `/${t.artist.handle}/${t.slug}`
+                : `/tracks/${t.trackId}`,
+            coverArtUrl: t.coverArtUrl ?? null,
+        }));
+
+        const playlists: AttachResource[] = (playlistsRes.data.playlists ?? []).map((p) => ({
+            type: "PLAYLIST" as const,
+            id: p.playlistId,
+            title: p.title,
+            permalink: handle && p.slug
+                ? `/${handle}/sets/${p.slug}`
+                : `/playlists/${p.playlistId}`,
+            coverArtUrl: p.coverArtUrl ?? null,
+        }));
+
+        return [...tracks, ...playlists];
     },
 };

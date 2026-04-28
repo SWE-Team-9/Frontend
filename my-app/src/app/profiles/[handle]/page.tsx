@@ -72,7 +72,7 @@ export default function ProfilePage({
   const [likesPage, setLikesPage] = useState(1);
   const LIKES_LIMIT = 10;
   const [tracksPage, setTracksPage] = useState(1);
-const TRACKS_LIMIT = 10;
+  const TRACKS_LIMIT = 10;
   // Clear stale data immediately the moment the handle changes
   // 1. Reset data when handle changes
   useEffect(() => {
@@ -183,7 +183,6 @@ const TRACKS_LIMIT = 10;
     [setProfileData],
   );
   
-  <MyPlaylistsSection />
 
   // ─── DETAILS VIEW ─────────────────────────────────────────────────────────
   const renderDetailsPage = () => (
@@ -472,7 +471,7 @@ const TRACKS_LIMIT = 10;
       return (
         <div className="flex-1 text-center py-20 border-r border-zinc-900/50 pr-12 flex flex-col items-center justify-center">
           <p className="text-zinc-500 text-xl font-bold">
-            You haven&apos;t created any playlists.
+            <MyPlaylistsSection />
           </p>
         </div>
       );
@@ -751,7 +750,10 @@ const TRACKS_LIMIT = 10;
                             <Image
                               src={u.avatar_url || u.avatarUrl || ""}
                               alt={u.display_name || u.displayName || ""}
+                              width={40}
+                              height={40}
                               className="w-full h-full object-cover"
+                              unoptimized
                             />
                           ) : (
                             <span className="w-full h-full flex items-center justify-center text-xs font-bold text-zinc-400 uppercase">
