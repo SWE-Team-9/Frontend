@@ -13,6 +13,7 @@ import {
 
 
 
+
 interface AdminState {
   currentUser: AdminUser | null;
 
@@ -92,7 +93,7 @@ export const useAdminStore = create<AdminState>()(
                 is_verified: true,
                 created_at: new Date().toISOString(),
                 avatar_url: null,
-                account_type: "PRO",
+                account_type: 'PRO',
                 track_count: 0,
                 report_count: 0,
                 last_login_at: new Date().toISOString()
