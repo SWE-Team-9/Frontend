@@ -24,7 +24,7 @@ import { TrackData } from "@/src/types/interactions";
 import { getUserLikes } from "@/src/services/likeService";
 import SharePopup from "@/src/components/share/SharePopup";
 import { buildUserPermalink } from "@/src/lib/permalinks";
-import { MyPlaylistsSection } from "@/src/components/profile/MyPlaylistsSection";
+import {MyPlaylistsSection} from "@/src/components/profile/MyPlaylistsSection";
 
 type FollowUserShape = {
   id: string;
@@ -182,8 +182,7 @@ export default function ProfilePage({
     },
     [setProfileData],
   );
-
-  <MyPlaylistsSection />
+  
 
   // ─── DETAILS VIEW ─────────────────────────────────────────────────────────
   const renderDetailsPage = () => (
@@ -217,8 +216,8 @@ export default function ProfilePage({
                 setSearchQuery("");
               }}
               className={`pb-2 cursor-pointer border-b-2 transition-all ${detailTab === t
-                ? "text-white border-white"
-                : "border-transparent hover:text-zinc-200"
+                  ? "text-white border-white"
+                  : "border-transparent hover:text-zinc-200"
                 }`}
             >
               {t}
@@ -284,8 +283,8 @@ export default function ProfilePage({
                         })
                       }
                       className={`px-4 py-1.5 rounded text-[10px] font-bold uppercase transition-all ${isFollowing
-                        ? "bg-zinc-800 text-zinc-400 border border-zinc-700"
-                        : "bg-white text-black hover:bg-zinc-200"
+                          ? "bg-zinc-800 text-zinc-400 border border-zinc-700"
+                          : "bg-white text-black hover:bg-zinc-200"
                         }`}
                     >
                       {isFollowing ? "Following" : "Follow"}
@@ -339,7 +338,7 @@ export default function ProfilePage({
             </p>
           </div>
         ))}
-      {/* ── LIKES GRID DISPLAY & PAGINATION ── */}
+{/* ── LIKES GRID DISPLAY & PAGINATION ── */}
       {/* This section renders the liked tracks and their specific pagination controls */}
       {detailTab === "Likes" && (
         profileLikes.length === 0 ? (
@@ -349,8 +348,8 @@ export default function ProfilePage({
         ) : (
           <div className="flex flex-col items-center w-full">
             {/* Grid layout for displaying Track Cards */}
-            <div className="grid grid-cols-1 gap-6 w-full max-w-5xl">
-              {profileLikes.map((track) => (
+<div className="grid grid-cols-1 gap-6 w-full max-w-5xl">
+                {profileLikes.map((track) => (
                 <TrackCard
                   key={track.id}
                   track={{
@@ -359,7 +358,7 @@ export default function ProfilePage({
                     // artistName: track.artistName,
                     // coverArt: track.coverArt,
                     likesCount: track.likesCount,
-                    liked: true
+                    liked: true 
                   }}
                   isOwner={isOwner}
                 />
@@ -472,7 +471,7 @@ export default function ProfilePage({
       return (
         <div className="flex-1 text-center py-20 border-r border-zinc-900/50 pr-12 flex flex-col items-center justify-center">
           <p className="text-zinc-500 text-xl font-bold">
-            You haven&apos;t created any playlists.
+            <MyPlaylistsSection />
           </p>
         </div>
       );
@@ -570,8 +569,8 @@ export default function ProfilePage({
                       key={tab}
                       onClick={() => setActiveTab(tab)}
                       className={`cursor-pointer transition-colors h-full flex items-center border-b-2 ${activeTab === tab
-                        ? "text-white border-white"
-                        : "border-transparent hover:text-white"
+                          ? "text-white border-white"
+                          : "border-transparent hover:text-white"
                         }`}
                     >
                       {tab}
@@ -751,7 +750,10 @@ export default function ProfilePage({
                             <Image
                               src={u.avatar_url || u.avatarUrl || ""}
                               alt={u.display_name || u.displayName || ""}
+                              width={40}
+                              height={40}
                               className="w-full h-full object-cover"
+                              unoptimized
                             />
                           ) : (
                             <span className="w-full h-full flex items-center justify-center text-xs font-bold text-zinc-400 uppercase">
