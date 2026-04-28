@@ -30,7 +30,14 @@ export function usePlaylists() {
   }, []);
 
   useEffect(() => {
-    fetchPlaylists();
+    let cancelled = false;
+    (async () => {
+      if (cancelled) return;
+      await fetchPlaylists();
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [fetchPlaylists]);
 
   const createPlaylist = useCallback(

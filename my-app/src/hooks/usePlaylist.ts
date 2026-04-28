@@ -25,7 +25,14 @@ export function usePlaylist(playlistId: string) {
   }, [playlistId]);
 
   useEffect(() => {
-    fetchPlaylist();
+    let cancelled = false;
+    (async () => {
+      if (cancelled) return;
+      await fetchPlaylist();
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [fetchPlaylist]);
 
   const updatePlaylist = useCallback(

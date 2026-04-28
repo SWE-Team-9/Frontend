@@ -19,36 +19,37 @@ export default function NewMessageModal() {
     const [following, setFollowing] = useState<FollowUser[]>([]);
     const [query, setQuery] = useState("");
     const [selectedUser, setSelectedUser] = useState<FollowUser | null>(null);
-    const [isFollowingLoading, setIsFollowingLoading] = useState(true);
+    const [isFollowingLoading, setIsFollowingLoading] = useState<boolean>(
+        !!useAuthStore.getState().user?.id
+    );
     const [followingError, setFollowingError] = useState<string | null>(null);
 
 
     useEffect(() => {
-        if (!userId) {
-            setIsFollowingLoading(false);
-            return;
-        }
+        if (!userId) return;
 
-        const currentUserId = userId;
         let isMounted = true;
 
-        async function loadFollowing() {
+        (async () => {
+            setIsFollowingLoading(true);
+
             try {
-                const res = await getFollowing(currentUserId, 1, 50);
+                const res = await getFollowing(userId, 1, 50);
+
                 if (!isMounted) return;
 
                 setFollowing(res.following ?? []);
                 setFollowingError(null);
             } catch {
-                if (!isMounted) return;
-                setFollowingError("Could not load the users you follow.");
+                if (isMounted) {
+                    setFollowingError("Could not load the users you follow.");
+                }
             } finally {
-                if (!isMounted) return;
-                setIsFollowingLoading(false);
+                if (isMounted) {
+                    setIsFollowingLoading(false);
+                }
             }
-        }
-
-        loadFollowing();
+        })();
 
         return () => {
             isMounted = false;

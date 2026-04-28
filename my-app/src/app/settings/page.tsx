@@ -292,24 +292,42 @@ function SessionsSection() {
     msg: string;
   } | null>(null);
 
-  // Load sessions from the backend
-  const fetchSessions = useCallback(async () => {
-    try {
-      setFetchError(null);
-      setLoadingFetch(true);
-      const data = await getSessions();
-      // Backend returns { sessions: [...] }
-      setSessions(Array.isArray(data) ? data : (data?.sessions ?? []));
-    } catch {
-      setFetchError("Could not load sessions. Please try again.");
-    } finally {
-      setLoadingFetch(false);
-    }
+  const [reloadKey, setReloadKey] = useState(0);
+
+  // Trigger sessions reload without calling setState directly inside the effect body
+  const refreshSessions = useCallback(() => {
+    setReloadKey((k) => k + 1);
   }, []);
 
   useEffect(() => {
-    fetchSessions();
-  }, [fetchSessions]);
+    let cancelled = false;
+
+    (async () => {
+      try {
+        setFetchError(null);
+        setLoadingFetch(true);
+
+        const data = await getSessions();
+
+        if (cancelled) return;
+
+        // Backend returns { sessions: [...] }
+        setSessions(Array.isArray(data) ? data : (data?.sessions ?? []));
+      } catch {
+        if (!cancelled) {
+          setFetchError("Could not load sessions. Please try again.");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingFetch(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [reloadKey]);
 
   // Revoke a DIFFERENT session (not the one you are using).
   // After revoking, the other browser/tab will be redirected to the
@@ -378,7 +396,7 @@ function SessionsSection() {
           Revoke any session you don&apos;t recognise.
         </p>
         <button
-          onClick={fetchSessions}
+          onClick={refreshSessions}
           disabled={loadingFetch}
           className="shrink-0 ml-4 text-xs text-zinc-400 hover:text-white border border-zinc-700 hover:border-zinc-500 px-3 py-1.5 rounded transition-colors disabled:opacity-50"
         >
@@ -642,11 +660,10 @@ function SettingsContent() {
           <button
             key={tab.id}
             onClick={() => handleTabChange(tab.id)}
-            className={`pb-3 text-sm font-bold uppercase tracking-wider transition-colors ${
-              activeTab === tab.id
+            className={`pb-3 text-sm font-bold uppercase tracking-wider transition-colors ${activeTab === tab.id
                 ? "text-[#ff5500] border-b-2 border-[#ff5500]"
                 : "text-zinc-400 hover:text-white"
-            }`}
+              }`}
           >
             {tab.label}
           </button>

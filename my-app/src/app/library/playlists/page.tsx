@@ -92,6 +92,7 @@ export default function LibraryPlaylistsPage() {
 
       {/* MODAL  */}
       <CreatePlaylistModal
+        key={isCreateOpen ? "open" : "closed"}
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
         onSubmit={createPlaylist}

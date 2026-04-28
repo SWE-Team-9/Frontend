@@ -133,9 +133,7 @@ const NavBar: React.FC<NavBarProps> = ({
   const syncLikes = useLikeStore((state) => state.syncWithServer);
   const syncReposts = useRepostStore((state) => state.syncWithServer);
   // Use the user's avatar if available, otherwise a default silhouette
-  const [profileImageSrc, setProfileImageSrc] = useState(
-    user?.avatarUrl || "/images/profile.png",
-  );
+  const profileImageSrc = user?.avatarUrl || "/images/profile.png";
   // Display name fallback: use handle or the part before "@" in email
   const displayLabel = user
     ? user.displayName || user.handle || user.email.split("@")[0]
@@ -160,16 +158,12 @@ const NavBar: React.FC<NavBarProps> = ({
   }, [user?.id, syncLikes, syncReposts]);
   const router = useRouter();
 
-  useEffect(() => {
-    setProfileImageSrc(user?.avatarUrl || "/images/profile.png");
-  }, [user]);
-
   // --- FETCH SUBSCRIPTION ON MOUNT (only when authenticated) ---
-useEffect(() => {
-  if (user) {
-    fetchSubscription();
-  }
-}, [user, fetchSubscription]);
+  useEffect(() => {
+    if (user) {
+      fetchSubscription();
+    }
+  }, [user, fetchSubscription]);
 
   // Sign-out handler — clears cookies on the backend, clears store
   const handleLogout = useCallback(async () => {
@@ -199,7 +193,7 @@ useEffect(() => {
 
       return item; // Return the rest of the items as they are
     });
-  }, [profileMenu, user?.handle]);
+  }, [profileMenu, user]);
 
   // Inject Logout handler
   const moreMenuWithLogout = useMemo(() => {

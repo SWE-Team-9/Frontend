@@ -25,27 +25,17 @@ export function AddTrackModal({ isOpen, onClose, onAdd }: Props) {
   const [addingId, setAddingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!isOpen) {
-      setQuery("");
-      setResults([]);
-      setError(null);
-      setAddingId(null);
-    }
-  }, [isOpen]);
 
   useEffect(() => {
-    if (!query.trim()) {
-      setResults([]);
-      return;
-    }
+    const trimmed = query.trim();
+    if (!trimmed) return; // no state changes for empty query
 
     const timer = setTimeout(async () => {
       setIsSearching(true);
       setError(null);
       try {
         const res = await fetch(
-          `${API_BASE_URL}/api/v1/tracks/search?q=${encodeURIComponent(query)}`,
+          `${API_BASE_URL}/api/v1/tracks/search?q=${encodeURIComponent(trimmed)}`,
           { credentials: "include" }
         );
         if (!res.ok) throw new Error(`Search failed (${res.status})`);
@@ -87,6 +77,8 @@ export function AddTrackModal({ isOpen, onClose, onAdd }: Props) {
       setAddingId(null);
     }
   };
+
+  const visibleResults = query.trim() ? results : [];
 
   if (!isOpen) return null;
 
@@ -131,7 +123,7 @@ export function AddTrackModal({ isOpen, onClose, onAdd }: Props) {
             <p className="text-zinc-500 text-xs text-center py-8">Searching...</p>
           )}
 
-          {!isSearching && query && results.length === 0 && !error && (
+          {!isSearching && query.trim() && visibleResults.length === 0 && !error && (
             <p className="text-zinc-500 text-xs text-center py-8">No results</p>
           )}
 
@@ -142,7 +134,7 @@ export function AddTrackModal({ isOpen, onClose, onAdd }: Props) {
           )}
 
           <div className="divide-y divide-zinc-900">
-            {results.map((track) => (
+            {visibleResults.map((track) => (
               <div
                 key={track.trackId}
                 className="flex items-center gap-3 px-6 py-3 hover:bg-zinc-800/50"

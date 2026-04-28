@@ -161,7 +161,7 @@ export default function PlaylistDetailPage({
           tracks={playlist.tracks ?? []}
           canEdit
 
-       
+
 
           onRemove={async (trackId) => {
             try {
@@ -171,7 +171,7 @@ export default function PlaylistDetailPage({
             }
           }}
 
-         
+
           onReorder={async (ids) => {
             try {
               await reorderTracks(ids);
@@ -184,6 +184,7 @@ export default function PlaylistDetailPage({
 
       {/* Modals */}
       <AddTrackModal
+        key={addOpen ? "open" : "closed"}
         isOpen={addOpen}
         onClose={() => setAddOpen(false)}
         onAdd={addTrack}

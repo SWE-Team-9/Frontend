@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { FaTimes } from "react-icons/fa";
 import { CreatePlaylistInput, Playlist } from "@/src/types/playlist";
 import { toast } from "sonner";
@@ -18,15 +18,6 @@ export function CreatePlaylistModal({ isOpen, onClose, onSubmit }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!isOpen) {
-      setTitle("");
-      setDescription("");
-      setVisibility("PRIVATE");
-      setError(null);
-      setIsSubmitting(false);
-    }
-  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -42,16 +33,16 @@ export function CreatePlaylistModal({ isOpen, onClose, onSubmit }: Props) {
 
     try {
       const newPlaylist = await onSubmit({
-      title: title.trim(),
-     description: description.trim() || undefined,
-     visibility,
-     });
+        title: title.trim(),
+        description: description.trim() || undefined,
+        visibility,
+      });
 
-     toast.success(
-     `"${newPlaylist.title}" was created`
-       
-    );
-    onClose();
+      toast.success(
+        `"${newPlaylist.title}" was created`
+
+      );
+      onClose();
     } catch {
       // Backend isn't ready yet — friendly message instead of "Load failed"
       setError("Could not save right now. Please try again later.");

@@ -29,9 +29,9 @@ type ProfileDraft = {
 
 export const useProfileController = (handle?: string) => {
   const store = useProfileStore();
-  
+
   const [userId, setUserId] = useState<string | null>(null);
-  const currentUserId = useAuthStore((state) => state.user?.id);  
+  const currentUserId = useAuthStore((state) => state.user?.id);
   const isOwner = userId === currentUserId;
   const [activeTab, setActiveTab] = useState("Tracks");
   const [viewState, setViewState] = useState("profile");
@@ -130,7 +130,6 @@ export const useProfileController = (handle?: string) => {
         isLoaded: true,
       });
 
-      // Sync avatar to auth store so the navbar always shows the correct photo
       if (!handle) {
         const authUser = useAuthStore.getState().user;
         if (authUser) {
@@ -154,62 +153,71 @@ export const useProfileController = (handle?: string) => {
       hasRequestedProfileRef.current = true;
       return;
     }
-    setIsLoading(true); 
-    setUserId(null);
-    store.resetProfile();
-    hasRequestedProfileRef.current = false;
-    loadProfile();
+
+    let cancelled = false;
+    (async () => {
+      if (cancelled) return;
+      setIsLoading(true);
+      setUserId(null);
+      store.resetProfile();
+      hasRequestedProfileRef.current = false;
+      await loadProfile();
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [handle]);
 
-const handleSave = async (draft: ProfileDraft) => {
-  const nextProfile = {
-    displayName: draft.displayName,
-    bio: draft.bio,
-    location: draft.location,
-    website: draft.website,
-    isPrivate: draft.isPrivate,
-    favoriteGenres: draft.favoriteGenres,
-    accountType: draft.accountType,
-    links: draft.links ?? [],
+  const handleSave = async (draft: ProfileDraft) => {
+    const nextProfile = {
+      displayName: draft.displayName,
+      bio: draft.bio,
+      location: draft.location,
+      website: draft.website,
+      isPrivate: draft.isPrivate,
+      favoriteGenres: draft.favoriteGenres,
+      accountType: draft.accountType,
+      links: draft.links ?? [],
+    };
+
+    if (!nextProfile.displayName.trim()) {
+      setError("Display name is required!");
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      setError("");
+
+      await updateMyProfile({
+        display_name: nextProfile.displayName,
+        bio: nextProfile.bio || undefined,
+        location: nextProfile.location || undefined,
+        website: nextProfile.website || undefined,
+        is_private: nextProfile.isPrivate,
+        favorite_genres: nextProfile.favoriteGenres.filter((g) => g !== "None"),
+        account_type: nextProfile.accountType,
+      });
+
+      const validLinks = nextProfile.links
+        .filter((l) => l.url.trim() !== "")
+        .map((l) => ({ platform: l.platform || "website", url: l.url }));
+
+      await updateMyLinks(validLinks);
+
+      store.setProfileData(nextProfile);
+
+      setIsEditOpen(false);
+      setShowSuccessToast(true);
+      setTimeout(() => setShowSuccessToast(false), 3000);
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } } };
+      setError(axiosErr.response?.data?.message || "Failed to save profile.");
+    } finally {
+      setIsSaving(false);
+    }
   };
-
-  if (!nextProfile.displayName.trim()) {
-    setError("Display name is required!");
-    return;
-  }
-
-  try {
-    setIsSaving(true);
-    setError("");
-
-    await updateMyProfile({
-      display_name: nextProfile.displayName,
-      bio: nextProfile.bio || undefined,
-      location: nextProfile.location || undefined,
-      website: nextProfile.website || undefined,
-      is_private: nextProfile.isPrivate,
-      favorite_genres: nextProfile.favoriteGenres.filter((g) => g !== "None"),
-      account_type: nextProfile.accountType,
-    });
-
-    const validLinks = nextProfile.links
-      .filter((l) => l.url.trim() !== "")
-      .map((l) => ({ platform: l.platform || "website", url: l.url }));
-
-    await updateMyLinks(validLinks);
-
-    store.setProfileData(nextProfile);
-
-    setIsEditOpen(false);
-    setShowSuccessToast(true);
-    setTimeout(() => setShowSuccessToast(false), 3000);
-  } catch (err: unknown) {
-    const axiosErr = err as { response?: { data?: { message?: string } } };
-    setError(axiosErr.response?.data?.message || "Failed to save profile.");
-  } finally {
-    setIsSaving(false);
-  }
-};
 
   const handleAvatarUpload = async (file: File): Promise<string | undefined> => {
     if (isAvatarUploading) return store.avatarUrl || undefined;
@@ -224,7 +232,6 @@ const handleSave = async (draft: ProfileDraft) => {
       if (uploadedUrl) {
         store.setProfileData({ avatarUrl: uploadedUrl });
 
-        // Keep navbar in sync after avatar upload
         const authUser = useAuthStore.getState().user;
         if (authUser) {
           useAuthStore.getState().setUser({ ...authUser, avatarUrl: uploadedUrl });
