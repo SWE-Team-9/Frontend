@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { LuCheckCircle, LuLoader, LuArrowRight } from "react-icons/lu";
+import { LuCircleCheck, LuLoader, LuArrowRight } from "react-icons/lu";
 import { useSubscriptionStore } from "@/src/store/useSubscriptionStore";
 
 // ─── Success content (needs useSearchParams, must be wrapped in Suspense) ─────
@@ -53,7 +53,7 @@ function SuccessContent() {
         <div className="flex flex-col items-center gap-6 max-w-md">
           {/* Icon */}
           <div className="w-20 h-20 rounded-full bg-green-50 flex items-center justify-center">
-            <LuCheckCircle size={48} className="text-green-500" />
+            <LuCircleCheck size={48} className="text-green-500" />
           </div>
 
           {/* Heading */}

@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { LuXCircle, LuArrowLeft, LuCreditCard } from "react-icons/lu";
+import { LuCircleX, LuArrowLeft, LuCreditCard } from "react-icons/lu";
 import { Suspense } from "react";
 
 // ─── Cancel content ───────────────────────────────────────────────────────────
@@ -16,7 +16,7 @@ function CancelContent() {
       <div className="flex flex-col items-center gap-6 max-w-md">
         {/* Icon */}
         <div className="w-20 h-20 rounded-full bg-zinc-100 flex items-center justify-center">
-          <LuXCircle size={48} className="text-zinc-400" />
+          <LuCircleX size={48} className="text-zinc-400" />
         </div>
 
         {/* Heading */}
