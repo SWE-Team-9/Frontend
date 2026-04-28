@@ -3,13 +3,13 @@ import { NextRequest, NextResponse } from "next/server";
 /**
  * GET /api/download?url=<encodedUrl>
  *
- * Server-side proxy that fetches an external audio file (e.g. a short-lived
- * S3 presigned URL) and returns it as an inline audio stream.
+ * NOTE: This route is only reachable when accessed directly from the Next.js
+ * server origin. If the deployment reverse-proxy routes all /api/* requests to
+ * the NestJS backend, this route will not be reachable and the offline-cache
+ * flow fetches S3 presigned URLs directly instead (CORS is already allowed on
+ * the S3 bucket for the app domain).
  *
- * This is used by the client-side offline cache: the browser fetches the
- * audio through this proxy (avoiding S3 CORS issues), stores the resulting
- * Blob in IndexedDB, and plays it back when offline. No file is saved to
- * the device file system.
+ * Kept as a fallback inline-streaming proxy for local development.
  */
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
