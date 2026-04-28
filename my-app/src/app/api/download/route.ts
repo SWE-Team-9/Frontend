@@ -1,26 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 
 /**
- * GET /api/download?url=<encodedUrl>&filename=<name>
+ * GET /api/download?url=<encodedUrl>
  *
- * Server-side proxy that fetches an external audio file and returns it
- * with Content-Disposition: attachment so the browser downloads it
- * instead of opening the media player.
+ * Server-side proxy that fetches an external audio file (e.g. a short-lived
+ * S3 presigned URL) and returns it as an inline audio stream.
  *
- * This bypasses CORS restrictions that block direct browser fetches
- * to external CDN URLs.
+ * This is used by the client-side offline cache: the browser fetches the
+ * audio through this proxy (avoiding S3 CORS issues), stores the resulting
+ * Blob in IndexedDB, and plays it back when offline. No file is saved to
+ * the device file system.
  */
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const url = searchParams.get("url");
-  const filename = searchParams.get("filename") ?? "track.mp3";
 
-  // Validate that a URL was provided
   if (!url) {
-    return NextResponse.json(
-      { error: "Missing url parameter" },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "Missing url parameter" }, { status: 400 });
   }
 
   // Only allow http/https URLs to prevent SSRF attacks
@@ -35,11 +31,9 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Fetch the file on the server — no CORS restrictions here
     const upstream = await fetch(parsedUrl.toString(), {
       headers: {
-        // Some CDNs require a User-Agent header
-        "User-Agent": "Mozilla/5.0 (compatible; SoundCloudClone/1.0)",
+        "User-Agent": "Mozilla/5.0 (compatible; IQA3/1.0)",
       },
     });
 
@@ -50,28 +44,21 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const contentType =
-      upstream.headers.get("content-type") ?? "audio/mpeg";
-
+    const contentType = upstream.headers.get("content-type") ?? "audio/mpeg";
     const arrayBuffer = await upstream.arrayBuffer();
 
-    // Return the file with download headers
     return new NextResponse(arrayBuffer, {
       status: 200,
       headers: {
         "Content-Type": contentType,
-        // attachment → forces browser to download instead of play
-        "Content-Disposition": `attachment; filename="${filename}.mp3"`,
+        // inline → browser treats it as audio, not a file download
+        "Content-Disposition": "inline",
         "Content-Length": String(arrayBuffer.byteLength),
-        // Allow the browser to cache the file for 1 hour
         "Cache-Control": "private, max-age=3600",
       },
     });
   } catch (err) {
-    console.error("[Download proxy] Error:", err);
-    return NextResponse.json(
-      { error: "Failed to fetch file" },
-      { status: 500 },
-    );
+    console.error("[Audio proxy] Error:", err);
+    return NextResponse.json({ error: "Failed to fetch file" }, { status: 500 });
   }
 }

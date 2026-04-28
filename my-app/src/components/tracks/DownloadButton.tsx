@@ -1,13 +1,18 @@
 "use client";
 
-import React, { useState } from "react";
-import { LuDownload, LuLock, LuLoader } from "react-icons/lu";
+import React, { useState, useEffect } from "react";
+import { LuDownload, LuLock, LuLoader, LuCheck } from "react-icons/lu";
 import { useSubscriptionStore } from "@/src/store/useSubscriptionStore";
 import {
   getOfflineTrack,
   DownloadForbiddenError,
 } from "@/src/services/subscriptionService";
-import  Link  from "next/link";
+import {
+  saveOfflineTrack,
+  isTrackCached,
+  removeOfflineTrack,
+} from "@/src/services/offlineAudioCache";
+import Link from "next/link";
 
 interface DownloadButtonProps {
   trackId: string;
@@ -17,7 +22,7 @@ interface DownloadButtonProps {
   size?: "compact" | "full";
 }
 
-type DownloadState = "idle" | "loading" | "forbidden" | "error";
+type DownloadState = "idle" | "loading" | "cached" | "forbidden" | "error";
 
 export function DownloadButton({
   trackId,
@@ -33,15 +38,25 @@ export function DownloadButton({
   const isPremium =
     sub?.subscriptionType === "PRO" || sub?.subscriptionType === "GO+";
 
-  // Track owner disabled downloads → render nothing
-  //   if (!downloadable) return null;
+  // Check on mount whether this track is already cached offline
+  useEffect(() => {
+    if (!isPremium) return;
+    isTrackCached(trackId)
+      .then((cached) => { if (cached) setDlState("cached"); })
+      .catch(() => undefined);
+  }, [trackId, isPremium]);
 
-  const handleDownload = async (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
 
-    // ── CLIENT-SIDE GUARD ──────────────────────────────────────────
-    // Prevents even calling the API if we already know the user is Free.
-    // The real guard is on the server (403), this just saves a round-trip.
+    // ── Toggle off: already cached → remove ──────────────────────
+    if (dlState === "cached") {
+      await removeOfflineTrack(trackId).catch(() => undefined);
+      setDlState("idle");
+      return;
+    }
+
+    // ── CLIENT-SIDE GUARD ─────────────────────────────────────────
     if (!isPremium) {
       setDlState("forbidden");
       setShowUpgradeHint(true);
@@ -51,49 +66,38 @@ export function DownloadButton({
     setDlState("loading");
     setShowUpgradeHint(false);
 
-try {
-    // Call the subscription service to fetch the secure download URL
-    const result = await getOfflineTrack(trackId);
+    try {
+      // 1. Ask backend for a presigned S3 URL (no file write happens here)
+      const result = await getOfflineTrack(trackId);
 
-    // Create a virtual anchor element to programmatically trigger the download
-    const link = document.createElement("a");
-    
-    // Assign the retrieved secure URL to the anchor's href
-    link.href = result.downloadUrl;
-    
-    // Force the browser to download the file instead of playing it in-browser
-    link.setAttribute("download", `${result.title || trackTitle}.mp3`);
-    
-    // Open in a new tab/window to ensure the current Soundcloud page remains uninterrupted
-    link.target = "_blank"; 
-    
-    // Hide the virtual element from the UI
-    link.style.display = "none";
-    document.body.appendChild(link);
-    
-    // Simulate a user click to start the download process
-    link.click();
-    
-    // Cleanup: Remove the virtual element from the DOM once the action is triggered
-    document.body.removeChild(link);
+      // 2. Fetch the audio through our CORS proxy and store the Blob in IndexedDB.
+      //    The audio never touches the device file system — it lives in the
+      //    browser's private app storage, enabling offline playback only.
+      const proxyUrl = `/api/download?url=${encodeURIComponent(result.downloadUrl)}`;
+      await saveOfflineTrack(
+        {
+          trackId: result.trackId,
+          title: result.title,
+          artist: result.artist ?? null,
+          coverArtUrl: null,
+          durationMs: null,
+          expiresInSeconds: 900, // match backend default TTL
+        },
+        proxyUrl,
+      );
 
-    // Revert button state back to 'idle' after a short delay for smooth UX
-    setTimeout(() => setDlState("idle"), 1000);
+      setDlState("cached");
+    } catch (err) {
+      console.error("Offline save error:", err);
 
-  } catch (err) {
-    // Log the error for debugging purposes
-    console.error("Download Error:", err);
-
-    if (err instanceof DownloadForbiddenError) {
-      // Backend confirmed this user cannot download (e.g. plan expired mid-session)
-      setDlState("forbidden");
-      setShowUpgradeHint(true);
-    } else {
-      setDlState("error");
-      // Reset back to 'idle' after 3 seconds so the user can try again
-      setTimeout(() => setDlState("idle"), 3000);
+      if (err instanceof DownloadForbiddenError) {
+        setDlState("forbidden");
+        setShowUpgradeHint(true);
+      } else {
+        setDlState("error");
+        setTimeout(() => setDlState("idle"), 3000);
+      }
     }
-  }
   };
 
   // ── Styles ─────────────────────────────────────────────────────
@@ -101,6 +105,7 @@ try {
   const isForbidden = dlState === "forbidden";
   const isLoading = dlState === "loading";
   const isError = dlState === "error";
+  const isCached = dlState === "cached";
 
   const buttonClass = `
     group flex items-center gap-1.5 h-7.5 px-2.5 rounded border
@@ -110,16 +115,19 @@ try {
         ? "border-amber-600/60 bg-amber-950/30 text-amber-400 hover:border-amber-500"
         : isError
           ? "border-red-700 text-red-400"
-          : "border-[#333] bg-transparent text-[#aaa] hover:border-[#555] hover:text-white"
+          : isCached
+            ? "border-green-700/60 bg-green-950/30 text-green-400 hover:border-red-600/60 hover:text-red-400"
+            : "border-[#333] bg-transparent text-[#aaa] hover:border-[#555] hover:text-white"
     }
   `;
 
   return (
     <div className="relative">
       <button
-        onClick={handleDownload}
+        onClick={handleClick}
         disabled={isLoading}
-        aria-label="Download track"
+        aria-label={isCached ? "Remove offline track" : "Save for offline"}
+        title={isCached ? "Saved for offline — click to remove" : "Save for offline listening"}
         className={buttonClass}
       >
         {/* Icon */}
@@ -128,6 +136,8 @@ try {
             <LuLoader size={14} className="animate-spin" />
           ) : isForbidden ? (
             <LuLock size={14} className="text-amber-400" />
+          ) : isCached ? (
+            <LuCheck size={14} className="text-green-400" />
           ) : (
             <LuDownload size={14} />
           )}
@@ -137,12 +147,14 @@ try {
         {!isCompact && (
           <span className="text-[11px] font-medium">
             {isLoading
-              ? "Preparing..."
+              ? "Saving..."
               : isForbidden
                 ? "PRO only"
                 : isError
                   ? "Failed"
-                  : "Download"}
+                  : isCached
+                    ? "Saved ✓"
+                    : "Save offline"}
           </span>
         )}
       </button>
@@ -155,7 +167,7 @@ try {
               🔒 Premium Feature
             </p>
             <p className="text-zinc-400 text-[11px] mb-2 leading-tight">
-              Offline listening is available for Artist Pro members only.
+              Save tracks for offline listening — available for Artist Pro members only.
             </p>
             <Link
               href="/subscriptions"
