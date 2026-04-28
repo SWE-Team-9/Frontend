@@ -1,11 +1,3 @@
-// import type { NextConfig } from "next";
-
-// const nextConfig: NextConfig = {
-//   /* config options here */
-// };
-
-// export default nextConfig;
-
 const BACKEND_URL = "https://dev.iqa3.tech";
 
 const nextConfig = {
@@ -20,7 +12,7 @@ const nextConfig = {
     ];
   },
 
-  // TODO: remove once .env loading is fixed
+  // remove once .env loading is fixed
   env: {
     NEXT_PUBLIC_APP_URL: "http://localhost:3000",
     NEXT_PUBLIC_API_BASE_URL: "/api/v1",

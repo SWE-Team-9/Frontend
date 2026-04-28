@@ -96,7 +96,7 @@ export function NotificationDropdown() {
   }
 
   return (
-    <div className="absolute top-10 right-0 z-50 w-95 rounded-lg border border-neutral-700 bg-[#121212] text-white shadow-2xl">
+    <div className="absolute top-10 right-0 z-50 w-95 rounded-lg border border-neutral-700 bg-[#121212] text-white shadow-2xl overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3">
         <h3 className="font-bold text-2xl">Notifications</h3>
 
@@ -130,12 +130,13 @@ export function NotificationDropdown() {
             const action = getActionText(notification);
 
             if (notification.type === "follow") {
-              const profileSlug = notification.actorHandle;
+              const profileSlug =
+                notification.actorHandle || notification.actorId;
               return (
                 <div
                   key={notification.id}
                   onClick={() => void markAsRead(notification)}
-                  className={`relative flex items-center gap-3 border-b border-neutral-800/70 px-4 py-3 transition hover:bg-neutral-800/40 ${
+                  className={`relative border-b border-neutral-800/70 px-4 py-3 transition hover:bg-neutral-800/40 ${
                     notification.isRead ? "opacity-70" : ""
                   }`}
                 >
@@ -143,63 +144,19 @@ export function NotificationDropdown() {
                     <span className="absolute right-4 top-4 h-2 w-2 rounded-full bg-[#ff5500]" />
                   )}
 
-                  {/* Avatar — clickable to profile */}
-                  <Link
-                    href={`/profiles/${profileSlug}`}
-                    onClick={(e) => e.stopPropagation()}
-                    className="shrink-0"
-                  >
-                    <div className="h-10 w-10 overflow-hidden rounded-full bg-neutral-700">
-                      {notification.actorAvatarUrl ? (
-                        <Image
-                          src={notification.actorAvatarUrl}
-                          alt={actorName}
-                          width={40}
-                          height={40}
-                          className="h-10 w-10 object-cover"
-                          unoptimized
-                        />
-                      ) : (
-                        <Image
-                          src="/images/profile.png"
-                          alt={actorName}
-                          width={40}
-                          height={40}
-                          className="h-10 w-10 object-cover"
-                        />
-                      )}
-                    </div>
-                  </Link>
-
-                  {/* Text — name clickable to profile */}
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm leading-snug">
-                      <Link
-                        href={`/profiles/${profileSlug}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="font-semibold text-white hover:underline"
-                      >
-                        {actorName}
-                      </Link>{" "}
-                      <span className="text-neutral-300">
-                        started following you
-                      </span>
-                    </p>
-                    <div className="mt-1 flex items-center gap-1 text-xs text-neutral-400">
-                      <MdPersonOutline className="h-3.5 w-3.5" />
-                      <span>{getRelativeTime(notification.createdAt)}</span>
-                    </div>
-                  </div>
-
-                  {/* Follow button — no navigation */}
                   <div
                     onClick={(e) => e.stopPropagation()}
-                    className="shrink-0"
+                    className="pr-4 [&_p]:text-left [&_span]:text-left [&>div]:justify-start"
                   >
                     <UserCard
                       compact
                       user={mapFollowNotificationToUserCard(notification)}
                     />
+                  </div>
+
+                  <div className="mt-1 flex items-center gap-1 pl-13 text-xs text-neutral-400">
+                    <MdPersonOutline className="h-3.5 w-3.5" />
+                    <span>{getRelativeTime(notification.createdAt)}</span>
                   </div>
                 </div>
               );
