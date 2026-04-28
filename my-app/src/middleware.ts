@@ -19,6 +19,10 @@ import type { NextRequest } from "next/server";
 const PROTECTED_PREFIXES = ["/discover", "/profile", "/settings"];
 
 export function middleware(request: NextRequest) {
+  // Temporary bypass while backend auth is unavailable
+  return NextResponse.next();
+
+  
   const { pathname } = request.nextUrl;
 
   const isProtected = PROTECTED_PREFIXES.some(
