@@ -32,7 +32,7 @@ export default function ConversationPreview({
   return (
     <button
       onClick={onClick}
-      className={`flex w-full items-center gap-3 rounded px-4 py-3 text-left transition ${
+      className={`flex w-full cursor-pointer items-center gap-3 rounded px-4 py-3 text-left transition ${
         active ? "bg-zinc-800" : "hover:bg-zinc-900"
       }`}
     >

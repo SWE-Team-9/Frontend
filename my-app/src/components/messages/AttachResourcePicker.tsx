@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { messageService } from "@/src/services/messageService";
+import { useAuthStore } from "@/src/store/useAuthStore";
 import type { AttachResource } from "@/src/types/messages";
 
 const FALLBACK = "/images/track-placeholder.png";
@@ -12,17 +13,20 @@ export default function AttachResourcePicker({
 }: {
     onSelect: (resource: AttachResource) => void;
 }) {
+    const user = useAuthStore((s) => s.user);
     const [items, setItems] = useState<AttachResource[]>([]);
     const [query, setQuery] = useState("");
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        if (!user?.id || !user?.handle) return;
+
         let isMounted = true;
 
         async function loadResources() {
             try {
-                const data = await messageService.getMockAttachResources();
+                const data = await messageService.getAttachResources(user!.id, user!.handle!);
                 if (!isMounted) return;
 
                 setItems(data);
@@ -41,7 +45,7 @@ export default function AttachResourcePicker({
         return () => {
             isMounted = false;
         };
-    }, []);
+    }, [user?.id, user?.handle]);
 
     const filtered = items.filter((item) =>
         item.title.toLowerCase().includes(query.toLowerCase()),

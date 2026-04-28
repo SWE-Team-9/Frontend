@@ -161,7 +161,7 @@ export default function ChatWindow() {
                     )}
 
                     {messages.map((message) => {
-                        const isMe = message.senderId === "me";
+                        const isMe = message.senderId === currentUser?.id;
 
                         const avatarSrc = isMe
                             ? currentUser?.avatarUrl || FALLBACK

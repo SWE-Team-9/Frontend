@@ -4,6 +4,7 @@ import {
   connectMessageSocket,
   disconnectMessageSocket,
 } from "@/src/services/messageSocketService";
+import { useAuthStore } from "@/src/store/useAuthStore";
 import type {
   AttachResource,
   ConversationPreview,
@@ -12,6 +13,10 @@ import type {
 } from "@/src/types/messages";
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
+
+// Dedup guards - prevent concurrent in-flight requests for the same resource
+let conversationsFetchInFlight = false;
+let dropdownConversationsFetchInFlight = false;
 
 type SocketNewMessagePayload = {
   type: string;
@@ -66,6 +71,7 @@ interface MessageState {
   hasMore: boolean;
   unreadCount: number;
   isLoading: boolean;
+  isLoadingConversations: boolean;
   isLoadingOlder: boolean;
   isSending: boolean;
   isNewMessageOpen: boolean;
@@ -108,6 +114,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
   hasMore: false,
   unreadCount: 0,
   isLoading: false,
+  isLoadingConversations: true,
   isLoadingOlder: false,
   isSending: false,
   isNewMessageOpen: false,
@@ -115,7 +122,9 @@ export const useMessageStore = create<MessageState>((set, get) => ({
   error: null,
 
   loadConversations: async () => {
-    set({ isLoading: true, error: null });
+    if (conversationsFetchInFlight) return;
+    conversationsFetchInFlight = true;
+    set({ isLoadingConversations: true, error: null });
 
     try {
       const archived = get().conversationView === "archived";
@@ -125,7 +134,8 @@ export const useMessageStore = create<MessageState>((set, get) => ({
     } catch {
       set({ error: "Could not load conversations." });
     } finally {
-      set({ isLoading: false });
+      conversationsFetchInFlight = false;
+      set({ isLoadingConversations: false });
     }
   },
 
@@ -142,11 +152,15 @@ export const useMessageStore = create<MessageState>((set, get) => ({
   },
 
   loadDropdownConversations: async () => {
+    if (dropdownConversationsFetchInFlight) return;
+    dropdownConversationsFetchInFlight = true;
     try {
       const data = await messageService.getConversations(1, 5, false);
       set({ dropdownConversations: data.conversations });
     } catch {
       set({ dropdownConversations: [] });
+    } finally {
+      dropdownConversationsFetchInFlight = false;
     }
   },
 
@@ -456,7 +470,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
         ) ??
         state.selectedConversation;
 
-      const shouldIncrementUnread = !isCurrent && message.senderId !== "me";
+      const shouldIncrementUnread = !isCurrent && message.senderId !== useAuthStore.getState().user?.id;
 
       const updatedConversation = existingConversation
         ? {
