@@ -40,11 +40,7 @@ type User = {
   }
 
   const actions = report.previous_actions_on_target ?? [];
-  let offender: User | null = null;
-
-  
  
-
   return (
     <div className="p-8 max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       {/* Navigation Header */}
