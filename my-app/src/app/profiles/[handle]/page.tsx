@@ -24,7 +24,7 @@ import { TrackData } from "@/src/types/interactions";
 import { getUserLikes } from "@/src/services/likeService";
 import SharePopup from "@/src/components/share/SharePopup";
 import { buildUserPermalink } from "@/src/lib/permalinks";
-import {MyPlaylistsSection} from "@/src/components/profile/MyPlaylistsSection";
+import { MyPlaylistsSection } from "@/src/components/profile/MyPlaylistsSection";
 
 type FollowUserShape = {
   id: string;
@@ -72,7 +72,7 @@ export default function ProfilePage({
   const [likesPage, setLikesPage] = useState(1);
   const LIKES_LIMIT = 10;
   const [tracksPage, setTracksPage] = useState(1);
-const TRACKS_LIMIT = 10;
+  const TRACKS_LIMIT = 10;
   // Clear stale data immediately the moment the handle changes
   // 1. Reset data when handle changes
   useEffect(() => {
@@ -182,7 +182,7 @@ const TRACKS_LIMIT = 10;
     },
     [setProfileData],
   );
-  
+
   <MyPlaylistsSection />
 
   // ─── DETAILS VIEW ─────────────────────────────────────────────────────────
@@ -217,8 +217,8 @@ const TRACKS_LIMIT = 10;
                 setSearchQuery("");
               }}
               className={`pb-2 cursor-pointer border-b-2 transition-all ${detailTab === t
-                  ? "text-white border-white"
-                  : "border-transparent hover:text-zinc-200"
+                ? "text-white border-white"
+                : "border-transparent hover:text-zinc-200"
                 }`}
             >
               {t}
@@ -284,8 +284,8 @@ const TRACKS_LIMIT = 10;
                         })
                       }
                       className={`px-4 py-1.5 rounded text-[10px] font-bold uppercase transition-all ${isFollowing
-                          ? "bg-zinc-800 text-zinc-400 border border-zinc-700"
-                          : "bg-white text-black hover:bg-zinc-200"
+                        ? "bg-zinc-800 text-zinc-400 border border-zinc-700"
+                        : "bg-white text-black hover:bg-zinc-200"
                         }`}
                     >
                       {isFollowing ? "Following" : "Follow"}
@@ -339,7 +339,7 @@ const TRACKS_LIMIT = 10;
             </p>
           </div>
         ))}
-{/* ── LIKES GRID DISPLAY & PAGINATION ── */}
+      {/* ── LIKES GRID DISPLAY & PAGINATION ── */}
       {/* This section renders the liked tracks and their specific pagination controls */}
       {detailTab === "Likes" && (
         profileLikes.length === 0 ? (
@@ -349,8 +349,8 @@ const TRACKS_LIMIT = 10;
         ) : (
           <div className="flex flex-col items-center w-full">
             {/* Grid layout for displaying Track Cards */}
-<div className="grid grid-cols-1 gap-6 w-full max-w-5xl">
-                {profileLikes.map((track) => (
+            <div className="grid grid-cols-1 gap-6 w-full max-w-5xl">
+              {profileLikes.map((track) => (
                 <TrackCard
                   key={track.id}
                   track={{
@@ -359,7 +359,7 @@ const TRACKS_LIMIT = 10;
                     // artistName: track.artistName,
                     // coverArt: track.coverArt,
                     likesCount: track.likesCount,
-                    liked: true 
+                    liked: true
                   }}
                   isOwner={isOwner}
                 />
@@ -570,8 +570,8 @@ const TRACKS_LIMIT = 10;
                       key={tab}
                       onClick={() => setActiveTab(tab)}
                       className={`cursor-pointer transition-colors h-full flex items-center border-b-2 ${activeTab === tab
-                          ? "text-white border-white"
-                          : "border-transparent hover:text-white"
+                        ? "text-white border-white"
+                        : "border-transparent hover:text-white"
                         }`}
                     >
                       {tab}
