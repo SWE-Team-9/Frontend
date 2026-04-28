@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useProfileStore } from "@/src/store/useProfileStore";
 import { useAuthStore } from "@/src/store/useAuthStore";
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -30,17 +31,12 @@ export const useProfileController = (handle?: string) => {
   const store = useProfileStore();
 
   const [userId, setUserId] = useState<string | null>(null);
-  const currentUserId = useAuthStore((state) => state.user?.id);  
+  const currentUserId = useAuthStore((state) => state.user?.id);
   const isOwner = userId === currentUserId;
-
   const [activeTab, setActiveTab] = useState("Tracks");
   const [viewState, setViewState] = useState("profile");
   const [detailTab, setDetailTab] = useState("Following");
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isShareOpen, setIsShareOpen] = useState(false);
-  const [shareTab, setShareTab] = useState("Share");
-  const [isShortened, setIsShortened] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -90,13 +86,10 @@ export const useProfileController = (handle?: string) => {
     "world",
     "gospel",
     "spoken-word",
+    "quran",
+    "sha3by",
+    "islamic",
   ];
-
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const longLink = store.handle
-    ? `${origin}/profiles/${store.handle}`
-    : `${origin}/profiles`;
-  const shortLink = longLink;
 
   const loadProfile = useCallback(async () => {
     if (hasRequestedProfileRef.current) return;
@@ -137,7 +130,6 @@ export const useProfileController = (handle?: string) => {
         isLoaded: true,
       });
 
-      // Sync avatar to auth store so the navbar always shows the correct photo
       if (!handle) {
         const authUser = useAuthStore.getState().user;
         if (authUser) {
@@ -161,62 +153,71 @@ export const useProfileController = (handle?: string) => {
       hasRequestedProfileRef.current = true;
       return;
     }
-    setIsLoading(true); 
-    setUserId(null);
-    store.resetProfile();
-    hasRequestedProfileRef.current = false;
-    loadProfile();
+
+    let cancelled = false;
+    (async () => {
+      if (cancelled) return;
+      setIsLoading(true);
+      setUserId(null);
+      store.resetProfile();
+      hasRequestedProfileRef.current = false;
+      await loadProfile();
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [handle]);
 
-const handleSave = async (draft: ProfileDraft) => {
-  const nextProfile = {
-    displayName: draft.displayName,
-    bio: draft.bio,
-    location: draft.location,
-    website: draft.website,
-    isPrivate: draft.isPrivate,
-    favoriteGenres: draft.favoriteGenres,
-    accountType: draft.accountType,
-    links: draft.links ?? [],
+  const handleSave = async (draft: ProfileDraft) => {
+    const nextProfile = {
+      displayName: draft.displayName,
+      bio: draft.bio,
+      location: draft.location,
+      website: draft.website,
+      isPrivate: draft.isPrivate,
+      favoriteGenres: draft.favoriteGenres,
+      accountType: draft.accountType,
+      links: draft.links ?? [],
+    };
+
+    if (!nextProfile.displayName.trim()) {
+      setError("Display name is required!");
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      setError("");
+
+      await updateMyProfile({
+        display_name: nextProfile.displayName,
+        bio: nextProfile.bio || undefined,
+        location: nextProfile.location || undefined,
+        website: nextProfile.website || undefined,
+        is_private: nextProfile.isPrivate,
+        favorite_genres: nextProfile.favoriteGenres.filter((g) => g !== "None"),
+        account_type: nextProfile.accountType,
+      });
+
+      const validLinks = nextProfile.links
+        .filter((l) => l.url.trim() !== "")
+        .map((l) => ({ platform: l.platform || "website", url: l.url }));
+
+      await updateMyLinks(validLinks);
+
+      store.setProfileData(nextProfile);
+
+      setIsEditOpen(false);
+      setShowSuccessToast(true);
+      setTimeout(() => setShowSuccessToast(false), 3000);
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } } };
+      setError(axiosErr.response?.data?.message || "Failed to save profile.");
+    } finally {
+      setIsSaving(false);
+    }
   };
-
-  if (!nextProfile.displayName.trim()) {
-    setError("Display name is required!");
-    return;
-  }
-
-  try {
-    setIsSaving(true);
-    setError("");
-
-    await updateMyProfile({
-      display_name: nextProfile.displayName,
-      bio: nextProfile.bio || undefined,
-      location: nextProfile.location || undefined,
-      website: nextProfile.website || undefined,
-      is_private: nextProfile.isPrivate,
-      favorite_genres: nextProfile.favoriteGenres.filter((g) => g !== "None"),
-      account_type: nextProfile.accountType,
-    });
-
-    const validLinks = nextProfile.links
-      .filter((l) => l.url.trim() !== "")
-      .map((l) => ({ platform: l.platform || "website", url: l.url }));
-
-    await updateMyLinks(validLinks);
-
-    store.setProfileData(nextProfile);
-
-    setIsEditOpen(false);
-    setShowSuccessToast(true);
-    setTimeout(() => setShowSuccessToast(false), 3000);
-  } catch (err: unknown) {
-    const axiosErr = err as { response?: { data?: { message?: string } } };
-    setError(axiosErr.response?.data?.message || "Failed to save profile.");
-  } finally {
-    setIsSaving(false);
-  }
-};
 
   const handleAvatarUpload = async (file: File): Promise<string | undefined> => {
     if (isAvatarUploading) return store.avatarUrl || undefined;
@@ -231,7 +232,6 @@ const handleSave = async (draft: ProfileDraft) => {
       if (uploadedUrl) {
         store.setProfileData({ avatarUrl: uploadedUrl });
 
-        // Keep navbar in sync after avatar upload
         const authUser = useAuthStore.getState().user;
         if (authUser) {
           useAuthStore.getState().setUser({ ...authUser, avatarUrl: uploadedUrl });
@@ -272,16 +272,6 @@ const handleSave = async (draft: ProfileDraft) => {
     }
   };
 
-  const copyToClipboard = async () => {
-    try {
-      await navigator.clipboard.writeText(isShortened ? shortLink : longLink);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setError("Could not copy link. Please copy it manually.");
-    }
-  };
-
   const setProfileData = (data: Parameters<typeof store.setProfileData>[0]) => {
     store.setProfileData(data);
   };
@@ -300,20 +290,10 @@ const handleSave = async (draft: ProfileDraft) => {
     setDetailTab,
     isEditOpen,
     setIsEditOpen,
-    isShareOpen,
-    setIsShareOpen,
-    shareTab,
-    setShareTab,
-    isShortened,
-    setIsShortened,
-    copied,
-    copyToClipboard,
     error,
     handleSave,
     genres,
     showSuccessToast,
-    longLink,
-    shortLink,
     isSaving,
     isLoading,
     isAvatarUploading,

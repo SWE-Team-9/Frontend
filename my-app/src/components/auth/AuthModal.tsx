@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import AuthInput from "@/src/components/auth/AuthInput";
 import { useAuth } from "@/src/context/AuthContext";
 import { useAuthStore } from "@/src/store/useAuthStore";
+import Link from "next/link";
 import {
   loginUser,
   forgotPassword,
@@ -65,26 +66,12 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
   const days = Array.from({ length: 31 }, (_, i) => i + 1);
 
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-      setView(initialView);
-      setStep(1);
-      setError(null);
-      setIsResetSent(false);
-      setSocialError(null);
-      setSocialLoading(null);
-      setShowResendVerification(false);
-      setResendLoading(false);
-      setResendSent(false);
-      setLoginPassword("");
-      setSignupPassword("");
-      setSignupPasswordConfirm("");
-      setIsSubmitting(false);
-    }
+    if (!isOpen) return;
+    document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = 'unset';
     };
-  }, [isOpen, initialView]);
+  }, [isOpen]);
   useEffect(() => {
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
@@ -186,14 +173,14 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
         }
 
 
-    
+
         try {
           setIsSubmitting(true);
           setShowResendVerification(false);
           setResendSent(false);
 
-          await loginUser({ 
-            email, 
+          await loginUser({
+            email,
             password: loginPassword,
           });
           setEmailStore(email);
@@ -222,7 +209,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
             setError(backendMessage);
           } else {
             setError("Incorrect email or password.");
-          }            
+          }
         } finally {
           setIsSubmitting(false);
         }
@@ -455,9 +442,9 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
                   <p className="text-sm text-gray-400">
                     If the email address is in our database, we will send you an
                     email to reset your password. Need help? visit our{" "}
-                    <a href="/help" className="text-[#38d]">
+                    <Link href="/help" className="text-[#38d]">
                       Help Center
-                    </a>
+                    </Link>
                   </p>
 
                   <AuthInput
@@ -485,7 +472,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
                     setError(null);
                     setSocialError(null);
                   }}
-                      onBlur={handleSignupEmailBlur}
+                  onBlur={handleSignupEmailBlur}
                 />
               )}
               {step === 2 && (
@@ -506,7 +493,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
                         setSignupPassword(e.target.value);
                       }
                     }}
-                  />               
+                  />
                   {/* Confirm password — only shown during signup */}
                   {view === "signup" && (
                     <AuthInput
@@ -555,31 +542,31 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
                           </option>
                         ))}
                       </select>
-                    <div className="flex w-full gap-2">
-                      <select
-                        id="birth-day"
-                        className="flex-1 bg-[#333] text-white p-2.5 rounded-sm text-sm border-none outline-none cursor-pointer h-11"
-                      >
-                        <option value="">Day</option>
-                        {days.map((d) => (
-                          <option key={d} value={d}>
-                            {d}
-                          </option>
-                        ))}
-                      </select>
-                      <select
-                        id="birth-year"
-                        className="flex-1  bg-[#333] text-white p-2.5 rounded-sm text-sm border-none outline-none cursor-pointer h-11"
-                      >
-                        <option value="">Year</option>
-                        {years.map((y) => (
-                          <option key={y} value={y}>
-                            {y}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="flex w-full gap-2">
+                        <select
+                          id="birth-day"
+                          className="flex-1 bg-[#333] text-white p-2.5 rounded-sm text-sm border-none outline-none cursor-pointer h-11"
+                        >
+                          <option value="">Day</option>
+                          {days.map((d) => (
+                            <option key={d} value={d}>
+                              {d}
+                            </option>
+                          ))}
+                        </select>
+                        <select
+                          id="birth-year"
+                          className="flex-1  bg-[#333] text-white p-2.5 rounded-sm text-sm border-none outline-none cursor-pointer h-11"
+                        >
+                          <option value="">Year</option>
+                          {years.map((y) => (
+                            <option key={y} value={y}>
+                              {y}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
-                   </div>
                   </div>
                   <div className="space-y-2 text-left">
                     <label className="text-xs font-bold uppercase text-gray-400">
@@ -636,14 +623,14 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
               ? "Please wait..."
               : isCheckingEmail
                 ? "Checking email..."
-              : view === "forgot"
-                ? (isResetSent ? "Done" : "Send reset link")
-                : step === 3
-                  ? "Accept & Continue"
-                  : "Continue"}
+                : view === "forgot"
+                  ? (isResetSent ? "Done" : "Send reset link")
+                  : step === 3
+                    ? "Accept & Continue"
+                    : "Continue"}
           </button>
         </form>
- 
+
         {step === 1 && view !== "forgot" && (
           <div className="mt-auto pt-8 flex flex-col items-center">
             <button

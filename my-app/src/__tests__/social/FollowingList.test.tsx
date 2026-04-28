@@ -21,7 +21,7 @@ describe('FollowingList UI Testing (Module 3)', () => {
 
   beforeEach(() => {
     // Resetting the mock to return following users data
-    mockedGetEngagements.mockResolvedValue(mockFollowingUsers);
+mockedGetEngagements.mockResolvedValue({ items: mockFollowingUsers, total: mockFollowingUsers.length, hasMore: false });
   });
 
   /**
@@ -44,7 +44,7 @@ describe('FollowingList UI Testing (Module 3)', () => {
    * TEST: Verify empty state for following list
    */
   test('shows fallback message when current user is not following anyone', async () => {
-    mockedGetEngagements.mockResolvedValue([]); 
+    mockedGetEngagements.mockResolvedValue({ items: [], total: 0, hasMore: false }); // Simulate an empty response
     render(<EngagementModal {...defaultProps} />);
 
     await waitFor(() => {

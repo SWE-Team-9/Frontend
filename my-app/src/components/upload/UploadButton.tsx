@@ -9,6 +9,9 @@ import {
   changeTrackVisibility,
 } from "@/src/services/uploadService";
 import { useRouter } from "next/navigation";
+import { getMyProfile } from "@/src/services/profileService";
+import { useSubscriptionStore } from "@/src/store/useSubscriptionStore";
+import { decrementUploadQuota } from "@/src/services/subscriptionService";
 
 interface FileStatus {
   name: string;
@@ -21,8 +24,10 @@ interface FileStatus {
 const UploadButton: React.FC = () => {
   const { files, setFiles, metadata } = useUploadStore();
   const [fileStatuses, setFileStatuses] = useState<FileStatus[]>([]);
+  const [permissionError, setPermissionError] = useState<string | null>(null);
+  const [isCheckingPermission, setIsCheckingPermission] = useState(false);
   const router = useRouter();
-
+const setSubFromStore = useSubscriptionStore((state) => state.setSubDirectly);
   const updateFileStatus = (
     fileName: string,
     status: FileStatus["status"],
@@ -96,7 +101,25 @@ const UploadButton: React.FC = () => {
   };
 
   const handleUpload = async () => {
+    setPermissionError(null);
+
     if (files.length === 0) return;
+
+    try {
+      setIsCheckingPermission(true);
+      const profile = await getMyProfile();
+      const isArtist = profile.accountType?.trim().toUpperCase() === "ARTIST";
+
+      if (!isArtist) {
+        setPermissionError("Only users with ARTIST accounts can upload tracks.");
+        return;
+      }
+    } catch {
+      setPermissionError("Could not verify upload permission. Please try again.");
+      return;
+    } finally {
+      setIsCheckingPermission(false);
+    }
 
     setFileStatuses(files.map((f) => ({ name: f.name, status: "PENDING" })));
 
@@ -107,21 +130,37 @@ const UploadButton: React.FC = () => {
         if (!metadata) throw new Error("Metadata missing");
         const data = await uploadTrack(file, metadata);
 
-        if (data.status === "PROCESSING" && data.trackId) {
-          // Set the visibility the user chose before polling starts
-          await changeTrackVisibility(data.trackId, metadata.visibility);
-          updateFileStatus(file.name, "PROCESSING", data.trackId);
-          pollTrackStatus(file.name, data.trackId);
-        } else {
-          updateFileStatus(file.name, "DONE");
-        }
+   if (data.status === "PROCESSING" && data.trackId) {
+  await changeTrackVisibility(data.trackId, metadata.visibility);
+  updateFileStatus(file.name, "PROCESSING", data.trackId);
+
+  const updatedSub = await decrementUploadQuota();
+  setSubFromStore(updatedSub);
+
+  pollTrackStatus(file.name, data.trackId);
+} else {
+  updateFileStatus(file.name, "DONE");
+}
       } catch (err: unknown) {
-        updateFileStatus(
-          file.name,
-          "ERROR",
-          undefined,
-          (err as Error).message || "Upload error",
-        );
+        // Extract backend error message from response body (e.g. 403 UPLOAD_LIMIT_REACHED)
+        const axiosErr = err as {
+          response?: { data?: { message?: string; code?: string }; status?: number };
+          message?: string;
+        };
+        const errorMessage =
+          axiosErr?.response?.data?.message || axiosErr?.message || "Upload error";
+
+        updateFileStatus(file.name, "ERROR", undefined, errorMessage);
+
+        // On quota-exceeded (403), refresh subscription so UploadForm shows paywall
+        if (axiosErr?.response?.status === 403) {
+          try {
+            const freshSub = await decrementUploadQuota();
+            setSubFromStore(freshSub);
+          } catch {
+            // ignore refresh failure
+          }
+        }
       }
     }
 
@@ -133,10 +172,16 @@ const UploadButton: React.FC = () => {
       <button
         onClick={handleUpload}
         className="mt-4 w-full bg-white text-lg transition duration-300 hover:bg-[#ff5500] text-black font-bold py-2 px-4 rounded disabled:opacity-50"
-        disabled={files.length === 0}
+        disabled={files.length === 0 || isCheckingPermission}
       >
-        Upload {files.length > 0 ? `(${files.length}) files` : ""}
+        {isCheckingPermission
+          ? "Checking permissions..."
+          : `Upload ${files.length > 0 ? `(${files.length}) files` : ""}`}
       </button>
+
+      {permissionError && (
+        <p className="mt-2 text-sm text-red-500">{permissionError}</p>
+      )}
 
       <div className="mt-4 space-y-2">
         {fileStatuses.map((f) => (

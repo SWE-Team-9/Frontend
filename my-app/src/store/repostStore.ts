@@ -80,7 +80,10 @@ deleteRepostAction: async (trackId: string) => {
       // --- STEP B: API CALL ---
       const response: RepostResponse = isAlreadyReposted 
         ? await removeRepost(trackId) 
-        : await repostTrack(trackId);
+        : await repostTrack(trackId, {
+            trackTitle: track.title,
+            targetUserId: track.artistId,
+          });
 
       // --- STEP C: SUCCESS SYNC ---
       if (response && typeof response.repostsCount === 'number') {

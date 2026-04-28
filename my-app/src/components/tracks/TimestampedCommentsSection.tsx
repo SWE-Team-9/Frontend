@@ -8,6 +8,8 @@ import type { TrackComment } from "@/src/types/interactions";
 
 interface TimestampedCommentsSectionProps {
     trackId: string;
+    trackTitle?: string;
+    trackOwnerId?: string;
     durationSeconds?: number;
     waveformData?: number[] | null;
     waveformSeed?: string | number;
@@ -27,6 +29,8 @@ function formatTime(seconds: number) {
 
 export default function TimestampedCommentsSection({
     trackId,
+    trackTitle,
+    trackOwnerId,
     durationSeconds = 0,
     waveformData,
     waveformSeed,
@@ -65,10 +69,34 @@ export default function TimestampedCommentsSection({
     };
 
     useEffect(() => {
-        if (isOpen && !hasLoadedOnce && enabled) {
-            loadComments();
-        }
-    }, [isOpen, hasLoadedOnce, enabled]);
+        if (!isOpen || hasLoadedOnce || !enabled) return;
+
+        let cancelled = false;
+
+        (async () => {
+            setIsLoading(true);
+
+            try {
+                const data = await getTrackComments(trackId, 1, 100);
+
+                if (cancelled) return;
+
+                console.log("[TimestampedCommentsSection] mapped comments:", data.comments);
+                setComments(data.comments);
+                setHasLoadedOnce(true);
+            } catch (error) {
+                console.error("Failed to load track comments:", error);
+            } finally {
+                if (!cancelled) {
+                    setIsLoading(false);
+                }
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [isOpen, hasLoadedOnce, enabled, trackId]);
 
     const markers = useMemo<WaveformMarker[]>(() => {
         if (!durationSeconds || durationSeconds <= 0) return [];
@@ -108,10 +136,20 @@ export default function TimestampedCommentsSection({
         try {
             setIsSubmitting(true);
 
-            await addTrackComment(trackId, {
+            const commentPayload = {
                 content: trimmed,
                 timestampAt: snapshotTimestamp,
-            });
+            };
+
+            const notificationMeta = trackTitle || trackOwnerId
+                ? { trackTitle, targetUserId: trackOwnerId }
+                : undefined;
+
+            if (notificationMeta) {
+                await addTrackComment(trackId, commentPayload, notificationMeta);
+            } else {
+                await addTrackComment(trackId, commentPayload);
+            }
 
             setText("");
             await loadComments();
@@ -146,7 +184,7 @@ export default function TimestampedCommentsSection({
 
             {activeComment && (
                 <div
-                    className="absolute left-0 top-[72px] z-20 rounded bg-zinc-800 px-2 py-1 text-xs text-white shadow-lg"
+                    className="absolute left-0 top-18 z-20 rounded bg-zinc-800 px-2 py-1 text-xs text-white shadow-lg"
                     style={{
                         left: `${Math.min(
                             92,
@@ -166,9 +204,8 @@ export default function TimestampedCommentsSection({
             )}
 
             <div
-            className={`mt-5 overflow-hidden transition-all duration-200 ${
-                isOpen ? "max-h-28 opacity-100" : "max-h-0 opacity-0"
-            }`}
+                className={`mt-5 overflow-hidden transition-all duration-200 ${isOpen ? "max-h-28 opacity-100" : "max-h-0 opacity-0"
+                    }`}
             >
                 <div className="flex items-center gap-3">
                     <div className="h-10 w-10 shrink-0 rounded-full bg-[#c77c73]" />

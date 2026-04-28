@@ -1,35 +1,39 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState } from "react";
 import { AiOutlineHeart, AiFillHeart } from "react-icons/ai";
 import { BiRepost } from "react-icons/bi";
-import { RiShareForwardLine } from "react-icons/ri";
 import { EngagementModal } from "@/src/components/profile/modals/EngagementModal";
-import { useLikeStore } from '@/src/store/likeStore'; 
+import { useLikeStore } from '@/src/store/likeStore';
 import { useRepostStore } from '@/src/store/repostStore';
 import { TrackData } from "@/src/types/interactions";
+import { DownloadButton } from "@/src/components/tracks/DownloadButton";
 
 export interface TrackActionButtonsProps {
   trackId: string;
   title: string;
   artistName: string;
+  artistId?: string;
+  artistHandle?: string;
+  artistAvatarUrl?: string | null;
   coverArt?: string;
   likesCount: number;
   liked: boolean;
   repostsCount: number;
   reposted: boolean;
+  downloadable?: boolean;
   size?: "compact" | "full";
 }
 
 function fmtCount(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000)     return `${(n / 1_000).toFixed(1)}K`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
   return n.toString();
 }
 
 interface SCButtonProps {
   active?: boolean;
-  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void; 
+  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
   label: string;
   children: React.ReactNode;
   disabled?: boolean;
@@ -53,20 +57,33 @@ function SCButton({ active, onClick, label, children, disabled }: SCButtonProps)
 }
 
 export function RepostButton({
-  trackId, title, artistName, coverArt, repostsCount, size = "full",
-}: { trackId: string; title: string; artistName: string; coverArt?: string; repostsCount: number; size?: "compact" | "full"; }) {
+  trackId, title, artistName, artistId, artistHandle, artistAvatarUrl, coverArt, repostsCount, size = "full",
+}: {
+  trackId: string;
+  title: string;
+  artistName: string;
+  artistId?: string;
+  artistHandle?: string;
+  artistAvatarUrl?: string | null;
+  coverArt?: string;
+  repostsCount: number;
+  size?: "compact" | "full";
+}) {
   const { toggleRepost, isReposted, loadingIds } = useRepostStore();
   const active = isReposted(trackId);
   const isLoading = loadingIds.includes(String(trackId));
 
   const handleToggle = async (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.stopPropagation(); 
+    e.stopPropagation();
     await toggleRepost({
       id: trackId,
       title,
       artistName,
+      artistId,
+      artistHandle,
+      artistAvatarUrl,
       coverArt,
-      repostsCount: repostsCount, 
+      repostsCount: repostsCount,
       likesCount: 0,
       coverArtUrl: coverArt || null
     } as TrackData);
@@ -80,21 +97,34 @@ export function RepostButton({
 }
 
 export function LikeButton({
-  trackId, title, artistName, coverArt, likesCount, size = "full",
-}: { trackId: string; title: string; artistName: string; coverArt?: string; likesCount: number; size?: "compact" | "full" }) {
+  trackId, title, artistName, artistId, artistHandle, artistAvatarUrl, coverArt, likesCount, size = "full",
+}: {
+  trackId: string;
+  title: string;
+  artistName: string;
+  artistId?: string;
+  artistHandle?: string;
+  artistAvatarUrl?: string | null;
+  coverArt?: string;
+  likesCount: number;
+  size?: "compact" | "full"
+}) {
   const { toggleLike, isLiked, loadingIds } = useLikeStore();
   const active = isLiked(trackId);
   const isLoading = loadingIds.includes(String(trackId));
 
   const handleToggle = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
-    toggleLike({ 
-      id: trackId, 
-      title, 
-      artistName, 
-      coverArt, 
-      likesCount: likesCount, 
-      repostsCount: 0, 
+    toggleLike({
+      id: trackId,
+      title,
+      artistName,
+      artistId,
+      artistHandle,
+      artistAvatarUrl,
+      coverArt,
+      likesCount: likesCount,
+      repostsCount: 0,
       coverArtUrl: coverArt || null
     } as TrackData);
   };
@@ -107,15 +137,15 @@ export function LikeButton({
 }
 
 export function TrackActionButtons({
-  trackId, title, artistName, coverArt, likesCount:initialLikes, repostsCount, liked, reposted, size = "full",
+  trackId, title, artistName, artistId, artistHandle, artistAvatarUrl, coverArt, likesCount: initialLikes, repostsCount, liked, reposted, downloadable = false, size = "full",
 }: TrackActionButtonsProps) {
   const [modalType, setModalType] = useState<"likes" | "reposts" | null>(null);
-  
-  const isCurrentlyLiked = !!useLikeStore((state) => 
+
+  const isCurrentlyLiked = !!useLikeStore((state) =>
     state.likedTracks.find((t) => String(t.id) === String(trackId))
   );
-  
-  const repostedTrack = useRepostStore((state) => 
+
+  const repostedTrack = useRepostStore((state) =>
     state.repostedTracks.find((t) => String(t.id) === String(trackId))
   );
   const isCurrentlyReposted = !!repostedTrack;
@@ -123,26 +153,29 @@ export function TrackActionButtons({
   let likeDelta = 0;
   if (isCurrentlyLiked && !liked) likeDelta = 1;
   else if (!isCurrentlyLiked && liked) likeDelta = -1;
- 
+
 
   const displayLikes = Math.max(0, initialLikes + likeDelta);
 
-  const displayReposts = isCurrentlyReposted 
-    ? (repostedTrack?.repostsCount ?? repostsCount) 
+  const displayReposts = isCurrentlyReposted
+    ? (repostedTrack?.repostsCount ?? repostsCount)
     : (reposted ? Math.max(0, repostsCount - 1) : repostsCount);
 
 
- 
+
   return (
     <div className="flex items-center gap-1.5">
       <div className="flex items-center gap-1">
-        <LikeButton 
+        <LikeButton
           trackId={trackId} title={title} artistName={artistName} coverArt={coverArt}
+          artistId={artistId}
+          artistHandle={artistHandle}
+          artistAvatarUrl={artistAvatarUrl}
           likesCount={initialLikes}
         />
         {displayLikes > 0 && (
-          <span 
-            onClick={(e) => { e.stopPropagation(); setModalType("likes"); }} 
+          <span
+            onClick={(e) => { e.stopPropagation(); setModalType("likes"); }}
             className="text-[11px] text-zinc-500 cursor-pointer hover:text-white hover:underline px-1 tabular-nums"
           >
             {fmtCount(displayLikes)}
@@ -151,13 +184,16 @@ export function TrackActionButtons({
       </div>
 
       <div className="flex items-center gap-1">
-        <RepostButton 
+        <RepostButton
           trackId={trackId} title={title} artistName={artistName} coverArt={coverArt}
-          repostsCount={displayReposts} 
+          artistId={artistId}
+          artistHandle={artistHandle}
+          artistAvatarUrl={artistAvatarUrl}
+          repostsCount={displayReposts}
         />
         {displayReposts > 0 && (
-          <span 
-            onClick={(e) => { e.stopPropagation(); setModalType("reposts"); }} 
+          <span
+            onClick={(e) => { e.stopPropagation(); setModalType("reposts"); }}
             className="text-[11px] text-zinc-500 cursor-pointer hover:text-white hover:underline px-1 tabular-nums"
           >
             {fmtCount(displayReposts)}
@@ -165,16 +201,22 @@ export function TrackActionButtons({
         )}
       </div>
 
-      <SCButton label="Share"><RiShareForwardLine size={15} /></SCButton>
-      
       {modalType && (
-        <EngagementModal 
-          isOpen={true} 
-          onClose={() => setModalType(null)} 
-          trackId={trackId} 
-          type={modalType} 
+        <EngagementModal
+          key={`${modalType}-${trackId}`}
+          isOpen={true}
+          onClose={() => setModalType(null)}
+          trackId={trackId}
+          type={modalType}
         />
       )}
+      <DownloadButton
+        trackId={trackId}
+        trackTitle={title}
+        downloadable={downloadable}
+        size={size}
+      />
+
     </div>
   );
 }

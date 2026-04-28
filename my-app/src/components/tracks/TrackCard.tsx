@@ -2,7 +2,11 @@
 
 import TimestampedCommentsSection from "@/src/components/tracks/TimestampedCommentsSection";
 import React, { useState, Fragment } from "react";
+import { Share2 } from "lucide-react";
+import SharePopup from "@/src/components/share/SharePopup";
+import Link from "next/link";
 import Image from "next/image";
+import { toast } from "sonner";
 import {
   Menu,
   MenuButton,
@@ -20,11 +24,16 @@ import {
   Eye,
   EyeOff,
   Check,
+  Link2,
+  ListPlus,
+  Heart,
 } from "lucide-react";
 
-import { TrackActionButtons } from "@/src/components/tracks/TrackActionButtons";
+
 import { WaveformDisplay } from "@/src/components/tracks/WaveformDisplay";
+import { TrackActionButtons } from "@/src/components/tracks/TrackActionButtons";
 import { useRepostStore } from "@/src/store/repostStore";
+import { useLikeStore } from "@/src/store/likeStore";
 import {
   changeTrackVisibility,
   getTrackDetails,
@@ -35,12 +44,13 @@ import {
   usePlayerStore,
   type Track as PlayerTrack,
 } from "@/src/store/playerStore";
+import type { TrackData } from "@/src/types/interactions";
+import { buildTrackPermalink } from "@/src/lib/permalinks";
 
 const FALLBACK_IMAGE = "/images/track-placeholder.png";
 
-export interface IntegratedTrack extends Partial<
-  Omit<TrackDetails, "coverArtUrl">
-> {
+export interface IntegratedTrack
+  extends Partial<Omit<TrackDetails, "coverArtUrl">> {
   trackId: string;
   title: string;
   likesCount?: number;
@@ -81,33 +91,36 @@ export const TrackCard: React.FC<TrackCardProps> = ({
   onDelete,
   onEdit,
 }) => {
+  const trackHref = buildTrackPermalink({
+    trackId: track.trackId,
+    artistHandle: track.artistHandle,
+    slug: track.slug,
+  });
+
+  const hasCanonicalTrackRoute = !trackHref.startsWith("/tracks/");
+
   const toEditData = (
-    source: Pick<IntegratedTrack, "title" | "genre" | "releaseDate" | "description">,
+    source: Pick<
+      IntegratedTrack,
+      "title" | "genre" | "releaseDate" | "description"
+    >,
   ) => ({
     title: source.title,
     genre: source.genre ?? "",
     releaseDate: source.releaseDate?.split("T")[0] ?? "",
     description: source.description ?? "",
   });
-  const deleteRepostAction = useRepostStore((state) => state.deleteRepostAction);
+  const deleteRepostAction = useRepostStore(
+    (state) => state.deleteRepostAction,
+  );
   const isReposted = useRepostStore((state) => state.isReposted(track.trackId));
-  const handleDeleteClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.stopPropagation(); // Prevent card click
-    if (!isOwner && isReposted) {
-      if (confirm("Do you want to remove your repost?")) {
-        await deleteRepostAction(track.trackId);
-      }
-      return;
-    }
-    if (onDelete) {
-      onDelete(track.trackId, savedData.title);
-    }
-  };
 
+  const [shareOpen, setShareOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isPreparingEdit, setIsPreparingEdit] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
   const currentTrack = usePlayerStore((state) => state.currentTrack);
   const isPlaying = usePlayerStore((state) => state.isPlaying);
   const fetchAndPlay = usePlayerStore((state) => state.fetchAndPlay);
@@ -115,6 +128,13 @@ export const TrackCard: React.FC<TrackCardProps> = ({
   const currentTime = usePlayerStore((state) => state.currentTime);
   const duration = usePlayerStore((state) => state.duration);
   const seekTo = usePlayerStore((state) => state.seekTo);
+
+  // Like store — shared with the standalone Like button
+  const toggleLike = useLikeStore((state) => state.toggleLike);
+  const isLiked = useLikeStore((state) => state.isLiked(track.trackId));
+  const isLikeLoading = useLikeStore((state) =>
+    state.loadingIds.includes(track.trackId),
+  );
 
   // Visibility state
   const [visibility, setVisibility] = useState<"PUBLIC" | "PRIVATE">(
@@ -124,7 +144,7 @@ export const TrackCard: React.FC<TrackCardProps> = ({
 
   const [savedData, setSavedData] = useState(() => toEditData(track));
 
-  // Single edit data object (replaces individual editTitle, editGenre, etc.)
+  // Single edit data object
   const [editData, setEditData] = useState(() => toEditData(track));
   const normalizedEditData = {
     title: editData.title.trim(),
@@ -151,11 +171,59 @@ export const TrackCard: React.FC<TrackCardProps> = ({
     genre: savedData.genre || undefined,
   };
 
-  console.log("[TrackCard playerTrack]", playerTrack);
-
   const isCurrentTrack = currentTrack?.trackId === track.trackId;
   const waveformProgress =
     isCurrentTrack && duration > 0 ? currentTime / duration : 0;
+
+  // Build the TrackData shape the like store expects
+  const trackForLike: TrackData = {
+    id: track.trackId,
+    title: savedData.title,
+    artistName: getArtistLabel(track.artistName ?? track.artist),
+    coverArt: track.coverArtUrl || track.coverArt,
+    likesCount: track.likesCount ?? 0,
+  } as TrackData;
+
+  const handleDeleteClick = async (
+    e?: React.MouseEvent<HTMLButtonElement>,
+  ) => {
+    e?.stopPropagation();
+    if (!isOwner && isReposted) {
+      if (confirm("Do you want to remove your repost?")) {
+        await deleteRepostAction(track.trackId);
+      }
+      return;
+    }
+    if (onDelete) {
+      onDelete(track.trackId, savedData.title);
+    }
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleCopyTrackLink = async () => {
+    if (typeof window === "undefined") return;
+    await navigator.clipboard.writeText(
+      `${window.location.origin}${trackHref}`,
+    );
+  };
+  const handleShare = async () => {
+    const url = `${window.location.origin}${trackHref}`;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: savedData.title,
+          url,
+        });
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast.success("Link copied");
+      }
+    } catch {
+      toast.error("Share failed");
+    }
+  };
+
 
   const handleToggleVisibility = async () => {
     const newVisibility = visibility === "PUBLIC" ? "PRIVATE" : "PUBLIC";
@@ -194,6 +262,8 @@ export const TrackCard: React.FC<TrackCardProps> = ({
       setIsPreparingEdit(false);
       setIsEditing(true);
     }
+
+    onEdit?.(track);
   };
 
   const cancelEdit = () => {
@@ -202,9 +272,7 @@ export const TrackCard: React.FC<TrackCardProps> = ({
   };
 
   const handleSave = async () => {
-    if (isEditFormInvalid) {
-      return;
-    }
+    if (isEditFormInvalid) return;
 
     setIsSaving(true);
     try {
@@ -256,6 +324,10 @@ export const TrackCard: React.FC<TrackCardProps> = ({
     await seekTo(nextTime);
   };
 
+  const handleAddTrackToNextUp = () => {
+    toast.info("Add to Next Up is not implemented yet.");
+  };
+
   return (
     <div className="bg-[#1e1e1e] p-5 rounded-lg flex gap-6 items-start hover:bg-[#252525] transition-colors relative group">
       {/* Artwork */}
@@ -303,7 +375,10 @@ export const TrackCard: React.FC<TrackCardProps> = ({
             <textarea
               value={editData.description}
               onChange={(e) => {
-                setEditData((prev) => ({ ...prev, description: e.target.value }));
+                setEditData((prev) => ({
+                  ...prev,
+                  description: e.target.value,
+                }));
                 if (error) setError(null);
               }}
               className="bg-[#121212] border border-zinc-700 rounded p-2 text-white text-sm resize-none"
@@ -357,28 +432,63 @@ export const TrackCard: React.FC<TrackCardProps> = ({
                   <p className="text-zinc-400 text-sm">
                     {getArtistLabel(track.artistName ?? track.artist)}
                   </p>
-                  <h4 className="text-white text-xl font-bold truncate">
+                  <Link
+                    href={`/tracks/${track.trackId}`}
+                    className="text-white text-xl font-bold truncate hover:text-neutral-700 transition duration-200"
+                  >
                     {savedData.title}
-                  </h4>
+                  </Link>
                 </div>
               </div>
 
-              <span
-                className={`text-[10px] px-2 py-0.5 rounded font-bold ${visibility === "PUBLIC" ? "bg-green-900/30 text-green-400" : "bg-zinc-800 text-zinc-500"}`}
-              >
-                {visibility}
-              </span>
+              <div className="flex items-center gap-2 relative">
+                <span
+                  className={`text-[10px] px-2 py-0.5 rounded font-bold ${visibility === "PUBLIC"
+                    ? "bg-green-900/30 text-green-400"
+                    : "bg-zinc-800 text-zinc-500"
+                    }`}
+                >
+                  {visibility}
+                </span>
+
+                {/* Share button */}
+                <button
+                  onClick={() => setShareOpen((v) => !v)}
+                  disabled={!hasCanonicalTrackRoute}
+                  title={
+                    hasCanonicalTrackRoute
+                      ? "Share this track"
+                      : "Permalink not available yet"
+                  }
+                  className="flex items-center gap-1 rounded border border-zinc-700 px-2 py-1 text-xs text-zinc-300 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Share2 className="h-3 w-3" /> Share
+                </button>
+
+                {shareOpen && hasCanonicalTrackRoute && (
+                  <SharePopup
+                    permalink={trackHref}
+                    resourceType="TRACK"
+                    resourceId={track.trackId}
+                    resourceTitle={savedData.title}
+                    resourceCoverArtUrl={track.coverArtUrl || track.coverArt || null}
+                    onClose={() => setShareOpen(false)}
+                  />
+                )}
+              </div>
             </div>
 
             {/* Waveform + Timestamped Comments */}
             <div className="w-full relative">
               {track.status === "PROCESSING" ? (
-                <div className="flex h-16 items-center justify-center rounded bg-zinc-800/30 text-xs font-bold italic text-[#ff5500] animate-pulse">
-                  PROCESSING...
+                <div className="h-16 flex items-center justify-center bg-[#181818] rounded text-zinc-500 text-xs uppercase tracking-widest">
+                  Processing...
                 </div>
               ) : (
                 <TimestampedCommentsSection
                   trackId={track.trackId}
+                  trackTitle={savedData.title}
+                  trackOwnerId={track.artistId ?? undefined}
                   durationSeconds={playerTrack.duration ?? 0}
                   waveformData={track.waveformData ?? null}
                   waveformSeed={track.trackId}
@@ -388,7 +498,6 @@ export const TrackCard: React.FC<TrackCardProps> = ({
                 />
               )}
             </div>
-
             {/* Bottom Actions */}
             <div className="flex items-center justify-between mt-auto">
               <TrackActionButtons
@@ -398,6 +507,9 @@ export const TrackCard: React.FC<TrackCardProps> = ({
                 likesCount={track.likesCount ?? 0}
                 liked={track.liked ?? false}
                 artistName={getArtistLabel(track.artistName ?? track.artist)}
+                artistId={track.artistId ?? undefined}
+                artistHandle={track.artistHandle ?? undefined}
+                artistAvatarUrl={track.artistAvatarUrl ?? null}
                 coverArt={track.coverArt || track.coverArtUrl || FALLBACK_IMAGE}
                 repostsCount={track.repostsCount ?? 0}
                 reposted={track.reposted ?? false}
@@ -408,25 +520,40 @@ export const TrackCard: React.FC<TrackCardProps> = ({
               {isOwner && (
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={handleToggleVisibility}
-                    disabled={isTogglingVisibility}
-                    className="p-2 rounded bg-[#2a2a2a] text-zinc-400 hover:text-white disabled:opacity-50"
-                    title="Toggle Visibility"
+                    onClick={handleShare}
+                    className="w-9 h-9 rounded bg-[#1a1a1a] hover:bg-zinc-800 border border-zinc-800 flex items-center justify-center text-zinc-300"
                   >
-                    {visibility === "PUBLIC" ? (
-                      <Eye className="w-4 h-4" />
-                    ) : (
-                      <EyeOff className="w-4 h-4" />
-                    )}
+                    <Link2 size={12} />
                   </button>
 
+                  {/* Add to Next Up */}
+
+                  <button
+                    onClick={handleAddTrackToNextUp}
+                    className="w-9 h-9 rounded bg-[#1a1a1a] hover:bg-zinc-800 border border-zinc-800 flex items-center justify-center text-zinc-300"
+                  >
+                    <ListPlus size={12} />
+                  </button>
+
+                  {/* Edit track */}
                   <button
                     onClick={enterEdit}
-                    disabled={isPreparingEdit}
-                    className="p-2 rounded bg-[#2a2a2a] text-zinc-400 hover:text-white"
-                    title="Edit Metadata"
+                    className="w-9 h-9 rounded bg-[#1a1a1a] hover:bg-zinc-800 border border-zinc-800 flex items-center justify-center text-zinc-300"
                   >
-                    <Edit2 className="w-4 h-4" />
+                    <Edit2 size={12} />
+                  </button>
+
+                  {/* Like button */}
+                  <button
+                    onClick={() => toggleLike(trackForLike)}
+                    disabled={isLikeLoading}
+                    className="w-9 h-9 rounded bg-[#1a1a1a] hover:bg-zinc-800 border border-zinc-800 flex items-center justify-center"
+                  >
+                    {isLiked ? (
+                      <Heart size={12} className="text-[#f50]" />
+                    ) : (
+                      <Heart size={12} className="text-zinc-300" />
+                    )}
                   </button>
 
                   {(isOwner || track.reposted) && (
@@ -438,7 +565,9 @@ export const TrackCard: React.FC<TrackCardProps> = ({
                         if (!isOwner && track.reposted) {
                           try {
                             // Use the dedicated delete action from your store
-                            await useRepostStore.getState().deleteRepostAction(track.trackId);
+                            await useRepostStore
+                              .getState()
+                              .deleteRepostAction(track.trackId);
                           } catch (err) {
                             console.error("Failed to remove repost:", err);
                           }
@@ -457,40 +586,89 @@ export const TrackCard: React.FC<TrackCardProps> = ({
                     </button>
                   )}
 
-                  <div className="relative">
-                    <Menu>
-                      <MenuButton className="p-2 rounded bg-[#2a2a2a] text-zinc-400 hover:text-white">
-                        <MoreHorizontal className="w-4 h-4" />
-                      </MenuButton>
+                  {/* More options menu */}
+                  <Menu as="div" className="relative">
+                    <MenuButton className="w-9 h-9 rounded bg-[#1a1a1a] hover:bg-zinc-800 border border-zinc-800 flex items-center justify-center text-zinc-300">
+                      <MoreHorizontal size={12} />
+                    </MenuButton>
 
-                      <Transition
-                        as={Fragment}
-                        enter="transition ease-out duration-100"
-                        enterFrom="transform opacity-0 scale-95"
-                        enterTo="transform opacity-100 scale-100"
-                        leave="transition ease-in duration-75"
-                        leaveFrom="transform opacity-100 scale-100"
-                        leaveTo="transform opacity-0 scale-95"
-                      >
-                        <MenuItems className="absolute right-0 bottom-full mb-2 w-48 rounded-md bg-[#181818] border border-zinc-800 z-50">
-                          <MenuItem>
-                            {({ active }: { active: boolean }) => (
-                              <button
-                                className={`${active ? "bg-zinc-800" : ""} text-zinc-300 group flex w-full items-center px-4 py-2 text-sm`}
-                              >
-                                <BarChart2 className="mr-2 h-4 w-4" />
-                                Insights
-                              </button>
-                            )}
-                          </MenuItem>
-                        </MenuItems>
-                      </Transition>
-                    </Menu>
-                  </div>
+                    <Transition as={Fragment}>
+                      <MenuItems className="absolute right-0 mt-2 w-48 origin-top-right bg-[#1a1a1a] border border-zinc-800 rounded-md shadow-2xl py-1 z-50 focus:outline-none">
+
+                        <MenuItem>
+                          {({ focus }) => (
+                            <button
+                              onClick={handleAddTrackToNextUp}
+                              className={`w-full flex items-center gap-3 px-4 py-2 text-xs text-white ${focus ? "bg-zinc-800" : ""
+                                }`}
+                            >
+                              <ListPlus className="w-3 h-3 text-zinc-400" />
+                              Add to Next Up
+                            </button>
+                          )}
+                        </MenuItem>
+
+                        <MenuItem>
+                          {({ focus }) => (
+                            <button
+                              onClick={handleDeleteClick}
+                              className={`w-full flex items-center gap-3 px-4 py-2 text-xs text-white ${focus ? "bg-zinc-800" : ""
+                                }`}
+                            >
+                              <Trash2 className="w-3 h-3 text-zinc-400" />
+                              Delete
+                            </button>
+                          )}
+                        </MenuItem>
+
+                        {isOwner && (
+                          <>
+                            <div className="my-1 h-px bg-zinc-800" />
+
+                            <MenuItem>
+                              {({ focus }) => (
+                                <button
+                                  onClick={enterEdit}
+                                  disabled={isPreparingEdit}
+                                  className={`w-full flex items-center gap-3 px-4 py-2 text-xs text-white disabled:opacity-50 ${focus ? "bg-zinc-800" : ""
+                                    }`}
+                                >
+                                  <Edit2 className="w-3 h-3 text-zinc-400" />
+                                  Edit
+                                </button>
+                              )}
+                            </MenuItem>
+
+                            <MenuItem>
+                              {({ focus }) => (
+                                <button
+                                  onClick={handleToggleVisibility}
+                                  disabled={isTogglingVisibility}
+                                  className={`w-full flex items-center gap-3 px-4 py-2 text-xs text-white disabled:opacity-50 ${focus ? "bg-zinc-800" : ""
+                                    }`}
+                                >
+                                  {visibility === "PUBLIC" ? (
+                                    <EyeOff className="w-3 h-3 text-zinc-400" />
+                                  ) : (
+                                    <Eye className="w-3 h-3 text-zinc-400" />
+                                  )}
+                                  Make {visibility === "PUBLIC" ? "Private" : "Public"}
+                                </button>
+                              )}
+                            </MenuItem>
+                          </>
+                        )}
+                      </MenuItems>
+                    </Transition>
+                  </Menu>
+
                 </div>
               )}
+
             </div>
+
           </>
+
         )}
       </div>
     </div>

@@ -9,6 +9,10 @@ import {
   getPlayerSession,
   updatePlayerSession,
 } from "@/src/services/playerService";
+import {
+  getOfflineCacheEntry,
+  createObjectUrl,
+} from "@/src/services/offlineAudioCache";
 
 export interface Track {
   trackId: string;
@@ -285,8 +289,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       isPlaying,
       volume: volume / 100,
       queueTrackIds: queue.map((track) => track.trackId),
-      isShuffleOn,
-      loopMode,
+      shuffle: isShuffleOn,
+      repeatMode: loopMode,
     };
 
     console.log("[playerStore] persistPlayerSession payload", payload);
@@ -337,8 +341,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         trackIndex: restoredCurrentTrack
           ? tracks.findIndex((t) => t.trackId === restoredCurrentTrack.trackId)
           : -1,
-        isShuffleOn: !!data.isShuffleOn,
-        loopMode: data.loopMode ?? "OFF",
+        isShuffleOn: !!data.shuffle,
+        loopMode: data.repeatMode ?? "OFF",
       });
 
       const audio = getAudioElement();
@@ -483,6 +487,65 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       streamError: null,
       hasRecordedPlay: false,
     });
+
+    // ── Offline cache check ────────────────────────────────────────
+    // If this track has been saved for offline listening, play it
+    // directly from IndexedDB without any network request.
+    try {
+      const cachedEntry = await getOfflineCacheEntry(track.trackId);
+      if (cachedEntry) {
+        const objectUrl = createObjectUrl(cachedEntry);
+
+        const enrichedTrack: Track = {
+          ...track,
+          accessState: "PLAYABLE",
+          streamUrl: objectUrl,
+        };
+
+        set({
+          currentTrack: enrichedTrack,
+          trackIndex: get().tracks.findIndex((t) => t.trackId === track.trackId),
+          accessState: "PLAYABLE",
+          accessReason: null,
+          isProcessing: false,
+          isResolvingPlayback: false,
+          streamError: null,
+          currentTime: 0,
+          hasRecordedPlay: false,
+        });
+
+        if (!audio) {
+          set({ streamError: "Audio player is unavailable in this browser", isPlaying: false });
+          return;
+        }
+
+        audio.pause();
+        audio.src = objectUrl;
+        audio.preload = "auto";
+        audio.load();
+        audio.currentTime = 0;
+        set({ currentTime: 0 });
+        audio.volume = get().volume / 100;
+
+        try {
+          await audio.play();
+          set({ isPlaying: true, streamError: null });
+          await get().recordPlayEvent(track.trackId);
+          await get().persistPlayerSession();
+        } catch (playErr: unknown) {
+          const errName = playErr instanceof DOMException ? playErr.name : undefined;
+          if ((errName === "AbortError" || errName === "NotAllowedError") &&
+              (!audio.paused || audio.currentTime > 0)) {
+            set({ isPlaying: true, streamError: null });
+            return;
+          }
+          set({ isPlaying: false, streamError: "Playback failed" });
+        }
+        return;
+      }
+    } catch {
+      // Cache read failure is non-fatal — fall through to network playback
+    }
 
     try {
       const stateData = await getPlaybackState(track.trackId);
