@@ -70,10 +70,10 @@ export function DownloadButton({
       // 1. Ask backend for a presigned S3 URL (no file write happens here)
       const result = await getOfflineTrack(trackId);
 
-      // 2. Fetch the audio through our CORS proxy and store the Blob in IndexedDB.
-      //    The audio never touches the device file system — it lives in the
-      //    browser's private app storage, enabling offline playback only.
-      const proxyUrl = `/api/download?url=${encodeURIComponent(result.downloadUrl)}`;
+      // 2. Fetch the audio directly from the S3 presigned URL and store the
+      //    Blob in IndexedDB. S3 CORS is already configured for this domain
+      //    (the audio player uses S3 URLs for streaming). The audio never
+      //    touches the device file system — it lives in private browser storage.
       await saveOfflineTrack(
         {
           trackId: result.trackId,
@@ -83,7 +83,7 @@ export function DownloadButton({
           durationMs: null,
           expiresInSeconds: 900, // match backend default TTL
         },
-        proxyUrl,
+        result.downloadUrl,
       );
 
       setDlState("cached");
