@@ -16,7 +16,7 @@ export default function MessagesDropdown() {
   }, [loadDropdownConversations]);
 
   return (
-    <div className="absolute right-0 top-10 z-50 w-[400px] rounded border border-zinc-800 bg-[#121212] p-4 shadow-xl">
+    <div className="absolute right-0 top-10 z-50 w-100 rounded border border-zinc-800 bg-[#121212] p-4 shadow-xl">
       <h2 className="mb-3 text-xl font-bold text-white">Messages</h2>
 
       <div className="space-y-1">
