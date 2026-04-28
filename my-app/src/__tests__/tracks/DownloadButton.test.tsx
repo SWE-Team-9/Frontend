@@ -17,6 +17,14 @@ import {
 
 jest.mock("@/src/store/useSubscriptionStore");
 jest.mock("@/src/services/subscriptionService");
+
+// Mock IndexedDB-based offline cache — not available in jsdom
+jest.mock("@/src/services/offlineAudioCache", () => ({
+  saveOfflineTrack: jest.fn().mockResolvedValue(undefined),
+  isTrackCached: jest.fn().mockResolvedValue(false),
+  removeOfflineTrack: jest.fn().mockResolvedValue(undefined),
+}));
+
 jest.mock("next/link", () => ({
   __esModule: true,
   default: ({
@@ -73,7 +81,7 @@ describe("DownloadButton", () => {
       mockStore("FREE");
       render(<DownloadButton trackId={TRACK_ID} />);
 
-      fireEvent.click(screen.getByRole("button", { name: /download track/i }));
+      fireEvent.click(screen.getByRole("button", { name: /save for offline/i }));
 
       await waitFor(() => {
         expect(screen.getByText(/PRO only/i)).toBeInTheDocument();
@@ -86,7 +94,7 @@ describe("DownloadButton", () => {
       mockStore("FREE");
       render(<DownloadButton trackId={TRACK_ID} />);
 
-      fireEvent.click(screen.getByRole("button", { name: /download track/i }));
+      fireEvent.click(screen.getByRole("button", { name: /save for offline/i }));
 
       await waitFor(() => {
         expect(screen.getByText(/Premium Feature/i)).toBeInTheDocument();
@@ -100,7 +108,7 @@ describe("DownloadButton", () => {
       mockStore(null);
       render(<DownloadButton trackId={TRACK_ID} />);
 
-      fireEvent.click(screen.getByRole("button", { name: /download track/i }));
+      fireEvent.click(screen.getByRole("button", { name: /save for offline/i }));
 
       await waitFor(() => {
         expect(screen.getByText(/PRO only/i)).toBeInTheDocument();
@@ -119,24 +127,12 @@ describe("DownloadButton", () => {
         downloadUrl: "https://s3.example.com/track.mp3",
       });
 
-      // Suppress the DOM warning about creating anchor elements in tests
-      const originalCreateElement = document.createElement.bind(document);
-      const createElementSpy = jest
-        .spyOn(document, "createElement")
-        .mockImplementation((tag: string) => {
-          const el = originalCreateElement(tag) as HTMLAnchorElement;
-          el.click = jest.fn();
-          return el;
-        });
-
       render(<DownloadButton trackId={TRACK_ID} />);
-      fireEvent.click(screen.getByRole("button", { name: /download track/i }));
+      fireEvent.click(screen.getByRole("button", { name: /save for offline/i }));
 
       await waitFor(() => {
         expect(mockGetOfflineTrack).toHaveBeenCalledWith(TRACK_ID);
       });
-
-      createElementSpy.mockRestore();
     });
 
     it('shows "PRO only" (forbidden state) when backend returns 403 DownloadForbiddenError', async () => {
@@ -146,7 +142,7 @@ describe("DownloadButton", () => {
       );
 
       render(<DownloadButton trackId={TRACK_ID} />);
-      fireEvent.click(screen.getByRole("button", { name: /download track/i }));
+      fireEvent.click(screen.getByRole("button", { name: /save for offline/i }));
 
       await waitFor(() => {
         // Should show forbidden state (PRO only), NOT generic error state
@@ -161,7 +157,7 @@ describe("DownloadButton", () => {
       );
 
       render(<DownloadButton trackId={TRACK_ID} />);
-      fireEvent.click(screen.getByRole("button", { name: /download track/i }));
+      fireEvent.click(screen.getByRole("button", { name: /save for offline/i }));
 
       await waitFor(() => {
         expect(screen.getByText(/Premium Feature/i)).toBeInTheDocument();
@@ -173,7 +169,7 @@ describe("DownloadButton", () => {
       mockGetOfflineTrack.mockRejectedValue(new Error("Network error"));
 
       render(<DownloadButton trackId={TRACK_ID} />);
-      fireEvent.click(screen.getByRole("button", { name: /download track/i }));
+      fireEvent.click(screen.getByRole("button", { name: /save for offline/i }));
 
       await waitFor(() => {
         expect(screen.getByText(/Failed/i)).toBeInTheDocument();
@@ -187,7 +183,7 @@ describe("DownloadButton", () => {
       mockGetOfflineTrack.mockRejectedValue(new Error("Network timeout"));
 
       render(<DownloadButton trackId={TRACK_ID} />);
-      fireEvent.click(screen.getByRole("button", { name: /download track/i }));
+      fireEvent.click(screen.getByRole("button", { name: /save for offline/i }));
 
       await waitFor(() => {
         expect(screen.getByText(/Failed/i)).toBeInTheDocument();
@@ -204,7 +200,7 @@ describe("DownloadButton", () => {
       );
 
       render(<DownloadButton trackId={TRACK_ID} />);
-      fireEvent.click(screen.getByRole("button", { name: /download track/i }));
+      fireEvent.click(screen.getByRole("button", { name: /save for offline/i }));
 
       await waitFor(() => {
         expect(screen.getByText(/PRO only/i)).toBeInTheDocument();
