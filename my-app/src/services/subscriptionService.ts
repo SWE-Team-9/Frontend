@@ -129,15 +129,48 @@ export const decrementUploadQuota = async (): Promise<SubscriptionDetails> => {
 
 
 /**
- * Upgrade user to PRO or GO+ plan
- * Implements the logic to update status and perks 
+ * Upgrade user to PRO or GO+ plan.
+ *
+ * Mock mode (NEXT_PUBLIC_USE_MOCK=true):
+ *   Simulates an instant upgrade, no network call.
+ *
+ * Real mode (NEXT_PUBLIC_USE_MOCK=false):
+ *   Calls POST /subscriptions/checkout.
+ *
+ *   - Mock billing provider (BILLING_PROVIDER=mock_stripe on server):
+ *     Returns { status: 'active', ... } — subscription activated immediately.
+ *
+ *   - Real Stripe (BILLING_PROVIDER=stripe on server):
+ *     Returns { checkoutUrl: 'https://checkout.stripe.com/...' }.
+ *     This function redirects the browser to that URL so Stripe can collect
+ *     payment. The function will NOT return in this case — the page navigates away.
+ *     After payment, Stripe redirects to /subscriptions/success.
  */
 export const upgradeSubscription = async (type: "PRO" | "GO+") => {
   if (!USE_MOCK) {
     // Map frontend plan key to backend planCode
     const planCode = type === "GO+" ? "GO_PLUS" : "PRO";
     const response = await api.post("/subscriptions/checkout", { planCode });
-    return response.data;
+    const data = response.data as {
+      checkoutUrl?: string;
+      scheduled?: boolean;
+      [key: string]: unknown;
+    };
+
+    // Real Stripe: redirect the browser to the Stripe Hosted Checkout page.
+    // The browser navigates away — this function effectively does not return.
+    if (
+      data.checkoutUrl &&
+      (data.checkoutUrl.startsWith("https://checkout.stripe.com/") ||
+        data.checkoutUrl.startsWith("https://checkout.stripe.com"))
+    ) {
+      window.location.href = data.checkoutUrl;
+      // Return a sentinel so TypeScript is satisfied (navigation is async)
+      return data;
+    }
+
+    // Mock billing provider or downgrade scheduled: return as-is
+    return data;
   }
 
   await new Promise((resolve) => setTimeout(resolve, 1500));
