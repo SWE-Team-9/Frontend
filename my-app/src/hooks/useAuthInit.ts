@@ -1,11 +1,15 @@
 "use client";
 import { useEffect } from "react";
-import { getBootstrapData } from "@/src/services/bffService";
+import { getBootstrapData, BootstrapEntitlements } from "@/src/services/bffService";
 import { useAuthStore } from "@/src/store/useAuthStore";
 import { useProfileStore } from "@/src/store/useProfileStore";
 import { useNotificationStore } from "@/src/store/notificationsStore";
 import { useSubscriptionStore } from "@/src/store/useSubscriptionStore";
-import { SubscriptionDetails } from "@/src/services/subscriptionService";
+import {
+  normalizeBackendSubscription,
+  SubscriptionDetails,
+} from "@/src/services/subscriptionService";
+import { PLAN_CONFIG } from "@/src/config/plans";
 
 // ─────────────────────────────────────────────────────────────
 // useAuthInit
@@ -20,21 +24,43 @@ import { SubscriptionDetails } from "@/src/services/subscriptionService";
 // is simply treated as a guest.
 // ─────────────────────────────────────────────────────────────
 
+/**
+ * Builds a SubscriptionDetails from the entitlements block when the
+ * full subscription object is absent from the bootstrap response.
+ */
+function entitlementsToSubDetails(e: BootstrapEntitlements): SubscriptionDetails {
+  const planCode = e.planCode ?? "FREE";
+  const subscriptionType: "FREE" | "PRO" | "GO+" =
+    planCode === "GO_PLUS" ? "GO+" : planCode === "PRO" ? "PRO" : "FREE";
+  const uploadLimit = e.uploadLimit < 0 ? Infinity : e.uploadLimit;
+  return {
+    userId: "",
+    subscriptionType,
+    planName: PLAN_CONFIG[subscriptionType]?.label ?? subscriptionType,
+    isPremium: e.isPremium,
+    subscriptionStatus: null,
+    uploadLimit,
+    uploadedTracks: e.uploadedCount ?? 0,
+    remainingUploads: e.remainingUploads,
+    cancelAtPeriodEnd: false,
+    currentPeriodEnd: null,
+    renewalDate: null,
+    expiresAt: null,
+    trialStart: null,
+    trialEnd: e.trialEnd ?? null,
+    paymentMethodSummary: null,
+    pendingDowngrade: null,
+    perks: {
+      adFree: !e.adsEnabled,
+      offlineListening: e.canDownload,
+    },
+  };
+}
+
 export const useAuthInit = () => {
   useEffect(() => {
     getBootstrapData()
       .then((data) => {
-        // Seed auth store
-        const me = data.me;
-        useAuthStore.getState().setUser({
-          id: me.id,
-          email: me.email,
-          displayName: me.display_name ?? "",
-          handle: me.handle ?? "",
-          avatarUrl: me.avatar_url ?? null,
-          isVerified: me.is_verified ?? false,
-        });
-
         // Seed profile store (minimal shell data; full profile loaded by profile page)
         if (data.profile) {
           const p = data.profile;
@@ -58,12 +84,35 @@ export const useAuthInit = () => {
           data.notifications.latest,
         );
 
-        // Seed subscription store
+        // Seed subscription store.
+        // The raw backend object must be normalized before storing so that
+        // planCode "GO_PLUS" → subscriptionType "GO+", adsEnabled is inverted
+        // to perks.adFree, etc.  Without this, premium checks fail everywhere.
         if (data.subscription) {
+          const normalized = normalizeBackendSubscription(
+            data.subscription as Record<string, unknown>,
+          );
+          useSubscriptionStore.getState().setSubDirectly(normalized);
+        } else if (data.entitlements) {
+          // Fallback: build a minimal SubscriptionDetails from the lighter
+          // entitlements block when the full subscription object is absent.
           useSubscriptionStore
             .getState()
-            .setSubDirectly(data.subscription as unknown as SubscriptionDetails);
+            .setSubDirectly(entitlementsToSubDetails(data.entitlements));
         }
+
+        // Seed auth store last. This avoids a race where AuthProvider sees
+        // user first and triggers fallback /subscriptions/me before bootstrap
+        // has hydrated subscription from /app/bootstrap.
+        const me = data.me;
+        useAuthStore.getState().setUser({
+          id: me.id,
+          email: me.email,
+          displayName: me.display_name ?? "",
+          handle: me.handle ?? "",
+          avatarUrl: me.avatar_url ?? null,
+          isVerified: me.is_verified ?? false,
+        });
       })
       .catch(() => {
         // 401 or network error — user is a guest, nothing to do
