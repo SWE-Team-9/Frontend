@@ -1,79 +1,109 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useProfileStore } from "@/src/store/useProfileStore";
+import { useAuthStore } from "@/src/store/useAuthStore";
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   getMyProfile,
   updateMyProfile,
   updateMyLinks,
   uploadProfileImage,
+  getProfileByHandle,
 } from "@/src/services/profileService";
-
-// ─────────────────────────────────────────────────────────────
-// useProfileController
-//
-// This hook is the "brain" of the profile page. It:
-//   1. Fetches the user's profile from the backend on first load
-//   2. Provides all the UI state (which tab is active, modals, etc.)
-//   3. Saves changes back to the backend when the user clicks Save
-//
-// BEGINNER TIP:
-//   A "controller" hook keeps UI logic out of the page component
-//   so the page only deals with displaying things.
-// ─────────────────────────────────────────────────────────────
 
 type AccountType = "ARTIST" | "LISTENER";
 
-export const useProfileController = () => {
+type ProfileDraft = {
+  displayName: string;
+  bio: string;
+  location: string;
+  website: string;
+  isPrivate?: boolean;
+  favoriteGenres: string[];
+  accountType: AccountType;
+  links?: {
+    id: number;
+    platform: string;
+    url: string;
+  }[];
+};
+
+export const useProfileController = (handle?: string) => {
   const store = useProfileStore();
 
-  // ---- UI state ----
-  const [activeTab, setActiveTab] = useState("All");
+  const [userId, setUserId] = useState<string | null>(null);
+  const currentUserId = useAuthStore((state) => state.user?.id);
+  const isOwner = userId === currentUserId;
+  const [activeTab, setActiveTab] = useState("Tracks");
   const [viewState, setViewState] = useState("profile");
   const [detailTab, setDetailTab] = useState("Following");
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isShareOpen, setIsShareOpen] = useState(false);
-  const [shareTab, setShareTab] = useState("Share");
-  const [isShortened, setIsShortened] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isAvatarUploading, setIsAvatarUploading] = useState(false);
+  const [isCoverUploading, setIsCoverUploading] = useState(false);
   const hasRequestedProfileRef = useRef(false);
 
-  // ---- Static data ----
-  const tabs = ["All", "Popular tracks", "Tracks", "Albums", "Playlists", "Reposts"];
-  // These values MUST match the backend's ALLOWED_GENRES list exactly (lowercase, with dashes)
-  const genres = [
-    "None",
-    "electronic", "hip-hop", "pop", "rock", "alternative",
-    "ambient", "classical", "jazz", "r-b-soul", "metal",
-    "folk-singer-songwriter", "country", "reggaeton", "dancehall",
-    "drum-bass", "house", "techno", "deep-house", "trance",
-    "lo-fi", "indie", "punk", "blues", "latin",
-    "afrobeat", "trap", "experimental", "world", "gospel", "spoken-word",
+  const tabs = [
+    "All",
+    "Popular tracks",
+    "Tracks",
+    "Albums",
+    "Playlists",
+    "Reposts",
   ];
 
-  // ---- Profile links for the share modal ----
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const longLink = store.handle
-    ? `${origin}/profile/${store.handle}`
-    : `${origin}/profile`;
-  const shortLink = longLink; // no shortener yet
+  const genres = [
+    "None",
+    "electronic",
+    "hip-hop",
+    "pop",
+    "rock",
+    "alternative",
+    "ambient",
+    "classical",
+    "jazz",
+    "r-b-soul",
+    "metal",
+    "folk-singer-songwriter",
+    "country",
+    "reggaeton",
+    "dancehall",
+    "drum-bass",
+    "house",
+    "techno",
+    "deep-house",
+    "trance",
+    "lo-fi",
+    "indie",
+    "punk",
+    "blues",
+    "latin",
+    "afrobeat",
+    "trap",
+    "experimental",
+    "world",
+    "gospel",
+    "spoken-word",
+    "quran",
+    "sha3by",
+    "islamic",
+  ];
 
-  // ──────────────────────────────────────────
-  //  FETCH profile from backend on first load
-  // ──────────────────────────────────────────
   const loadProfile = useCallback(async () => {
-    if (store.isLoaded || hasRequestedProfileRef.current) return; // already loaded or already requested
+    if (hasRequestedProfileRef.current) return;
     hasRequestedProfileRef.current = true;
 
     try {
       setIsLoading(true);
-      const profile = await getMyProfile();
+      const profile = handle
+        ? await getProfileByHandle(handle)
+        : await getMyProfile();
+      setUserId(profile.id);
 
-      // Convert the backend response into our store shape
       store.setProfileData({
+        userId: profile.id,
         displayName: profile.displayName ?? "",
         handle: profile.handle ?? "",
         bio: profile.bio ?? "",
@@ -87,36 +117,71 @@ export const useProfileController = () => {
         followersCount: profile.followersCount ?? 0,
         followingCount: profile.followingCount ?? 0,
         tracksCount: profile.tracksCount ?? 0,
-        // Convert backend links → our local links (add an id for React keys)
         links:
           profile.externalLinks && profile.externalLinks.length > 0
-            ? profile.externalLinks.map((l, i) => ({
-                id: Date.now() + i,
-                platform: l.platform,
-                url: l.url,
-              }))
+            ? profile.externalLinks.map(
+                (l: { platform: string; url: string }, i: number) => ({
+                  id: Date.now() + i,
+                  platform: l.platform,
+                  url: l.url,
+                }),
+              )
             : [{ id: 1, platform: "", url: "" }],
         isLoaded: true,
       });
+
+      if (!handle) {
+        const authUser = useAuthStore.getState().user;
+        if (authUser) {
+          useAuthStore.getState().setUser({
+            ...authUser,
+            avatarUrl: profile.avatarUrl ?? null,
+          });
+        }
+      }
     } catch {
-      // If the profile fetch fails (not logged in, etc.), just ignore
       hasRequestedProfileRef.current = false;
-      console.log("Could not load profile — user may not be logged in.");
+      setError("Could not load profile. Please refresh and try again.");
     } finally {
       setIsLoading(false);
     }
-  }, [store]);
+  }, [handle]);
 
   useEffect(() => {
-    loadProfile();
-  }, [loadProfile]);
+    const current = useProfileStore.getState();
+    if (current.handle === handle && current.isLoaded) {
+      hasRequestedProfileRef.current = true;
+      return;
+    }
 
-  // ──────────────────────────────
-  //  SAVE changes to the backend
-  // ──────────────────────────────
-  const handleSave = async () => {
-    // Simple validation
-    if (!store.displayName.trim()) {
+    let cancelled = false;
+    (async () => {
+      if (cancelled) return;
+      setIsLoading(true);
+      setUserId(null);
+      store.resetProfile();
+      hasRequestedProfileRef.current = false;
+      await loadProfile();
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [handle]);
+
+  const handleSave = async (draft: ProfileDraft) => {
+    const nextProfile = {
+      displayName: draft.displayName,
+      bio: draft.bio,
+      location: draft.location,
+      website: draft.website,
+      isPrivate: draft.isPrivate,
+      favoriteGenres: draft.favoriteGenres,
+      accountType: draft.accountType,
+      links: draft.links ?? [],
+    };
+
+    if (!nextProfile.displayName.trim()) {
       setError("Display name is required!");
       return;
     }
@@ -125,23 +190,23 @@ export const useProfileController = () => {
       setIsSaving(true);
       setError("");
 
-      // 1. Update basic profile fields
       await updateMyProfile({
-        display_name: store.displayName,
-        bio: store.bio || undefined,
-        location: store.location || undefined,
-        website: store.website || undefined,
-        is_private: store.isPrivate,
-        favorite_genres: store.favoriteGenres.filter((g) => g !== "None"),
-        account_type: store.accountType,
+        display_name: nextProfile.displayName,
+        bio: nextProfile.bio || undefined,
+        location: nextProfile.location || undefined,
+        website: nextProfile.website || undefined,
+        is_private: nextProfile.isPrivate,
+        favorite_genres: nextProfile.favoriteGenres.filter((g) => g !== "None"),
+        account_type: nextProfile.accountType,
       });
 
-      // 2. Update social links (skip empty ones)
-      const validLinks = store.links
+      const validLinks = nextProfile.links
         .filter((l) => l.url.trim() !== "")
         .map((l) => ({ platform: l.platform || "website", url: l.url }));
 
       await updateMyLinks(validLinks);
+
+      store.setProfileData(nextProfile);
 
       setIsEditOpen(false);
       setShowSuccessToast(true);
@@ -162,11 +227,15 @@ export const useProfileController = () => {
       setError("");
 
       const result = await uploadProfileImage("avatar", file);
-      const uploadedUrl =
-        (result as { url?: string | null })?.url || undefined;
+      const uploadedUrl = (result as { url?: string | null })?.url || undefined;
 
       if (uploadedUrl) {
         store.setProfileData({ avatarUrl: uploadedUrl });
+
+        const authUser = useAuthStore.getState().user;
+        if (authUser) {
+          useAuthStore.getState().setUser({ ...authUser, avatarUrl: uploadedUrl });
+        }
       }
 
       return uploadedUrl;
@@ -179,26 +248,38 @@ export const useProfileController = () => {
     }
   };
 
-  // ---- Clipboard helper ----
-  const copyToClipboard = async () => {
-    const textToCopy = isShortened ? shortLink : longLink;
+  const handleCoverUpload = async (file: File): Promise<string | undefined> => {
+    if (isCoverUploading) return store.coverUrl || undefined;
+
     try {
-      await navigator.clipboard.writeText(textToCopy);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error("Failed to copy!", err);
+      setIsCoverUploading(true);
+      setError("");
+
+      const result = await uploadProfileImage("cover", file);
+      const uploadedUrl = (result as { url?: string | null })?.url || undefined;
+
+      if (uploadedUrl) {
+        store.setProfileData({ coverUrl: uploadedUrl });
+      }
+
+      return uploadedUrl;
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } } };
+      setError(axiosErr.response?.data?.message || "Failed to upload cover photo.");
+      throw err;
+    } finally {
+      setIsCoverUploading(false);
     }
   };
 
-  // ---- setProfileData wrapper ----
-  const setProfileData = (data: Partial<typeof store>) => {
+  const setProfileData = (data: Parameters<typeof store.setProfileData>[0]) => {
     store.setProfileData(data);
   };
 
-  // ---- Return everything the page needs ----
   return {
     ...store,
+    userId,
+    isOwner,
     activeTab,
     setActiveTab,
     setProfileData,
@@ -209,23 +290,15 @@ export const useProfileController = () => {
     setDetailTab,
     isEditOpen,
     setIsEditOpen,
-    isShareOpen,
-    setIsShareOpen,
-    shareTab,
-    setShareTab,
-    isShortened,
-    setIsShortened,
-    copied,
-    copyToClipboard,
     error,
     handleSave,
     genres,
     showSuccessToast,
-    longLink,
-    shortLink,
     isSaving,
     isLoading,
     isAvatarUploading,
+    isCoverUploading,
     handleAvatarUpload,
+    handleCoverUpload,
   };
 };

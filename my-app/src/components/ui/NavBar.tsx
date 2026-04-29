@@ -1,16 +1,20 @@
 "use client";
 import Image from "next/image";
+import Link from "next/link";
+import { useNotificationStore } from "@/src/store/notificationsStore";
+import { NotificationDropdown } from "@/src/components/notifications/NotificationDropdown";
+import { Star } from "lucide-react";
 import DropdownMenu from "@/src/components/ui/DropdownMenu";
 import NavBarItem from "@/src/components/ui/NavBarItem";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { MdPerson, MdPersonAddAlt1, MdStars, MdBarChart } from "react-icons/md";
 import { BsPersonCheckFill } from "react-icons/bs";
 import { ImHeart } from "react-icons/im";
 import { PiWaveformBold } from "react-icons/pi";
+import SearchBar from "@/src/components/search/SearchBar";
 import { IoRadio } from "react-icons/io5";
 import { TbArrowLeftRight } from "react-icons/tb";
 import {
-  FiSearch,
   FiBell,
   FiMail,
   FiList,
@@ -21,6 +25,12 @@ import {
 import { useAuthStore } from "@/src/store/useAuthStore";
 import { logoutUser } from "@/src/services/authService";
 import { useRouter } from "next/navigation";
+import { useLikeStore } from "@/src/store/likeStore";
+import { useRepostStore } from "@/src/store/repostStore";
+import MessagesDropdown from "@/src/components/messages/MessagesDropdown";
+import { useMessageStore } from "@/src/store/messageStore";
+import { useSubscriptionStore } from "@/src/store/useSubscriptionStore";
+import SubscriptionModal from "@/src/components/subscription/SubscriptionModal";
 
 interface NavItem {
   label: string;
@@ -42,7 +52,6 @@ interface NavBarProps {
   showMoreMenu?: boolean;
   showSearch?: boolean;
 
-  notificationsContent?: React.ReactNode;
   messagesContent?: React.ReactNode;
 
   className?: string;
@@ -52,23 +61,22 @@ const NavBar: React.FC<NavBarProps> = ({
   leftRoutes = [
     { label: "Home", href: "/discover" },
     { label: "Feed", href: "/feed" },
-    { label: "Library", href: "/library" },
+    { label: "Library", href: "/library/overview" },
   ],
 
   rightRoutes = [
-    { label: "Try ArtistPro", href: "/pro" },
-    { label: "For Artists", href: "/artists" },
+    { label: "ArtistPro", href: "/subscriptions" },
     { label: "Upload", href: "/upload" },
   ],
 
   profileMenu = [
-    { label: "Profile", icon: MdPerson, href: "/profile" },
+    { label: "Profile", icon: MdPerson, href: "/profiles" },
     { label: "Likes", icon: ImHeart },
     { label: "Playlists", icon: FiList },
     { label: "Stations", icon: IoRadio },
     { label: "Following", icon: BsPersonCheckFill },
     { label: "Who to follow", icon: MdPersonAddAlt1 },
-    { label: "Try Artist Pro", icon: MdStars },
+    { label: "ArtistPro", icon: MdStars },
     { label: "Tracks", icon: PiWaveformBold },
     { label: "Insights", icon: MdBarChart },
     { label: "Distribute", icon: TbArrowLeftRight },
@@ -99,12 +107,6 @@ const NavBar: React.FC<NavBarProps> = ({
   showProfile = true,
   showMoreMenu = true,
 
-  notificationsContent = (
-    <div className="absolute top-10 right-0 bg-neutral-900 text-white rounded-md shadow-md w-56 p-3 border border-neutral-700">
-      <p className="text-sm text-neutral-400">No new notifications</p>
-    </div>
-  ),
-
   messagesContent = (
     <div className="absolute top-10 right-0 bg-neutral-900 text-white rounded-md shadow-md w-56 p-3 border border-neutral-700">
       <p className="text-sm text-neutral-400">No messages</p>
@@ -114,36 +116,105 @@ const NavBar: React.FC<NavBarProps> = ({
   className = "",
 }) => {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [isSubModalOpen, setIsSubModalOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null); // Ref for detecting clicks outside of the menu
+
+  // SUBSCRIPTION STATE
+  const sub = useSubscriptionStore((state) => state.sub);
+  const fetchSubscription = useSubscriptionStore(
+    (state) => state.fetchSubscription,
+  );
+
+  // NOTIFICATIONS
+  const unreadCount = useNotificationStore((state) => state.unreadCount);
 
   // Read the current logged-in user from the global auth store
   const user = useAuthStore((state) => state.user);
+  const syncLikes = useLikeStore((state) => state.syncWithServer);
+  const syncReposts = useRepostStore((state) => state.syncWithServer);
   // Use the user's avatar if available, otherwise a default silhouette
-  const [profileImageSrc, setProfileImageSrc] = useState(
-    user?.avatarUrl || "/images/profile.png",
-  );
+  const profileImageSrc = user?.avatarUrl || "/images/profile.png";
   // Display name fallback: use handle or the part before "@" in email
   const displayLabel = user
     ? user.displayName || user.handle || user.email.split("@")[0]
     : null;
 
-  const router = useRouter();
+  const unreadMessageCount = useMessageStore((state) => state.unreadCount);
+  const loadUnreadCount = useMessageStore((state) => state.loadUnreadCount);
 
   useEffect(() => {
-    setProfileImageSrc(user?.avatarUrl || "/images/profile.png");
-  }, [user]);
+    if (user?.id) {
+      loadUnreadCount();
+    }
+  }, [user?.id, loadUnreadCount]);
+
+  // --- SYNC INTERACTIONS ON LOAD ---
+  useEffect(() => {
+    if (user?.id) {
+      // Fetch user's likes and reposts from API to populate local stores
+      syncLikes(user.id);
+      syncReposts(user.id);
+    }
+  }, [user?.id, syncLikes, syncReposts]);
+  const router = useRouter();
+
+  // --- FETCH SUBSCRIPTION ON MOUNT (only when authenticated) ---
+  useEffect(() => {
+    if (user) {
+      fetchSubscription();
+    }
+  }, [user, fetchSubscription]);
 
   // Sign-out handler — clears cookies on the backend, clears store
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     await logoutUser();
     router.push("/");
-  };
+  }, [router]);
 
-  // Inject the logout action into the "Sign out" menu item
-  const moreMenuWithLogout = moreMenu.map((item) =>
-    item.label === "Sign out" ? { ...item, onClick: handleLogout } : item,
-  );
+  // Update Profile Menu to use the handle and trigger Subscription Modal
+  const dynamicProfileMenu = useMemo(() => {
+    return profileMenu.map((item) => {
+      // 1. First Condition: Handle the Profile link
+      if (item.label === "Profile" && user?.handle) {
+        return { ...item, href: `/profiles/${user.handle}` };
+      }
 
+      // 2. Second Condition: Handle "Try Artist Pro" to open Modal
+      if (item.label === "Try Artist Pro") {
+        return {
+          ...item,
+          href: undefined, // Disable the old link to prevent navigation
+          onClick: () => {
+            setOpenMenu(null); // Close the black dropdown menu first
+            setIsSubModalOpen(true); // Open the colorful Subscription Modal
+          },
+        };
+      }
+
+      return item; // Return the rest of the items as they are
+    });
+  }, [profileMenu, user]);
+
+  // Inject Logout handler
+  const moreMenuWithLogout = useMemo(() => {
+    return moreMenu.map((item) => {
+      if (item.label === "Sign out") {
+        return { ...item, onClick: handleLogout };
+      }
+
+      if (item.label === "Subscription") {
+        return {
+          ...item,
+          onClick: () => {
+            setOpenMenu(null); // Close the black dropdown menu first
+            setIsSubModalOpen(true); // Open the colorful Subscription Modal
+          },
+        };
+      }
+
+      return item;
+    });
+  }, [moreMenu, handleLogout]);
   useEffect(() => {
     // Close menus when clicking outside
     const handleClickOutside = (event: MouseEvent) => {
@@ -179,8 +250,6 @@ const NavBar: React.FC<NavBarProps> = ({
             />
           </div>
 
-          {/* <FaSoundcloud size={48} className="text-white shrink-0" /> */}
-
           <button
             className="md:hidden text-white"
             onClick={() => toggleMenu("mobile")}
@@ -203,16 +272,8 @@ const NavBar: React.FC<NavBarProps> = ({
 
         {/* CENTER SECTION */}
         {showSearch && (
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search"
-              className="bg-neutral-800 text-white text-sm px-4 py-1 rounded-md outline-none w-32 sm:w-48 md:w-72 lg:w-96"
-            />
-            <FiSearch
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none"
-              size={18}
-            />
+          <div className="w-32 sm:w-48 md:w-72 lg:w-86">
+            <SearchBar />
           </div>
         )}
 
@@ -237,23 +298,39 @@ const NavBar: React.FC<NavBarProps> = ({
               className="relative flex items-center gap-1 cursor-pointer"
               onClick={() => toggleMenu("profile")}
             >
-              {/* <Image
+              <Image
                 src={profileImageSrc}
+                width={24}
+                height={24}
                 alt={displayLabel || "Profile"}
                 className="w-6 h-6 rounded-full object-cover"
                 onError={(e) => {
                   e.currentTarget.onerror = null;
                   e.currentTarget.src = "/images/profile.png";
                 }}
-              /> */}
-              {/* Show the user's display name (or handle / email prefix) when logged in */}
+              />
+              {/* Show the user's display name and premium badge if applicable */}
               {displayLabel && (
-                <span className="hidden lg:block text-white text-sm font-medium max-w-24 truncate">
-                  {displayLabel}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="hidden lg:block text-white text-sm font-medium max-w-24 truncate">
+                    {displayLabel}
+                  </span>
+
+                  {/* Check if sub exists and type is PRO or GO+ */}
+                  {sub &&
+                    (sub.subscriptionType === "PRO" ||
+                      sub.subscriptionType === "GO+") && (
+                      <div className="flex items-center bg-yellow-400 text-black text-[9px] px-1.5 py-0.5 rounded-full font-black uppercase tracking-tighter shadow-[0_0_10px_rgba(250,204,21,0.5)]">
+                        <Star size={8} fill="black" className="mr-0.5" />
+                        PRO
+                      </div>
+                    )}
+                </div>
               )}
               <FiChevronDown className="text-neutral-400" />
-              {openMenu === "profile" && <DropdownMenu items={profileMenu} />}
+              {openMenu === "profile" && (
+                <DropdownMenu items={dynamicProfileMenu} />
+              )}
             </button>
           )}
 
@@ -262,9 +339,17 @@ const NavBar: React.FC<NavBarProps> = ({
             <button
               className="relative cursor-pointer"
               onClick={() => toggleMenu("notifications")}
+              aria-label="Notifications"
             >
               <FiBell size={20} className="text-neutral-400 hover:text-white" />
-              {openMenu === "notifications" && notificationsContent}
+
+              {unreadCount > 0 && (
+                <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#ff5500] px-1 text-[10px] font-bold text-white">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
+
+              {openMenu === "notifications" && <NotificationDropdown />}
             </button>
           )}
 
@@ -275,7 +360,14 @@ const NavBar: React.FC<NavBarProps> = ({
               onClick={() => toggleMenu("messages")}
             >
               <FiMail size={20} className="text-neutral-400 hover:text-white" />
-              {openMenu === "messages" && messagesContent}
+
+              {unreadMessageCount > 0 && (
+                <span className="absolute -right-1.5 -top-1.5 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-[#ff5500] px-1 text-[10px] font-bold leading-none text-white">
+                  {unreadMessageCount > 99 ? "99+" : unreadMessageCount}
+                </span>
+              )}
+
+              {openMenu === "messages" && <MessagesDropdown />}
             </button>
           )}
 
@@ -296,7 +388,15 @@ const NavBar: React.FC<NavBarProps> = ({
           )}
         </div>
       </div>
-
+      {/* 5. ADD THE SUBSCRIPTION MODAL HERE */}
+      <SubscriptionModal
+        isOpen={isSubModalOpen}
+        onClose={() => setIsSubModalOpen(false)}
+        onUpgrade={() => {
+          setIsSubModalOpen(false);
+          router.push("/settings?tab=subscription");
+        }}
+      />
       {/* MOBILE */}
       {openMenu === "mobile" && (
         <div className="md:hidden bg-neutral-900 border-t border-neutral-700 p-4 hover:text-white">

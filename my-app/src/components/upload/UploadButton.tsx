@@ -1,20 +1,33 @@
 "use client";
 
 import React, { useState } from "react";
-import { useUploadStore } from "@/src/store/uploadStore";
+import { useUploadStore } from "@/src/store/useuploadStore";
 import FileStatusBadge from "@/src/components/ui/FileStatusBadge";
+import {
+  uploadTrack,
+  getTrackDetails,
+  changeTrackVisibility,
+} from "@/src/services/uploadService";
+import { useRouter } from "next/navigation";
+import { getMyProfile } from "@/src/services/profileService";
+import { useSubscriptionStore } from "@/src/store/useSubscriptionStore";
+import { decrementUploadQuota } from "@/src/services/subscriptionService";
 
 interface FileStatus {
   name: string;
   status: "PENDING" | "UPLOADING" | "PROCESSING" | "DONE" | "ERROR";
   trackId?: string;
   errorMessage?: string;
+  resolvedTrackId?: string; // store it for redirect
 }
 
 const UploadButton: React.FC = () => {
-  const { files, setFiles } = useUploadStore();
+  const { files, setFiles, metadata } = useUploadStore();
   const [fileStatuses, setFileStatuses] = useState<FileStatus[]>([]);
-
+  const [permissionError, setPermissionError] = useState<string | null>(null);
+  const [isCheckingPermission, setIsCheckingPermission] = useState(false);
+  const router = useRouter();
+const setSubFromStore = useSubscriptionStore((state) => state.setSubDirectly);
   const updateFileStatus = (
     fileName: string,
     status: FileStatus["status"],
@@ -29,6 +42,7 @@ const UploadButton: React.FC = () => {
               status,
               trackId: trackId ?? f.trackId,
               errorMessage: errorMessage ?? f.errorMessage,
+              resolvedTrackId: trackId ?? f.resolvedTrackId,
             }
           : f,
       ),
@@ -36,80 +50,117 @@ const UploadButton: React.FC = () => {
   };
 
   const pollTrackStatus = async (fileName: string, trackId: string) => {
-    const interval = 2000; // 2 seconds
-    let status = "PROCESSING";
+    const interval = 3000;
+    const maxAttempts = 20; // 1 minute max
+    let attempts = 0;
 
-    while (status === "PROCESSING") {
+    await new Promise((r) => setTimeout(r, interval));
+
+    while (attempts < maxAttempts) {
+      attempts++;
       try {
-        const res = await fetch(`/api/v1/tracks/${trackId}/status`);
-        if (!res.ok) throw new Error("Failed to get track status");
+        const data = await getTrackDetails(trackId);
 
-        const data = await res.json();
-        status = data.status;
+        if (data.status === "FINISHED") {
+          updateFileStatus(fileName, "DONE", trackId);
+          router.push(`/tracks/${trackId}`);
+          return;
+        }
 
-        if (status === "PROCESSING") {
+        if (data.status === "PROCESSING") {
           await new Promise((r) => setTimeout(r, interval));
-        } else {
-          updateFileStatus(fileName, "DONE");
+          continue;
         }
+
+        // Any other status (FAILED etc.) — stop polling
+        updateFileStatus(
+          fileName,
+          "ERROR",
+          undefined,
+          `Track processing failed: ${data.status}`,
+        );
+        return;
       } catch (err: unknown) {
-        let message = "Unknown error during polling";
-
-        if (err instanceof Error) {
-          message = err.message;
-        }
-
-        updateFileStatus(fileName, "ERROR", undefined, message);
-        break;
+        updateFileStatus(
+          fileName,
+          "ERROR",
+          undefined,
+          (err as Error).message || "Polling error",
+        );
+        return;
       }
     }
+
+    // Timed out
+    updateFileStatus(
+      fileName,
+      "ERROR",
+      undefined,
+      "Processing timed out. Please check your track.",
+    );
   };
 
   const handleUpload = async () => {
+    setPermissionError(null);
+
     if (files.length === 0) return;
+
+    try {
+      setIsCheckingPermission(true);
+      const profile = await getMyProfile();
+      const isArtist = profile.accountType?.trim().toUpperCase() === "ARTIST";
+
+      if (!isArtist) {
+        setPermissionError("Only users with ARTIST accounts can upload tracks.");
+        return;
+      }
+    } catch {
+      setPermissionError("Could not verify upload permission. Please try again.");
+      return;
+    } finally {
+      setIsCheckingPermission(false);
+    }
 
     setFileStatuses(files.map((f) => ({ name: f.name, status: "PENDING" })));
 
     for (const file of files) {
       updateFileStatus(file.name, "UPLOADING");
 
-      // const formData = new FormData();
-      // formData.append("audioFile", file);
-      // formData.append("tags", JSON.stringify(["exampleTag1", "exampleTag2"]));
-      const payload = {
-        fileName: file.name,
-        tags: ["exampleTag1", "exampleTag2"], // Example tags, replace with actual tags if needed
-      };
-
       try {
-        // const res = await fetch("/api/v1/tracks", {
-        //   method: "POST",
-        //   body: formData,
-        const res = await fetch("/api/v1/tracks", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json", // Set content type to JSON since we're sending a JSON payload
-          },
-          body: JSON.stringify(payload), // convert object to JSON string
-        });
+        if (!metadata) throw new Error("Metadata missing");
+        const data = await uploadTrack(file, metadata);
 
-        if (!res.ok) throw new Error("Upload failed");
+   if (data.status === "PROCESSING" && data.trackId) {
+  await changeTrackVisibility(data.trackId, metadata.visibility);
+  updateFileStatus(file.name, "PROCESSING", data.trackId);
 
-        const data = await res.json();
-        if (data.status === "PROCESSING" && data.trackId) {
-          updateFileStatus(file.name, "PROCESSING", data.trackId);
-          pollTrackStatus(file.name, data.trackId);
-        } else {
-          updateFileStatus(file.name, "DONE");
-        }
+  const updatedSub = await decrementUploadQuota();
+  setSubFromStore(updatedSub);
+
+  pollTrackStatus(file.name, data.trackId);
+} else {
+  updateFileStatus(file.name, "DONE");
+}
       } catch (err: unknown) {
-        let message = "Unknown error during upload";
+        // Extract backend error message from response body (e.g. 403 UPLOAD_LIMIT_REACHED)
+        const axiosErr = err as {
+          response?: { data?: { message?: string; code?: string }; status?: number };
+          message?: string;
+        };
+        const errorMessage =
+          axiosErr?.response?.data?.message || axiosErr?.message || "Upload error";
 
-        if (err instanceof Error) {
-          message = err.message;
+        updateFileStatus(file.name, "ERROR", undefined, errorMessage);
+
+        // On quota-exceeded (403), refresh subscription so UploadForm shows paywall
+        if (axiosErr?.response?.status === 403) {
+          try {
+            const freshSub = await decrementUploadQuota();
+            setSubFromStore(freshSub);
+          } catch {
+            // ignore refresh failure
+          }
         }
-
-        updateFileStatus(file.name, "ERROR", undefined, message);
       }
     }
 
@@ -120,11 +171,17 @@ const UploadButton: React.FC = () => {
     <div>
       <button
         onClick={handleUpload}
-        className="mt-4 w-full bg-white text-lg hover:bg-gray-200 text-black font-semibold py-2 px-4 rounded disabled:opacity-50"
-        disabled={files.length === 0}
+        className="mt-4 w-full bg-white text-lg transition duration-300 hover:bg-[#ff5500] text-black font-bold py-2 px-4 rounded disabled:opacity-50"
+        disabled={files.length === 0 || isCheckingPermission}
       >
-        Upload {files.length > 0 ? `(${files.length}) files` : ""}
+        {isCheckingPermission
+          ? "Checking permissions..."
+          : `Upload ${files.length > 0 ? `(${files.length}) files` : ""}`}
       </button>
+
+      {permissionError && (
+        <p className="mt-2 text-sm text-red-500">{permissionError}</p>
+      )}
 
       <div className="mt-4 space-y-2">
         {fileStatuses.map((f) => (

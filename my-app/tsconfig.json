@@ -1,15 +1,4 @@
 {
-
-
-  // "compilerOptions": {
-  //   "baseUrl": "src",
-  //   "paths": {
-  //     "@/*": ["*"]
-  //   }
-  // },
-
-
-
   "compilerOptions": {
     "target": "ES2017",
     "lib": [
@@ -28,6 +17,7 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
+    "types": ["jest", "node", "@testing-library/jest-dom"],
     "plugins": [
       {
         "name": "next"

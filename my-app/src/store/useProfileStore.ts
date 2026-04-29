@@ -1,26 +1,20 @@
 import { create } from "zustand";
 
 // ─────────────────────────────────────────────────────────────
-// Profile Store
-//
 // Holds the current user's profile data. When the user visits
 // /profile we fetch their data from the backend and put it here
 // so every component can read it.
-//
-// BEGINNER TIP:
-//   Think of this as a "global variable" that any React component
-//   can read and update. Zustand makes sure React re-renders
-//   automatically when the data changes.
 // ─────────────────────────────────────────────────────────────
 
 export interface SocialLink {
-  id: number;          // local ID for the UI (so React can track list items)
-  platform: string;    // e.g. "instagram", "youtube"
+  id: number;          
+  platform: string;    
   url: string;
 }
 
 interface ProfileState {
   // ---- Data from the backend ----
+  userId: string;
   displayName: string;
   handle: string;
   bio: string;
@@ -35,6 +29,7 @@ interface ProfileState {
   followersCount: number;
   followingCount: number;
   tracksCount: number;
+  useMockData: boolean;
 
   // ---- Loading flag ----
   isLoaded: boolean;     // true once we fetched from the backend at least once
@@ -49,9 +44,10 @@ interface ProfileState {
 }
 
 const initialProfileState = {
+  userId: "",
   displayName: "",
   handle: "",
-  bio: "",
+bio: "Biomedical Engineering Student",
   location: "",
   website: "",
   avatarUrl: null,
@@ -64,13 +60,11 @@ const initialProfileState = {
   followingCount: 0,
   tracksCount: 0,
   isLoaded: false,
+  useMockData: true,
 };
 
 export const useProfileStore = create<ProfileState>()((set) => ({
-  // Default / empty values
   ...initialProfileState,
-
-  // ---- Action implementations ----
 
   setProfileData: (data) => set((state) => ({ ...state, ...data })),
 

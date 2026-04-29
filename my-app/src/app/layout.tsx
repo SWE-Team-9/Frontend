@@ -2,6 +2,11 @@ import "./globals.css";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import AuthProvider from "@/src/components/providers/AuthProvider";
+import { Player } from "@/src/components/player/Player";
+import PlayerAudioSync from "@/src/components/player/PlayerAudioSync";
+import { Toaster } from "sonner";
+import { NotificationSocketBridge } from "@/src/components/notifications/NotificationSocketBridge";
+
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,18 +28,34 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
-  // Initialize auth state on app load
+}) {
   return (
     <html lang="en">
-
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-       <AuthProvider>
-          {children}
-        </AuthProvider> 
+        <AuthProvider>
+          <NotificationSocketBridge />
+          <div className="pb-24">
+            {children}
+          </div>
 
+          <Player />
+          <PlayerAudioSync />
+
+          
+          <Toaster
+            position="top-right"
+            theme="dark"
+            toastOptions={{
+              style: {
+                background: "#1a1a1a",
+                border: "1px solid #2a2a2a",
+                color: "#fff",
+              },
+            }}
+          />
+        </AuthProvider>
       </body>
     </html>
   );

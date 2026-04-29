@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useEffect, useCallback, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/src/store/useAuthStore";
 import {
   changePassword,
@@ -12,20 +12,27 @@ import {
   logoutUser,
 } from "@/src/services/authService";
 import AuthInput from "@/src/components/auth/AuthInput";
+import BlockedUsersList from "@/src/components/block-user/BlockedUsersList";
+import { useBlockStore } from "@/src/store/useblockStore";
+import { deactivateMyAccount } from "@/src/services/profileService";
+import { useProfileStore } from "@/src/store/useProfileStore";
+import SubscriptionSettings from "@/src/components/profile/SubscriptionSettings";
+import { NotificationPreferences } from "@/src/components/notifications/NotificationPreferences";
 
-// ─── Validation helpers ──────────────────────────────────────────────────────
+// ─── Validation helpers ───────────────────────────────────────────────────────
 // Must match backend DTO rules exactly so we surface errors before the round-trip.
 
 /** Min 8 chars, ≥1 uppercase, ≥1 lowercase, ≥1 digit, ≥1 special char */
 const isStrongPassword = (p: string) =>
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(p);
 
-const isValidEmail = (e: string) =>
-  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
+const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
 
 /** Validate a UUID before sending DELETE to prevent injection via crafted IDs */
 const isUUID = (s: string) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+
+// ─── Shared UI primitives ─────────────────────────────────────────────────────
 
 function SectionCard({
   title,
@@ -61,7 +68,8 @@ function StatusMessage({
   );
 }
 
-// Change password Section 
+// ─── Change Password Section ──────────────────────────────────────────────────
+
 function ChangePasswordSection() {
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
@@ -76,7 +84,6 @@ function ChangePasswordSection() {
     e.preventDefault();
     setStatus(null);
 
-    // Client-side validation 
     if (!current.trim()) {
       setStatus({ type: "error", msg: "Current password is required." });
       return;
@@ -155,7 +162,7 @@ function ChangePasswordSection() {
         <button
           type="submit"
           disabled={loading}
-          className="mt-2 h-10 bg-white cursor-pointer text-black font-bold rounded-sm text-sm"
+          className="mt-2 h-10 bg-white hover:bg-[#ff5500] transition duration-300 cursor-pointer text-black font-bold text-lg rounded-sm"
         >
           {loading ? "Saving…" : "Update Password"}
         </button>
@@ -164,7 +171,8 @@ function ChangePasswordSection() {
   );
 }
 
-// Change Email Section
+// ─── Change Email Section ─────────────────────────────────────────────────────
+
 function ChangeEmailSection({ currentEmail }: { currentEmail: string }) {
   const [newEmail, setNewEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -212,7 +220,8 @@ function ChangeEmailSection({ currentEmail }: { currentEmail: string }) {
       const axiosErr = err as { response?: { data?: { message?: string } } };
       setStatus({
         type: "error",
-        msg: axiosErr.response?.data?.message ?? "Failed to request email change.",
+        msg:
+          axiosErr.response?.data?.message ?? "Failed to request email change.",
       });
     } finally {
       setLoading(false);
@@ -248,7 +257,7 @@ function ChangeEmailSection({ currentEmail }: { currentEmail: string }) {
         <button
           type="submit"
           disabled={loading}
-          className="mt-2 h-10 bg-white cursor-pointer text-black font-bold rounded-sm text-sm"
+          className="mt-2 h-10 bg-white hover:bg-[#ff5500] transition duration-300 cursor-pointer text-black font-bold text-lg rounded-sm"
         >
           {loading ? "Sending…" : "Send Confirmation Email"}
         </button>
@@ -257,8 +266,9 @@ function ChangeEmailSection({ currentEmail }: { currentEmail: string }) {
   );
 }
 
-//  Sessions Management
+// ─── Sessions Section ─────────────────────────────────────────────────────────
 // Matches the shape returned by GET /auth/sessions → { sessions: Session[] }
+
 interface Session {
   id: string;
   device?: { platform?: string; device_name?: string };
@@ -282,37 +292,58 @@ function SessionsSection() {
     msg: string;
   } | null>(null);
 
-  // Load sessions from the backend
-  const fetchSessions = useCallback(async () => {
-    try {
-      setFetchError(null);
-      setLoadingFetch(true);
-      const data = await getSessions();
-      // Backend returns { sessions: [...] }
-      setSessions(Array.isArray(data) ? data : (data?.sessions ?? []));
-    } catch {
-      setFetchError("Could not load sessions. Please try again.");
-    } finally {
-      setLoadingFetch(false);
-    }
+  const [reloadKey, setReloadKey] = useState(0);
+
+  // Trigger sessions reload without calling setState directly inside the effect body
+  const refreshSessions = useCallback(() => {
+    setReloadKey((k) => k + 1);
   }, []);
 
   useEffect(() => {
-    fetchSessions();
-  }, [fetchSessions]);
+    let cancelled = false;
 
-  // Revoke a DIFFERENT session (not the one you are using)
-  // After revoking, the other browser/tab will be sent to the
-  // home page automatically the next time it makes an API call.
+    (async () => {
+      try {
+        setFetchError(null);
+        setLoadingFetch(true);
+
+        const data = await getSessions();
+
+        if (cancelled) return;
+
+        // Backend returns { sessions: [...] }
+        setSessions(Array.isArray(data) ? data : (data?.sessions ?? []));
+      } catch {
+        if (!cancelled) {
+          setFetchError("Could not load sessions. Please try again.");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingFetch(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [reloadKey]);
+
+  // Revoke a DIFFERENT session (not the one you are using).
+  // After revoking, the other browser/tab will be redirected to the
+  // home page the next time it makes an API call.
   const handleRevoke = async (sessionId: string) => {
     if (!isUUID(sessionId)) return;
     setActionStatus(null);
     setRevoking(sessionId);
     try {
       await revokeSession(sessionId);
-      // Remove it from the list right away so the user sees the change
+      // Remove it from the list immediately so the user sees instant feedback
       setSessions((prev) => prev.filter((s) => s.id !== sessionId));
-      setActionStatus({ type: "success", msg: "Session revoked. That device has been signed out." });
+      setActionStatus({
+        type: "success",
+        msg: "Session revoked. That device has been signed out.",
+      });
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } };
       setActionStatus({
@@ -324,14 +355,13 @@ function SessionsSection() {
     }
   };
 
-  // Sign out from the CURRENT session (this browser/tab)
-  // This calls the normal logout endpoint which clears the cookies,
-  // then redirects to the home page.
+  // Sign out from the CURRENT session (this browser/tab).
+  // Calls the normal logout endpoint which clears cookies, then redirects.
   const handleSignOutCurrent = async () => {
     setActionStatus(null);
     setLogoutCurrentLoading(true);
     try {
-      await logoutUser(); // clears httpOnly cookies + auth store
+      await logoutUser();
       router.replace("/");
     } catch {
       // Even if the backend call fails, clear local state and redirect
@@ -339,7 +369,7 @@ function SessionsSection() {
     }
   };
 
-  // Sign out from ALL sessions
+  // Sign out from ALL sessions at once
   const handleLogoutAll = async () => {
     setActionStatus(null);
     setLogoutAllLoading(true);
@@ -350,7 +380,9 @@ function SessionsSection() {
       const axiosErr = err as { response?: { data?: { message?: string } } };
       setActionStatus({
         type: "error",
-        msg: axiosErr.response?.data?.message ?? "Failed to sign out all sessions.",
+        msg:
+          axiosErr.response?.data?.message ??
+          "Failed to sign out all sessions.",
       });
       setLogoutAllLoading(false);
     }
@@ -358,14 +390,13 @@ function SessionsSection() {
 
   return (
     <SectionCard title="Active Sessions">
-
       {/* Refresh button row */}
       <div className="flex items-center justify-between mb-4">
         <p className="text-sm text-zinc-400">
           Revoke any session you don&apos;t recognise.
         </p>
         <button
-          onClick={fetchSessions}
+          onClick={refreshSessions}
           disabled={loadingFetch}
           className="shrink-0 ml-4 text-xs text-zinc-400 hover:text-white border border-zinc-700 hover:border-zinc-500 px-3 py-1.5 rounded transition-colors disabled:opacity-50"
         >
@@ -390,7 +421,7 @@ function SessionsSection() {
               key={session.id}
               className="flex items-center justify-between py-3 gap-4"
             >
-              {/* Left side: device name + details */}
+              {/* Left: device name + details */}
               <div className="min-w-0">
                 <p className="text-sm text-white truncate">
                   {session.device?.device_name ?? "Unknown device"}
@@ -408,7 +439,7 @@ function SessionsSection() {
                 </p>
               </div>
 
-              {/* Right side: action button */}
+              {/* Right: action button */}
               {session.is_current ? (
                 // For the current session, "Sign out" logs you out of this browser
                 <button
@@ -420,9 +451,7 @@ function SessionsSection() {
                   {logoutCurrentLoading ? "Signing out…" : "Sign out"}
                 </button>
               ) : (
-                // For any other session, "Revoke" terminates it remotely.
-                // That device will be redirected to the home page the next
-                // time it tries to make an API call.
+                // For any other session, "Revoke" terminates it remotely
                 <button
                   onClick={() => handleRevoke(session.id)}
                   disabled={revoking === session.id}
@@ -445,7 +474,7 @@ function SessionsSection() {
       <button
         onClick={handleLogoutAll}
         disabled={logoutAllLoading}
-        className="mt-4 h-10 w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-sm text-sm transition-colors"
+        className="mt-4 h-10 w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-sm text-lg transition-colors"
       >
         {logoutAllLoading ? "Signing out…" : "Sign out from all devices"}
       </button>
@@ -453,20 +482,149 @@ function SessionsSection() {
   );
 }
 
-// Page root
+// ─── Account / Delete Section ─────────────────────────────────────────────────
 
-type Tab = "security" | "sessions"; 
-
-export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<Tab>("security");
-  const user = useAuthStore((s) => s.user);
+function AccountSection() {
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [status, setStatus] = useState<{
+    type: "error" | "success";
+    msg: string;
+  } | null>(null);
 
+  const handleDeactivateAccount = async () => {
+    try {
+      setLoading(true);
+      setStatus(null);
+
+      const result = await deactivateMyAccount();
+
+      setStatus({ type: "success", msg: result.message });
+
+      useAuthStore.getState().logout();
+      useProfileStore.getState().resetProfile();
+
+      setTimeout(() => {
+        router.replace("/");
+      }, 1200);
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } } };
+      setStatus({
+        type: "error",
+        msg:
+          axiosErr.response?.data?.message ??
+          "Failed to deactivate account. Please try again.",
+      });
+      setLoading(false);
+    }
+  };
+
+  return (
+    <SectionCard title="Account">
+      <button
+        type="button"
+        onClick={() => setShowDeleteModal(true)}
+        disabled={loading}
+        className="h-10 w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-sm text-lg transition-colors"
+      >
+        Delete Account
+      </button>
+
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/70 px-4">
+          <div className="w-full max-w-2xl rounded-lg border border-zinc-700 bg-[#1a1a1a] p-8 shadow-2xl">
+            <h2 className="mb-6 text-xl font-bold text-white">
+              Delete your account?
+            </h2>
+
+            <div className="mb-8 text-lg leading-8 text-zinc-200">
+              <p className="mb-4">
+                Deleting your account means your account will be deactivated
+                and:
+              </p>
+              <ul className="list-disc space-y-1 pl-6">
+                <li>your profile will no longer be active,</li>
+                <li>your tracks will be hidden,</li>
+                <li>other users will not be able to find your account,</li>
+                <li>you may lose access to your account data.</li>
+              </ul>
+            </div>
+
+            {status && (
+              <StatusMessage type={status.type} message={status.msg} />
+            )}
+
+            <div className="mt-8 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={loading}
+                className="rounded bg-white px-6 py-2 font-bold text-black hover:bg-zinc-200 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeactivateAccount}
+                disabled={loading}
+                className="rounded bg-red-600 px-6 py-2 font-bold text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                {loading ? "Deleting…" : "Delete Account"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </SectionCard>
+  );
+}
+
+// ─── Tab type ─────────────────────────────────────────────────────────────────
+
+type Tab =
+  | "security"
+  | "sessions"
+  | "privacy"
+  | "subscription"
+  | "account"
+  | "notifications";
+
+// ─── SettingsContent — uses useSearchParams so must live inside <Suspense> ────
+
+function SettingsContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams(); // ← requires Suspense boundary
+  const user = useAuthStore((s) => s.user);
+
+  // Valid tab ids for URL-param validation
+  const validTabs: Tab[] = [
+    "security",
+    "sessions",
+    "privacy",
+    "subscription",
+    "account",
+    "notifications",
+  ];
+
+  // Initialise active tab from the URL query param if valid, else default
+  const tabFromUrl = searchParams.get("tab") as Tab;
+  const [activeTab, setActiveTab] = useState<Tab>(
+    tabFromUrl && validTabs.includes(tabFromUrl) ? tabFromUrl : "security",
+  );
+
+  // Change tab and keep the URL in sync without a full page reload
+  const handleTabChange = (tabId: Tab) => {
+    setActiveTab(tabId);
+    router.push(`/settings?tab=${tabId}`, { scroll: false });
+  };
+
+  const { fetchBlockedUsers, loadingUserId } = useBlockStore();
+
+  // Redirect unauthenticated users — middleware handles most cases, but this
+  // catches a Zustand store empty race on hard refresh
   useEffect(() => {
-    // Middleware already blocks unauthenticated access via the cookie check,
-    // but if the Zustand store is empty (page refresh race) we redirect safely.
     if (user === null) {
-      // Small delay to let useAuthInit populate the store before redirecting
       const t = setTimeout(() => {
         if (!useAuthStore.getState().user) {
           router.replace("/");
@@ -476,13 +634,24 @@ export default function SettingsPage() {
     }
   }, [user, router]);
 
+  // Fetch blocked users only when the Privacy tab is active
+  useEffect(() => {
+    if (activeTab === "privacy") {
+      fetchBlockedUsers();
+    }
+  }, [activeTab, fetchBlockedUsers]);
+
   const tabs: { id: Tab; label: string }[] = [
     { id: "security", label: "Security" },
     { id: "sessions", label: "Sessions" },
+    { id: "privacy", label: "Privacy" },
+    { id: "subscription", label: "Subscription" },
+    { id: "account", label: "Account" },
+    { id: "notifications", label: "Notifications" },
   ];
 
   return (
-    <div className="min-h-screen text-white py-10 px-4 max-w-2xl mx-auto">
+    <div className="min-h-screen text-white px-4 max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold mb-8">Account Settings</h1>
 
       {/* Tab bar */}
@@ -490,12 +659,11 @@ export default function SettingsPage() {
         {tabs.map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`pb-3 text-sm font-bold uppercase tracking-wider transition-colors ${
-              activeTab === tab.id
-                ? "text-white border-b-2 border-white"
+            onClick={() => handleTabChange(tab.id)}
+            className={`pb-3 text-sm font-bold uppercase tracking-wider transition-colors ${activeTab === tab.id
+                ? "text-[#ff5500] border-b-2 border-[#ff5500]"
                 : "text-zinc-400 hover:text-white"
-            }`}
+              }`}
           >
             {tab.label}
           </button>
@@ -512,6 +680,48 @@ export default function SettingsPage() {
 
       {/* Sessions tab: active sessions list */}
       {activeTab === "sessions" && <SessionsSection />}
+
+      {/* Privacy tab: blocked users */}
+      {activeTab === "privacy" && (
+        <SectionCard title="Blocked Users">
+          <BlockedUsersList loadingUserId={loadingUserId} />
+        </SectionCard>
+      )}
+
+      {/* Subscription tab: plan management + payment methods */}
+      {activeTab === "subscription" && (
+        <SectionCard title="Subscription">
+          <SubscriptionSettings />
+        </SectionCard>
+      )}
+
+      {/* Account tab: delete account */}
+      {activeTab === "account" && (
+        <SectionCard title="Account">
+          <AccountSection />
+        </SectionCard>
+      )}
+
+      {/* Notifications tab: notification preferences */}
+      {activeTab === "notifications" && (
+        <SectionCard title="Notifications">
+          <NotificationPreferences />
+        </SectionCard>
+      )}
     </div>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="w-6 h-6 border-2 border-[#ff5500] border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <SettingsContent />
+    </Suspense>
   );
 }

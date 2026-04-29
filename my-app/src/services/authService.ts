@@ -10,14 +10,13 @@ import { useProfileStore } from "@/src/store/useProfileStore";
 // ─────────────────────────────────────────────────────────────
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 
 export type SocialProvider = "google"; 
-
+// ─────────────────────────────────────────────────────────────
 interface LoginData {
   email: string;
   password: string;
-  remember_me?: boolean;
-  captcha_token?: string;  
 }
 
 interface RegisterData {
@@ -27,7 +26,6 @@ interface RegisterData {
   display_name: string;
   date_of_birth: string;       // "YYYY-MM-DD"
   gender: "MALE" | "FEMALE" | "PREFER_NOT_TO_SAY";
-  captcha_token: string;
 }
 
 interface CheckEmailResponse {
@@ -46,7 +44,7 @@ export function startSocialLogin(provider: SocialProvider) {
 }
 
 // ====== Registration with reCAPTCHA ======
-export async function registerWithCaptcha(data: RegisterData) {
+export async function registerUser(data: RegisterData) {
   // Uses the shared axios instance so cookies are handled automatically
   const response = await api.post("/auth/register", data);
   useAuthStore.getState().setEmail(data.email);
@@ -54,19 +52,19 @@ export async function registerWithCaptcha(data: RegisterData) {
 }
 
 // ================= LOGIN =================
+
 export const loginUser = async ({
   email,
   password,
-  remember_me,
-  captcha_token,
+
 }: LoginData) => {
   // POST /auth/login  →  sets httpOnly cookies + returns { message, user }
   const response = await api.post("/auth/login", {
     email,
     password,
-    remember_me,
-    captcha_token,
   });
+
+
   const { user } = response.data;
   
   // Backend returns snake_case fields — we map them to camelCase for the store
@@ -171,6 +169,28 @@ export const confirmEmailChange = async (token: string) => {
 
 // ================= GET CURRENT USER =================
 export const getCurrentUser = async () => {
+    if (USE_MOCK) {
+    const mockUser = {
+      id: "123",
+      email: "demo@example.com",
+      display_name: "Demo User",
+      handle: "demo",
+      avatar_url: null,
+      is_verified: true,
+    };
+
+    useAuthStore.getState().setUser({
+      id: mockUser.id,
+      email: mockUser.email,
+      displayName: mockUser.display_name,
+      handle: mockUser.handle,
+      avatarUrl: mockUser.avatar_url,
+      isVerified: mockUser.is_verified,
+    });
+
+    return mockUser;
+  }
+  
   // GET /auth/me  →  returns user object
   const response = await api.get("/auth/me");
   const user = response.data;
@@ -199,4 +219,3 @@ export const revokeSession = async (sessionId: string) => {
   const response = await api.delete(`/auth/sessions/${sessionId}`);
   return response.data;
 };
-
