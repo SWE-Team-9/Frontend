@@ -147,7 +147,7 @@ let MOCK_SUBSCRIPTION: SubscriptionDetails = {
 
 // ─── Backend normalizer ────────────────────────────────────────────────────────
 
-function normalizeBackendSubscription(raw: Record<string, unknown>): SubscriptionDetails {
+export function normalizeBackendSubscription(raw: Record<string, unknown>): SubscriptionDetails {
   const planCode = (raw.planCode as string) ?? "FREE";
   const subscriptionType: "FREE" | "PRO" | "GO+" =
     planCode === "GO_PLUS" ? "GO+" : planCode === "PRO" ? "PRO" : "FREE";
