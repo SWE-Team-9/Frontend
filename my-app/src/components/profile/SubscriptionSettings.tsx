@@ -166,6 +166,7 @@ export default function SubscriptionSettings() {
     resume,
     changePlan,
     fetchInvoices,
+    fetchSubscription,
     openPortal,
     isLoading: subLoading,
   } = useSubscriptionStore();
@@ -197,9 +198,10 @@ export default function SubscriptionSettings() {
     sub?.subscriptionType === "PRO" ? "GO+" : "PRO";
 
   useEffect(() => {
+    fetchSubscription();
     fetchInvoices();
     fetchMethods();
-  }, [fetchInvoices, fetchMethods]);
+  }, [fetchSubscription, fetchInvoices, fetchMethods]);
 
   const handleCancelConfirm = async () => {
     await cancel();
