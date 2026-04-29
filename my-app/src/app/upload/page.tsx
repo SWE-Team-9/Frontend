@@ -63,7 +63,7 @@ export default function UploadPage() {
     if (!sub) return;
 
     // Check if user has remaining uploads allowed 
-    if (sub.remainingUploads <= 0) {
+    if (sub.remainingUploads !== null && sub.remainingUploads <= 0) {
       // User reached the limit (e.g., 3 tracks for FREE tier) 
       setIsModalOpen(true);
     } else {
@@ -114,7 +114,7 @@ export default function UploadPage() {
       This div acts as a 'Shield'. If remainingUploads is 0, this transparent layer 
       intercepts the click and shows the Modal instead of opening the file picker. [cite: 65]
   */}
-  {sub && sub.remainingUploads <= 0 && step === "upload" && (
+  {sub && sub.remainingUploads !== null && sub.remainingUploads <= 0 && step === "upload" && (
     <div 
       onClick={() => setIsModalOpen(true)} 
       className="absolute inset-0 z-50 cursor-pointer bg-transparent"
