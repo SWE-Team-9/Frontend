@@ -9,9 +9,9 @@ import SubscriptionModal from "@/src/components/subscription/SubscriptionModal";
 import { useRouter } from 'next/navigation';
 export default function UploadPage() {
   const [step, setStep] = useState<"upload" | "metadata">("upload");
-  const [_isCheckingAccess, setIsCheckingAccess] = useState(false);
-  const [_canUpload, setCanUpload] = useState(true);
-  const [_accessMessage, setAccessMessage] = useState<string | null>(null);
+  const [isCheckingAccess, _setIsCheckingAccess] = useState(false);
+  const [canUpload, _setCanUpload] = useState(true);
+  const [accessMessage, _setAccessMessage] = useState<string | null>(null);
   const router = useRouter();
 
   // --- SUBSCRIPTION STORE STATE ---
