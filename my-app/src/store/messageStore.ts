@@ -49,29 +49,16 @@ function normalizeMessagesForDisplay(messages: Message[]) {
   );
 }
 
-function getConversationTime(conversation: ConversationPreview) {
-  return new Date(
-    conversation.lastMessage?.createdAt ??
-    conversation.updatedAt ??
-    0,
-  ).getTime();
-}
-
-function sortConversationsByNewest(conversations: ConversationPreview[]) {
-  return [...conversations].sort(
-    (a, b) => getConversationTime(b) - getConversationTime(a),
-  );
-}
-
-function upsertAndSortConversation(
+function moveConversationToTop(
   conversations: ConversationPreview[],
   conversation: ConversationPreview,
 ) {
-  const withoutCurrent = conversations.filter(
-    (c) => c.conversationId !== conversation.conversationId,
-  );
-
-  return sortConversationsByNewest([conversation, ...withoutCurrent]);
+  return [
+    conversation,
+    ...conversations.filter(
+      (c) => c.conversationId !== conversation.conversationId,
+    ),
+  ];
 }
 
 interface MessageState {
@@ -143,7 +130,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
       const archived = get().conversationView === "archived";
       const data = await messageService.getConversations(1, 20, archived);
 
-      set({ conversations: sortConversationsByNewest(data.conversations) });
+      set({ conversations: data.conversations });
     } catch {
       set({ error: "Could not load conversations." });
     } finally {
@@ -169,9 +156,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
     dropdownConversationsFetchInFlight = true;
     try {
       const data = await messageService.getConversations(1, 5, false);
-      set({
-        dropdownConversations: sortConversationsByNewest(data.conversations).slice(0, 5),
-      });
+      set({ dropdownConversations: data.conversations });
     } catch {
       set({ dropdownConversations: [] });
     } finally {
@@ -213,27 +198,27 @@ export const useMessageStore = create<MessageState>((set, get) => ({
 
       const updatedConversation: ConversationPreview = conversation
         ? {
-          ...conversation,
-          lastMessage,
-          updatedAt: lastMessage?.createdAt ?? conversation.updatedAt,
-          unreadCount: 0,
-          isBlockedByMe: data.isBlockedByMe,
-          hasBlockedMe: data.hasBlockedMe,
-          canMessage: data.canMessage,
-          blockReason: data.blockReason,
-        }
+            ...conversation,
+            lastMessage,
+            updatedAt: lastMessage?.createdAt ?? conversation.updatedAt,
+            unreadCount: 0,
+            isBlockedByMe: data.isBlockedByMe,
+            hasBlockedMe: data.hasBlockedMe,
+            canMessage: data.canMessage,
+            blockReason: data.blockReason,
+          }
         : {
-          conversationId,
-          participant: data.participant,
-          lastMessage,
-          unreadCount: 0,
-          updatedAt: lastMessage?.createdAt ?? new Date().toISOString(),
-          isArchived: false,
-          isBlockedByMe: data.isBlockedByMe,
-          hasBlockedMe: data.hasBlockedMe,
-          canMessage: data.canMessage,
-          blockReason: data.blockReason,
-        };
+            conversationId,
+            participant: data.participant,
+            lastMessage,
+            unreadCount: 0,
+            updatedAt: lastMessage?.createdAt ?? new Date().toISOString(),
+            isArchived: false,
+            isBlockedByMe: data.isBlockedByMe,
+            hasBlockedMe: data.hasBlockedMe,
+            canMessage: data.canMessage,
+            blockReason: data.blockReason,
+          };
 
       set((state) => ({
         selectedConversation: updatedConversation,
@@ -298,10 +283,10 @@ export const useMessageStore = create<MessageState>((set, get) => ({
           ? await messageService.shareTrack(receiverId, attachment.id, cleanText)
           : attachment?.type === "PLAYLIST"
             ? await messageService.sharePlaylist(
-              receiverId,
-              attachment.id,
-              cleanText,
-            )
+                receiverId,
+                attachment.id,
+                cleanText,
+              )
             : await messageService.sendTextMessage(receiverId, cleanText);
 
       set((state) => {
@@ -310,27 +295,21 @@ export const useMessageStore = create<MessageState>((set, get) => ({
           state.selectedConversation?.conversationId ===
           result.conversation.conversationId;
 
-        const updatedConversation: ConversationPreview = {
-          ...result.conversation,
-          lastMessage: result.message,
-          updatedAt: result.message.createdAt,
-        };
-
         return {
           selectedConversation: isCurrent
-            ? updatedConversation
+            ? result.conversation
             : state.selectedConversation,
           messages:
             isCurrent && !exists
               ? normalizeMessagesForDisplay([...state.messages, result.message])
               : state.messages,
-          conversations: upsertAndSortConversation(
+          conversations: moveConversationToTop(
             state.conversations,
-            updatedConversation,
+            result.conversation,
           ),
-          dropdownConversations: upsertAndSortConversation(
+          dropdownConversations: moveConversationToTop(
             state.dropdownConversations,
-            updatedConversation,
+            result.conversation,
           ).slice(0, 5),
         };
       });
@@ -407,7 +386,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
     );
 
     set((state) => ({
-      conversations: upsertAndSortConversation(state.conversations, conversation),
+      conversations: moveConversationToTop(state.conversations, conversation),
       isNewMessageOpen: false,
     }));
 
@@ -495,13 +474,13 @@ export const useMessageStore = create<MessageState>((set, get) => ({
 
       const updatedConversation = existingConversation
         ? {
-          ...existingConversation,
-          lastMessage: message,
-          updatedAt: message.createdAt,
-          unreadCount: shouldIncrementUnread
-            ? existingConversation.unreadCount + 1
-            : existingConversation.unreadCount,
-        }
+            ...existingConversation,
+            lastMessage: message,
+            updatedAt: message.createdAt,
+            unreadCount: shouldIncrementUnread
+              ? existingConversation.unreadCount + 1
+              : existingConversation.unreadCount,
+          }
         : null;
 
       return {
@@ -515,13 +494,13 @@ export const useMessageStore = create<MessageState>((set, get) => ({
             : state.selectedConversation,
         conversations:
           updatedConversation && state.conversationView === "active"
-            ? upsertAndSortConversation(state.conversations, updatedConversation)
+            ? moveConversationToTop(state.conversations, updatedConversation)
             : state.conversations,
         dropdownConversations: updatedConversation
-          ? upsertAndSortConversation(
-            state.dropdownConversations,
-            updatedConversation,
-          ).slice(0, 5)
+          ? moveConversationToTop(
+              state.dropdownConversations,
+              updatedConversation,
+            ).slice(0, 5)
           : state.dropdownConversations,
       };
     });
