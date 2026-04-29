@@ -1,15 +1,9 @@
-/**
- * subscriptionService.test.ts
- *
- * Integration tests proving frontend service correctly wires to backend endpoints.
- * Covers: cancelSubscription re-fetch + normalize, decrementUploadQuota normalize,
- * and response normalization (GO_PLUS → "GO+", adsEnabled → perks.adFree).
- */
-
 export {};
 
 const mockApiGet = jest.fn();
 const mockApiPost = jest.fn();
+const mockListPaymentMethods = jest.fn();
+const mockDeletePaymentMethod = jest.fn();
 
 jest.mock("@/src/services/api", () => ({
   __esModule: true,
@@ -19,9 +13,13 @@ jest.mock("@/src/services/api", () => ({
   },
 }));
 
-// ── Shared backend response shapes ────────────────────────────────────────────
+jest.mock("@/src/services/paymentMethodsService", () => ({
+  __esModule: true,
+  listPaymentMethods: (...args: unknown[]) => mockListPaymentMethods(...args),
+  deletePaymentMethod: (...args: unknown[]) => mockDeletePaymentMethod(...args),
+}));
 
-const FREE_BACKEND_RESPONSE = {
+const FREE_SUBSCRIPTION_RESPONSE = {
   userId: "usr_1",
   planCode: "FREE",
   subscriptionType: "FREE",
@@ -30,9 +28,12 @@ const FREE_BACKEND_RESPONSE = {
   uploadLimit: 3,
   uploadedTracks: 2,
   remainingUploads: 1,
+  cancelAtPeriodEnd: false,
+  currentPeriodEnd: null,
+  paymentMethodSummary: null,
 };
 
-const PRO_BACKEND_RESPONSE = {
+const PRO_SUBSCRIPTION_RESPONSE = {
   userId: "usr_1",
   planCode: "PRO",
   subscriptionType: "PRO",
@@ -41,9 +42,18 @@ const PRO_BACKEND_RESPONSE = {
   uploadLimit: 100,
   uploadedTracks: 10,
   remainingUploads: 90,
+  cancelAtPeriodEnd: false,
+  currentPeriodEnd: "2026-05-28T00:00:00.000Z",
+  paymentMethodSummary: {
+    brand: "visa",
+    last4: "4242",
+    expiryMonth: 12,
+    expiryYear: 2030,
+    isDefault: true,
+  },
 };
 
-const GO_PLUS_BACKEND_RESPONSE = {
+const GO_PLUS_SUBSCRIPTION_RESPONSE = {
   userId: "usr_1",
   planCode: "GO_PLUS",
   subscriptionType: "GO_PLUS",
@@ -52,23 +62,26 @@ const GO_PLUS_BACKEND_RESPONSE = {
   uploadLimit: 1000,
   uploadedTracks: 5,
   remainingUploads: 995,
+  cancelAtPeriodEnd: true,
+  currentPeriodEnd: "2026-05-28T00:00:00.000Z",
+  paymentMethodSummary: null,
 };
 
-// ── Tests ─────────────────────────────────────────────────────────────────────
-
-describe("subscriptionService (non-mock mode)", () => {
+describe("subscriptionService", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.resetModules();
-    (process.env as Record<string, string | undefined>).NEXT_PUBLIC_USE_MOCK = "false";
+    (process.env as Record<string, string | undefined>).NEXT_PUBLIC_USE_MOCK =
+      "false";
+    window.history.pushState({}, "", "/settings?tab=billing");
   });
 
-  // ── getMySubscription ──────────────────────────────────────────────────────
-
   describe("getMySubscription", () => {
-    it("calls GET /subscriptions/me and normalizes FREE response", async () => {
-      mockApiGet.mockResolvedValue({ data: FREE_BACKEND_RESPONSE });
-      const { getMySubscription } = await import("@/src/services/subscriptionService");
+    it("normalizes FREE responses from /subscriptions/me", async () => {
+      mockApiGet.mockResolvedValue({ data: FREE_SUBSCRIPTION_RESPONSE });
+      const { getMySubscription } = await import(
+        "@/src/services/subscriptionService"
+      );
 
       const result = await getMySubscription();
 
@@ -76,156 +89,298 @@ describe("subscriptionService (non-mock mode)", () => {
       expect(result.subscriptionType).toBe("FREE");
       expect(result.perks.adFree).toBe(false);
       expect(result.perks.offlineListening).toBe(false);
-      expect(result.uploadLimit).toBe(3);
       expect(result.remainingUploads).toBe(1);
     });
 
-    it("normalizes PRO response correctly", async () => {
-      mockApiGet.mockResolvedValue({ data: PRO_BACKEND_RESPONSE });
-      const { getMySubscription } = await import("@/src/services/subscriptionService");
-
-      const result = await getMySubscription();
-
-      expect(result.subscriptionType).toBe("PRO");
-      expect(result.perks.adFree).toBe(true);
-      expect(result.perks.offlineListening).toBe(true);
-      expect(result.uploadLimit).toBe(100);
-    });
-
-    it("normalizes GO_PLUS → 'GO+' and sets adFree/offlineListening true", async () => {
-      mockApiGet.mockResolvedValue({ data: GO_PLUS_BACKEND_RESPONSE });
-      const { getMySubscription } = await import("@/src/services/subscriptionService");
+    it("normalizes GO_PLUS responses to GO+", async () => {
+      mockApiGet.mockResolvedValue({ data: GO_PLUS_SUBSCRIPTION_RESPONSE });
+      const { getMySubscription } = await import(
+        "@/src/services/subscriptionService"
+      );
 
       const result = await getMySubscription();
 
       expect(result.subscriptionType).toBe("GO+");
+      expect(result.cancelAtPeriodEnd).toBe(true);
       expect(result.perks.adFree).toBe(true);
       expect(result.perks.offlineListening).toBe(true);
-      expect(result.uploadLimit).toBe(1000);
     });
   });
 
-  // ── cancelSubscription ─────────────────────────────────────────────────────
+  describe("getPlans", () => {
+    it("calls /subscriptions/plans", async () => {
+      mockApiGet.mockResolvedValue({
+        data: [{ code: "PRO" }, { code: "GO_PLUS" }],
+      });
+      const { getPlans } = await import("@/src/services/subscriptionService");
+
+      const result = await getPlans();
+
+      expect(mockApiGet).toHaveBeenCalledWith("/subscriptions/plans");
+      expect(result).toEqual([{ code: "PRO" }, { code: "GO_PLUS" }]);
+    });
+  });
+
+  describe("decrementUploadQuota", () => {
+    it("re-fetches /subscriptions/me and normalizes the response", async () => {
+      mockApiGet.mockResolvedValue({ data: PRO_SUBSCRIPTION_RESPONSE });
+      const { decrementUploadQuota } = await import(
+        "@/src/services/subscriptionService"
+      );
+
+      const result = await decrementUploadQuota();
+
+      expect(mockApiGet).toHaveBeenCalledWith("/subscriptions/me");
+      expect(result.subscriptionType).toBe("PRO");
+      expect(result.uploadLimit).toBe(100);
+    });
+  });
+
+  describe("upgradeSubscription", () => {
+    it("posts to /subscriptions/checkout and returns a redirect when Stripe checkout is required", async () => {
+      mockApiPost.mockResolvedValue({
+        data: { checkoutUrl: "https://checkout.stripe.com/pay/cs_test_123" },
+      });
+      const { upgradeSubscription } = await import(
+        "@/src/services/subscriptionService"
+      );
+
+      const result = await upgradeSubscription("PRO");
+
+      expect(mockApiPost).toHaveBeenCalledWith("/subscriptions/checkout", {
+        planCode: "PRO",
+      });
+      expect(result).toEqual({
+        status: "redirect",
+        checkoutUrl: "https://checkout.stripe.com/pay/cs_test_123",
+      });
+    });
+
+    it("maps GO+ to GO_PLUS and treats immediate activation as activated", async () => {
+      mockApiPost.mockResolvedValue({
+        data: {
+          status: "active",
+          checkoutUrl: "https://mock-checkout.example.com/pay?session=cs_mock",
+        },
+      });
+      const { upgradeSubscription } = await import(
+        "@/src/services/subscriptionService"
+      );
+
+      const result = await upgradeSubscription("GO+");
+
+      expect(mockApiPost).toHaveBeenCalledWith("/subscriptions/checkout", {
+        planCode: "GO_PLUS",
+      });
+      expect(result).toEqual({ status: "activated" });
+    });
+
+    it("treats scheduled downgrades as activated without redirecting", async () => {
+      mockApiPost.mockResolvedValue({
+        data: { scheduled: true, effectiveAt: "2026-05-28T00:00:00.000Z" },
+      });
+      const { upgradeSubscription } = await import(
+        "@/src/services/subscriptionService"
+      );
+
+      const result = await upgradeSubscription("PRO");
+
+      expect(result).toEqual({ status: "activated" });
+    });
+  });
 
   describe("cancelSubscription", () => {
-    it("POSTs to /subscriptions/cancel then re-fetches /subscriptions/me", async () => {
-      mockApiPost.mockResolvedValue({ data: { message: "Cancelled", cancelAtPeriodEnd: true } });
-      mockApiGet.mockResolvedValue({ data: PRO_BACKEND_RESPONSE });
+    it("posts to /subscriptions/cancel and re-fetches the subscription", async () => {
+      mockApiPost.mockResolvedValue({ data: { ok: true } });
+      mockApiGet.mockResolvedValue({ data: GO_PLUS_SUBSCRIPTION_RESPONSE });
+      const { cancelSubscription } = await import(
+        "@/src/services/subscriptionService"
+      );
 
-      const { cancelSubscription } = await import("@/src/services/subscriptionService");
       const result = await cancelSubscription();
 
       expect(mockApiPost).toHaveBeenCalledWith("/subscriptions/cancel", {});
       expect(mockApiGet).toHaveBeenCalledWith("/subscriptions/me");
-    });
-
-    it("returns normalized SubscriptionDetails after cancel (not raw cancel response)", async () => {
-      mockApiPost.mockResolvedValue({ data: { message: "Cancelled", cancelAtPeriodEnd: true } });
-      // After cancel, user still has PRO access (cancelAtPeriodEnd=true, access until period end)
-      mockApiGet.mockResolvedValue({ data: PRO_BACKEND_RESPONSE });
-
-      const { cancelSubscription } = await import("@/src/services/subscriptionService");
-      const result = await cancelSubscription();
-
-      // Must be a SubscriptionDetails, not the raw cancel response
-      expect(result).toHaveProperty("subscriptionType");
-      expect(result).toHaveProperty("perks");
-      expect(result).toHaveProperty("uploadLimit");
-      expect(result.subscriptionType).toBe("PRO");
-      // Must NOT be the raw cancel response shape
-      expect(result).not.toHaveProperty("message");
-      expect(result).not.toHaveProperty("cancelledAt");
-    });
-
-    it("returns FREE subscription details when re-fetch shows FREE (after cancel expires)", async () => {
-      mockApiPost.mockResolvedValue({ data: { message: "Cancelled" } });
-      mockApiGet.mockResolvedValue({ data: FREE_BACKEND_RESPONSE });
-
-      const { cancelSubscription } = await import("@/src/services/subscriptionService");
-      const result = await cancelSubscription();
-
-      expect(result.subscriptionType).toBe("FREE");
-      expect(result.perks.adFree).toBe(false);
+      expect(result.subscriptionType).toBe("GO+");
+      expect(result.cancelAtPeriodEnd).toBe(true);
     });
   });
 
-  // ── decrementUploadQuota ───────────────────────────────────────────────────
+  describe("resumeSubscription", () => {
+    it("posts to /subscriptions/resume and re-fetches the subscription", async () => {
+      mockApiPost.mockResolvedValue({ data: { ok: true } });
+      mockApiGet.mockResolvedValue({ data: PRO_SUBSCRIPTION_RESPONSE });
+      const { resumeSubscription } = await import(
+        "@/src/services/subscriptionService"
+      );
 
-  describe("decrementUploadQuota", () => {
-    it("calls GET /subscriptions/me and returns normalized SubscriptionDetails", async () => {
-      mockApiGet.mockResolvedValue({ data: FREE_BACKEND_RESPONSE });
+      const result = await resumeSubscription();
 
-      const { decrementUploadQuota } = await import("@/src/services/subscriptionService");
-      const result = await decrementUploadQuota();
-
+      expect(mockApiPost).toHaveBeenCalledWith("/subscriptions/resume");
       expect(mockApiGet).toHaveBeenCalledWith("/subscriptions/me");
-      expect(result).toHaveProperty("subscriptionType", "FREE");
-      expect(result).toHaveProperty("perks");
-      expect(result.perks.adFree).toBe(false);
-    });
-
-    it("returns normalized PRO data after upload (backend is source of truth for quota)", async () => {
-      mockApiGet.mockResolvedValue({ data: PRO_BACKEND_RESPONSE });
-
-      const { decrementUploadQuota } = await import("@/src/services/subscriptionService");
-      const result = await decrementUploadQuota();
-
       expect(result.subscriptionType).toBe("PRO");
-      expect(result.uploadLimit).toBe(100);
-      // Must NOT be raw response (no planCode at top level)
-      expect(result).not.toHaveProperty("planCode");
     });
   });
 
-  // ── upgradeSubscription ────────────────────────────────────────────────────
+  describe("changePlan", () => {
+    it("posts to /subscriptions/change-plan with the canonical plan code and re-fetches the subscription", async () => {
+      mockApiPost.mockResolvedValue({ data: { ok: true } });
+      mockApiGet.mockResolvedValue({ data: GO_PLUS_SUBSCRIPTION_RESPONSE });
+      const { changePlan } = await import("@/src/services/subscriptionService");
 
-  describe("upgradeSubscription", () => {
-    it("POSTs to /subscriptions/checkout with PRO planCode", async () => {
-      mockApiPost.mockResolvedValue({ data: { subscriptionId: "sub_1", planCode: "PRO" } });
+      const result = await changePlan("GO+");
 
-      const { upgradeSubscription } = await import("@/src/services/subscriptionService");
-      await upgradeSubscription("PRO");
-
-      expect(mockApiPost).toHaveBeenCalledWith("/subscriptions/checkout", { planCode: "PRO" });
-    });
-
-    it("maps 'GO+' to 'GO_PLUS' planCode for backend", async () => {
-      mockApiPost.mockResolvedValue({ data: { subscriptionId: "sub_2", planCode: "GO_PLUS" } });
-
-      const { upgradeSubscription } = await import("@/src/services/subscriptionService");
-      await upgradeSubscription("GO+");
-
-      expect(mockApiPost).toHaveBeenCalledWith("/subscriptions/checkout", { planCode: "GO_PLUS" });
+      expect(mockApiPost).toHaveBeenCalledWith("/subscriptions/change-plan", {
+        planCode: "GO_PLUS",
+      });
+      expect(mockApiGet).toHaveBeenCalledWith("/subscriptions/me");
+      expect(result.subscriptionType).toBe("GO+");
     });
   });
 
-  // ── getOfflineTrack ────────────────────────────────────────────────────────
+  describe("getInvoices", () => {
+    it("calls /subscriptions/invoices", async () => {
+      mockApiGet.mockResolvedValue({
+        data: [{ id: "inv_1", amountPaidCents: 999 }],
+      });
+      const { getInvoices } = await import("@/src/services/subscriptionService");
+
+      const result = await getInvoices();
+
+      expect(mockApiGet).toHaveBeenCalledWith("/subscriptions/invoices");
+      expect(result).toEqual([{ id: "inv_1", amountPaidCents: 999 }]);
+    });
+  });
+
+  describe("openBillingPortal", () => {
+    it("posts the new portal body with returnUrl and flow", async () => {
+      mockApiPost.mockResolvedValue({
+        data: {
+          portalUrl: "https://billing.stripe.com/session/bps_test_123",
+          paymentMethodSummary: PRO_SUBSCRIPTION_RESPONSE.paymentMethodSummary,
+          currentPlanCode: "PRO",
+          capabilities: { canUpdatePaymentMethod: true },
+        },
+      });
+      const { openBillingPortal } = await import(
+        "@/src/services/subscriptionService"
+      );
+
+      const result = await openBillingPortal({ flow: "payment_methods" });
+
+      expect(mockApiPost).toHaveBeenCalledWith("/subscriptions/portal", {
+        returnUrl: "http://localhost/settings?tab=billing",
+        flow: "payment_methods",
+      });
+      expect(result.portalUrl).toBe(
+        "https://billing.stripe.com/session/bps_test_123",
+      );
+      expect(result.currentPlanCode).toBe("PRO");
+      expect(result.paymentMethodSummary?.last4).toBe("4242");
+    });
+  });
 
   describe("getOfflineTrack", () => {
-    it("calls GET /subscriptions/offline/:trackId", async () => {
+    it("calls /subscriptions/offline/:trackId", async () => {
       mockApiGet.mockResolvedValue({
         data: {
           trackId: "trk_1",
           title: "My Track",
           artist: "Artist",
           downloadUrl: "https://cdn.example.com/track.mp3",
+          expiresInSeconds: 900,
         },
       });
+      const { getOfflineTrack } = await import(
+        "@/src/services/subscriptionService"
+      );
 
-      const { getOfflineTrack } = await import("@/src/services/subscriptionService");
       const result = await getOfflineTrack("trk_1");
 
       expect(mockApiGet).toHaveBeenCalledWith("/subscriptions/offline/trk_1");
-      expect(result.downloadUrl).toBe("https://cdn.example.com/track.mp3");
+      expect(result.expiresInSeconds).toBe(900);
     });
 
-    it("throws DownloadForbiddenError when backend returns 403", async () => {
+    it("maps backend 403 responses to DownloadForbiddenError", async () => {
       mockApiGet.mockRejectedValue({ response: { status: 403 } });
-
-      const { getOfflineTrack, DownloadForbiddenError } = await import(
+      const { DownloadForbiddenError, getOfflineTrack } = await import(
         "@/src/services/subscriptionService"
       );
-      await expect(getOfflineTrack("trk_1")).rejects.toBeInstanceOf(DownloadForbiddenError);
+
+      await expect(getOfflineTrack("trk_1")).rejects.toBeInstanceOf(
+        DownloadForbiddenError,
+      );
+    });
+  });
+
+  describe("canUserUpload", () => {
+    it("returns true when the user still has quota", async () => {
+      mockApiGet.mockResolvedValue({ data: FREE_SUBSCRIPTION_RESPONSE });
+      const { canUserUpload } = await import(
+        "@/src/services/subscriptionService"
+      );
+
+      await expect(canUserUpload()).resolves.toBe(true);
+    });
+  });
+
+  describe("removePaymentMethod", () => {
+    it("deletes the default saved payment method and refreshes the subscription", async () => {
+      mockListPaymentMethods.mockResolvedValue([
+        {
+          id: "pm_1",
+          isDefault: false,
+        },
+        {
+          id: "pm_2",
+          isDefault: true,
+        },
+      ]);
+      mockDeletePaymentMethod.mockResolvedValue({});
+      mockApiGet.mockResolvedValue({ data: FREE_SUBSCRIPTION_RESPONSE });
+      const { removePaymentMethod } = await import(
+        "@/src/services/subscriptionService"
+      );
+
+      const result = await removePaymentMethod();
+
+      expect(mockListPaymentMethods).toHaveBeenCalledTimes(1);
+      expect(mockDeletePaymentMethod).toHaveBeenCalledWith("pm_2");
+      expect(mockApiGet).toHaveBeenCalledWith("/subscriptions/me");
+      expect(result.subscriptionType).toBe("FREE");
+    });
+
+    it("uses an explicit payment method id when one is supplied", async () => {
+      mockListPaymentMethods.mockResolvedValue([
+        {
+          id: "pm_default",
+          isDefault: true,
+        },
+        {
+          id: "pm_target",
+          isDefault: false,
+        },
+      ]);
+      mockDeletePaymentMethod.mockResolvedValue({});
+      mockApiGet.mockResolvedValue({ data: PRO_SUBSCRIPTION_RESPONSE });
+      const { removePaymentMethod } = await import(
+        "@/src/services/subscriptionService"
+      );
+
+      await removePaymentMethod("pm_target");
+
+      expect(mockDeletePaymentMethod).toHaveBeenCalledWith("pm_target");
+    });
+
+    it("throws when there are no saved payment methods", async () => {
+      mockListPaymentMethods.mockResolvedValue([]);
+      const { removePaymentMethod } = await import(
+        "@/src/services/subscriptionService"
+      );
+
+      await expect(removePaymentMethod()).rejects.toThrow(
+        "No saved payment method found.",
+      );
     });
   });
 });

@@ -32,6 +32,7 @@ export function DownloadButton({
 }: DownloadButtonProps) {
   const [dlState, setDlState] = useState<DownloadState>("idle");
   const [showUpgradeHint, setShowUpgradeHint] = useState(false);
+  const buttonTitle = trackTitle.trim() || "track";
 
   // Read subscription from global store (synced by NavBar on mount)
   const sub = useSubscriptionStore((state) => state.sub);
@@ -107,6 +108,10 @@ export function DownloadButton({
   const isError = dlState === "error";
   const isCached = dlState === "cached";
 
+  if (!downloadable) {
+    return null;
+  }
+
   const buttonClass = `
     group flex items-center gap-1.5 h-7.5 px-2.5 rounded border
     transition-all duration-150 select-none cursor-pointer
@@ -126,8 +131,12 @@ export function DownloadButton({
       <button
         onClick={handleClick}
         disabled={isLoading}
-        aria-label={isCached ? "Remove offline track" : "Save for offline"}
-        title={isCached ? "Saved for offline — click to remove" : "Save for offline listening"}
+        aria-label={isCached ? "Remove offline download" : "Download for offline"}
+        title={
+          isCached
+            ? `${buttonTitle} downloaded for offline. Click to remove.`
+            : `Download ${buttonTitle} for offline listening`
+        }
         className={buttonClass}
       >
         {/* Icon */}
@@ -154,7 +163,7 @@ export function DownloadButton({
                   ? "Failed"
                   : isCached
                     ? "Saved ✓"
-                    : "Save offline"}
+                    : "Offline download"}
           </span>
         )}
       </button>

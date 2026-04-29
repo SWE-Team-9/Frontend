@@ -1,4 +1,4 @@
-﻿"use client";
+﻿﻿"use client";
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -47,29 +47,119 @@ function ConfirmDialog({
 }
 
 export default function SubscriptionSettings() {
-  const { sub, invoices, cancel, resume, changePlan, fetchInvoices, isLoading } = useSubscriptionStore();
+  const {
+    sub,
+    invoices,
+    cancel,
+    resume,
+    changePlan,
+    removePaymentMethod,
+    fetchInvoices,
+    fetchSubscription,
+    isLoading,
+    error,
+  } = useSubscriptionStore();
   const router = useRouter();
 
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showChangePlanConfirm, setShowChangePlanConfirm] = useState(false);
+  const [showRemoveCardConfirm, setShowRemoveCardConfirm] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [actionStatus, setActionStatus] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
 
   const isPro = sub?.subscriptionType === "PRO" || sub?.subscriptionType === "GO+";
   const planLabel = isPro ? (sub?.subscriptionType ?? "PRO") : "Basic";
   const isCancelPending = sub?.cancelAtPeriodEnd ?? false;
   const targetPlan: "PRO" | "GO+" = sub?.subscriptionType === "PRO" ? "GO+" : "PRO";
 
-  useEffect(() => { fetchInvoices(); }, [fetchInvoices]);
+  useEffect(() => {
+    fetchSubscription();
+    fetchInvoices();
+  }, [fetchInvoices, fetchSubscription]);
 
-  const handleCancelConfirm = async () => { await cancel(); setShowCancelConfirm(false); };
-  const handleChangePlanConfirm = async () => { await changePlan(targetPlan); setShowChangePlanConfirm(false); };
+  const handleCancelConfirm = async () => {
+    try {
+      await cancel();
+      setActionStatus({
+        type: "success",
+        message: "Subscription cancellation was scheduled successfully.",
+      });
+      setShowCancelConfirm(false);
+    } catch {
+      setActionStatus({
+        type: "error",
+        message: "Could not cancel subscription right now. Please try again.",
+      });
+    }
+  };
+
+  const handleChangePlanConfirm = async () => {
+    try {
+      await changePlan(targetPlan);
+      setActionStatus({
+        type: "success",
+        message: `Plan changed to ${targetPlan} successfully.`,
+      });
+      setShowChangePlanConfirm(false);
+    } catch {
+      setActionStatus({
+        type: "error",
+        message: "Could not change the plan right now. Please try again.",
+      });
+    }
+  };
+
+  const handleRemoveCardConfirm = async () => {
+    try {
+      await removePaymentMethod();
+      const updated = useSubscriptionStore.getState().sub;
+      const expiresOn =
+        updated?.cancelAtPeriodEnd && updated.currentPeriodEnd
+          ? new Date(updated.currentPeriodEnd).toLocaleDateString()
+          : null;
+
+      setActionStatus({
+        type: "success",
+        message: expiresOn
+          ? `Card removed. Your subscription stays active until ${expiresOn}.`
+          : "Saved card removed successfully.",
+      });
+      setShowRemoveCardConfirm(false);
+    } catch {
+      setActionStatus({
+        type: "error",
+        message: "Could not remove the saved card right now. Please try again.",
+      });
+    }
+  };
 
   const handleManagePayment = async () => {
     setPortalLoading(true);
     try {
-      const { portalUrl } = await openBillingPortal();
+      const { portalUrl } = await openBillingPortal({ flow: "payment_methods" });
       if (portalUrl && portalUrl !== "#") window.location.href = portalUrl;
+      if (!portalUrl || portalUrl === "#") {
+        throw new Error("Billing portal URL is unavailable.");
+      }
     } finally { setPortalLoading(false); }
+  };
+
+  const handleResume = async () => {
+    try {
+      await resume();
+      setActionStatus({
+        type: "success",
+        message: "Subscription resumed successfully.",
+      });
+    } catch {
+      setActionStatus({
+        type: "error",
+        message: "Could not resume subscription right now. Please try again.",
+      });
+    }
   };
 
   return (
@@ -86,8 +176,32 @@ export default function SubscriptionSettings() {
           confirmLabel={`Switch to ${targetPlan}`} loading={isLoading}
           onConfirm={handleChangePlanConfirm} onCancel={() => setShowChangePlanConfirm(false)} />
       )}
+      {showRemoveCardConfirm && (
+        <ConfirmDialog
+          title="Remove saved card?"
+          message="This removes your current default card from your account. If it is your last saved card, your paid plan may be scheduled to end at the close of the current billing period."
+          confirmLabel="Remove card"
+          danger
+          loading={isLoading}
+          onConfirm={handleRemoveCardConfirm}
+          onCancel={() => setShowRemoveCardConfirm(false)}
+        />
+      )}
 
       <div className="space-y-8">
+        {error && (
+          <p className="text-sm text-red-400" role="alert">
+            {error}
+          </p>
+        )}
+        {actionStatus && (
+          <p
+            className={`text-sm ${actionStatus.type === "success" ? "text-green-400" : "text-red-400"}`}
+            role="status"
+          >
+            {actionStatus.message}
+          </p>
+        )}
 
         {/* Current Plan */}
         <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-6">
@@ -127,7 +241,7 @@ export default function SubscriptionSettings() {
                 </>
               )}
               {isPro && isCancelPending && (
-                <button onClick={() => resume()} disabled={isLoading}
+                <button onClick={handleResume} disabled={isLoading}
                   className="px-4 py-2 border border-green-700 text-green-400 rounded-lg text-xs font-bold uppercase tracking-wide hover:bg-green-900/30 transition-colors flex items-center gap-2 disabled:opacity-50">
                   <LuRefreshCw size={13} /> {isLoading ? "Resuming..." : "Resume"}
                 </button>
@@ -199,6 +313,26 @@ export default function SubscriptionSettings() {
               {isPro ? "No payment method on file." : "Upgrade to add a payment method."}
             </p>
           )}
+          <div className="mt-4 flex flex-wrap gap-2">
+            {sub?.paymentMethodSummary && (
+              <button
+                onClick={() => setShowRemoveCardConfirm(true)}
+                disabled={isLoading}
+                className="px-4 py-2 border border-red-700 text-red-400 rounded-lg text-xs font-bold uppercase tracking-wide hover:bg-red-900/30 transition-colors disabled:opacity-50"
+              >
+                Remove card
+              </button>
+            )}
+            {isPro && (
+              <button
+                onClick={handleManagePayment}
+                disabled={portalLoading}
+                className="px-4 py-2 border border-zinc-600 text-zinc-300 rounded-lg text-xs font-bold uppercase tracking-wide hover:border-zinc-400 transition-colors disabled:opacity-50"
+              >
+                {portalLoading ? "Opening..." : "Change payment method"}
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Purchase History */}
