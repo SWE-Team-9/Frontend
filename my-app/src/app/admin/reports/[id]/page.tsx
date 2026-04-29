@@ -4,7 +4,6 @@ import { FiArrowLeft, FiUser, FiMusic, FiAlertCircle } from 'react-icons/fi';
 import Link from 'next/link';
 import { ReportActions } from "@/src/components/admin/ReportActions";
 import { OffenderCard } from '@/src/components/admin/OffenderCard';
-import { AdminUser } from '@/src/types/admin';
 
 
 export default async function ReportDetailsPage({
@@ -20,7 +19,7 @@ export default async function ReportDetailsPage({
   notes: string;
 };
 
-type User = {
+type _User = {
   id: string;
   display_name?: string;
   handle?: string;

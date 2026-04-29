@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import Dropzone from "@/src/components/upload/Dropzone";
 import { useUploadStore } from "@/src/store/useuploadStore";
 import { useSubscriptionStore } from "@/src/store/useSubscriptionStore";
