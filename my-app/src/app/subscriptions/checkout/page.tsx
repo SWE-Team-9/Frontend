@@ -53,6 +53,20 @@ function CheckoutContent() {
 
   const upgrade = useSubscriptionStore((s) => s.upgrade);
   const isLoading = useSubscriptionStore((s) => s.isLoading);
+  const sub = useSubscriptionStore((s) => s.sub);
+
+  // Redirect premium users trying to use checkout for a same-or-lower plan.
+  // They should use the plan-switch dialog in Settings instead.
+  const PLAN_TIER_RANK: Record<string, number> = { FREE: 0, PRO: 1, "GO+": 2 };
+  const currentRank = PLAN_TIER_RANK[sub?.subscriptionType ?? "FREE"] ?? 0;
+  const targetRank = PLAN_TIER_RANK[plan.upgradeType] ?? 0;
+  const shouldRedirectToSettings = Boolean(sub?.isPremium && targetRank <= currentRank);
+
+  React.useEffect(() => {
+    if (shouldRedirectToSettings) {
+      router.replace("/settings?tab=subscription");
+    }
+  }, [shouldRedirectToSettings, router]);
 
   const handleBuy = async () => {
     setBuyError(null);
@@ -63,7 +77,9 @@ function CheckoutContent() {
       //   a) Mock billing provider: subscription activated immediately
       //   b) Downgrade scheduled: no redirect needed
       // Real Stripe checkout: browser has already navigated away (window.location.href set)
-      router.push("/subscriptions/success");
+      // Pass the intended plan so the success page shows the correct heading even
+      // when the backend schedules the change for end-of-period (sub still shows old plan).
+      router.push(`/subscriptions/success?plan=${plan.upgradeType}`);
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string; code?: string } } };
       const code = axiosErr?.response?.data?.code;
