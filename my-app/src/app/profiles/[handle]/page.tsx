@@ -25,6 +25,7 @@ import { getUserLikes } from "@/src/services/likeService";
 import SharePopup from "@/src/components/share/SharePopup";
 import { buildUserPermalink } from "@/src/lib/permalinks";
 import {MyPlaylistsSection} from "@/src/components/profile/MyPlaylistsSection";
+import { useProfilePageData } from "@/src/hooks/useProfilePageData";
 
 type FollowUserShape = {
   id: string;
@@ -50,7 +51,43 @@ export default function ProfilePage({
   const handle = resolvedParams.handle;
   const profileHref = buildUserPermalink(handle);
   const [searchQuery, setSearchQuery] = useState("");
-  const controller = useProfileController(handle);
+
+  // BFF aggregate call — fetches profile + viewer state in one request.
+  // When it resolves we seed the profile store and tell the controller to
+  // skip its own GET /profiles/:handle fetch via externalProfileId.
+  const { data: bffData } = useProfilePageData(handle);
+
+  const bffProfileId: string | undefined =
+    bffData?.profile
+      ? ((bffData.profile as any).id ?? (bffData.profile as any).user_id)
+      : undefined;
+
+  // Seed profile store from BFF data so useProfileController skips its own fetch
+  useEffect(() => {
+    if (!bffData?.profile) return;
+    const p = bffData.profile as any;
+    useProfileStore.getState().setProfileData({
+      userId: p.id ?? p.user_id,
+      displayName: p.display_name ?? p.displayName ?? "",
+      handle: p.handle ?? "",
+      bio: p.bio ?? "",
+      location: p.location ?? "",
+      website: p.website_url ?? p.website ?? "",
+      avatarUrl: p.avatarUrl ?? p.avatar_url ?? null,
+      coverUrl: p.coverPhotoUrl ?? p.cover_photo_url ?? null,
+      isPrivate: p.is_private ?? false,
+      accountType: p.account_type ?? p.accountType ?? "LISTENER",
+      favoriteGenres: Array.isArray(p.favorite_genres)
+        ? p.favorite_genres.map((g: any) => (typeof g === "string" ? g : g.slug ?? ""))
+        : [],
+      followersCount: p.followers_count ?? p.followersCount ?? 0,
+      followingCount: p.following_count ?? p.followingCount ?? 0,
+      tracksCount: p.track_count ?? p.tracksCount ?? 0,
+      isLoaded: true,
+    });
+  }, [bffData]);
+
+  const controller = useProfileController(handle, bffProfileId);
   // Destructure detailTab and setDetailTab early to avoid 'used before declaration' errors
   const { detailTab, setDetailTab } = controller;
   const setProfileData = useProfileStore((state) => state.setProfileData);

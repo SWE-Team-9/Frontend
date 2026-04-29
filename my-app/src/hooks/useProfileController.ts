@@ -27,10 +27,15 @@ type ProfileDraft = {
   }[];
 };
 
-export const useProfileController = (handle?: string) => {
+/**
+ * @param externalProfileId - When provided, skip the initial GET /profiles/:handle
+ *   fetch and treat the profile store as already populated. The caller is
+ *   responsible for seeding useProfileStore before calling this hook.
+ */
+export const useProfileController = (handle?: string, externalProfileId?: string) => {
   const store = useProfileStore();
 
-  const [userId, setUserId] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(externalProfileId ?? null);
   const currentUserId = useAuthStore((state) => state.user?.id);
   const isOwner = userId === currentUserId;
   const [activeTab, setActiveTab] = useState("Tracks");
@@ -148,6 +153,14 @@ export const useProfileController = (handle?: string) => {
   }, [handle]);
 
   useEffect(() => {
+    // Fast path: caller pre-seeded the store (e.g. via useProfilePageData).
+    // Skip the network fetch entirely and trust the seeded data.
+    if (externalProfileId) {
+      hasRequestedProfileRef.current = true;
+      if (externalProfileId !== userId) setUserId(externalProfileId);
+      return;
+    }
+
     const current = useProfileStore.getState();
     if (current.handle === handle && current.isLoaded) {
       hasRequestedProfileRef.current = true;
@@ -167,7 +180,7 @@ export const useProfileController = (handle?: string) => {
     return () => {
       cancelled = true;
     };
-  }, [handle]);
+  }, [handle, externalProfileId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSave = async (draft: ProfileDraft) => {
     const nextProfile = {

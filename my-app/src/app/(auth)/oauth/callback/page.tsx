@@ -2,15 +2,19 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getCurrentUser } from "@/src/services/authService";
+import { getBootstrapData } from "@/src/services/bffService";
+import { useAuthStore } from "@/src/store/useAuthStore";
+import { useProfileStore } from "@/src/store/useProfileStore";
+import { useNotificationStore } from "@/src/store/notificationsStore";
+import { useSubscriptionStore } from "@/src/store/useSubscriptionStore";
+import { SubscriptionDetails } from "@/src/services/subscriptionService";
 
 // ─────────────────────────────────────────────────────────────
 // OAuth Callback Page
 //
 // After Google OAuth finishes, the backend redirects the browser
-// here. The backend already set httpOnly cookies, so we just
-// call /auth/me to confirm the user is logged in, then redirect
-// to /discover (or wherever they came from).
+// here. The backend already set httpOnly cookies, so we call
+// /app/bootstrap once to seed all shell stores and redirect.
 // ─────────────────────────────────────────────────────────────
 
 export default function OAuthCallbackPage() {
@@ -18,20 +22,56 @@ export default function OAuthCallbackPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const checkAuth = async () => {
+    const handleCallback = async () => {
       try {
-        // getCurrentUser will set the user in the store automatically
-        await getCurrentUser();
+        const data = await getBootstrapData();
 
-        // Redirect to wherever the user wanted to go (default: /discover)
+        const me = data.me;
+        useAuthStore.getState().setUser({
+          id: me.id,
+          email: me.email,
+          displayName: me.display_name ?? "",
+          handle: me.handle ?? "",
+          avatarUrl: me.avatar_url ?? null,
+          isVerified: me.is_verified ?? false,
+        });
+
+        if (data.profile) {
+          const p = data.profile;
+          useProfileStore.getState().setProfileData({
+            userId: p.id,
+            displayName: p.displayName ?? "",
+            handle: p.handle ?? "",
+            avatarUrl: p.avatarUrl ?? null,
+            coverUrl: p.coverUrl ?? null,
+            accountType: (p.accountType as "ARTIST" | "LISTENER") ?? "LISTENER",
+            followersCount: p.followersCount ?? 0,
+            followingCount: p.followingCount ?? 0,
+            tracksCount: p.tracksCount ?? 0,
+            isLoaded: false,
+          });
+        }
+
+        useNotificationStore.getState().setFromBootstrap(
+          data.notifications.unreadCount,
+          data.notifications.latest,
+        );
+
+        if (data.subscription) {
+          useSubscriptionStore
+            .getState()
+            .setSubDirectly(data.subscription as unknown as SubscriptionDetails);
+        }
+
         const returnTo = sessionStorage.getItem("oauth_return_to") || "/discover";
+        sessionStorage.removeItem("oauth_return_to");
         router.replace(returnTo);
       } catch {
         setError("Login failed. Please try again.");
       }
     };
 
-    checkAuth();
+    handleCallback();
   }, [router]);
 
   return (
