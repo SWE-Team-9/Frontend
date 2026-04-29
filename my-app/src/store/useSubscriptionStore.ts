@@ -6,10 +6,8 @@ import {
   resumeSubscription,
   changePlan as changePlanService,
   getInvoices,
-  removePaymentMethod as removePaymentMethodService,
   SubscriptionDetails,
   Invoice,
-  UpgradeSubscriptionResult,
 } from "@/src/services/subscriptionService";
 
 interface SubscriptionStore {
@@ -19,16 +17,15 @@ interface SubscriptionStore {
   error: string | null;
 
   fetchSubscription: () => Promise<void>;
-  upgrade: (type: "PRO" | "GO+") => Promise<UpgradeSubscriptionResult>;
+  upgrade: (type: "PRO" | "GO+") => Promise<void>;
   cancel: () => Promise<void>;
   resume: () => Promise<void>;
   changePlan: (type: "PRO" | "GO+") => Promise<void>;
-  removePaymentMethod: () => Promise<void>;
   fetchInvoices: () => Promise<void>;
   setSubDirectly: (sub: SubscriptionDetails) => void;
 }
 
-export const useSubscriptionStore = create<SubscriptionStore>((set) => ({
+export const useSubscriptionStore = create<SubscriptionStore>((set, get) => ({
   sub: null,
   invoices: [],
   isLoading: false,
@@ -49,12 +46,9 @@ export const useSubscriptionStore = create<SubscriptionStore>((set) => ({
   upgrade: async (type) => {
     set({ isLoading: true, error: null });
     try {
-      const result = await upgradeSubscription(type);
-      if (result.status === "activated") {
-        const updated = await getMySubscription();
-        set({ sub: updated });
-      }
-      return result;
+      await upgradeSubscription(type);
+      const updated = await getMySubscription();
+      set({ sub: updated });
     } catch {
       set({ error: "Upgrade failed." });
       throw new Error("Upgrade failed");
@@ -70,7 +64,6 @@ export const useSubscriptionStore = create<SubscriptionStore>((set) => ({
       set({ sub: updated });
     } catch {
       set({ error: "Cancellation failed. Please try again." });
-      throw new Error("Cancellation failed");
     } finally {
       set({ isLoading: false });
     }
@@ -83,7 +76,6 @@ export const useSubscriptionStore = create<SubscriptionStore>((set) => ({
       set({ sub: updated });
     } catch {
       set({ error: "Failed to resume subscription." });
-      throw new Error("Failed to resume subscription");
     } finally {
       set({ isLoading: false });
     }
@@ -97,19 +89,6 @@ export const useSubscriptionStore = create<SubscriptionStore>((set) => ({
     } catch {
       set({ error: "Plan change failed." });
       throw new Error("Plan change failed");
-    } finally {
-      set({ isLoading: false });
-    }
-  },
-
-  removePaymentMethod: async () => {
-    set({ isLoading: true, error: null });
-    try {
-      const updated = await removePaymentMethodService();
-      set({ sub: updated });
-    } catch {
-      set({ error: "Failed to remove payment method." });
-      throw new Error("Failed to remove payment method");
     } finally {
       set({ isLoading: false });
     }

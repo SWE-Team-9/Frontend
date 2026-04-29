@@ -17,19 +17,11 @@ const nextConfig = {
     NEXT_PUBLIC_USE_MOCK: "false",
   },
   images: {
-    domains: [
-      "i.pravatar.cc",
-      "iqa3-media-storage.s3.eu-north-1.amazonaws.com",
-      "iqa3-media-storage.s3.amazonaws.com",
-    ],
+    domains: ["i.pravatar.cc", "iqa3-media-storage.s3.eu-north-1.amazonaws.com"],
     remotePatterns: [
       {
         protocol: "https",
         hostname: "iqa3-media-storage.s3.eu-north-1.amazonaws.com",
-      },
-      {
-        protocol: "https",
-        hostname: "iqa3-media-storage.s3.amazonaws.com",
       },
     ],
   },
