@@ -407,7 +407,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
     });
 
     socket.on("connect_error", (error) => {
-      console.error("Message socket connection failed:", error.message);
+      console.warn("Message socket connection failed:", error.message);
       set({ isSocketConnected: false });
     });
 

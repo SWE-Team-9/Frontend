@@ -81,7 +81,7 @@ describe("DownloadButton", () => {
       mockStore("FREE");
       render(<DownloadButton trackId={TRACK_ID} />);
 
-      fireEvent.click(screen.getByRole("button", { name: /save for offline/i }));
+      fireEvent.click(screen.getByRole("button", { name: /download for offline/i }));
 
       await waitFor(() => {
         expect(screen.getByText(/PRO only/i)).toBeInTheDocument();
@@ -94,7 +94,7 @@ describe("DownloadButton", () => {
       mockStore("FREE");
       render(<DownloadButton trackId={TRACK_ID} />);
 
-      fireEvent.click(screen.getByRole("button", { name: /save for offline/i }));
+      fireEvent.click(screen.getByRole("button", { name: /download for offline/i }));
 
       await waitFor(() => {
         expect(screen.getByText(/Premium Feature/i)).toBeInTheDocument();
@@ -108,7 +108,7 @@ describe("DownloadButton", () => {
       mockStore(null);
       render(<DownloadButton trackId={TRACK_ID} />);
 
-      fireEvent.click(screen.getByRole("button", { name: /save for offline/i }));
+      fireEvent.click(screen.getByRole("button", { name: /download for offline/i }));
 
       await waitFor(() => {
         expect(screen.getByText(/PRO only/i)).toBeInTheDocument();
@@ -128,7 +128,7 @@ describe("DownloadButton", () => {
       });
 
       render(<DownloadButton trackId={TRACK_ID} />);
-      fireEvent.click(screen.getByRole("button", { name: /save for offline/i }));
+      fireEvent.click(screen.getByRole("button", { name: /download for offline/i }));
 
       await waitFor(() => {
         expect(mockGetOfflineTrack).toHaveBeenCalledWith(TRACK_ID);
@@ -142,7 +142,7 @@ describe("DownloadButton", () => {
       );
 
       render(<DownloadButton trackId={TRACK_ID} />);
-      fireEvent.click(screen.getByRole("button", { name: /save for offline/i }));
+      fireEvent.click(screen.getByRole("button", { name: /download for offline/i }));
 
       await waitFor(() => {
         // Should show forbidden state (PRO only), NOT generic error state
@@ -157,7 +157,7 @@ describe("DownloadButton", () => {
       );
 
       render(<DownloadButton trackId={TRACK_ID} />);
-      fireEvent.click(screen.getByRole("button", { name: /save for offline/i }));
+      fireEvent.click(screen.getByRole("button", { name: /download for offline/i }));
 
       await waitFor(() => {
         expect(screen.getByText(/Premium Feature/i)).toBeInTheDocument();
@@ -169,7 +169,7 @@ describe("DownloadButton", () => {
       mockGetOfflineTrack.mockRejectedValue(new Error("Network error"));
 
       render(<DownloadButton trackId={TRACK_ID} />);
-      fireEvent.click(screen.getByRole("button", { name: /save for offline/i }));
+      fireEvent.click(screen.getByRole("button", { name: /download for offline/i }));
 
       await waitFor(() => {
         expect(screen.getByText(/Failed/i)).toBeInTheDocument();
@@ -183,7 +183,7 @@ describe("DownloadButton", () => {
       mockGetOfflineTrack.mockRejectedValue(new Error("Network timeout"));
 
       render(<DownloadButton trackId={TRACK_ID} />);
-      fireEvent.click(screen.getByRole("button", { name: /save for offline/i }));
+      fireEvent.click(screen.getByRole("button", { name: /download for offline/i }));
 
       await waitFor(() => {
         expect(screen.getByText(/Failed/i)).toBeInTheDocument();
@@ -200,7 +200,7 @@ describe("DownloadButton", () => {
       );
 
       render(<DownloadButton trackId={TRACK_ID} />);
-      fireEvent.click(screen.getByRole("button", { name: /save for offline/i }));
+      fireEvent.click(screen.getByRole("button", { name: /download for offline/i }));
 
       await waitFor(() => {
         expect(screen.getByText(/PRO only/i)).toBeInTheDocument();

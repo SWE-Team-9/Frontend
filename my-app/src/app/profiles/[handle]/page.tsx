@@ -191,6 +191,8 @@ const TRACKS_LIMIT = 10;
             <Image
               src={avatarUrl}
               alt={displayName}
+              width={128}
+              height={128}
               className="w-full h-full object-cover"
             />
           ) : (
@@ -748,6 +750,8 @@ const TRACKS_LIMIT = 10;
                             <Image
                               src={u.avatar_url || u.avatarUrl || ""}
                               alt={u.display_name || u.displayName || ""}
+                              width={40}
+                              height={40}
                               className="w-full h-full object-cover"
                             />
                           ) : (
