@@ -37,6 +37,7 @@ import {
   usePlayerStore,
   type Track as PlayerTrack,
 } from "@/src/store/playerStore";
+import { loadQueue } from "@/src/services/playerService";
 import { buildTrackPermalink } from "@/src/lib/permalinks";
 
 const FALLBACK_IMAGE = "/images/track-placeholder.png";
@@ -61,6 +62,10 @@ interface TrackCardProps {
   onDelete?: (id: string, title: string) => void;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onEdit?: (track: any) => void;
+  /** All track IDs visible in the current context (list/profile/feed).
+   *  When provided, the backend queue is loaded with the full list so
+   *  next/previous navigation works across the whole context. */
+  contextTrackIds?: string[];
 }
 
 function getArtistLabel(value: unknown): string {
@@ -83,6 +88,7 @@ export const TrackCard: React.FC<TrackCardProps> = ({
   isOwner,
   onDelete,
   onEdit: _onEdit,
+  contextTrackIds,
 }) => {
 const trackHref = buildTrackPermalink({
   trackId: track.trackId,
@@ -260,7 +266,26 @@ const hasCanonicalTrackRoute = !trackHref.startsWith("/tracks/");
         return;
       }
 
-      await fetchAndPlay(playerTrack);
+      // If a full context list is provided, load all IDs into the backend queue
+      // so next/previous work across the whole list.
+      if (contextTrackIds && contextTrackIds.length > 1) {
+        const resp = await loadQueue({
+          contextType: "CONTEXT_IDS",
+          trackIds: contextTrackIds,
+          startTrackId: playerTrack.trackId,
+        });
+        usePlayerStore.setState({
+          currentQueueIndex: resp.currentIndex,
+          queueLength: resp.queueLength,
+          tracksUntilAd: resp.tracksUntilAd,
+          currentAd: null,
+          isPlayingAd: false,
+          queueVersion: usePlayerStore.getState().queueVersion + 1,
+        });
+        await fetchAndPlay(playerTrack, true);
+      } else {
+        await fetchAndPlay(playerTrack);
+      }
     } catch {
       setError("Could not start playback. Please try again.");
     }

@@ -5,6 +5,7 @@ import {
   disconnectMessageSocket,
 } from "@/src/services/messageSocketService";
 import { useAuthStore } from "@/src/store/useAuthStore";
+import { useWsDebugStore } from "@/src/store/wsDebugStore";
 import type {
   AttachResource,
   ConversationPreview,
@@ -420,6 +421,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
     if (USE_MOCK) return;
 
     const socket = connectMessageSocket();
+    useWsDebugStore.getState().setMessages("connecting");
 
     socket.off("connect");
     socket.off("disconnect");
@@ -432,6 +434,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
 
     socket.on("connect", () => {
       set({ isSocketConnected: true });
+      useWsDebugStore.getState().setMessages("connected");
       void get().loadUnreadCount();
       void get().loadConversations();
       void get().loadDropdownConversations();
@@ -439,10 +442,12 @@ export const useMessageStore = create<MessageState>((set, get) => ({
 
     socket.on("disconnect", () => {
       set({ isSocketConnected: false });
+      useWsDebugStore.getState().setMessages("disconnected");
     });
 
     socket.on("connect_error", (error) => {
       console.error("Message socket connection failed:", error.message);
+      useWsDebugStore.getState().setMessages("error");
       set({ isSocketConnected: false });
     });
 
@@ -473,6 +478,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
   disconnectSocket: () => {
     disconnectMessageSocket();
     set({ isSocketConnected: false });
+    useWsDebugStore.getState().setMessages("disconnected");
   },
 
   handleSocketNewMessage: (payload) => {

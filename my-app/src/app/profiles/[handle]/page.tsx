@@ -256,6 +256,8 @@ export default function ProfilePage({
             <Image
               src={avatarUrl}
               alt={displayName}
+              width={128}
+              height={128}
               className="w-full h-full object-cover"
             />
           ) : (

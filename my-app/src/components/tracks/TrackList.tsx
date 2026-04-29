@@ -67,6 +67,11 @@ const TrackList: React.FC<TrackListProps> = ({
     }));
   }, [tracks, userId]);
 
+  const contextTrackIds = useMemo(
+    () => mappedPlayerTracks.map((t) => t.trackId),
+    [mappedPlayerTracks],
+  );
+
   useEffect(() => {
     setPlayerTracks(mappedPlayerTracks);
   }, [mappedPlayerTracks, setPlayerTracks]);
@@ -201,6 +206,7 @@ const data = await getUserTracks(userId, page, limit);
           coverArtUrl: track.coverArtUrl ?? undefined,
           genre: track.genre ?? undefined,
         }}
+        contextTrackIds={contextTrackIds}
         // 2. Dynamic Owner Check: Only true if the logged-in user 
         // matches the track creator's ID
         isOwner={isActuallyOwner} 
