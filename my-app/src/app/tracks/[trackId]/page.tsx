@@ -88,57 +88,17 @@ const timeAgo = (iso: string | null) => {
   return years === 1 ? "1 year ago" : `${years} years ago`;
 };
 
-// Sample three vertical bands of the cover art and return a left→right gradient.
-// Falls back silently to null if CORS / loading fails so the default stays in place.
 async function extractGradientFromImage(src: string): Promise<string | null> {
-  return new Promise((resolve) => {
-    if (typeof window === "undefined") return resolve(null);
-
-    const img = document.createElement("img");
-    img.crossOrigin = "anonymous";
-
-    img.onload = () => {
-      try {
-        const size = 50;
-        const canvas = document.createElement("canvas");
-        canvas.width = size;
-        canvas.height = size;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return resolve(null);
-        ctx.drawImage(img, 0, 0, size, size);
-        const { data } = ctx.getImageData(0, 0, size, size);
-
-        const sampleBand = (xStart: number, xEnd: number) => {
-          let r = 0;
-          let g = 0;
-          let b = 0;
-          let count = 0;
-          for (let y = 0; y < size; y++) {
-            for (let x = xStart; x < xEnd; x++) {
-              const i = (y * size + x) * 4;
-              r += data[i];
-              g += data[i + 1];
-              b += data[i + 2];
-              count++;
-            }
-          }
-          return `rgb(${Math.round(r / count)}, ${Math.round(g / count)}, ${Math.round(b / count)})`;
-        };
-
-        const third = Math.floor(size / 3);
-        const c1 = sampleBand(0, third);
-        const c2 = sampleBand(third, third * 2);
-        const c3 = sampleBand(third * 2, size);
-
-        resolve(`linear-gradient(to right, ${c1}, ${c2}, ${c3})`);
-      } catch {
-        resolve(null);
-      }
-    };
-
-    img.onerror = () => resolve(null);
-    img.src = src;
-  });
+  try {
+    const res = await fetch(
+      `/api/extract-colors?imageUrl=${encodeURIComponent(src)}`
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as { gradient: string | null };
+    return data.gradient ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export default function TrackDetailPage() {

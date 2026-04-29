@@ -64,7 +64,7 @@ export default function NewMessageModal() {
     }, [following, query]);
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4">
+        <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 p-4">
             <div className="relative w-full max-w-2xl rounded border border-zinc-700 bg-[#121212] p-5 text-white shadow-2xl">
                 <button
                     onClick={() => setNewMessageOpen(false)}
