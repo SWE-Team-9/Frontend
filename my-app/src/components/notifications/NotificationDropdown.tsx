@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { MdPersonOutline } from "react-icons/md";
 import { UserCard, UserCardUser } from "@/src/components/user/UserCard";
@@ -85,10 +86,19 @@ function getNotificationTarget(notification: Notification) {
 
 export function NotificationDropdown() {
   const router = useRouter();
-  const notifications = useNotificationStore((state) => state.notifications);
+  const notifications = useNotificationStore(
+    (state) => state.dropdownNotifications,
+  );
   const isLoading = useNotificationStore((state) => state.isLoading);
   const error = useNotificationStore((state) => state.error);
   const markAsRead = useNotificationStore((state) => state.markAsRead);
+  const fetchDropdownNotifications = useNotificationStore(
+    (state) => state.fetchDropdownNotifications,
+  );
+
+  useEffect(() => {
+    void fetchDropdownNotifications();
+  }, [fetchDropdownNotifications]);
 
   async function handleOpenNotification(notification: Notification) {
     await markAsRead(notification);

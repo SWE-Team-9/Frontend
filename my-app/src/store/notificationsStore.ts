@@ -17,6 +17,7 @@ import {
 
 interface NotificationState {
   notifications: Notification[];
+  dropdownNotifications: Notification[];
   unreadCount: number;
   isLoading: boolean;
   error: string | null;
@@ -26,6 +27,7 @@ interface NotificationState {
   selectedStatus: NotificationReadStatus;
   latestToastMessage: string | null;
 
+  fetchDropdownNotifications: () => Promise<void>;
   setSelectedType: (type: NotificationType | "all") => void;
   setSelectedStatus: (status: NotificationReadStatus) => void;
   fetchNotifications: (params?: GetNotificationsParams) => Promise<void>;
@@ -40,6 +42,7 @@ interface NotificationState {
 
 const initialState = {
   notifications: [] as Notification[],
+  dropdownNotifications: [] as Notification[],
   unreadCount: 0,
   isLoading: false,
   error: null as string | null,
@@ -86,8 +89,18 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     } catch (err) {
       set({
         isLoading: false,
-        error: err instanceof Error ? err.message : "Failed to load notifications",
+        error:
+          err instanceof Error ? err.message : "Failed to load notifications",
       });
+    }
+  },
+
+  fetchDropdownNotifications: async () => {
+    try {
+      const response = await getNotifications({ page: 1, limit: 6 });
+      set({ dropdownNotifications: response.notifications });
+    } catch {
+      // dropdown just shows stale data if this fails
     }
   },
 
@@ -107,7 +120,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
     set((state) => ({
       notifications: state.notifications.map((item) =>
-        item.id === notification.id ? { ...item, isRead: true } : item
+        item.id === notification.id ? { ...item, isRead: true } : item,
       ),
       unreadCount: Math.max(state.unreadCount - 1, 0),
     }));
@@ -129,12 +142,18 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     await deleteNotification(notificationId);
 
     set((state) => {
-      const removed = state.notifications.find((item) => item.id === notificationId);
+      const removed = state.notifications.find(
+        (item) => item.id === notificationId,
+      );
       const wasUnread = removed && !removed.isRead;
 
       return {
-        notifications: state.notifications.filter((item) => item.id !== notificationId),
-        unreadCount: wasUnread ? Math.max(state.unreadCount - 1, 0) : state.unreadCount,
+        notifications: state.notifications.filter(
+          (item) => item.id !== notificationId,
+        ),
+        unreadCount: wasUnread
+          ? Math.max(state.unreadCount - 1, 0)
+          : state.unreadCount,
       };
     });
   },
@@ -147,12 +166,26 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         set({ latestToastMessage: event.message });
       }
 
-      if (event.notification) {
-        set((state) => ({
-          notifications: [normalizeNotification(event.notification), ...state.notifications],
-        }));
-      } else {
-        void get().fetchNotifications({ page: 1 });
+      if (event.type === "NEW_NOTIFICATION") {
+        if (event.message) {
+          set({ latestToastMessage: event.message });
+        }
+
+        if (event.notification) {
+          set((state) => ({
+            notifications: [
+              normalizeNotification(event.notification),
+              ...state.notifications,
+            ],
+            dropdownNotifications: [
+              normalizeNotification(event.notification),
+              ...state.dropdownNotifications,
+            ].slice(0, 6),
+          }));
+        } else {
+          void get().fetchNotifications({ page: 1 });
+          void get().fetchDropdownNotifications();
+        }
       }
     }
 
@@ -168,7 +201,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     if (event.type === "NOTIFICATION_READ" && event.notificationId) {
       set((state) => ({
         notifications: state.notifications.map((item) =>
-          item.id === event.notificationId ? { ...item, isRead: true } : item
+          item.id === event.notificationId ? { ...item, isRead: true } : item,
         ),
       }));
     }
@@ -176,7 +209,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     if (event.type === "NOTIFICATION_DELETED" && event.notificationId) {
       set((state) => ({
         notifications: state.notifications.filter(
-          (item) => item.id !== event.notificationId
+          (item) => item.id !== event.notificationId,
         ),
       }));
     }
