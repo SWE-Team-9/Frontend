@@ -136,10 +136,12 @@ function normalizeBackendSubscription(
       typeof raw.cancelAtPeriodEnd === "boolean" ? raw.cancelAtPeriodEnd : false,
     currentPeriodEnd:
       typeof raw.currentPeriodEnd === "string" ? raw.currentPeriodEnd : null,
+    // Backend sends the card object as `paymentMethod` (an object) and
+    // `paymentMethodSummary` as a display string.  Read the object field.
     paymentMethodSummary:
-      raw.paymentMethodSummary &&
-      typeof raw.paymentMethodSummary === "object"
-        ? (raw.paymentMethodSummary as PaymentMethodSummary)
+      raw.paymentMethod &&
+      typeof raw.paymentMethod === "object"
+        ? (raw.paymentMethod as PaymentMethodSummary)
         : null,
     perks: {
       adFree:
@@ -227,7 +229,14 @@ export const upgradeSubscription = async (
   const checkoutUrl =
     typeof data.checkoutUrl === "string" ? data.checkoutUrl : null;
 
-  if (checkoutUrl && data.status !== "active" && data.scheduled !== true) {
+  // Only redirect when Stripe Hosted Checkout is needed (real Stripe mode).
+  // Mock-mode responses include a mock-checkout URL but the subscription is
+  // already active in DB — no redirect is needed in that case.
+  const isRealStripeRedirect =
+    typeof checkoutUrl === "string" &&
+    checkoutUrl.startsWith("https://checkout.stripe.com");
+
+  if (isRealStripeRedirect && data.scheduled !== true) {
     return { status: "redirect", checkoutUrl };
   }
 

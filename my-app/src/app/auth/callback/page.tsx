@@ -2,15 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getCurrentUser } from "@/src/services/authService";
+import { getBootstrapData } from "@/src/services/bffService";
+import { useAuthStore } from "@/src/store/useAuthStore";
+import { useProfileStore } from "@/src/store/useProfileStore";
+import { useNotificationStore } from "@/src/store/notificationsStore";
+import { useSubscriptionStore } from "@/src/store/useSubscriptionStore";
+import { SubscriptionDetails } from "@/src/services/subscriptionService";
 
 // ─────────────────────────────────────────────────────────────
 // OAuth Callback Page  —  /auth/callback
 //
 // After Google OAuth finishes, the backend redirects the browser
 // to this page. The backend already set httpOnly cookies, so we
-// just call /auth/me to confirm the user is logged in, then
-// redirect to /discover (or wherever they came from).
+// call /app/bootstrap once to confirm the session and seed all
+// shell stores in a single round-trip, then redirect.
 //
 // WHY THIS PATH?
 //   The backend does: res.redirect(`${FRONTEND_URL}/auth/callback`)
@@ -22,11 +27,50 @@ export default function AuthCallbackPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const checkAuth = async () => {
+    const handleCallback = async () => {
       try {
-        // getCurrentUser calls GET /auth/me — cookies are sent automatically.
-        // It also updates the Zustand auth store with the user data.
-        await getCurrentUser();
+        const data = await getBootstrapData();
+
+        // Seed auth store
+        const me = data.me;
+        useAuthStore.getState().setUser({
+          id: me.id,
+          email: me.email,
+          displayName: me.display_name ?? "",
+          handle: me.handle ?? "",
+          avatarUrl: me.avatar_url ?? null,
+          isVerified: me.is_verified ?? false,
+        });
+
+        // Seed profile store
+        if (data.profile) {
+          const p = data.profile;
+          useProfileStore.getState().setProfileData({
+            userId: p.id,
+            displayName: p.displayName ?? "",
+            handle: p.handle ?? "",
+            avatarUrl: p.avatarUrl ?? null,
+            coverUrl: p.coverUrl ?? null,
+            accountType: (p.accountType as "ARTIST" | "LISTENER") ?? "LISTENER",
+            followersCount: p.followersCount ?? 0,
+            followingCount: p.followingCount ?? 0,
+            tracksCount: p.tracksCount ?? 0,
+            isLoaded: false,
+          });
+        }
+
+        // Seed notification store
+        useNotificationStore.getState().setFromBootstrap(
+          data.notifications.unreadCount,
+          data.notifications.latest,
+        );
+
+        // Seed subscription store
+        if (data.subscription) {
+          useSubscriptionStore
+            .getState()
+            .setSubDirectly(data.subscription as unknown as SubscriptionDetails);
+        }
 
         // Redirect to wherever the user wanted to go (default: /discover)
         const returnTo = sessionStorage.getItem("oauth_return_to") || "/discover";
@@ -38,7 +82,7 @@ export default function AuthCallbackPage() {
       }
     };
 
-    checkAuth();
+    handleCallback();
   }, [router]);
 
   return (

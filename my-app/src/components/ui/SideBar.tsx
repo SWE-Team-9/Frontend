@@ -3,7 +3,6 @@ import Box from "@/src/components/ui/Box";
 import SideBarItem from "@/src/components/ui/SideBarItem";
 import SuggestedArtists from "@/src/components/profile/sidebar/SuggestedArtists";
 import { useFollowStore } from "@/src/store/followStore";
-import { HiRefresh } from "react-icons/hi";
 
 interface SideBarProps {
   children: React.ReactNode;

@@ -26,12 +26,16 @@ interface NotificationState {
   selectedType: NotificationType | "all";
   selectedStatus: NotificationReadStatus;
   latestToastMessage: string | null;
+  // Set to true after bootstrap seeds initial data; prevents useNotificationsBoot
+  // from making redundant /notifications + /notifications/unread-count requests.
+  seededFromBootstrap: boolean;
 
   fetchDropdownNotifications: () => Promise<void>;
   setSelectedType: (type: NotificationType | "all") => void;
   setSelectedStatus: (status: NotificationReadStatus) => void;
   fetchNotifications: (params?: GetNotificationsParams) => Promise<void>;
   refreshUnreadCount: () => Promise<void>;
+  setFromBootstrap: (unreadCount: number, latest: unknown[]) => void;
   markAsRead: (notification: Notification) => Promise<void>;
   markAllAsRead: () => Promise<void>;
   removeNotification: (notificationId: string) => Promise<void>;
@@ -51,6 +55,7 @@ const initialState = {
   selectedType: "all" as NotificationType | "all",
   selectedStatus: "all" as NotificationReadStatus,
   latestToastMessage: null as string | null,
+  seededFromBootstrap: false,
 };
 
 export const useNotificationStore = create<NotificationState>((set, get) => ({
@@ -111,6 +116,14 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     } catch {
       return;
     }
+  },
+
+  setFromBootstrap: (unreadCount, latest) => {
+    set({
+      unreadCount,
+      notifications: (latest as Notification[]).map(normalizeNotification),
+      seededFromBootstrap: true,
+    });
   },
 
   markAsRead: async (notification) => {
@@ -217,5 +230,5 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
   clearLatestToastMessage: () => set({ latestToastMessage: null }),
 
-  reset: () => set({ ...initialState }),
+  reset: () => set({ ...initialState, seededFromBootstrap: false }),
 }));
