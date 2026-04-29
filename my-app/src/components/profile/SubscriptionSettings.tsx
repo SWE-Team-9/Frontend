@@ -352,7 +352,7 @@ export default function SubscriptionSettings() {
                   </div>
                   <div className="text-right">
                     <p className="text-white font-bold">${(inv.amountPaidCents / 100).toFixed(2)} {inv.currency.toUpperCase()}</p>
-                    <p className={`text-xs font-semibold uppercase ${inv.status.toUpperCase() === "PAID" ? "text-green-400" : "text-amber-400"}`}>{inv.status}</p>
+                    <p className={`text-xs font-semibold uppercase ${inv.status === "paid" ? "text-green-400" : "text-amber-400"}`}>{inv.status}</p>
                   </div>
                 </div>
               ))}
