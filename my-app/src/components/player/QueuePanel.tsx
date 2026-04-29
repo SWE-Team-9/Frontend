@@ -14,15 +14,16 @@ export function QueuePanel() {
   const { currentQueueIndex, queueLength, isQueuePanelOpen, toggleQueuePanel, queueVersion } =
     usePlayerStore();
   const [tracks, setTracks] = useState<QueueTrackMetadata[]>([]);
-  const [loading, setLoading] = useState(false);
+  // Start as true: the panel is always visible when this component mounts,
+  // so the first render is always a loading state. Subsequent refreshes
+  // (queueVersion change) update silently without a spinner.
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!isQueuePanelOpen) return;
-    setLoading(true);
     getQueueState()
-      .then((resp) => setTracks(resp.queue))
-      .catch(() => setTracks([]))
-      .finally(() => setLoading(false));
+      .then((resp) => { setTracks(resp.queue); setLoading(false); })
+      .catch(() => { setTracks([]); setLoading(false); });
   }, [isQueuePanelOpen, queueVersion]);
 
   if (!isQueuePanelOpen) return null;
