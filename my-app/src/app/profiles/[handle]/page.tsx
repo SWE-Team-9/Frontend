@@ -41,6 +41,32 @@ type FollowUserShape = {
   followers?: number;
 };
 
+type BffProfile = {
+  id?: string;
+  user_id?: string;
+  display_name?: string;
+  displayName?: string;
+  handle?: string;
+  bio?: string;
+  location?: string;
+  website_url?: string;
+  website?: string;
+  avatarUrl?: string | null;
+  avatar_url?: string | null;
+  coverPhotoUrl?: string | null;
+  cover_photo_url?: string | null;
+  is_private?: boolean;
+  account_type?: "LISTENER" | "ARTIST";
+  accountType?: "LISTENER" | "ARTIST";
+  favorite_genres?: (string | { slug?: string })[];
+  followers_count?: number;
+  followersCount?: number;
+  following_count?: number;
+  followingCount?: number;
+  track_count?: number;
+  tracksCount?: number;
+};
+
 export default function ProfilePage({
   params,
 }: {
@@ -59,13 +85,13 @@ export default function ProfilePage({
 
   const bffProfileId: string | undefined =
     bffData?.profile
-      ? ((bffData.profile as any).id ?? (bffData.profile as any).user_id)
+      ? ((bffData.profile as BffProfile).id ?? (bffData.profile as BffProfile).user_id)
       : undefined;
 
   // Seed profile store from BFF data so useProfileController skips its own fetch
   useEffect(() => {
     if (!bffData?.profile) return;
-    const p = bffData.profile as any;
+    const p = bffData.profile as BffProfile;
     useProfileStore.getState().setProfileData({
       userId: p.id ?? p.user_id,
       displayName: p.display_name ?? p.displayName ?? "",
@@ -78,7 +104,7 @@ export default function ProfilePage({
       isPrivate: p.is_private ?? false,
       accountType: p.account_type ?? p.accountType ?? "LISTENER",
       favoriteGenres: Array.isArray(p.favorite_genres)
-        ? p.favorite_genres.map((g: any) => (typeof g === "string" ? g : g.slug ?? ""))
+        ? p.favorite_genres.map((g: string | { slug?: string }) => (typeof g === "string" ? g : g.slug ?? ""))
         : [],
       followersCount: p.followers_count ?? p.followersCount ?? 0,
       followingCount: p.following_count ?? p.followingCount ?? 0,

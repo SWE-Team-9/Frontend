@@ -3,16 +3,15 @@
 import React, { useEffect, useState } from "react";
 import UploadForm from "@/src/components/upload/UploadForm";
 import TrackMetadataForm from "@/src/components/upload/TrackMetadataForm";
-import { getMyProfile } from "@/src/services/profileService";
 // --- NEW IMPORTS FOR UPLOAD GUARD ---
 import { useSubscriptionStore } from "@/src/store/useSubscriptionStore";
 import SubscriptionModal from "@/src/components/subscription/SubscriptionModal";
 import { useRouter } from 'next/navigation';
 export default function UploadPage() {
   const [step, setStep] = useState<"upload" | "metadata">("upload");
-  const [isCheckingAccess, setIsCheckingAccess] = useState(false);
-  const [canUpload, setCanUpload] = useState(true);
-  const [accessMessage, setAccessMessage] = useState<string | null>(null);
+  const [_isCheckingAccess, setIsCheckingAccess] = useState(false);
+  const [_canUpload, setCanUpload] = useState(true);
+  const [_accessMessage, setAccessMessage] = useState<string | null>(null);
   const router = useRouter();
 
   // --- SUBSCRIPTION STORE STATE ---

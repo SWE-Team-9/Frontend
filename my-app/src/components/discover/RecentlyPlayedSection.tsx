@@ -65,7 +65,7 @@ export default function RecentlyPlayedSection() {
         }
 
         loadRecentlyPlayed();
-    }, []);
+    }, [setPlayerTracks]);
 
     if (loading) {
         return (

@@ -1,6 +1,5 @@
 "use client";
 import Image from "next/image";
-import Link from "next/link";
 import { useNotificationStore } from "@/src/store/notificationsStore";
 import { NotificationDropdown } from "@/src/components/notifications/NotificationDropdown";
 import { Star } from "lucide-react";
@@ -105,7 +104,7 @@ const NavBar: React.FC<NavBarProps> = ({
   showProfile = true,
   showMoreMenu = true,
 
-  messagesContent = (
+  messagesContent: _messagesContent = (
     <div className="absolute top-10 right-0 bg-neutral-900 text-white rounded-md shadow-md w-56 p-3 border border-neutral-700">
       <p className="text-sm text-neutral-400">No messages</p>
     </div>

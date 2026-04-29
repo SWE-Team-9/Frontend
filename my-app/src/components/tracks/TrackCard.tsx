@@ -82,7 +82,7 @@ export const TrackCard: React.FC<TrackCardProps> = ({
   track,
   isOwner,
   onDelete,
-  onEdit,
+  onEdit: _onEdit,
 }) => {
 const trackHref = buildTrackPermalink({
   trackId: track.trackId,
@@ -107,7 +107,7 @@ const hasCanonicalTrackRoute = !trackHref.startsWith("/tracks/");
     (state) => state.deleteRepostAction,
   );
   const isReposted = useRepostStore((state) => state.isReposted(track.trackId));
-  const handleDeleteClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
+  const _handleDeleteClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation(); // Prevent card click
     if (!isOwner && isReposted) {
       if (confirm("Do you want to remove your repost?")) {

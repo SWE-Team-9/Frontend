@@ -35,7 +35,8 @@ type ProfileDraft = {
 export const useProfileController = (handle?: string, externalProfileId?: string) => {
   const store = useProfileStore();
 
-  const [userId, setUserId] = useState<string | null>(externalProfileId ?? null);
+  const [fetchedUserId, setFetchedUserId] = useState<string | null>(null);
+  const userId = externalProfileId ?? fetchedUserId;
   const currentUserId = useAuthStore((state) => state.user?.id);
   const isOwner = userId === currentUserId;
   const [activeTab, setActiveTab] = useState("Tracks");
@@ -105,7 +106,7 @@ export const useProfileController = (handle?: string, externalProfileId?: string
       const profile = handle
         ? await getProfileByHandle(handle)
         : await getMyProfile();
-      setUserId(profile.id);
+      setFetchedUserId(profile.id);
 
       store.setProfileData({
         userId: profile.id,
@@ -157,7 +158,6 @@ export const useProfileController = (handle?: string, externalProfileId?: string
     // Skip the network fetch entirely and trust the seeded data.
     if (externalProfileId) {
       hasRequestedProfileRef.current = true;
-      if (externalProfileId !== userId) setUserId(externalProfileId);
       return;
     }
 
@@ -171,7 +171,7 @@ export const useProfileController = (handle?: string, externalProfileId?: string
     (async () => {
       if (cancelled) return;
       setIsLoading(true);
-      setUserId(null);
+      setFetchedUserId(null);
       store.resetProfile();
       hasRequestedProfileRef.current = false;
       await loadProfile();
@@ -180,7 +180,7 @@ export const useProfileController = (handle?: string, externalProfileId?: string
     return () => {
       cancelled = true;
     };
-  }, [handle, externalProfileId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [handle, externalProfileId]);
 
   const handleSave = async (draft: ProfileDraft) => {
     const nextProfile = {

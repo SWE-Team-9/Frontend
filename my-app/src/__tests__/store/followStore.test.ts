@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { act, waitFor } from '@testing-library/react';
+import { act } from '@testing-library/react';
 import { useFollowStore } from '@/src/store/followStore';
 import { useAuthStore } from '@/src/store/useAuthStore';
 import { useProfileStore } from '@/src/store/useProfileStore';

@@ -130,7 +130,7 @@ export function NotificationDropdown() {
             const action = getActionText(notification);
 
             if (notification.type === "follow") {
-              const profileSlug =
+              const _profileSlug =
                 notification.actorHandle || notification.actorId;
               return (
                 <div
