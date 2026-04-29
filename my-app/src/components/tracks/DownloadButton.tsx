@@ -80,9 +80,9 @@ export function DownloadButton({
           trackId: result.trackId,
           title: result.title,
           artist: result.artist ?? null,
-          coverArtUrl: null,
-          durationMs: null,
-          expiresInSeconds: 900,
+          coverArtUrl: result.coverArtUrl ?? null,
+          durationMs: result.durationMs ?? null,
+          expiresInSeconds: result.expiresInSeconds ?? 900,
         },
         streamUrl,
       );
