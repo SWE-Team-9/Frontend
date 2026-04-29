@@ -1,6 +1,5 @@
 "use client";
 import Image from "next/image";
-import Link from "next/link";
 import { useNotificationStore } from "@/src/store/notificationsStore";
 import { NotificationDropdown } from "@/src/components/notifications/NotificationDropdown";
 import { Star } from "lucide-react";
@@ -25,8 +24,6 @@ import {
 import { useAuthStore } from "@/src/store/useAuthStore";
 import { logoutUser } from "@/src/services/authService";
 import { useRouter } from "next/navigation";
-import { useLikeStore } from "@/src/store/likeStore";
-import { useRepostStore } from "@/src/store/repostStore";
 import MessagesDropdown from "@/src/components/messages/MessagesDropdown";
 import { useMessageStore } from "@/src/store/messageStore";
 import { useSubscriptionStore } from "@/src/store/useSubscriptionStore";
@@ -107,7 +104,7 @@ const NavBar: React.FC<NavBarProps> = ({
   showProfile = true,
   showMoreMenu = true,
 
-  messagesContent = (
+  messagesContent: _messagesContent = (
     <div className="absolute top-10 right-0 bg-neutral-900 text-white rounded-md shadow-md w-56 p-3 border border-neutral-700">
       <p className="text-sm text-neutral-400">No messages</p>
     </div>
@@ -119,57 +116,26 @@ const NavBar: React.FC<NavBarProps> = ({
   const [isSubModalOpen, setIsSubModalOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null); // Ref for detecting clicks outside of the menu
 
-  // SUBSCRIPTION STATE
+  // SUBSCRIPTION STATE — read-only; synced once by AuthProvider
   const sub = useSubscriptionStore((state) => state.sub);
-  const fetchSubscription = useSubscriptionStore(
-    (state) => state.fetchSubscription,
-  );
 
-  // NOTIFICATIONS
+  // NOTIFICATIONS — read-only; seeded by bootstrap / AuthProvider
   const unreadCount = useNotificationStore((state) => state.unreadCount);
 
   // Read the current logged-in user from the global auth store
   const user = useAuthStore((state) => state.user);
-  const syncLikes = useLikeStore((state) => state.syncWithServer);
-  const syncReposts = useRepostStore((state) => state.syncWithServer);
   // Use the user's avatar if available, otherwise a default silhouette
-  const [profileImageSrc, setProfileImageSrc] = useState(
-    user?.avatarUrl || "/images/profile.png",
-  );
+  const profileImageSrc = user?.avatarUrl || "/images/profile.png";
   // Display name fallback: use handle or the part before "@" in email
   const displayLabel = user
     ? user.displayName || user.handle || user.email.split("@")[0]
     : null;
 
+  // loadUnreadCount, syncLikes, syncReposts, and fetchSubscription are now
+  // handled once per auth session by AuthProvider. NavBar only reads the
+  // resulting store values; it no longer fires redundant per-page API calls.
   const unreadMessageCount = useMessageStore((state) => state.unreadCount);
-  const loadUnreadCount = useMessageStore((state) => state.loadUnreadCount);
-
-  useEffect(() => {
-    if (user?.id) {
-      loadUnreadCount();
-    }
-  }, [user?.id, loadUnreadCount]);
-
-  // --- SYNC INTERACTIONS ON LOAD ---
-  useEffect(() => {
-    if (user?.id) {
-      // Fetch user's likes and reposts from API to populate local stores
-      syncLikes(user.id);
-      syncReposts(user.id);
-    }
-  }, [user?.id, syncLikes, syncReposts]);
   const router = useRouter();
-
-  useEffect(() => {
-    setProfileImageSrc(user?.avatarUrl || "/images/profile.png");
-  }, [user]);
-
-  // --- FETCH SUBSCRIPTION ON MOUNT (only when authenticated) ---
-useEffect(() => {
-  if (user) {
-    fetchSubscription();
-  }
-}, [user, fetchSubscription]);
 
   // Sign-out handler — clears cookies on the backend, clears store
   const handleLogout = useCallback(async () => {
@@ -199,7 +165,7 @@ useEffect(() => {
 
       return item; // Return the rest of the items as they are
     });
-  }, [profileMenu, user?.handle]);
+  }, [profileMenu, user]);
 
   // Inject Logout handler
   const moreMenuWithLogout = useMemo(() => {
@@ -350,7 +316,7 @@ useEffect(() => {
               <FiBell size={20} className="text-neutral-400 hover:text-white" />
 
               {unreadCount > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#ff5500] px-1 text-[10px] font-bold text-white">
+                <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#ff5500] px-1 text-[10px] font-bold text-white">
                   {unreadCount > 99 ? "99+" : unreadCount}
                 </span>
               )}
@@ -368,7 +334,7 @@ useEffect(() => {
               <FiMail size={20} className="text-neutral-400 hover:text-white" />
 
               {unreadMessageCount > 0 && (
-                <span className="absolute -right-2 -top-2 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-[#ff5500] px-1 text-[10px] font-bold leading-none text-white">
+                <span className="absolute -right-1.5 -top-1.5 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-[#ff5500] px-1 text-[10px] font-bold leading-none text-white">
                   {unreadMessageCount > 99 ? "99+" : unreadMessageCount}
                 </span>
               )}

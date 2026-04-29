@@ -24,6 +24,8 @@ import { TrackData } from "@/src/types/interactions";
 import { getUserLikes } from "@/src/services/likeService";
 import SharePopup from "@/src/components/share/SharePopup";
 import { buildUserPermalink } from "@/src/lib/permalinks";
+import {MyPlaylistsSection} from "@/src/components/profile/MyPlaylistsSection";
+import { useProfilePageData } from "@/src/hooks/useProfilePageData";
 
 type FollowUserShape = {
   id: string;
@@ -39,6 +41,32 @@ type FollowUserShape = {
   followers?: number;
 };
 
+type BffProfile = {
+  id?: string;
+  user_id?: string;
+  display_name?: string;
+  displayName?: string;
+  handle?: string;
+  bio?: string;
+  location?: string;
+  website_url?: string;
+  website?: string;
+  avatarUrl?: string | null;
+  avatar_url?: string | null;
+  coverPhotoUrl?: string | null;
+  cover_photo_url?: string | null;
+  is_private?: boolean;
+  account_type?: "LISTENER" | "ARTIST";
+  accountType?: "LISTENER" | "ARTIST";
+  favorite_genres?: (string | { slug?: string })[];
+  followers_count?: number;
+  followersCount?: number;
+  following_count?: number;
+  followingCount?: number;
+  track_count?: number;
+  tracksCount?: number;
+};
+
 export default function ProfilePage({
   params,
 }: {
@@ -49,7 +77,43 @@ export default function ProfilePage({
   const handle = resolvedParams.handle;
   const profileHref = buildUserPermalink(handle);
   const [searchQuery, setSearchQuery] = useState("");
-  const controller = useProfileController(handle);
+
+  // BFF aggregate call — fetches profile + viewer state in one request.
+  // When it resolves we seed the profile store and tell the controller to
+  // skip its own GET /profiles/:handle fetch via externalProfileId.
+  const { data: bffData } = useProfilePageData(handle);
+
+  const bffProfileId: string | undefined =
+    bffData?.profile
+      ? ((bffData.profile as BffProfile).id ?? (bffData.profile as BffProfile).user_id)
+      : undefined;
+
+  // Seed profile store from BFF data so useProfileController skips its own fetch
+  useEffect(() => {
+    if (!bffData?.profile) return;
+    const p = bffData.profile as BffProfile;
+    useProfileStore.getState().setProfileData({
+      userId: p.id ?? p.user_id,
+      displayName: p.display_name ?? p.displayName ?? "",
+      handle: p.handle ?? "",
+      bio: p.bio ?? "",
+      location: p.location ?? "",
+      website: p.website_url ?? p.website ?? "",
+      avatarUrl: p.avatarUrl ?? p.avatar_url ?? null,
+      coverUrl: p.coverPhotoUrl ?? p.cover_photo_url ?? null,
+      isPrivate: p.is_private ?? false,
+      accountType: p.account_type ?? p.accountType ?? "LISTENER",
+      favoriteGenres: Array.isArray(p.favorite_genres)
+        ? p.favorite_genres.map((g: string | { slug?: string }) => (typeof g === "string" ? g : g.slug ?? ""))
+        : [],
+      followersCount: p.followers_count ?? p.followersCount ?? 0,
+      followingCount: p.following_count ?? p.followingCount ?? 0,
+      tracksCount: p.track_count ?? p.tracksCount ?? 0,
+      isLoaded: true,
+    });
+  }, [bffData]);
+
+  const controller = useProfileController(handle, bffProfileId);
   // Destructure detailTab and setDetailTab early to avoid 'used before declaration' errors
   const { detailTab, setDetailTab } = controller;
   const setProfileData = useProfileStore((state) => state.setProfileData);
@@ -71,7 +135,7 @@ export default function ProfilePage({
   const [likesPage, setLikesPage] = useState(1);
   const LIKES_LIMIT = 10;
   const [tracksPage, setTracksPage] = useState(1);
-const TRACKS_LIMIT = 10;
+  const TRACKS_LIMIT = 10;
   // Clear stale data immediately the moment the handle changes
   // 1. Reset data when handle changes
   useEffect(() => {
@@ -181,6 +245,7 @@ const TRACKS_LIMIT = 10;
     },
     [setProfileData],
   );
+  
 
   // ─── DETAILS VIEW ─────────────────────────────────────────────────────────
   const renderDetailsPage = () => (
@@ -469,7 +534,7 @@ const TRACKS_LIMIT = 10;
       return (
         <div className="flex-1 text-center py-20 border-r border-zinc-900/50 pr-12 flex flex-col items-center justify-center">
           <p className="text-zinc-500 text-xl font-bold">
-            You haven&apos;t created any playlists.
+            <MyPlaylistsSection />
           </p>
         </div>
       );
@@ -748,7 +813,10 @@ const TRACKS_LIMIT = 10;
                             <Image
                               src={u.avatar_url || u.avatarUrl || ""}
                               alt={u.display_name || u.displayName || ""}
+                              width={40}
+                              height={40}
                               className="w-full h-full object-cover"
+                              unoptimized
                             />
                           ) : (
                             <span className="w-full h-full flex items-center justify-center text-xs font-bold text-zinc-400 uppercase">

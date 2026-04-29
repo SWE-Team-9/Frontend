@@ -33,7 +33,7 @@ export function NotificationBell() {
         <span className="text-xl">Bell</span>
 
         {unreadCount > 0 && (
-          <span className="absolute -right-1 -top-1 min-w-5 rounded-full bg-[#ff5500] px-1.5 py-0.5 text-center text-xs font-bold text-black">
+          <span className="absolute -right-1.5 -top-1.5 min-w-5 rounded-full bg-[#ff5500] px-1.5 py-0.5 text-center text-xs font-bold text-black">
             {unreadCount > 99 ? "99+" : unreadCount}
           </span>
         )}

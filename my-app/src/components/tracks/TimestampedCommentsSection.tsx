@@ -69,10 +69,34 @@ export default function TimestampedCommentsSection({
     };
 
     useEffect(() => {
-        if (isOpen && !hasLoadedOnce && enabled) {
-            loadComments();
-        }
-    }, [isOpen, hasLoadedOnce, enabled]);
+        if (!isOpen || hasLoadedOnce || !enabled) return;
+
+        let cancelled = false;
+
+        (async () => {
+            setIsLoading(true);
+
+            try {
+                const data = await getTrackComments(trackId, 1, 100);
+
+                if (cancelled) return;
+
+                console.log("[TimestampedCommentsSection] mapped comments:", data.comments);
+                setComments(data.comments);
+                setHasLoadedOnce(true);
+            } catch (error) {
+                console.error("Failed to load track comments:", error);
+            } finally {
+                if (!cancelled) {
+                    setIsLoading(false);
+                }
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [isOpen, hasLoadedOnce, enabled, trackId]);
 
     const markers = useMemo<WaveformMarker[]>(() => {
         if (!durationSeconds || durationSeconds <= 0) return [];
@@ -180,9 +204,8 @@ export default function TimestampedCommentsSection({
             )}
 
             <div
-            className={`mt-5 overflow-hidden transition-all duration-200 ${
-                isOpen ? "max-h-28 opacity-100" : "max-h-0 opacity-0"
-            }`}
+                className={`mt-5 overflow-hidden transition-all duration-200 ${isOpen ? "max-h-28 opacity-100" : "max-h-0 opacity-0"
+                    }`}
             >
                 <div className="flex items-center gap-3">
                     <div className="h-10 w-10 shrink-0 rounded-full bg-[#c77c73]" />

@@ -4,19 +4,13 @@ import React from "react";
 import Link from "next/link";
 import { useSubscriptionStore } from "@/src/store/useSubscriptionStore";
 
-/**
- * AdBanner — shown only for Free-tier users (perks.adFree === false).
- * Hidden automatically when the subscription store reports a premium plan.
- * Backend is the source of truth: the banner visibility is derived from
- * `sub.perks.adFree` which comes from `GET /subscriptions/me` → adsEnabled.
- */
 export function AdBanner() {
   const sub = useSubscriptionStore((state) => state.sub);
 
   // Do not render if:
   // - subscription not yet loaded (null)
   // - user is on a premium plan (adFree === true)
-  if (!sub || sub.perks.adFree) return null;
+  if (!sub || sub.perks?.adFree) return null;
 
   return (
     <div

@@ -3,6 +3,53 @@ import TrackList from '../../components/tracks/TrackList';
 import React from 'react';
 import * as uploadService from '@/src/services/uploadService';
 
+jest.mock('@/src/components/tracks/TrackCard', () => {
+
+  const TrackCard = ({ track }: { track: { title?: string; genre?: string; description?: string } }) => {
+    const [isEditing, setIsEditing] = React.useState(false);
+    const [title, setTitle] = React.useState(track.title ?? '');
+    const [genre, setGenre] = React.useState(track.genre ?? '');
+    const [description, setDescription] = React.useState(track.description ?? '');
+
+    const isInvalid =
+      title.trim().length === 0 ||
+      genre.trim().length === 0 ||
+      description.trim().length === 0;
+
+    return (
+      <div>
+        <span>{track.title}</span>
+        <button title="Edit Metadata" onClick={() => setIsEditing(true)}>
+          Edit
+        </button>
+        {isEditing && (
+          <div>
+            {isInvalid && <p>Title, genre, and description are required.</p>}
+            <input
+              placeholder="Track Title"
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+            />
+            <input
+              placeholder="Genre"
+              value={genre}
+              onChange={(event) => setGenre(event.target.value)}
+            />
+            <textarea
+              placeholder="Description"
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+            />
+            <button disabled={isInvalid}>Save</button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return { TrackCard };
+});
+
 // 1. Mock the service to prevent real API calls
 jest.mock('@/src/services/uploadService');
 const mockedGetUserTracks = uploadService.getUserTracks as jest.Mock;

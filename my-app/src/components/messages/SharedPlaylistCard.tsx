@@ -143,7 +143,7 @@ export default function SharedPlaylistCard({
     };
 
     return (
-        <div className="mt-3 max-w-[680px] text-white">
+        <div className="mt-3 max-w-170 text-white">
             <div className="flex gap-5">
                 <div className="relative h-40 w-40 shrink-0 overflow-hidden bg-zinc-800">
                     <Image

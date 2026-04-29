@@ -289,8 +289,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       isPlaying,
       volume: volume / 100,
       queueTrackIds: queue.map((track) => track.trackId),
-      isShuffleOn,
-      loopMode,
+      shuffle: isShuffleOn,
+      repeatMode: loopMode,
     };
 
     console.log("[playerStore] persistPlayerSession payload", payload);
@@ -341,8 +341,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         trackIndex: restoredCurrentTrack
           ? tracks.findIndex((t) => t.trackId === restoredCurrentTrack.trackId)
           : -1,
-        isShuffleOn: !!data.isShuffleOn,
-        loopMode: data.loopMode ?? "OFF",
+        isShuffleOn: !!data.shuffle,
+        loopMode: data.repeatMode ?? "OFF",
       });
 
       const audio = getAudioElement();
