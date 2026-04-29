@@ -95,7 +95,12 @@ interface SearchOpts {
   limit: number;
 }
 
-export function mockSearch({ q, type, page, limit }: SearchOpts): SearchResponse {
+export function mockSearch({
+  q,
+  type,
+  page,
+  limit,
+}: SearchOpts): SearchResponse {
   const needle = q.trim().toLowerCase();
 
   const matchTrack = (t: (typeof MOCK_TRACKS)[number]) =>
@@ -111,14 +116,18 @@ export function mockSearch({ q, type, page, limit }: SearchOpts): SearchResponse
     p.title.toLowerCase().includes(needle) ||
     p.owner_handle.toLowerCase().includes(needle);
 
-  const tracks = type === "all" || type === "tracks" ? MOCK_TRACKS.filter(matchTrack) : [];
-  const users = type === "all" || type === "users" ? MOCK_USERS.filter(matchUser) : [];
+  const tracks =
+    type === "all" || type === "tracks" ? MOCK_TRACKS.filter(matchTrack) : [];
+  const users =
+    type === "all" || type === "users" ? MOCK_USERS.filter(matchUser) : [];
   const playlists =
-    type === "all" || type === "playlists" ? MOCK_PLAYLISTS.filter(matchPlaylist) : [];
+    type === "all" || type === "playlists"
+      ? MOCK_PLAYLISTS.filter(matchPlaylist)
+      : [];
 
   // Simple per-bucket pagination (only meaningful when type !== "all")
   const start = (page - 1) * limit;
-  const paginate = <T,>(arr: T[]) => arr.slice(start, start + limit);
+  const paginate = <T>(arr: T[]) => arr.slice(start, start + limit);
 
   const total =
     type === "tracks"
@@ -158,7 +167,8 @@ export function mockResolve(permalink: string): ResolveResponse {
     const playlist = MOCK_PLAYLISTS.find(
       (p) => p.owner_handle === handle && p.slug === slug,
     );
-    if (playlist) return { type: "PLAYLIST", resource_id: playlist.id };
+    if (playlist)
+      return { matched: true, resourceType: "PLAYLIST", id: playlist.id };
     throw makeNotFound("Playlist not found");
   }
 
@@ -168,7 +178,7 @@ export function mockResolve(permalink: string): ResolveResponse {
     const track = MOCK_TRACKS.find(
       (t) => t.artist_handle === handle && t.slug === slug,
     );
-    if (track) return { type: "TRACK", resource_id: track.id };
+    if (track) return { matched: true, resourceType: "TRACK", id: track.id };
     throw makeNotFound("Track not found");
   }
 
@@ -176,7 +186,7 @@ export function mockResolve(permalink: string): ResolveResponse {
   if (parts.length === 1) {
     const [handle] = parts;
     const user = MOCK_USERS.find((u) => u.handle === handle);
-    if (user) return { type: "USER", resource_id: user.id };
+    if (user) return { matched: true, resourceType: "USER", id: user.id };
     throw makeNotFound("User not found");
   }
 
@@ -186,6 +196,8 @@ export function mockResolve(permalink: string): ResolveResponse {
 function makeNotFound(message: string): Error {
   const err = new Error(message);
   // Mimic an axios-shaped error so the rest of the app behaves the same
-  (err as unknown as { response: { status: number } }).response = { status: 404 };
+  (err as unknown as { response: { status: number } }).response = {
+    status: 404,
+  };
   return err;
 }
