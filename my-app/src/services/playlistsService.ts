@@ -49,15 +49,70 @@ async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
   }
 }
 
+async function requestMultipart<T>(
+  url: string,
+  formData: FormData,
+): Promise<T> {
+  const token = getAuthToken();
+
+  const res = await fetch(url, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      // Do NOT set Content-Type — browser sets it with the boundary automatically
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: formData,
+  });
+
+  if (!res.ok) {
+    let message = res.statusText;
+    try {
+      const text = await res.text();
+      message = text || res.statusText;
+    } catch {
+      /* ignore */
+    }
+    throw new Error(`API ${res.status}: ${message}`);
+  }
+
+  const text = await res.text();
+  if (!text) return undefined as unknown as T;
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(`Invalid JSON response from ${url}`);
+  }
+}
+
 export const playlistsApi = {
   createPlaylist: (data: CreatePlaylistInput) =>
-    request<unknown>(BASE, { method: "POST", body: JSON.stringify(data) }),
+    request<unknown>(BASE, {
+      method: "POST",
+      body: JSON.stringify({ trackIds: [], ...data }),
+    }),
 
   getMyPlaylists: (page = 1, limit = 20) =>
     request<unknown>(`${BASE}/me?page=${page}&limit=${limit}`),
 
   getPlaylistById: (playlistId: string, limit = 100, offset = 0) =>
     request<unknown>(`${BASE}/${playlistId}?limit=${limit}&offset=${offset}`),
+
+  getEditDetails: (playlistId: string) =>
+    request<{
+      playlistId: string;
+      title: string;
+      description: string | null;
+      visibility: string;
+      slug: string;
+      coverImageUrl: string | null;
+      type: string | null;
+      releaseDate: string | null;
+      genreId: number | null;
+      tags: string[];
+    }>(`${BASE}/${playlistId}/edit`),
 
   updatePlaylist: (playlistId: string, data: UpdatePlaylistInput) =>
     request<{ message: string; playlist: unknown }>(`${BASE}/${playlistId}`, {
@@ -68,10 +123,32 @@ export const playlistsApi = {
   deletePlaylist: (playlistId: string) =>
     request<void>(`${BASE}/${playlistId}`, { method: "DELETE" }),
 
+  likePlaylist: (playlistId: string) =>
+    request<{ message: string }>(`${BASE}/${playlistId}/like`, {
+      method: "POST",
+    }),
+
+  unlikePlaylist: (playlistId: string) =>
+    request<{ message: string }>(`${BASE}/${playlistId}/like`, {
+      method: "DELETE",
+    }),
+
+  getRecentPlaylists: (limit = 10) =>
+    request<unknown>(`${BASE}/recent?limit=${limit}`),
+
+  uploadCover: (playlistId: string, file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return requestMultipart<{ message: string; coverImageUrl: string }>(
+      `${BASE}/${playlistId}/cover`,
+      form,
+    );
+  },
+
   addTrackToPlaylist: (playlistId: string, trackId: string) =>
     request<{ message: string; playlistId: string; trackId: string }>(
       `${BASE}/${playlistId}/tracks`,
-      { method: "POST", body: JSON.stringify({ trackId }) }
+      { method: "POST", body: JSON.stringify({ trackId }) },
     ),
 
   removeTrackFromPlaylist: (playlistId: string, trackId: string) =>
@@ -97,7 +174,7 @@ export const playlistsApi = {
       hideArtwork?: boolean;
       width?: number;
       height?: number;
-    }
+    },
   ) => {
     const qs = new URLSearchParams();
     if (options) {
@@ -107,28 +184,27 @@ export const playlistsApi = {
     }
     const suffix = qs.toString() ? `?${qs}` : "";
     return request<{ playlistId: string; embedCode: string }>(
-      `${BASE}/${playlistId}/embed${suffix}`
+      `${BASE}/${playlistId}/embed${suffix}`,
     );
   },
 };
 
 export function normalizePlaylistList(raw: unknown): Playlist[] {
   if (!raw) return [];
-  
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const r = raw as any;
 
   let list: unknown[] = [];
-  if (Array.isArray(r))                       list = r;
-  else if (Array.isArray(r.playlists))        list = r.playlists;
-  else if (Array.isArray(r.data?.playlists))  list = r.data.playlists;
-  else if (Array.isArray(r.data))             list = r.data;
-  else if (Array.isArray(r.items))            list = r.items;
-  else if (Array.isArray(r.results))          list = r.results;
+  if (Array.isArray(r)) list = r;
+  else if (Array.isArray(r.playlists)) list = r.playlists;
+  else if (Array.isArray(r.data?.playlists)) list = r.data.playlists;
+  else if (Array.isArray(r.data)) list = r.data;
+  else if (Array.isArray(r.items)) list = r.items;
+  else if (Array.isArray(r.results)) list = r.results;
 
   return list.map(normalizePlaylist);
 }
-
 
 export function normalizePlaylist(raw: unknown): Playlist {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -141,6 +217,10 @@ export function normalizePlaylist(raw: unknown): Playlist {
     playlistId: inner.playlistId ?? inner.id ?? inner._id ?? "",
     title: inner.title ?? inner.name ?? "",
     visibility: inner.visibility ?? "PUBLIC",
+    description: inner.description ?? null,
+    secretToken: inner.secretToken ?? inner.secret_token ?? null,
+    cover: inner.coverImageUrl ?? inner.coverArtUrl ?? inner.cover ?? null,
+    owner: inner.owner ?? null,
     tracksCount:
       inner.tracksCount ??
       inner.tracks_count ??
@@ -153,7 +233,6 @@ export function normalizePlaylist(raw: unknown): Playlist {
       : inner.tracks,
   };
 }
-
 
 export function extractMessage(raw: unknown): string | null {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

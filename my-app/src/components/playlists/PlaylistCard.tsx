@@ -5,12 +5,12 @@ import Link from "next/link";
 import Image from "next/image";
 import { Playlist } from "@/src/types/playlist";
 import { usePlaylists } from "@/src/hooks/usePlaylists";
-
+import { playlistsApi } from "@/src/services/playlistsService";
+import SharePopup from "@/src/components/share/SharePopup";
 import { EmbedModal } from "./EmbedModal";
 import { toast } from "sonner";
 import { ConfirmModal } from "@/src/components/ui/ConfirmModal";
 import { EditPlaylistModal } from "@/src/components/playlists/EditPlaylistModal";
-import { SharePlaylistModal } from "@/src/components/playlists/SharePlaylistModal";
 
 import {
   FaMusic,
@@ -21,6 +21,9 @@ import {
   FaTrash,
   FaLink,
   FaListUl,
+  FaShare,
+  FaEdit,
+  FaCode,
 } from "react-icons/fa";
 
 type Variant = "library" | "profile";
@@ -36,7 +39,6 @@ export function PlaylistCard({
 
   const [liked, setLiked] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-
   const [shareOpen, setShareOpen] = useState(false);
   const [embedOpen, setEmbedOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -44,33 +46,39 @@ export function PlaylistCard({
 
   const playlistUrl = `/library/playlists/${playlist.playlistId}`;
 
-  const handleLike = () => setLiked((v) => !v);
   const toggleMenu = () => setMenuOpen((v) => !v);
   const closeMenu = () => setMenuOpen(false);
 
-  // COPY LINK (FIXED)
+  const handleLike = async () => {
+    try {
+      if (liked) {
+        await playlistsApi.unlikePlaylist(playlist.playlistId);
+      } else {
+        await playlistsApi.likePlaylist(playlist.playlistId);
+      }
+      setLiked((v) => !v);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not update like");
+    }
+  };
+
   const handleCopyLink = async () => {
     if (typeof window === "undefined") return;
-
     const url = `${window.location.origin}${playlistUrl}`;
-
     try {
       await navigator.clipboard.writeText(url);
       toast.success("Link has been copied to the clipboard!");
     } catch {
       toast.error("Could not copy link");
     }
-
     closeMenu();
   };
 
-  // ADD TO NEXT UP
   const handleAddToNextUp = () => {
     closeMenu();
     toast.success(`${playlist.title} was added to Next up.`);
   };
 
-  // DELETE
   const handleDelete = async () => {
     try {
       await deletePlaylist(playlist.playlistId);
@@ -97,7 +105,7 @@ export function PlaylistCard({
             unoptimized
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#333] to-[#1a1a1a]">
+          <div className="w-full h-full flex items-center justify-center bg-linear-to-br from-[#333] to-[#1a1a1a]">
             <FaMusic className="text-zinc-600 text-4xl" />
           </div>
         )}
@@ -139,12 +147,20 @@ export function PlaylistCard({
           </button>
         </div>
 
-        {/* MENU */}
+        {/* DROPDOWN MENU */}
         {menuOpen && (
           <>
             <div className="fixed inset-0 z-40" onClick={closeMenu} />
 
-            <div className="absolute z-50 left-2 bottom-11 min-w-[180px] bg-[#1a1a1a] border border-zinc-800 rounded-md shadow-2xl overflow-hidden py-1">
+            <div className="absolute z-50 left-2 bottom-11 min-w-47.5 bg-[#1a1a1a] border border-zinc-800 rounded-md shadow-2xl overflow-hidden py-1">
+              <button
+                type="button"
+                onClick={() => { closeMenu(); setShareOpen(true); }}
+                className="w-full flex items-center gap-3 px-4 py-2 text-xs text-white hover:bg-zinc-800"
+              >
+                <FaShare size={11} className="text-zinc-400" />
+                Share
+              </button>
 
               {variant === "library" && (
                 <button
@@ -179,6 +195,24 @@ export function PlaylistCard({
                 Add to Next Up
               </button>
 
+              <button
+                type="button"
+                onClick={() => { closeMenu(); setEditOpen(true); }}
+                className="w-full flex items-center gap-3 px-4 py-2 text-xs text-white hover:bg-zinc-800"
+              >
+                <FaEdit size={11} className="text-zinc-400" />
+                Edit
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { closeMenu(); setEmbedOpen(true); }}
+                className="w-full flex items-center gap-3 px-4 py-2 text-xs text-white hover:bg-zinc-800"
+              >
+                <FaCode size={11} className="text-zinc-400" />
+                Embed
+              </button>
+
               <div className="my-1 h-px bg-zinc-800" />
 
               <button
@@ -208,18 +242,25 @@ export function PlaylistCard({
       </Link>
 
       {/* MODALS */}
-      <SharePlaylistModal
-        playlist={playlist}
-        isOpen={shareOpen}
-        onClose={() => setShareOpen(false)}
-      />
+      {shareOpen && (
+        <SharePopup
+          permalink={playlistUrl}
+          onClose={() => setShareOpen(false)}
+          resourceType="PLAYLIST"
+          resourceId={playlist.playlistId}
+          resourceTitle={playlist.title}
+          resourceCoverArtUrl={playlist.cover ?? null}
+        />
+      )}
 
       <EditPlaylistModal
         playlist={playlist}
         isOpen={editOpen}
         onClose={() => setEditOpen(false)}
-        onSaved={() => {
+        onSaved={(updated) => {
           toast.success("Playlist updated");
+          // If your parent component handles list refresh, trigger it here
+          void updated;
         }}
       />
 

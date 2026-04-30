@@ -14,10 +14,9 @@ interface Props {
 export function CreatePlaylistModal({ isOpen, onClose, onSubmit }: Props) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [visibility, setVisibility] = useState<"PUBLIC" | "PRIVATE">("PRIVATE");
+  const [visibility, setVisibility] = useState<"PUBLIC" | "SECRET">("SECRET");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
 
   if (!isOpen) return null;
 
@@ -38,13 +37,9 @@ export function CreatePlaylistModal({ isOpen, onClose, onSubmit }: Props) {
         visibility,
       });
 
-      toast.success(
-        `"${newPlaylist.title}" was created`
-
-      );
+      toast.success(`"${newPlaylist.title}" was created`);
       onClose();
     } catch {
-      // Backend isn't ready yet — friendly message instead of "Load failed"
       setError("Could not save right now. Please try again later.");
     } finally {
       setIsSubmitting(false);
@@ -109,11 +104,11 @@ export function CreatePlaylistModal({ isOpen, onClose, onSubmit }: Props) {
             <select
               value={visibility}
               onChange={(e) =>
-                setVisibility(e.target.value as "PUBLIC" | "PRIVATE")
+                setVisibility(e.target.value as "PUBLIC" | "SECRET")
               }
               className="w-full px-3 py-2 bg-[#121212] border border-zinc-800 rounded text-white text-sm focus:border-[#f50] focus:outline-none transition-colors"
             >
-              <option value="PRIVATE">Private</option>
+              <option value="SECRET">Private</option>
               <option value="PUBLIC">Public</option>
             </select>
           </div>

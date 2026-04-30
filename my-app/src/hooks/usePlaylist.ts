@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { playlistsApi, normalizePlaylist } from "@/src/services/api/playlists";
+import { playlistsApi, normalizePlaylist } from "@/src/services/playlistsService";
 import { Playlist, UpdatePlaylistInput } from "@/src/types/playlist";
 
 export function usePlaylist(playlistId: string) {

@@ -5,7 +5,7 @@ import {
   playlistsApi,
   normalizePlaylistList,
   normalizePlaylist,
-} from "@/src/services/api/playlists";
+} from "@/src/services/playlistsService";
 import { Playlist, CreatePlaylistInput } from "@/src/types/playlist";
 
 export function usePlaylists() {

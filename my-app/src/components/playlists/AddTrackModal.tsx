@@ -139,7 +139,7 @@ export function AddTrackModal({ isOpen, onClose, onAdd }: Props) {
                 key={track.trackId}
                 className="flex items-center gap-3 px-6 py-3 hover:bg-zinc-800/50"
               >
-                <div className="w-10 h-10 rounded bg-[#222] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                <div className="w-10 h-10 rounded bg-[#222] flex items-center justify-center shrink-0 overflow-hidden">
                   {track.cover ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
