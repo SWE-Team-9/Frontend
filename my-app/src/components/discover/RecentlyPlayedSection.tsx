@@ -130,7 +130,7 @@ export default function RecentlyPlayedSection() {
                 <div
                     ref={rowRef}
                     onScroll={updateScrollButtons}
-                    className="flex gap-8 overflow-x-auto overflow-y-visible scroll-smooth pb-16 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                    className="flex gap-8 overflow-x-auto overflow-y-visible scroll-smooth pb-16 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
                 >
                     {tracks.map((track) => (
                         <RecentlyPlayedCard
