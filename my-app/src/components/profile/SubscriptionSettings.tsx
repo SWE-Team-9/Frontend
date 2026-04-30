@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -545,30 +545,6 @@ export default function SubscriptionSettings() {
               ))}
             </div>
           )}
-        </div>
-
-        {/* ── Helpful Links ────────────────────────────────────── */}
-        <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-6">
-          <h2 className="text-base font-bold uppercase tracking-wide text-zinc-300 mb-4">
-            Helpful Links
-          </h2>
-          <ul className="space-y-2.5">
-            {[
-              "Change your credit card or payment details",
-              "Troubleshoot payment failures",
-              "General payments and billing help",
-              "Understand sales tax and VAT",
-            ].map((label) => (
-              <li key={label}>
-                <button
-                  onClick={handleManagePayment}
-                  className="text-zinc-400 text-sm hover:text-white transition-colors text-left"
-                >
-                  {label}
-                </button>
-              </li>
-            ))}
-          </ul>
         </div>
 
         <p className="text-center text-[11px] text-zinc-600">
