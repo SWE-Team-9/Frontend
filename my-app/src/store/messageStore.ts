@@ -168,10 +168,14 @@ export const useMessageStore = create<MessageState>((set, get) => ({
   loadDropdownConversations: async () => {
     if (dropdownConversationsFetchInFlight) return;
     dropdownConversationsFetchInFlight = true;
+
     try {
-      const data = await messageService.getConversations(1, 5, false);
+      const data = await messageService.getConversations(1, 50, false);
+
       set({
-        dropdownConversations: sortConversationsByNewest(data.conversations).slice(0, 5),
+        dropdownConversations: sortConversationsByNewest(
+          data.conversations.filter((c) => c.lastMessage),
+        ).slice(0, 5),
       });
     } catch {
       set({ dropdownConversations: [] });
