@@ -2,17 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getBootstrapData, toSystemRole } from "@/src/services/bffService";
-import { useAuthStore } from "@/src/store/useAuthStore";
-import { useProfileStore } from "@/src/store/useProfileStore";
+import { getCurrentUser } from "@/src/services/authService";
 
 // ─────────────────────────────────────────────────────────────
 // OAuth Callback Page  —  /auth/callback
 //
 // After Google OAuth finishes, the backend redirects the browser
 // to this page. The backend already set httpOnly cookies, so we
-// call /app/bootstrap once to confirm the session and seed all
-// shell stores in a single round-trip, then redirect.
+// just call /auth/me to confirm the user is logged in, then
+// redirect to /discover (or wherever they came from).
 //
 // WHY THIS PATH?
 //   The backend does: res.redirect(`${FRONTEND_URL}/auth/callback`)
@@ -24,39 +22,13 @@ export default function AuthCallbackPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const handleCallback = async () => {
+    const checkAuth = async () => {
       try {
-        const data = await getBootstrapData();
+        // getCurrentUser calls GET /auth/me — cookies are sent automatically.
+        // It also updates the Zustand auth store with the user data.
+        await getCurrentUser();
 
-        // Seed profile store
-        if (data.profile) {
-          const p = data.profile;
-          useProfileStore.getState().setProfileData({
-            userId: p.id,
-            displayName: p.displayName ?? "",
-            handle: p.handle ?? "",
-            avatarUrl: p.avatarUrl ?? null,
-            coverUrl: p.coverUrl ?? null,
-            accountType: (p.accountType as "ARTIST" | "LISTENER") ?? "LISTENER",
-            followersCount: p.followersCount ?? 0,
-            followingCount: p.followingCount ?? 0,
-            tracksCount: p.tracksCount ?? 0,
-            isLoaded: false,
-          });
-        }
-
-        // Seed auth store — validate system_role before storing
-        const me = data.me;
-        useAuthStore.getState().setUser({
-          id: me.id,
-          email: me.email,
-          displayName: me.display_name ?? "",
-          handle: me.handle ?? "",
-          avatarUrl: me.avatar_url ?? null,
-          isVerified: me.is_verified ?? false,
-          systemRole: toSystemRole(me.system_role),
-        });
-
+        // Redirect to wherever the user wanted to go (default: /discover)
         const returnTo = sessionStorage.getItem("oauth_return_to") || "/discover";
         sessionStorage.removeItem("oauth_return_to");
         sessionStorage.removeItem("oauth_provider");
@@ -66,7 +38,7 @@ export default function AuthCallbackPage() {
       }
     };
 
-    handleCallback();
+    checkAuth();
   }, [router]);
 
   return (
