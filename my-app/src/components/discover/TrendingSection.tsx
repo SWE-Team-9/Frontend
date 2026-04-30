@@ -146,7 +146,7 @@ export default function TrendingSection() {
                 {tracks.length > 10 && (
                     <button
                         type="button"
-                        onClick={() => router.push("/discover/trending")}
+                        onClick={() => router.push("/trending")}
                         className="text-sm font-semibold text-zinc-400 hover:text-white"
                     >
                         View more
