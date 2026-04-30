@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { FaTimes, FaCopy, FaCheck, FaCode } from "react-icons/fa";
 
 // API service for fetching embed code
-import { playlistsApi } from "@/src/services/api/playlists";
+import { playlistsApi } from "@/src/services/playlistsService";
 
 interface Props {
   playlistId: string;

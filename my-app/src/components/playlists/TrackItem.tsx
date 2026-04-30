@@ -59,7 +59,7 @@ export function TrackItem({
       {/* Track thumbnail + play button */}
       <button
         onClick={() => onPlay?.(track)}
-        className="relative w-10 h-10 rounded overflow-hidden bg-[#222] flex-shrink-0"
+        className="relative w-10 h-10 rounded overflow-hidden bg-[#222] shrink-0"
       >
         {/* Cover image or fallback icon */}
         {track.cover ? (
