@@ -58,26 +58,42 @@ export interface AnalyticsData {
 export interface AdminStats {
   users: {
     total: number;
-    listeners: number;
-    artists: number;
+    listeners?: number;
+    artists?: number;
     active: number;
     suspended: number;
     banned: number;
+    verified?: number;
+    unverified?: number;
+    artist_to_listener_ratio?: number | null;
   };
 
   storage: {
     used_bytes: number;
-    total_bytes: number;
+    total_bytes?: number;
     total_human_readable: string;
   };
 
   content: {
     total_tracks: number;
-    tracks_visible: number;
+    tracks_visible?: number;
+    tracks_hidden?: number;
+    tracks_removed?: number;
+    total_playlists?: number;
+    total_comments?: number;
   };
 
   moderation: {
     reports_pending: number;
+    reports_in_review?: number;
+    reports_resolved_this_week?: number;
+    actions_taken_this_week?: number;
+  };
+
+  engagement?: {
+    total_play_events: number;
+    completed_play_events: number;
+    play_through_rate_pct: number;
   };
 
   genres?: {

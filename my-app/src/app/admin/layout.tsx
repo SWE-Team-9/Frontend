@@ -1,28 +1,39 @@
 "use client";
-import React from 'react';
+import React, { useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { FiAlertTriangle, FiBarChart2 } from 'react-icons/fi';
+import { FiAlertTriangle, FiBarChart2, FiClipboard } from 'react-icons/fi';
+import { useAuthStore } from '@/src/store/useAuthStore';
 
-import { 
-  LuLayoutDashboard, 
-  LuUsers,  
-  LuSettings, 
-  LuLifeBuoy, 
-  LuLogOut 
+import {
+  LuLayoutDashboard,
+  LuUsers,
+  LuSettings,
+  LuLifeBuoy,
+  LuLogOut
 } from "react-icons/lu";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+
+  useEffect(() => {
+    if (isAuthenticated && user && user.systemRole !== 'ADMIN' && user.systemRole !== 'MODERATOR') {
+      router.replace('/discover');
+    }
+  }, [isAuthenticated, user, router]);
+
+  const isAdmin = user?.systemRole === 'ADMIN';
 
   const mainNav = [
     { label: 'Overview', href: '/admin', icon: LuLayoutDashboard },
     { label: 'Reports', href: '/admin/reports', icon: FiAlertTriangle },
-    { label: 'User Management', href: '/admin/users', icon: LuUsers },
-    { label: 'Analytics', href: '/admin/analytics', icon: FiBarChart2 },
-    
-    
+    ...(isAdmin ? [{ label: 'User Management', href: '/admin/users', icon: LuUsers }] : []),
+    ...(isAdmin ? [{ label: 'Analytics', href: '/admin/analytics', icon: FiBarChart2 }] : []),
+    ...(isAdmin ? [{ label: 'Audit Log', href: '/admin/audit-log', icon: FiClipboard }] : []),
   ];
 
   const utilityNav = [

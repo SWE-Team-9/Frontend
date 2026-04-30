@@ -179,13 +179,18 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
           setShowResendVerification(false);
           setResendSent(false);
 
-          await loginUser({
+          const loginResult = await loginUser({
             email,
             password: loginPassword,
           });
           setEmailStore(email);
           onClose();
-          router.push("/discover");
+          const role = loginResult?.user?.system_role ?? "USER";
+          if (role === "ADMIN" || role === "MODERATOR") {
+            router.push("/admin");
+          } else {
+            router.push("/discover");
+          }
         } catch (err: unknown) {
           const axiosErr = err as {
             response?: {

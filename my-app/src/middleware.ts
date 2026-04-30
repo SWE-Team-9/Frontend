@@ -15,8 +15,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-// Routes that require the user to be authenticated
-const PROTECTED_PREFIXES = ["/discover", "/profile", "/settings"];
+// Routes that require the user to be authenticated (checked via httpOnly cookie)
+const PROTECTED_PREFIXES = ["/discover", "/profile", "/settings", "/admin", "/upload", "/library", "/notifications", "/messages"];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -28,6 +28,7 @@ export function middleware(request: NextRequest) {
   if (!isProtected) {
     return NextResponse.next();
   }
+
   // The backend sets an httpOnly `access_token` cookie.
   // Middleware runs server-side so it CAN read httpOnly cookies from the
   // incoming request headers — this does NOT expose them to browser JS.
@@ -43,6 +44,16 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Only run middleware on protected paths — skip static assets and API routes
-  matcher: ["/discover/:path*", "/profile/:path*", "/settings/:path*"],
+  // Run middleware on all protected paths — skip static assets and API routes
+  matcher: [
+    "/discover/:path*",
+    "/profile/:path*",
+    "/settings/:path*",
+    "/admin/:path*",
+    "/admin",
+    "/upload/:path*",
+    "/library/:path*",
+    "/notifications/:path*",
+    "/messages/:path*",
+  ],
 };

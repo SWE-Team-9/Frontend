@@ -69,8 +69,8 @@ export const adminServiceMock = {
 
     return {
       stats: {
-        users: { total: 12450, active: 11800, suspended: 42, banned: 108, verified: 11200, unverified: 1250 },
-        content: { total_tracks: 45000, total_playlists: 8200, total_comments: 156000 },
+        users: { total: 12450, active: 11800, suspended: 42, banned: 108, verified: 11200, unverified: 1250, artists: 2600, listeners: 9850 },
+        content: { total_tracks: 45000, tracks_visible: 44000, total_playlists: 8200, total_comments: 156000 },
         storage: {
           total_bytes: 5368709120000,
           used_bytes: 3221225472000,

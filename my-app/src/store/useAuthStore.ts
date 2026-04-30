@@ -19,6 +19,7 @@ export interface AuthUser {
   handle?: string;
   avatarUrl?: string | null;
   isVerified?: boolean;
+  systemRole?: "ADMIN" | "MODERATOR" | "USER";
 }
 
 interface AuthState {
