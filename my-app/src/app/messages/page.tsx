@@ -16,7 +16,7 @@ export default function MessagesPage() {
 
   return (
     <>
-      <main className="min-h-screen bg-[#121212] pt-16 text-white">
+      <main className="min-h-screen bg-[#121212] text-white">
         <div className="mx-auto flex max-w-7xl">
           <ConversationList />
           <ChatWindow />
