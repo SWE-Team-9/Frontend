@@ -1,15 +1,7 @@
 import api from "@/src/services/api";
-import { AdminStats } from "@/src/types/admin";
+import { AdminStats, ActionPayload } from "@/src/types/admin";
 
-type ActionPayload = {
-  reason?: string;
-  current_password?: string;
-  duration_hours?: number;
-  duration_days?: number;
-  moderation_state?: string;
-  action?: string;
-  status?: 'RESOLVED' | 'REJECTED' | 'UNDER_REVIEW' | 'PENDING';
-};
+
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B";
@@ -27,7 +19,7 @@ function transformOverviewStats(raw: Record<string, unknown>): AdminStats {
   const moderation = (raw.moderation as Record<string, number>) ?? {};
 
   const usedBytes = billing.total_storage_bytes ?? 0;
-
+  const totalBytes = billing.total_storage_limit ?? 107374182400;
   return {
     users: {
       total: users.total ?? 0,
@@ -39,7 +31,7 @@ function transformOverviewStats(raw: Record<string, unknown>): AdminStats {
     },
     storage: {
       used_bytes: usedBytes,
-      total_bytes: 0,
+      total_bytes: totalBytes,
       total_human_readable: formatBytes(usedBytes),
     },
     content: {
@@ -53,6 +45,7 @@ function transformOverviewStats(raw: Record<string, unknown>): AdminStats {
       total_play_events: engagement.total_play_events ?? 0,
       completed_play_events: engagement.completed_play_events ?? 0,
       play_through_rate_pct: engagement.play_through_rate_pct ?? 0,
+      
     },
   };
 }
@@ -111,25 +104,93 @@ export const adminServiceReal = {
     });
     return r.data;
   },
+  getReports: async () => {
+    const r = await api.get('/admin/reports');
+    return r.data.items ?? r.data.reports ?? r.data;
+  },
+
+  warnUser: async (id: string, payload: ActionPayload) => 
+    adminServiceReal.submitAction('warn', id, payload),
+
+  suspendUser: async (
+  id: string,
+  payload: ActionPayload & {
+    current_password: string;
+  }
+) => 
+  adminServiceReal.submitAction('suspend', id, payload),
+
+  banUser: async (id: string, payload: ActionPayload) => 
+    adminServiceReal.submitAction('ban', id, payload),
+
+  restoreUser: async (id: string, payload: ActionPayload) => 
+    adminServiceReal.submitAction('restore', id, payload),
+
+  updateReportStatus: async (id: string, payload: ActionPayload) => 
+    adminServiceReal.submitAction('report-status', id, payload),
+
+  moderateTrack: async (id: string, payload: any) => 
+    adminServiceReal.submitAction('track-mod', id, payload),
+
+  moderateComment: async (id: string, payload: any) => 
+    adminServiceReal.submitAction('comment-mod', id, payload),
+
+  moderatePlaylist: async (id: string, payload: any) => 
+    adminServiceReal.submitAction('playlist-mod', id, payload),
+
+  // --- Core API Dispatcher ---
 
   submitAction: async (type: string, id: string, payload: ActionPayload) => {
     switch (type) {
-      case 'warn': return api.post(`/admin/users/${id}/warn`, payload);
-      case 'suspend': return api.post(`/admin/users/${id}/suspend`, {
-        ...payload,
-        durationHours: payload.duration_hours ?? (payload.duration_days ?? 7) * 24,
-      });
-      case 'ban': return api.post(`/admin/users/${id}/ban`, payload);
+      case 'warn': 
+        return api.post(`/admin/users/${id}/warn`, payload);
+      case 'suspend': 
+        return api.post(`/admin/users/${id}/suspend`, {
+         ...payload,
+         durationHours:
+         payload.duration_hours ??
+         (payload.duration_days ?? 7) * 24,
+         current_password: payload.current_password,
+     });
+      case 'ban': 
+        return api.post(`/admin/users/${id}/ban`, payload);
       case 'restore':
       case 'activate':
-      case 'restore-user': return api.post(`/admin/users/${id}/restore`, payload);
-      case 'track-mod': return api.patch(`/admin/tracks/${id}/moderation`, payload);
-      case 'comment-mod': return api.patch(`/admin/comments/${id}/moderation`, payload);
-      case 'playlist-mod': return api.patch(`/admin/playlists/${id}/moderation`, payload);
-      case 'report-status': return api.patch(`/admin/reports/${id}`, payload);
-      case 'report-assign': return api.patch(`/admin/reports/${id}/assign`, payload);
-      default: throw new Error(`Unknown action type: ${type}`);
+      case 'restore-user': 
+        return api.post(`/admin/users/${id}/restore`, payload);
+      case 'track-mod': 
+        return api.patch(`/admin/tracks/${id}/moderation`, payload);
+      case 'comment-mod': 
+        return api.patch(`/admin/comments/${id}/moderation`, payload);
+      case 'playlist-mod': 
+        return api.patch(`/admin/playlists/${id}/moderation`, payload);
+      case 'report-status': 
+        return api.patch(`/admin/reports/${id}`, payload);
+      case 'report-assign': 
+        return api.patch(`/admin/reports/${id}/assign`, payload);
+      default: 
+        throw new Error(`Unknown action type: ${type}`);
     }
+  },
+  //real APIs to be used for moderation actions and report status updates
+  hideTrack: async (trackId: string) => {
+    await fetch(`/api/v1/admin/tracks/${trackId}/hide`, {
+      method: "POST",
+    });
+  },
+
+  restoreTrack: async (trackId: string) => {
+    await fetch(`/api/v1/admin/tracks/${trackId}/restore`, {
+      method: "POST",
+    });
+  },
+
+  addModeratorReview: async ({ reportId , content }:  { reportId: string; content: string }) => {
+    await fetch(`/api/v1/admin/reports/${reportId}/review`, {
+      method: "POST",
+      body: JSON.stringify({ content }),
+      headers: { "Content-Type": "application/json" },
+    });
   },
 
   bulkUpdateReports: async (reportIds: string[], status: string, resolutionNotes?: string) => {

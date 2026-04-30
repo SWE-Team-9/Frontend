@@ -11,19 +11,39 @@ export interface MostReportedStats {
   tracks: { id: string; title: string; report_count: number }[];
   users: { id: string; display_name: string; report_count: number }[];
 }
+export interface ModerationAction {
+  id: string;
+  admin_id: string;
+  action_type: 'WARN' | 'SUSPEND' | 'BAN' | 'RESTORE' | 'HIDE' | 'DELETE';
+  reason: string;
+  created_at: string;
+  metadata?: Record<string, string | number | boolean>;
+}
+export interface ModeratorReview {
+  id: string;
+  content: string;
+  created_at?: string;
+  admin_name?: string;
+}
+
 
 export interface Report {
   id: string;
   reporter: { id: string; display_name: string; handle: string };
+  description: string;
   target: {
-    type: 'TRACK' | 'USER' | 'COMMENT' | 'PLAYLIST';
+    type: 'TRACK' | 'USER' | 'COMMENT' ;
     id: string;
     title: string;
     owner_handle?: string;
   };
   category: 'COPYRIGHT' | 'INAPPROPRIATE' | 'SPAM' | 'HARASSMENT' | 'OTHER';
-  status: 'PENDING' | 'RESOLVED' | 'REJECTED';
+  status: 'PENDING' | 'RESOLVED' | 'REJECTED' | 'UNDER_REVIEW';
   created_at: string;
+  assigned_to?: string | null; // Admin ID of who is handling the report
+  assigned_admin?: { id: string; handle: string; display_name: string } | null; // Populated when fetching reports with admin details
+  moderator_reviews?: ModeratorReview[]; // Reviews left by moderators during the review process
+  previous_actions_on_target?: ModerationAction[]; // This can be populated with the history of actions taken on the reported content/user for better context during review
 }
 
 export interface AdminUser {
@@ -58,39 +78,30 @@ export interface AnalyticsData {
 export interface AdminStats {
   users: {
     total: number;
-    listeners?: number;
-    artists?: number;
+    listeners: number;
+    artists: number;
     active: number;
     suspended: number;
     banned: number;
-    verified?: number;
-    unverified?: number;
-    artist_to_listener_ratio?: number | null;
   };
 
   storage: {
     used_bytes: number;
-    total_bytes?: number;
+    total_bytes: number;
     total_human_readable: string;
   };
 
   content: {
     total_tracks: number;
-    tracks_visible?: number;
-    tracks_hidden?: number;
-    tracks_removed?: number;
-    total_playlists?: number;
-    total_comments?: number;
+    tracks_visible: number;
   };
 
   moderation: {
     reports_pending: number;
-    reports_in_review?: number;
-    reports_resolved_this_week?: number;
-    actions_taken_this_week?: number;
   };
 
-  engagement?: {
+  
+  engagement: {
     total_play_events: number;
     completed_play_events: number;
     play_through_rate_pct: number;
@@ -106,6 +117,12 @@ export type ActionPayload = {
   reason?: string;
   current_password?: string;
   duration_days?: number;
+  duration_hours?: number;
+  action?: string;
+  restoreContent?: boolean;
   moderation_state?: string;
-  status?: 'RESOLVED' | 'REJECTED';
+  moderator_reviews?: string;
+  status?: 'RESOLVED' | 'REJECTED' | 'UNDER_REVIEW'| 'PENDING';
+  reportId?: string;
+  assigned_to?: string;
 };
