@@ -210,7 +210,7 @@ export const useAdminStore = create<AdminState>()(
                     ...state.stats.content,
                     tracks_visible: Math.max(
                       0,
-                      state.stats.content.tracks_visible - 1
+                      (state.stats.content.tracks_visible ?? 0) - 1
                     )
                   }
                 }

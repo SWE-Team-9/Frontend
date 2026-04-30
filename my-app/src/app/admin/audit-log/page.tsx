@@ -38,22 +38,27 @@ export default function AuditLogPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchLogs = async (p: number) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const data = await adminServiceReal.getAuditLog(p, 20);
-      setLogs(data.items ?? data);
-      setTotalPages(data.pagination?.totalPages ?? 1);
-    } catch {
-      setError("Failed to load audit log.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchLogs(page);
+    let cancelled = false;
+
+    adminServiceReal
+      .getAuditLog(page, 20)
+      .then((data) => {
+        if (cancelled) return;
+        setLogs(data.items ?? data);
+        setTotalPages(data.pagination?.totalPages ?? 1);
+        setError(null);
+        setIsLoading(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setError("Failed to load audit log.");
+        setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [page]);
 
   return (

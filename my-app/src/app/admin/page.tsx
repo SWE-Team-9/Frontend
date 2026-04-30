@@ -61,7 +61,9 @@ export default function AdminDashboard() {
     { name: 'Other', value: 5, color: '#27272a' },
   ];
 
-  const storagePercent = (stats.storage.used_bytes / stats.storage.total_bytes) * 100;
+  const storagePercent = stats.storage.total_bytes
+    ? (stats.storage.used_bytes / stats.storage.total_bytes) * 100
+    : 0;
   
   const getStorageColor = (percent: number) => {
     if (percent > 90) return '#ef4444';
