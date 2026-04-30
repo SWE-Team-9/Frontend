@@ -3,6 +3,7 @@ import Box from "@/src/components/ui/Box";
 import SideBarItem from "@/src/components/ui/SideBarItem";
 import SuggestedArtists from "@/src/components/profile/sidebar/SuggestedArtists";
 import { useFollowStore } from "@/src/store/followStore";
+import { useAuthStore } from "@/src/store/useAuthStore";
 
 interface SideBarProps {
   children: React.ReactNode;
@@ -14,6 +15,8 @@ const SideBar: React.FC<SideBarProps> = ({ children, showSidebar = true }) => {
     (state) => state.suggestionsLoading,
   );
   const fetchSuggestions = useFollowStore((state) => state.fetchSuggestions);
+  const systemRole = useAuthStore((s) => s.user?.systemRole);
+  const isStaff = systemRole === "ADMIN" || systemRole === "MODERATOR";
 
   return (
     <div className="flex h-screen">
@@ -27,6 +30,14 @@ const SideBar: React.FC<SideBarProps> = ({ children, showSidebar = true }) => {
         className={`hidden md:flex flex-col gap-y-2 bg-[#121212] h-full w-96 p-2 
         ${showSidebar ? "visible" : "invisible"}`}
       >
+        {isStaff && (
+          <Box className="flex-1">
+            <div className="px-5 py-4">
+              <SideBarItem label="ADMIN DASHBOARD" href="/admin" />
+            </div>
+          </Box>
+        )}
+
         <Box className="flex-1">
           <div className="px-5 py-4">
             <SideBarItem label="ARTISTS TOOLS" href="/" />
