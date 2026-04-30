@@ -37,7 +37,11 @@ export function PlaylistCard({
 }) {
   const { deletePlaylist } = usePlaylists();
 
-  const [liked, setLiked] = useState(false);
+  // Read initial liked state from the playlist data
+  const [liked, setLiked] = useState(playlist.liked ?? false);
+  const [likesCount, setLikesCount] = useState(playlist.likesCount ?? 0);
+  const [isLiking, setIsLiking] = useState(false);
+
   const [menuOpen, setMenuOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [embedOpen, setEmbedOpen] = useState(false);
@@ -49,16 +53,30 @@ export function PlaylistCard({
   const toggleMenu = () => setMenuOpen((v) => !v);
   const closeMenu = () => setMenuOpen(false);
 
-  const handleLike = async () => {
+  const handleLike = async (e?: React.MouseEvent) => {
+    e?.preventDefault(); 
+    if (isLiking) return;
+
+    const wasLiked = liked;
+    const prevCount = likesCount;
+
+    setLiked(!wasLiked);
+    setLikesCount((c:number) => (wasLiked ? Math.max(0, c - 1) : c + 1));
+    setIsLiking(true);
+
     try {
-      if (liked) {
-        await playlistsApi.unlikePlaylist(playlist.playlistId);
+      if (wasLiked) {
+        await playlistsApi.unlikePlaylist(playlist.playlistId); 
       } else {
-        await playlistsApi.likePlaylist(playlist.playlistId);
+        await playlistsApi.likePlaylist(playlist.playlistId);  
       }
-      setLiked((v) => !v);
     } catch (err) {
+      // Revert on failure
+      setLiked(wasLiked);
+      setLikesCount(prevCount);
       toast.error(err instanceof Error ? err.message : "Could not update like");
+    } finally {
+      setIsLiking(false);
     }
   };
 
@@ -119,8 +137,8 @@ export function PlaylistCard({
 
         {/* PLAY ICON */}
         <div className="pointer-events-none absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-20">
-          <div className="w-12 h-12 rounded-full bg-[#f50] flex items-center justify-center">
-            <FaPlay className="text-white text-sm ml-0.5" />
+          <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center">
+            <FaPlay className="text-black text-[2rem] ml-1" />
           </div>
         </div>
 
@@ -129,18 +147,20 @@ export function PlaylistCard({
           <button
             type="button"
             onClick={handleLike}
-            className="w-7 h-7 rounded-full bg-black/70 hover:bg-black flex items-center justify-center"
+            disabled={isLiking}
+            aria-label={liked ? "Unlike playlist" : "Like playlist"}
+            className="w-7 h-7 rounded-full bg-black/70 hover:bg-black flex items-center justify-center disabled:opacity-50"
           >
             {liked ? (
-              <FaHeart className="text-[#f50] text-xs" />
+              <FaHeart className="text-[#f50] text-[1rem]" />
             ) : (
-              <FaRegHeart className="text-white text-xs" />
+              <FaRegHeart className="text-white text-[1rem]" />
             )}
           </button>
 
           <button
             type="button"
-            onClick={toggleMenu}
+            onClick={(e) => { e.preventDefault(); toggleMenu(); }}
             className="w-7 h-7 rounded-full bg-black/70 hover:bg-black flex items-center justify-center"
           >
             <FaEllipsisH className="text-white text-[10px]" />
@@ -151,40 +171,7 @@ export function PlaylistCard({
         {menuOpen && (
           <>
             <div className="fixed inset-0 z-40" onClick={closeMenu} />
-
             <div className="absolute z-50 left-2 bottom-11 min-w-47.5 bg-[#1a1a1a] border border-zinc-800 rounded-md shadow-2xl overflow-hidden py-1">
-              <button
-                type="button"
-                onClick={() => { closeMenu(); setShareOpen(true); }}
-                className="w-full flex items-center gap-3 px-4 py-2 text-xs text-white hover:bg-zinc-800"
-              >
-                <FaShare size={11} className="text-zinc-400" />
-                Share
-              </button>
-
-              {variant === "library" && (
-                <button
-                  type="button"
-                  onClick={handleCopyLink}
-                  className="w-full flex items-center gap-3 px-4 py-2 text-xs text-white hover:bg-zinc-800"
-                >
-                  <FaLink size={11} className="text-zinc-400" />
-                  Copy Link
-                </button>
-              )}
-
-              <button
-                type="button"
-                onClick={handleLike}
-                className="w-full flex items-center gap-3 px-4 py-2 text-xs text-white hover:bg-zinc-800"
-              >
-                {liked ? (
-                  <FaHeart size={11} className="text-[#f50]" />
-                ) : (
-                  <FaRegHeart size={11} className="text-zinc-400" />
-                )}
-                Like
-              </button>
 
               <button
                 type="button"
@@ -217,10 +204,7 @@ export function PlaylistCard({
 
               <button
                 type="button"
-                onClick={() => {
-                  closeMenu();
-                  setConfirmOpen(true);
-                }}
+                onClick={() => { closeMenu(); setConfirmOpen(true); }}
                 className="w-full flex items-center gap-3 px-4 py-2 text-xs text-white hover:bg-zinc-800"
               >
                 <FaTrash size={11} className="text-zinc-400" />
@@ -259,7 +243,6 @@ export function PlaylistCard({
         onClose={() => setEditOpen(false)}
         onSaved={(updated) => {
           toast.success("Playlist updated");
-          // If your parent component handles list refresh, trigger it here
           void updated;
         }}
       />

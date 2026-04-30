@@ -1,169 +1,104 @@
+import api from "@/src/services/api";
 import {
   Playlist,
   CreatePlaylistInput,
   UpdatePlaylistInput,
 } from "@/src/types/playlist";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
-const BASE = `${API_BASE_URL}/playlists`;
-
-function getAuthToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("accessToken");
-}
-
-async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
-  const token = getAuthToken();
-
-  const res = await fetch(url, {
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(options.headers || {}),
-    },
-    ...options,
-  });
-
-  if (!res.ok) {
-    let message = res.statusText;
-    try {
-      const text = await res.text();
-      message = text || res.statusText;
-    } catch {
-      /* ignore */
-    }
-    throw new Error(`API ${res.status}: ${message}`);
-  }
-
-  if (res.status === 204) return undefined as unknown as T;
-
-  const text = await res.text();
-  if (!text) return undefined as unknown as T;
-
-  try {
-    return JSON.parse(text);
-  } catch {
-    throw new Error(`Invalid JSON response from ${url}`);
-  }
-}
-
-async function requestMultipart<T>(
-  url: string,
-  formData: FormData,
-): Promise<T> {
-  const token = getAuthToken();
-
-  const res = await fetch(url, {
-    method: "POST",
-    credentials: "include",
-    headers: {
-      Accept: "application/json",
-      // Do NOT set Content-Type — browser sets it with the boundary automatically
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: formData,
-  });
-
-  if (!res.ok) {
-    let message = res.statusText;
-    try {
-      const text = await res.text();
-      message = text || res.statusText;
-    } catch {
-      /* ignore */
-    }
-    throw new Error(`API ${res.status}: ${message}`);
-  }
-
-  const text = await res.text();
-  if (!text) return undefined as unknown as T;
-
-  try {
-    return JSON.parse(text);
-  } catch {
-    throw new Error(`Invalid JSON response from ${url}`);
-  }
-}
+const BASE = "/playlists";
 
 export const playlistsApi = {
   createPlaylist: (data: CreatePlaylistInput) =>
-    request<unknown>(BASE, {
-      method: "POST",
-      body: JSON.stringify({ trackIds: [], ...data }),
-    }),
+    api
+      .post<unknown>(BASE, { trackIds: [], ...data })
+      .then((r) => r.data),
 
   getMyPlaylists: (page = 1, limit = 20) =>
-    request<unknown>(`${BASE}/me?page=${page}&limit=${limit}`),
+    api
+      .get<unknown>(`${BASE}/me`, { params: { page, limit } })
+      .then((r) => r.data),
 
   getPlaylistById: (playlistId: string, limit = 100, offset = 0) =>
-    request<unknown>(`${BASE}/${playlistId}?limit=${limit}&offset=${offset}`),
+    api
+      .get<unknown>(`${BASE}/${playlistId}`, { params: { limit, offset } })
+      .then((r) => r.data),
 
   getEditDetails: (playlistId: string) =>
-    request<{
-      playlistId: string;
-      title: string;
-      description: string | null;
-      visibility: string;
-      slug: string;
-      coverImageUrl: string | null;
-      type: string | null;
-      releaseDate: string | null;
-      genreId: number | null;
-      tags: string[];
-    }>(`${BASE}/${playlistId}/edit`),
+    api
+      .get<{
+        playlistId: string;
+        title: string;
+        description: string | null;
+        visibility: string;
+        slug: string;
+        coverImageUrl: string | null;
+        type: string | null;
+        releaseDate: string | null;
+        genreId: number | null;
+        tags: string[];
+      }>(`${BASE}/${playlistId}/edit`)
+      .then((r) => r.data),
 
   updatePlaylist: (playlistId: string, data: UpdatePlaylistInput) =>
-    request<{ message: string; playlist: unknown }>(`${BASE}/${playlistId}`, {
-      method: "PATCH",
-      body: JSON.stringify(data),
-    }),
+    api
+      .patch<{ message: string; playlist: unknown }>(`${BASE}/${playlistId}`, data)
+      .then((r) => r.data),
 
   deletePlaylist: (playlistId: string) =>
-    request<void>(`${BASE}/${playlistId}`, { method: "DELETE" }),
+    api
+      .delete<void>(`${BASE}/${playlistId}`)
+      .then((r) => r.data),
 
   likePlaylist: (playlistId: string) =>
-    request<{ message: string }>(`${BASE}/${playlistId}/like`, {
-      method: "POST",
-    }),
+    api
+      .post<{ message: string }>(`${BASE}/${playlistId}/like`)
+      .then((r) => r.data),
 
   unlikePlaylist: (playlistId: string) =>
-    request<{ message: string }>(`${BASE}/${playlistId}/like`, {
-      method: "DELETE",
-    }),
+    api
+      .delete<{ message: string }>(`${BASE}/${playlistId}/like`)
+      .then((r) => r.data),
 
   getRecentPlaylists: (limit = 10) =>
-    request<unknown>(`${BASE}/recent?limit=${limit}`),
+    api
+      .get<unknown>(`${BASE}/recent`, { params: { limit } })
+      .then((r) => r.data),
 
   uploadCover: (playlistId: string, file: File) => {
     const form = new FormData();
     form.append("file", file);
-    return requestMultipart<{ message: string; coverImageUrl: string }>(
-      `${BASE}/${playlistId}/cover`,
-      form,
-    );
+    return api
+      .post<{ message: string; coverImageUrl: string }>(
+        `${BASE}/${playlistId}/cover`,
+        form,
+      )
+      .then((r) => r.data);
   },
 
   addTrackToPlaylist: (playlistId: string, trackId: string) =>
-    request<{ message: string; playlistId: string; trackId: string }>(
-      `${BASE}/${playlistId}/tracks`,
-      { method: "POST", body: JSON.stringify({ trackId }) },
-    ),
+    api
+      .post<{ message: string; playlistId: string; trackId: string }>(
+        `${BASE}/${playlistId}/tracks`,
+        { trackId },
+      )
+      .then((r) => r.data),
 
   removeTrackFromPlaylist: (playlistId: string, trackId: string) =>
-    request<{ message: string }>(`${BASE}/${playlistId}/tracks/${trackId}`, {
-      method: "DELETE",
-    }),
+    api
+      .delete<{ message: string }>(`${BASE}/${playlistId}/tracks/${trackId}`)
+      .then((r) => r.data),
 
   reorderTracks: (playlistId: string, orderedTrackIds: string[]) =>
-    request<{ message: string }>(`${BASE}/${playlistId}/reorder`, {
-      method: "PATCH",
-      body: JSON.stringify({ orderedTrackIds }),
-    }),
+    api
+      .patch<{ message: string }>(`${BASE}/${playlistId}/reorder`, {
+        orderedTrackIds,
+      })
+      .then((r) => r.data),
 
   getSecretPlaylist: (secretToken: string) =>
-    request<unknown>(`${BASE}/secret/${secretToken}`),
+    api
+      .get<unknown>(`${BASE}/secret/${secretToken}`)
+      .then((r) => r.data),
 
   getEmbedCode: (
     playlistId: string,
@@ -175,19 +110,16 @@ export const playlistsApi = {
       width?: number;
       height?: number;
     },
-  ) => {
-    const qs = new URLSearchParams();
-    if (options) {
-      Object.entries(options).forEach(([k, v]) => {
-        if (v !== undefined) qs.set(k, String(v));
-      });
-    }
-    const suffix = qs.toString() ? `?${qs}` : "";
-    return request<{ playlistId: string; embedCode: string }>(
-      `${BASE}/${playlistId}/embed${suffix}`,
-    );
-  },
+  ) =>
+    api
+      .get<{ playlistId: string; embedCode: string }>(
+        `${BASE}/${playlistId}/embed`,
+        { params: options },
+      )
+      .then((r) => r.data),
 };
+
+// Normalizers
 
 export function normalizePlaylistList(raw: unknown): Playlist[] {
   if (!raw) return [];
@@ -209,7 +141,6 @@ export function normalizePlaylistList(raw: unknown): Playlist[] {
 export function normalizePlaylist(raw: unknown): Playlist {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const r = (raw ?? {}) as any;
-  // Update endpoint returns { message, playlist: {...} }
   const inner = r.playlist ?? r.data ?? r;
 
   return {
