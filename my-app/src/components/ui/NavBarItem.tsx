@@ -27,7 +27,7 @@ const NavBarItem: React.FC<NavBarItemProps> = ({ label, href, onClick }) => {
       {label}
 
       {isActive && (
-        <span className="absolute left-0 -bottom-3 w-full h-1 bg-[#ff5500] transition-all duration-200"></span>
+        <span className="absolute left-0 -bottom-3 w-full h-1 bg-white transition-all duration-200"></span>
       )}
     </Link>
   );

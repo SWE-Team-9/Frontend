@@ -124,6 +124,7 @@ export function NotificationItem({ notification }: NotificationItemProps) {
           >
             <UserCard
               compact
+              avatarSize="lg"
               user={mapFollowNotificationToUserCard(notification)}
             />
           </div>
@@ -160,23 +161,23 @@ export function NotificationItem({ notification }: NotificationItemProps) {
           onClick={handleOpen}
           className="flex flex-1 cursor-pointer items-start gap-3"
         >
-          <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-neutral-700">
+          <div className="h-20 w-20 shrink-0 overflow-hidden rounded-full bg-neutral-700">
             {notification.actorAvatarUrl ? (
               <Image
                 src={notification.actorAvatarUrl}
                 alt={actorName}
-                width={40}
-                height={40}
-                className="h-10 w-10 object-cover"
+                width={56}
+                height={56}
+                className="h-20 w-20 object-cover"
                 unoptimized
               />
             ) : (
               <Image
                 src="/images/profile.png"
                 alt={actorName}
-                width={40}
-                height={40}
-                className="h-10 w-10 object-cover"
+                width={56}
+                height={56}
+                className="h-20 w-20 object-cover"
               />
             )}
           </div>

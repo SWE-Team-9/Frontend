@@ -244,7 +244,7 @@ const NavBar: React.FC<NavBarProps> = ({
 
         {/* CENTER SECTION */}
         {showSearch && (
-          <div className="w-32 sm:w-48 md:w-72 lg:w-86">
+          <div className="w-32 sm:w-48 md:w-72 lg:w-96">
             <SearchBar />
           </div>
         )}

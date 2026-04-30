@@ -20,6 +20,7 @@ interface UserCardProps {
   showFollowButton?: boolean;
   compact?: boolean;
   avatarSize?: "sm" | "md" | "lg" | "xl";
+  noBorder?: boolean;
 }
 
 export function UserCard({
@@ -27,8 +28,17 @@ export function UserCard({
   showFollowButton = true,
   compact = false,
   avatarSize,
+  noBorder = false,
 }: UserCardProps) {
-  const { userId, displayName, handle, avatarUrl, location, tracksCount, followersCount } = user;
+  const {
+    userId,
+    displayName,
+    handle,
+    avatarUrl,
+    location,
+    tracksCount,
+    followersCount,
+  } = user;
 
   const followUser: FollowUser = {
     id: userId,
@@ -42,11 +52,22 @@ export function UserCard({
   if (compact) {
     return (
       <div className="flex items-center gap-3 p-2 rounded hover:bg-zinc-900/60 transition-colors">
-        <Link href={profileHref} className="flex items-center gap-3 flex-1 min-w-0">
-          <Avatar avatarUrl={avatarUrl} displayName={displayName} size={avatarSize ?? "sm"} />
+        <Link
+          href={profileHref}
+          className="flex items-center gap-3 flex-1 min-w-0"
+        >
+          <Avatar
+            avatarUrl={avatarUrl}
+            displayName={displayName}
+            size={avatarSize ?? "sm"}
+          />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-white truncate">{displayName}</p>
-            {handle && <p className="text-xs text-zinc-500 truncate">@{handle}</p>}
+            <p className="text-sm font-bold text-white truncate">
+              {displayName}
+            </p>
+            {handle && (
+              <p className="text-xs text-zinc-500 truncate">@{handle}</p>
+            )}
           </div>
         </Link>
         {showFollowButton && <FollowButton user={followUser} />}
@@ -55,14 +76,31 @@ export function UserCard({
   }
 
   return (
-    <div className="flex flex-col bg-zinc-900 border border-zinc-800 rounded-sm p-4 gap-3 hover:border-zinc-700 transition-colors">
-      <div className="flex items-start gap-3">
-        <Link href={profileHref} className="flex items-center gap-3 flex-1 min-w-0">
-          <Avatar avatarUrl={avatarUrl} displayName={displayName} size={avatarSize ?? "md"} />
+    <div
+      className={`flex flex-col gap-3 p-4 ${noBorder ? "" : "bg-zinc-900 border border-zinc-800 rounded-sm hover:border-zinc-700"} transition-colors`}
+    >
+      <div className="flex items-center gap-3">
+        <Link
+          href={profileHref}
+          className="flex items-center gap-3 flex-1 min-w-0"
+        >
+          <Avatar
+            avatarUrl={avatarUrl}
+            displayName={displayName}
+            size={avatarSize ?? "md"}
+          />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-white truncate">{displayName}</p>
-            {handle && <p className="text-xs text-zinc-500 truncate">@{handle}</p>}
-            {location && <p className="text-xs text-zinc-600 truncate mt-0.5">{location}</p>}
+            <p className="text-sm font-bold text-white truncate">
+              {displayName}
+            </p>
+            {handle && (
+              <p className="text-xs text-zinc-500 truncate">@{handle}</p>
+            )}
+            {location && (
+              <p className="text-xs text-zinc-600 truncate mt-0.5">
+                {location}
+              </p>
+            )}
           </div>
         </Link>
         {showFollowButton && <FollowButton user={followUser} />}
@@ -77,7 +115,8 @@ export function UserCard({
           )}
           {followersCount !== undefined && (
             <span>
-              <span className="text-white font-bold">{followersCount}</span> Followers
+              <span className="text-white font-bold">{followersCount}</span>{" "}
+              Followers
             </span>
           )}
         </div>
@@ -96,16 +135,18 @@ function Avatar({
   size: "sm" | "md" | "lg" | "xl";
 }) {
   const sizeMap = {
-    sm: { dim: 32,  cls: "w-8 h-8",   text: "text-xs" },
-    md: { dim: 44,  cls: "w-11 h-11", text: "text-sm" },
-    lg: { dim: 64,  cls: "w-16 h-16", text: "text-base" },
-    xl: { dim: 96,  cls: "w-24 h-24", text: "text-xl" },
+    sm: { dim: 32, cls: "w-8 h-8", text: "text-xs" },
+    md: { dim: 44, cls: "w-11 h-11", text: "text-sm" },
+    lg: { dim: 64, cls: "w-16 h-16", text: "text-base" },
+    xl: { dim: 96, cls: "w-24 h-24", text: "text-xl" },
   };
 
   const { dim, cls, text } = sizeMap[size];
 
   return (
-    <div className={`${cls} rounded-full bg-zinc-700 shrink-0 overflow-hidden relative border border-zinc-800`}>
+    <div
+      className={`${cls} rounded-full bg-zinc-700 shrink-0 overflow-hidden relative border border-zinc-800`}
+    >
       {avatarUrl ? (
         <Image
           src={avatarUrl}
@@ -116,7 +157,9 @@ function Avatar({
           unoptimized
         />
       ) : (
-        <span className={`w-full h-full flex items-center justify-center ${text} font-bold text-zinc-400 uppercase`}>
+        <span
+          className={`w-full h-full flex items-center justify-center ${text} font-bold text-zinc-400 uppercase`}
+        >
           {displayName?.charAt(0) ?? "?"}
         </span>
       )}

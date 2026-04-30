@@ -25,6 +25,7 @@ export default function UserResultCard({
     >
       <UserCard
         compact={compact}
+        noBorder
         avatarSize="xl"
         user={{
           userId: user.id,
