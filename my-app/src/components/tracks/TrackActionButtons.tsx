@@ -8,6 +8,7 @@ import { useLikeStore } from '@/src/store/likeStore';
 import { useRepostStore } from '@/src/store/repostStore';
 import { TrackData } from "@/src/types/interactions";
 import { DownloadButton } from "@/src/components/tracks/DownloadButton";
+import { ReportButton } from "@/src/components/reports/ReportButton";
 
 export interface TrackActionButtonsProps {
   trackId: string;
@@ -217,6 +218,11 @@ export function TrackActionButtons({
         size={size}
       />
 
+      <ReportButton
+        targetId={trackId}
+        targetType="TRACK"
+        targetLabel={title}
+      />
     </div>
   );
 }

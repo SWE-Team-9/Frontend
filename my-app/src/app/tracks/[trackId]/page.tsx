@@ -7,6 +7,7 @@ import { FaPlay, FaPause } from "react-icons/fa";
 import { getTrackDetails } from "@/src/services/uploadService";
 import { WaveformDisplay } from "@/src/components/tracks/WaveformDisplay";
 import { DownloadButton } from "@/src/components/tracks/DownloadButton";
+import { ReportButton } from "@/src/components/reports/ReportButton";
 import {
   usePlayerStore,
   type Track as PlayerTrack,
@@ -445,6 +446,15 @@ export default function TrackDetailPage() {
             )}
 
             {track.downloadable && <DownloadButton trackId={track.trackId} />}
+            <div className="mt-4">
+              <ReportButton
+                targetId={track.trackId}
+                targetType="TRACK"
+                targetLabel={track.title}
+                className="text-xs"
+                iconSize={14}
+              />
+            </div>
           </aside>
         </div>
       </div>

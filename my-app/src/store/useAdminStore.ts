@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { adminService } from '@/src/services/admin/adminService';
-import{ActionPayload} from "@/src/types/admin";
+import { useAuthStore } from '@/src/store/useAuthStore';
+import { ActionPayload } from "@/src/types/admin";
 import {
   AdminUser,
   Report,
@@ -80,24 +81,25 @@ export const useAdminStore = create<AdminState>()(
             analytics: data.analytics
           });
 
-         
-          if (!get().currentUser) {
+          // Sync currentUser from the auth store (set during login/getMe)
+          const authUser = useAuthStore.getState().user;
+          if (!get().currentUser && authUser) {
             set({
               currentUser: {
-                id: 'admin-1',
-                display_name: 'Super Admin',
-                handle: 'admin',
-                email: 'admin@system.com',
-                system_role: 'ADMIN',
+                id: authUser.id,
+                display_name: authUser.displayName,
+                handle: authUser.handle ?? '',
+                email: authUser.email,
+                system_role: (authUser.systemRole ?? 'USER') as AdminUser['system_role'],
                 account_status: 'ACTIVE',
-                is_verified: true,
+                is_verified: authUser.isVerified ?? false,
                 created_at: new Date().toISOString(),
-                avatar_url: null,
-                account_type: 'PRO',
+                avatar_url: authUser.avatarUrl ?? null,
+                account_type: 'FREE',
                 track_count: 0,
                 report_count: 0,
-                last_login_at: new Date().toISOString()
-              }
+                last_login_at: new Date().toISOString(),
+              },
             });
           }
 
@@ -208,7 +210,7 @@ export const useAdminStore = create<AdminState>()(
                     ...state.stats.content,
                     tracks_visible: Math.max(
                       0,
-                      state.stats.content.tracks_visible - 1
+                      (state.stats.content.tracks_visible ?? 0) - 1
                     )
                   }
                 }
