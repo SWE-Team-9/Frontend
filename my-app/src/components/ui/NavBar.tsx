@@ -135,6 +135,7 @@ const NavBar: React.FC<NavBarProps> = ({
   // handled once per auth session by AuthProvider. NavBar only reads the
   // resulting store values; it no longer fires redundant per-page API calls.
   const unreadMessageCount = useMessageStore((state) => state.unreadCount);
+  const showUnreadDotOnly = useMessageStore((state) => state.showUnreadDotOnly);
   const router = useRouter();
 
   // Sign-out handler — clears cookies on the backend, clears store
@@ -333,10 +334,14 @@ const NavBar: React.FC<NavBarProps> = ({
             >
               <FiMail size={20} className="text-neutral-400 hover:text-white" />
 
-              {unreadMessageCount > 0 && (
-                <span className="absolute -right-1.5 -top-1.5 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-[#ff5500] px-1 text-[10px] font-bold leading-none text-white">
-                  {unreadMessageCount > 99 ? "99+" : unreadMessageCount}
-                </span>
+              {showUnreadDotOnly ? (
+                <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-[#ff5500]" />
+              ) : (
+                unreadMessageCount > 0 && (
+                  <span className="absolute -right-1.5 -top-1.5 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-[#ff5500] px-1 text-[10px] font-bold leading-none text-white">
+                    {unreadMessageCount > 99 ? "99+" : unreadMessageCount}
+                  </span>
+                )
               )}
 
               {openMenu === "messages" && <MessagesDropdown />}

@@ -75,6 +75,10 @@ function upsertAndSortConversation(
   return sortConversationsByNewest([conversation, ...withoutCurrent]);
 }
 
+function getUnreadConversationCount(conversations: ConversationPreview[]) {
+  return conversations.filter((c) => c.unreadCount > 0).length;
+}
+
 interface MessageState {
   conversationView: "active" | "archived";
   conversations: ConversationPreview[];
@@ -84,6 +88,7 @@ interface MessageState {
   page: number;
   hasMore: boolean;
   unreadCount: number;
+  showUnreadDotOnly: boolean;
   isLoading: boolean;
   isLoadingConversations: boolean;
   isLoadingOlder: boolean;
@@ -127,6 +132,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
   page: 1,
   hasMore: false,
   unreadCount: 0,
+  showUnreadDotOnly: false,
   isLoading: false,
   isLoadingConversations: true,
   isLoadingOlder: false,
@@ -187,7 +193,10 @@ export const useMessageStore = create<MessageState>((set, get) => ({
   loadUnreadCount: async () => {
     try {
       const data = await messageService.getUnreadCount();
-      set({ unreadCount: data.count });
+      set({
+        unreadCount: data.count,
+        showUnreadDotOnly: false,
+      });
     } catch {
       set({ unreadCount: 0 });
     }
@@ -244,6 +253,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
         selectedConversation: updatedConversation,
         messages: normalizedMessages,
         hasMore: data.hasMore,
+        showUnreadDotOnly: false,
         conversations: state.conversations.map((c) =>
           c.conversationId === conversationId ? updatedConversation : c,
         ),
@@ -351,20 +361,30 @@ export const useMessageStore = create<MessageState>((set, get) => ({
   markUnread: async (conversationId) => {
     await messageService.markConversationUnread(conversationId);
 
-    set((state) => ({
-      conversations: state.conversations.map((c) =>
+    set((state) => {
+      const conversations = state.conversations.map((c) =>
         c.conversationId === conversationId
-          ? { ...c, unreadCount: Math.max(1, c.unreadCount) }
+          ? { ...c, unreadCount: 1 }
           : c,
-      ),
-      dropdownConversations: state.dropdownConversations.map((c) =>
-        c.conversationId === conversationId
-          ? { ...c, unreadCount: Math.max(1, c.unreadCount) }
-          : c,
-      ),
-    }));
+      );
 
-    await get().loadUnreadCount();
+      const dropdownConversations = state.dropdownConversations.map((c) =>
+        c.conversationId === conversationId
+          ? { ...c, unreadCount: 1 }
+          : c,
+      );
+
+      return {
+        conversations,
+        dropdownConversations,
+        selectedConversation:
+          state.selectedConversation?.conversationId === conversationId
+            ? { ...state.selectedConversation, unreadCount: 1 }
+            : state.selectedConversation,
+        unreadCount: state.unreadCount,
+        showUnreadDotOnly: state.unreadCount === 0,
+      };
+    });
   },
 
   archiveConversation: async (conversationId) => {
