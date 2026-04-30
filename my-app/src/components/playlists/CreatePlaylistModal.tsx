@@ -1,95 +1,46 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { FaTimes, FaSearch, FaMusic, FaPlus, FaCheck } from "react-icons/fa";
+import { useState } from "react";
+import { FaTimes, FaMusic, FaPlus, FaCheck, FaSearch } from "react-icons/fa";
 import { CreatePlaylistInput, Playlist } from "@/src/types/playlist";
+import type { SearchTrack } from "@/src/types/search";
 import { toast } from "sonner";
-
-interface TrackResult {
-  trackId: string;
-  title: string;
-  artist?: string;
-  cover?: string;
-}
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (input: CreatePlaylistInput) => Promise<Playlist>;
+  availableTracks?: SearchTrack[];
+  isSearchingTracks?: boolean;
+  trackQuery?: string;
+  onTrackQueryChange?: (q: string) => void;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
-
-export function CreatePlaylistModal({ isOpen, onClose, onSubmit }: Props) {
+export function CreatePlaylistModal({
+  isOpen,
+  onClose,
+  onSubmit,
+  availableTracks = [],
+  isSearchingTracks = false,
+  trackQuery = "",
+  onTrackQueryChange,
+}: Props) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [visibility, setVisibility] = useState<"PUBLIC" | "SECRET">("SECRET");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedTracks, setSelectedTracks] = useState<SearchTrack[]>([]);
 
-  const [query, setQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<TrackResult[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [selectedTracks, setSelectedTracks] = useState<TrackResult[]>([]);
-
-  useEffect(() => {
-    const trimmed = query.trim();
-    if (!trimmed) return;
-
-    const timer = setTimeout(async () => {
-      setIsSearching(true);
-      try {
-        const token =
-          typeof window !== "undefined"
-            ? localStorage.getItem("accessToken")
-            : null;
-        const res = await fetch(
-          `${API_BASE_URL}/tracks/search?q=${encodeURIComponent(trimmed)}`,
-          {
-            credentials: "include",
-            headers: {
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
-          },
-        );
-        if (!res.ok) throw new Error(`Search failed (${res.status})`);
-        const data = await res.json();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const list: any[] = Array.isArray(data)
-          ? data
-          : (data.tracks ?? data.data?.tracks ?? data.results ?? []);
-
-        setSearchResults(
-          list.map((t) => ({
-            trackId: t.trackId ?? t.id ?? t._id,
-            title: t.title ?? "Untitled",
-            artist: t.artist ?? t.user?.display_name,
-            cover: t.cover ?? t.artwork ?? t.coverArtUrl,
-          })),
-        );
-      } catch {
-        setSearchResults([]);
-      } finally {
-        setIsSearching(false);
-      }
-    }, 350);
-
-    return () => clearTimeout(timer);
-  }, [query]);
-
-  // Derive displayed results from query — avoids calling setState in effect body
-  const displayResults = query.trim() ? searchResults : [];
-
-  const handleToggleTrack = (track: TrackResult) => {
+  const handleToggleTrack = (track: SearchTrack) => {
     setSelectedTracks((prev) => {
-      const exists = prev.some((t) => t.trackId === track.trackId);
-      if (exists) return prev.filter((t) => t.trackId !== track.trackId);
+      const exists = prev.some((t) => t.id === track.id);
+      if (exists) return prev.filter((t) => t.id !== track.id);
       return [...prev, track];
     });
   };
 
-  const isSelected = (trackId: string) =>
-    selectedTracks.some((t) => t.trackId === trackId);
+  const isSelected = (id: string) => selectedTracks.some((t) => t.id === id);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,7 +49,7 @@ export function CreatePlaylistModal({ isOpen, onClose, onSubmit }: Props) {
       return;
     }
     if (selectedTracks.length === 0) {
-      setError("You must add at least one track to create a playlist.");
+      setError("Select at least one track from your search results.");
       return;
     }
 
@@ -110,7 +61,7 @@ export function CreatePlaylistModal({ isOpen, onClose, onSubmit }: Props) {
         title: title.trim(),
         description: description.trim() || undefined,
         visibility,
-        trackIds: selectedTracks.map((t) => t.trackId),
+        trackIds: selectedTracks.map((t) => t.id),
       });
 
       toast.success(`"${newPlaylist.title}" was created`);
@@ -118,7 +69,6 @@ export function CreatePlaylistModal({ isOpen, onClose, onSubmit }: Props) {
       setDescription("");
       setVisibility("SECRET");
       setSelectedTracks([]);
-      setQuery("");
       onClose();
     } catch {
       setError("Could not save right now. Please try again later.");
@@ -204,74 +154,57 @@ export function CreatePlaylistModal({ isOpen, onClose, onSubmit }: Props) {
               </select>
             </div>
 
-            {/* TRACK SEARCH */}
+            {/* TRACK SELECTION */}
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-2">
                 Add Tracks <span className="text-red-400">*</span>
               </label>
 
-              {/* Selected tracks */}
-              {selectedTracks.length > 0 && (
-                <div className="mb-2 space-y-1">
-                  {selectedTracks.map((t) => (
-                    <div
-                      key={t.trackId}
-                      className="flex items-center gap-2 bg-[#121212] border border-zinc-800 rounded px-3 py-1.5"
-                    >
-                      <FaMusic className="text-[#f50] text-xs shrink-0" />
-                      <span className="flex-1 text-xs text-white truncate">
-                        {t.title}
-                      </span>
-                      {t.artist && (
-                        <span className="text-xs text-zinc-500 truncate">
-                          {t.artist}
-                        </span>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => handleToggleTrack(t)}
-                        className="text-zinc-500 hover:text-red-400 ml-1"
-                      >
-                        <FaTimes size={10} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Search input */}
-              <div className="relative">
+              {/* Track search input */}
+              <div className="relative mb-2">
                 <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-xs" />
                 <input
                   type="text"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search for tracks to add..."
+                  value={trackQuery}
+                  onChange={(e) => onTrackQueryChange?.(e.target.value)}
+                  placeholder="Search tracks to add..."
                   className="w-full pl-9 pr-3 py-2 bg-[#121212] border border-zinc-800 rounded text-white text-sm focus:border-[#f50] focus:outline-none transition-colors"
                 />
               </div>
 
-              {/* Search results */}
-              {(isSearching || displayResults.length > 0) && (
-                <div className="mt-1 max-h-44 overflow-y-auto border border-zinc-800 rounded bg-[#121212] divide-y divide-zinc-900">
-                  {isSearching && (
-                    <p className="text-zinc-500 text-xs text-center py-4">
-                      Searching...
-                    </p>
-                  )}
-                  {!isSearching &&
-                    displayResults.map((track) => (
+              {/* Results list */}
+              {isSearchingTracks && (
+                <p className="text-zinc-500 text-xs text-center py-4 border border-zinc-800 rounded bg-[#121212]">
+                  Searching...
+                </p>
+              )}
+
+              {!isSearchingTracks &&
+                trackQuery.trim() &&
+                availableTracks.length === 0 && (
+                  <p className="text-zinc-500 text-xs text-center py-4 border border-zinc-800 rounded bg-[#121212]">
+                    No tracks found.
+                  </p>
+                )}
+
+              {!isSearchingTracks && availableTracks.length > 0 && (
+                <div className="max-h-48 overflow-y-auto border border-zinc-800 rounded bg-[#121212] divide-y divide-zinc-900">
+                  {availableTracks.map((track) => {
+                    const selected = isSelected(track.id);
+                    return (
                       <button
-                        key={track.trackId}
+                        key={track.id}
                         type="button"
                         onClick={() => handleToggleTrack(track)}
-                        className="w-full flex items-center gap-3 px-3 py-2 hover:bg-zinc-800/50 text-left"
+                        className={`w-full flex items-center gap-3 px-3 py-2 text-left transition-colors ${
+                          selected ? "bg-zinc-800" : "hover:bg-zinc-800/50"
+                        }`}
                       >
-                        <div className="w-8 h-8 rounded bg-[#222] flex items-center justify-center shrink-0 overflow-hidden">
-                          {track.cover ? (
+                        <div className="w-9 h-9 rounded bg-[#222] flex items-center justify-center shrink-0 overflow-hidden">
+                          {track.artwork_url ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
-                              src={track.cover}
+                              src={track.artwork_url}
                               alt={track.title}
                               className="w-full h-full object-cover"
                             />
@@ -280,16 +213,16 @@ export function CreatePlaylistModal({ isOpen, onClose, onSubmit }: Props) {
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs text-white truncate">
+                          <p className="text-xs text-white truncate font-medium">
                             {track.title}
                           </p>
-                          {track.artist && (
+                          {track.artist_handle && (
                             <p className="text-[10px] text-zinc-500 truncate">
-                              {track.artist}
+                              {track.artist_handle}
                             </p>
                           )}
                         </div>
-                        {isSelected(track.trackId) ? (
+                        {selected ? (
                           <FaCheck size={10} className="text-[#f50] shrink-0" />
                         ) : (
                           <FaPlus
@@ -298,12 +231,30 @@ export function CreatePlaylistModal({ isOpen, onClose, onSubmit }: Props) {
                           />
                         )}
                       </button>
-                    ))}
+                    );
+                  })}
                 </div>
               )}
 
-              {query.trim() && !isSearching && displayResults.length === 0 && (
-                <p className="text-zinc-500 text-xs mt-2">No tracks found.</p>
+              {/* Selected chips */}
+              {selectedTracks.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {selectedTracks.map((t) => (
+                    <span
+                      key={t.id}
+                      className="flex items-center gap-1 bg-zinc-800 text-white text-[10px] px-2 py-1 rounded"
+                    >
+                      {t.title}
+                      <button
+                        type="button"
+                        onClick={() => handleToggleTrack(t)}
+                        className="text-zinc-400 hover:text-red-400 ml-1"
+                      >
+                        <FaTimes size={8} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
               )}
             </div>
 

@@ -70,12 +70,12 @@ export default function PlaylistDetailPage({
     <div className="-mx-6">
 
       {/* Header section with gradient background */}
-      <div className="bg-gradient-to-b from-[#2a2a2a] to-[#121212] px-6 py-10">
+      <div className="bg-linear-to-b from-[#2a2a2a] to-[#121212] px-6 py-10">
 
         <div className="flex flex-col md:flex-row gap-6 max-w-5xl">
 
           {/* Playlist cover image */}
-          <div className="relative w-full md:w-48 h-48 rounded-md overflow-hidden bg-[#222] shadow-2xl flex-shrink-0">
+          <div className="relative w-full md:w-48 h-48 rounded-md overflow-hidden bg-[#222] shadow-2xl shrink-0">
 
             {playlist.cover ? (
               <Image
@@ -87,7 +87,7 @@ export default function PlaylistDetailPage({
               />
             ) : (
               // Fallback icon if no cover exists
-              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#333] to-[#1a1a1a]">
+              <div className="w-full h-full flex items-center justify-center bg-linear-to-br from-[#333] to-[#1a1a1a]">
                 <FaMusic className="text-zinc-600 text-5xl" />
               </div>
             )}
