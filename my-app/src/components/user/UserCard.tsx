@@ -19,12 +19,14 @@ interface UserCardProps {
   user: UserCardUser;
   showFollowButton?: boolean;
   compact?: boolean;
+  avatarSize?: "sm" | "md" | "lg" | "xl";
 }
 
 export function UserCard({
   user,
   showFollowButton = true,
   compact = false,
+  avatarSize,
 }: UserCardProps) {
   const { userId, displayName, handle, avatarUrl, location, tracksCount, followersCount } = user;
 
@@ -41,7 +43,7 @@ export function UserCard({
     return (
       <div className="flex items-center gap-3 p-2 rounded hover:bg-zinc-900/60 transition-colors">
         <Link href={profileHref} className="flex items-center gap-3 flex-1 min-w-0">
-          <Avatar avatarUrl={avatarUrl} displayName={displayName} size="sm" />
+          <Avatar avatarUrl={avatarUrl} displayName={displayName} size={avatarSize ?? "sm"} />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-bold text-white truncate">{displayName}</p>
             {handle && <p className="text-xs text-zinc-500 truncate">@{handle}</p>}
@@ -56,7 +58,7 @@ export function UserCard({
     <div className="flex flex-col bg-zinc-900 border border-zinc-800 rounded-sm p-4 gap-3 hover:border-zinc-700 transition-colors">
       <div className="flex items-start gap-3">
         <Link href={profileHref} className="flex items-center gap-3 flex-1 min-w-0">
-          <Avatar avatarUrl={avatarUrl} displayName={displayName} size="md" />
+          <Avatar avatarUrl={avatarUrl} displayName={displayName} size={avatarSize ?? "md"} />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-bold text-white truncate">{displayName}</p>
             {handle && <p className="text-xs text-zinc-500 truncate">@{handle}</p>}
@@ -91,10 +93,16 @@ function Avatar({
 }: {
   avatarUrl?: string | null;
   displayName: string;
-  size: "sm" | "md";
+  size: "sm" | "md" | "lg" | "xl";
 }) {
-  const dim = size === "sm" ? 32 : 44;
-  const cls = size === "sm" ? "w-8 h-8" : "w-11 h-11";
+  const sizeMap = {
+    sm: { dim: 32,  cls: "w-8 h-8",   text: "text-xs" },
+    md: { dim: 44,  cls: "w-11 h-11", text: "text-sm" },
+    lg: { dim: 64,  cls: "w-16 h-16", text: "text-base" },
+    xl: { dim: 96,  cls: "w-24 h-24", text: "text-xl" },
+  };
+
+  const { dim, cls, text } = sizeMap[size];
 
   return (
     <div className={`${cls} rounded-full bg-zinc-700 shrink-0 overflow-hidden relative border border-zinc-800`}>
@@ -108,7 +116,7 @@ function Avatar({
           unoptimized
         />
       ) : (
-        <span className="w-full h-full flex items-center justify-center text-xs font-bold text-zinc-400 uppercase">
+        <span className={`w-full h-full flex items-center justify-center ${text} font-bold text-zinc-400 uppercase`}>
           {displayName?.charAt(0) ?? "?"}
         </span>
       )}
