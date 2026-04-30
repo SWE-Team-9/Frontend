@@ -111,13 +111,13 @@ export const adminServiceMock = {
   updateReportStatus: async (id: string, payload: ActionPayload) => 
     adminServiceMock.submitAction('report-status', id, payload),
 
-  moderateTrack: async (id: string, payload: any) => 
+  moderateTrack: async (id: string, payload: ActionPayload) =>
     adminServiceMock.submitAction('track-mod', id, payload),
 
-  moderateComment: async (id: string, payload: any) => 
+  moderateComment: async (id: string, payload: ActionPayload) =>
     adminServiceMock.submitAction('comment-mod', id, payload),
 
-  moderatePlaylist: async (id: string, payload: any) => 
+  moderatePlaylist: async (id: string, payload: ActionPayload) =>
     adminServiceMock.submitAction('playlist-mod', id, payload),
 
   

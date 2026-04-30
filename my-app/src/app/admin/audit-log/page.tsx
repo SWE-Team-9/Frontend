@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { adminServiceReal } from "@/src/services/admin/adminService.real";
 // If you have mock service, keep this:
 // import { adminServiceMock } from "@/src/services/admin/adminService.mock";
@@ -24,13 +24,6 @@ interface AuditLogEntry {
 
   notes?: string | null;
   created_at?: string;
-}
-
-interface AuditLogResponse {
-  items: AuditLogEntry[];
-  pagination?: {
-    totalPages: number;
-  };
 }
 
 // ===============================
@@ -60,36 +53,26 @@ export default function AuditLogPage() {
 
   const [error, setError] = useState<string | null>(null);
 
-  // ===============================
-  // FETCH LOGS (SAFE + REUSABLE)
-  // ===============================
-  const fetchLogs = useCallback(async () => {
-    try {
-      setIsLoading(true);
-
-      const data: AuditLogResponse = await service.getAuditLog(page, 20);
-
-      const safeLogs = Array.isArray(data?.items)
-        ? data.items
-        : Array.isArray(data)
-        ? data
-        : [];
-
-      setLogs(safeLogs);
-      setTotalPages(data?.pagination?.totalPages ?? 1);
-
-      setError(null);
-    } catch (err) {
-      console.error("Audit log error:", err);
-      setError("Failed to load audit log.");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [page]);
-
   useEffect(() => {
-    fetchLogs();
-  }, [fetchLogs]);
+    service.getAuditLog(page, 20)
+      .then((data) => {
+        const safeLogs = Array.isArray(data?.items)
+          ? data.items
+          : Array.isArray(data)
+          ? data
+          : [];
+        setLogs(safeLogs);
+        setTotalPages(data?.pagination?.totalPages ?? 1);
+        setError(null);
+      })
+      .catch((err) => {
+        console.error("Audit log error:", err);
+        setError("Failed to load audit log.");
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, [page]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">

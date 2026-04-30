@@ -160,13 +160,13 @@ export const adminServiceReal = {
   updateReportStatus: async (id: string, payload: ActionPayload) => 
     adminServiceReal.submitAction('report-status', id, payload),
 
-  moderateTrack: async (id: string, payload: any) => 
+  moderateTrack: async (id: string, payload: ActionPayload) =>
     adminServiceReal.submitAction('track-mod', id, payload),
 
-  moderateComment: async (id: string, payload: any) => 
+  moderateComment: async (id: string, payload: ActionPayload) =>
     adminServiceReal.submitAction('comment-mod', id, payload),
 
-  moderatePlaylist: async (id: string, payload: any) => 
+  moderatePlaylist: async (id: string, payload: ActionPayload) =>
     adminServiceReal.submitAction('playlist-mod', id, payload),
 
   // --- Core API Dispatcher ---

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, use } from "react";
+import React, { useCallback, useEffect, useState, use } from "react";
 import { adminService } from "@/src/services/admin/adminService";
 import { FiArrowLeft, FiUser, FiMusic, FiAlertCircle } from "react-icons/fi";
 import Link from "next/link";
@@ -32,15 +32,9 @@ export default function ReportDetailsPage({
   const [submittingReview, setSubmittingReview] = useState(false);
 
  
-  useEffect(() => {
-    fetchReport();
-  }, [id]);
-
-  const fetchReport = async () => {
+  const fetchReport = useCallback(async () => {
     try {
-      setLoading(true);
       const data = await adminService.getReportById(id);
-
       if (!data) {
         setError("Report not found");
       } else {
@@ -52,7 +46,12 @@ export default function ReportDetailsPage({
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchReport();
+  }, [fetchReport]);
 
   // =========================
   // TRACK ACTIONS (ADMIN ONLY)
@@ -198,7 +197,7 @@ export default function ReportDetailsPage({
               </h3>
 
               {moderatorReviews.length > 0 ? (
-                moderatorReviews.map((r: any) => (
+                moderatorReviews.map((r: import('@/src/types/admin').ModeratorReview) => (
                   <div
                     key={r.id}
                     className="p-3 mb-2 bg-zinc-950 border border-zinc-800 rounded-xl"
