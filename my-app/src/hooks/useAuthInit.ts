@@ -59,6 +59,13 @@ function entitlementsToSubDetails(e: BootstrapEntitlements): SubscriptionDetails
 
 export const useAuthInit = () => {
   useEffect(() => {
+    // Skip on OAuth callback pages — they call bootstrap themselves and
+    // set the auth store before redirecting. Running it again here would
+    // make two identical network calls on every OAuth login.
+    if (typeof window !== "undefined" && window.location.pathname.endsWith("/callback")) {
+      return;
+    }
+
     getBootstrapData()
       .then((data) => {
         // Seed profile store (minimal shell data; full profile loaded by profile page)

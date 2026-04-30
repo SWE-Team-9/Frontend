@@ -121,6 +121,7 @@ export default function AuthCallbackPage() {
           handle: me.handle ?? "",
           avatarUrl: me.avatar_url ?? null,
           isVerified: me.is_verified ?? false,
+          systemRole: (me.system_role as "ADMIN" | "MODERATOR" | "USER") ?? "USER",
         });
 
         // Redirect to wherever the user wanted to go (default: /discover)

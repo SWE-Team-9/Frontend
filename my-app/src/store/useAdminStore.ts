@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { adminService } from '@/src/services/admin/adminService';
 import { useAuthStore } from '@/src/store/useAuthStore';
+import { useProfileStore } from '@/src/store/useProfileStore';
+import { useSubscriptionStore } from '@/src/store/useSubscriptionStore';
 import { ActionPayload } from "@/src/types/admin";
 import {
   AdminUser,
@@ -81,10 +83,15 @@ export const useAdminStore = create<AdminState>()(
             analytics: data.analytics
           });
 
-          // Sync currentUser from the auth store (set during login/getMe/bootstrap).
-          // Always refresh role fields so persisted stale roles cannot block admin UI.
+          // Sync currentUser from live stores — always refreshed so stale
+          // persisted roles can never block the admin UI after a role change.
           const authUser = useAuthStore.getState().user;
           if (authUser) {
+            const subType = useSubscriptionStore.getState().sub?.subscriptionType;
+            const accountType: AdminUser['account_type'] =
+              subType === 'PRO' || subType === 'GO+' ? 'PRO' : 'FREE';
+            const trackCount = useProfileStore.getState().tracksCount ?? 0;
+
             set({
               currentUser: {
                 id: authUser.id,
@@ -96,8 +103,8 @@ export const useAdminStore = create<AdminState>()(
                 is_verified: authUser.isVerified ?? false,
                 created_at: new Date().toISOString(),
                 avatar_url: authUser.avatarUrl ?? null,
-                account_type: 'FREE',
-                track_count: 0,
+                account_type: accountType,
+                track_count: trackCount,
                 report_count: 0,
                 last_login_at: new Date().toISOString(),
               },
