@@ -10,6 +10,9 @@ function SuccessContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const sessionId = searchParams.get("session_id");
+  // The checkout page passes ?plan=PRO or ?plan=GO+ so we always show the
+  // correct plan name even when the backend schedules the change for end-of-period.
+  const planParam = searchParams.get("plan") as "PRO" | "GO+" | null;
 
   const fetchSubscription = useSubscriptionStore((s) => s.fetchSubscription);
   const sub = useSubscriptionStore((s) => s.sub);
@@ -26,10 +29,13 @@ function SuccessContent() {
     const poll = async () => {
       await fetchSubscription();
       attempts++;
-      // Stop polling once we see an active paid subscription, or after max attempts
-      const isActive =
-        useSubscriptionStore.getState().sub?.subscriptionType !== "FREE";
-      if (isActive || attempts >= maxAttempts) {
+      // When the plan param is known, stop once the store reflects it (or after max attempts).
+      // Without a plan param, stop as soon as any paid plan is detected.
+      const currentType = useSubscriptionStore.getState().sub?.subscriptionType;
+      const isReady = planParam
+        ? currentType === planParam || attempts >= maxAttempts
+        : currentType !== "FREE" || attempts >= maxAttempts;
+      if (isReady) {
         setStatus("ready");
         return;
       }
@@ -40,7 +46,9 @@ function SuccessContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const planLabel = sub?.subscriptionType ?? "PRO";
+  // Prefer the URL param (set by the checkout page) so the heading is always
+  // correct even when the backend hasn't reflected the change yet.
+  const planLabel = planParam ?? sub?.subscriptionType ?? "PRO";
 
   return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 py-16 text-center">

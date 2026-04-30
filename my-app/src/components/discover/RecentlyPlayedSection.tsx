@@ -65,7 +65,7 @@ export default function RecentlyPlayedSection() {
         }
 
         loadRecentlyPlayed();
-    }, []);
+    }, [setPlayerTracks]);
 
     if (loading) {
         return (
@@ -103,6 +103,7 @@ export default function RecentlyPlayedSection() {
                     <RecentlyPlayedCard
                         key={track.trackId}
                         track={track}
+                        contextTrackIds={tracks.map((t) => t.trackId)}
                     />
                 ))}
             </div>

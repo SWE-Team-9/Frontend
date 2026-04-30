@@ -9,9 +9,39 @@ import Image from "next/image";
 export function TrackInfo() {
   const currentTrack = usePlayerStore((s) => s.currentTrack);
   const accessState = usePlayerStore((s) => s.accessState);
+  const isPlayingAd = usePlayerStore((s) => s.isPlayingAd);
+  const currentAd = usePlayerStore((s) => s.currentAd);
   const { toggleLike, isLiked, loadingIds } = useLikeStore();
 
   if (!currentTrack) return null;
+
+  // - Ad mode: render like a track but with AD badge and no like button ──
+  if (isPlayingAd && currentAd) {
+    return (
+      <div className="flex items-center gap-3 min-w-0 flex-1 max-w-xs">
+        {/* Ad artwork placeholder */}
+        <div className="w-12 h-12 rounded shrink-0 bg-gradient-to-br from-zinc-700 to-zinc-600 flex items-center justify-center shadow-lg">
+          <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">AD</span>
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-white text-sm font-medium truncate leading-tight">
+            {currentAd.title}
+          </p>
+          <p className="text-[#999] text-xs truncate mt-0.5">Advertisement</p>
+        </div>
+        {currentAd.clickUrl && (
+          <a
+            href={currentAd.clickUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 text-xs font-semibold text-amber-400 hover:text-amber-300 whitespace-nowrap transition-colors"
+          >
+            Learn more
+          </a>
+        )}
+      </div>
+    );
+  }
 
   const liked = isLiked(currentTrack.trackId);
   const isLikeLoading = loadingIds.includes(String(currentTrack.trackId));

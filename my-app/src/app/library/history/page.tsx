@@ -2,14 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import LibraryTabs from "@/src/components/library/LibraryTabs";
-import RecentlyPlayedRow from "@/src/components/library/RecentlyPlayedRow";
+import RecentArtistsRow from "@/src/components/library/RecentArtistsRow";
+import { RecentArtistItem } from "@/src/components/library/RecentArtistCard";
 import ListeningHistoryList from "@/src/components/library/ListeningHistoryList";
-import { clearListeningHistory, getListeningHistory, getRecentlyPlayed } from "@/src/services/historyService";
+import { clearListeningHistory, getRecentlyPlayed } from "@/src/services/historyService";
 import { ListeningHistoryItem, RecentlyPlayedItem } from "@/src/types/history";
 
 export default function LibraryHistoryPage() {
   const [recentTracks, setRecentTracks] = useState<RecentlyPlayedItem[]>([]);
-  const [historyTracks, setHistoryTracks] = useState<ListeningHistoryItem[]>([]);
   const [filter, setFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const [clearing, setClearing] = useState(false);
@@ -18,14 +18,9 @@ export default function LibraryHistoryPage() {
     async function load() {
       try {
         setLoading(true);
-
-        const [recent, history] = await Promise.all([
-          getRecentlyPlayed(6, 1),
-          getListeningHistory(20, 1),
-        ]);
-
+        // /player/history/recent already uses distinct: ["trackId"] — no frontend dedup needed
+        const recent = await getRecentlyPlayed(100, 1);
         setRecentTracks(recent);
-        setHistoryTracks(history);
       } catch (error) {
         console.error("Failed to load history page:", error);
       } finally {
@@ -36,34 +31,71 @@ export default function LibraryHistoryPage() {
     load();
   }, []);
 
+  // Derive recently played artists (deduplicated by artistId)
+  const recentArtists = useMemo<RecentArtistItem[]>(() => {
+    const map = new Map<string, RecentArtistItem>();
+    for (const track of recentTracks) {
+      const existing = map.get(track.artistId);
+      if (!existing || track.lastPlayedAt > existing.lastPlayedAt) {
+        map.set(track.artistId, {
+          artistId: track.artistId,
+          name: track.artist,
+          handle: track.artistHandle,
+          avatarUrl: track.artistAvatarUrl,
+          lastPlayedAt: track.lastPlayedAt,
+        });
+      }
+    }
+    return [...map.values()].sort((a, b) =>
+      b.lastPlayedAt.localeCompare(a.lastPlayedAt),
+    );
+  }, [recentTracks]);
+
+  // Map RecentlyPlayedItem → ListeningHistoryItem for the track list
+  const historyItems = useMemo<ListeningHistoryItem[]>(
+    () =>
+      recentTracks.map((t) => ({
+        trackId: t.trackId,
+        title: t.title,
+        artist: t.artist,
+        artistId: t.artistId,
+        artistHandle: t.artistHandle,
+        artistAvatarUrl: t.artistAvatarUrl,
+        coverArtUrl: t.coverArtUrl,
+        liked: t.liked,
+        likesCount: t.likesCount,
+        reposted: t.reposted,
+        repostsCount: t.repostsCount,
+        durationSeconds: t.durationSeconds,
+        playedAt: t.lastPlayedAt,
+        positionSeconds: t.lastPositionSeconds,
+      })),
+    [recentTracks],
+  );
+
   const normalizedFilter = filter.trim().toLowerCase();
 
-  const filteredRecent = useMemo(() => {
-    if (!normalizedFilter) return recentTracks;
-
-    return recentTracks.filter(
-      (track) =>
-        track.title.toLowerCase().includes(normalizedFilter) ||
-        track.artist.toLowerCase().includes(normalizedFilter)
+  const filteredArtists = useMemo(() => {
+    if (!normalizedFilter) return recentArtists;
+    return recentArtists.filter((a) =>
+      a.name.toLowerCase().includes(normalizedFilter),
     );
-  }, [recentTracks, normalizedFilter]);
+  }, [recentArtists, normalizedFilter]);
 
   const filteredHistory = useMemo(() => {
-    if (!normalizedFilter) return historyTracks;
-
-    return historyTracks.filter(
-      (track) =>
-        track.title.toLowerCase().includes(normalizedFilter) ||
-        track.artist.toLowerCase().includes(normalizedFilter)
+    if (!normalizedFilter) return historyItems;
+    return historyItems.filter(
+      (t) =>
+        t.title.toLowerCase().includes(normalizedFilter) ||
+        t.artist.toLowerCase().includes(normalizedFilter),
     );
-  }, [historyTracks, normalizedFilter]);
+  }, [historyItems, normalizedFilter]);
 
   const handleClearHistory = async () => {
     try {
       setClearing(true);
       await clearListeningHistory();
       setRecentTracks([]);
-      setHistoryTracks([]);
     } catch (error) {
       console.error("Failed to clear listening history:", error);
     } finally {
@@ -97,15 +129,15 @@ export default function LibraryHistoryPage() {
         <div className="text-zinc-400">Loading...</div>
       ) : (
         <>
-          {filteredRecent.length > 0 && (
-            <RecentlyPlayedRow title="Recently played:" tracks={filteredRecent} />
+          {filteredArtists.length > 0 && (
+            <RecentArtistsRow artists={filteredArtists} />
           )}
 
           {filteredHistory.length > 0 && (
             <ListeningHistoryList tracks={filteredHistory} />
           )}
 
-          {!filteredRecent.length && !filteredHistory.length && (
+          {!filteredArtists.length && !filteredHistory.length && (
             <div className="rounded-md border border-zinc-800 bg-[#181818] p-6 text-zinc-400">
               No listening history found.
             </div>

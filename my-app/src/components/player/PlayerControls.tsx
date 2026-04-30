@@ -18,6 +18,7 @@ export function PlayerControls() {
     loopMode,
     toggleShuffle,
     cycleLoopMode,
+    isPlayingAd,
   } = usePlayerStore();
 
   const isPlayDisabled =
@@ -31,10 +32,11 @@ export function PlayerControls() {
       <button
         type="button"
         onClick={toggleShuffle}
-        className={`hidden sm:flex p-1.5 rounded transition-colors ${
-          isShuffleOn ? "text-[#f50]" : "text-[#999] hover:text-white"
+        disabled={isPlayingAd}
+        className={`hidden sm:flex p-1.5 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
+          isShuffleOn && !isPlayingAd ? "text-[#f50]" : "text-[#999] hover:text-white"
         }`}
-        title={isShuffleOn ? "Turn shuffle off" : "Turn shuffle on"}
+        title={isPlayingAd ? "Cannot shuffle during an ad" : isShuffleOn ? "Turn shuffle off" : "Turn shuffle on"}
       >
         <MdShuffle size={18} />
       </button>
@@ -42,8 +44,9 @@ export function PlayerControls() {
       <button
         type="button"
         onClick={previousTrack}
-        disabled={!currentTrack}
-        className="p-1.5 text-[#ccc] hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        disabled={!currentTrack || isPlayingAd}
+        className="p-1.5 text-[#ccc] hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+        title={isPlayingAd ? "Cannot skip during an ad" : undefined}
       >
         <FaStepBackward size={16} />
       </button>
@@ -60,8 +63,9 @@ export function PlayerControls() {
       <button
         type="button"
         onClick={nextTrack}
-        disabled={!currentTrack}
-        className="p-1.5 text-[#ccc] hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        disabled={!currentTrack || isPlayingAd}
+        className="p-1.5 text-[#ccc] hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+        title={isPlayingAd ? "Cannot skip during an ad" : undefined}
       >
         <FaStepForward size={16} />
       </button>
@@ -69,19 +73,22 @@ export function PlayerControls() {
       <button
         type="button"
         onClick={cycleLoopMode}
-        className={`relative hidden sm:flex p-1.5 rounded transition-colors ${
-          loopMode !== "OFF" ? "text-[#f50]" : "text-[#999] hover:text-white"
+        disabled={isPlayingAd}
+        className={`relative hidden sm:flex p-1.5 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
+          loopMode !== "OFF" && !isPlayingAd ? "text-[#f50]" : "text-[#999] hover:text-white"
         }`}
         title={
-          loopMode === "OFF"
-            ? "Loop off"
-            : loopMode === "ALL"
-              ? "Loop all tracks"
-              : "Repeat current track"
+          isPlayingAd
+            ? "Cannot change loop mode during an ad"
+            : loopMode === "OFF"
+              ? "Loop off"
+              : loopMode === "ALL"
+                ? "Loop all tracks"
+                : "Repeat current track"
         }
       >
         <MdRepeat size={18} />
-        {loopMode === "ONE" && (
+        {loopMode === "ONE" && !isPlayingAd && (
           <span className="absolute -top-1 -right-1 text-[9px] font-bold leading-none">
             1
           </span>

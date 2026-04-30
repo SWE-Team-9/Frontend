@@ -77,7 +77,7 @@ export default function UserManagementPage() {
       setReason('');
       setPassword('');
       alert("User status updated successfully.");
-    } catch (error) {
+    } catch (_error) {
       alert("Action failed. Please check your credentials or network.");
     }
   };

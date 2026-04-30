@@ -27,7 +27,7 @@ interface ProfileSidebarProps {
 }
 
 export const ProfileSidebar = ({
-  followingCount, followersCount, tracksCount, displayUsers, links, favoriteGenres, toggleFollow, setViewState, setDetailTab,
+  followingCount, followersCount, tracksCount, displayUsers, links: _links, favoriteGenres: _favoriteGenres, toggleFollow, setViewState, setDetailTab,
 }: ProfileSidebarProps) => {
   
   const likedTracks = useLikeStore((state) => state.likedTracks || []);

@@ -124,7 +124,7 @@ export default function SharedTrackCard({ track }: { track: SharedTrack }) {
     };
 
     return (
-        <div className="mt-3 max-w-[620px] text-white">
+        <div className="mt-3 max-w-155 text-white">
             <div className="flex gap-4">
                 <div className="relative h-36 w-36 shrink-0 overflow-hidden bg-zinc-800">
                     <Image

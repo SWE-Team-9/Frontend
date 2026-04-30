@@ -109,7 +109,7 @@ function Avatar({
         />
       ) : (
         <span className="w-full h-full flex items-center justify-center text-xs font-bold text-zinc-400 uppercase">
-          {displayName.charAt(0)}
+          {displayName?.charAt(0) ?? "?"}
         </span>
       )}
     </div>

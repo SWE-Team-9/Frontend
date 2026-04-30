@@ -124,7 +124,13 @@ describe("DownloadButton", () => {
         trackId: TRACK_ID,
         title: "Test Track",
         artist: "Artist",
+        handle: "artist-handle",
+        durationMs: 180000,
+        coverArtUrl: "https://cdn.example.com/cover.jpg",
         downloadUrl: "https://s3.example.com/track.mp3",
+        expiresAt: new Date(Date.now() + 3600_000).toISOString(),
+        expiresInSeconds: 3600,
+        planCode: "PRO",
       });
 
       render(<DownloadButton trackId={TRACK_ID} />);

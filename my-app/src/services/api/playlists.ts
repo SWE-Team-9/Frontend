@@ -5,7 +5,7 @@ import {
 } from "@/src/types/playlist";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
-const BASE = `${API_BASE_URL}/api/v1/playlists`;
+const BASE = `${API_BASE_URL}/playlists`;
 
 function getAuthToken(): string | null {
   if (typeof window === "undefined") return null;

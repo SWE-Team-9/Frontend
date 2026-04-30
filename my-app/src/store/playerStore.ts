@@ -8,6 +8,13 @@ import {
   getResumePosition,
   getPlayerSession,
   updatePlayerSession,
+  loadQueue,
+  requestNextTrack,
+  requestPreviousTrack,
+  getQueueState,
+  type LoadQueueBody,
+  type QueueTrackMetadata,
+  type AdSlot,
 } from "@/src/services/playerService";
 import {
   getOfflineCacheEntry,
@@ -41,16 +48,6 @@ export function getAudioElement(): HTMLAudioElement | null {
     _audio.preload = "auto";
   }
   return _audio;
-}
-
-function getRandomIndexExcluding(length: number, excludeIndex: number): number {
-  if (length <= 1) return excludeIndex;
-
-  let randomIndex = excludeIndex;
-  while (randomIndex === excludeIndex) {
-    randomIndex = Math.floor(Math.random() * length);
-  }
-  return randomIndex;
 }
 
 export const mockTracks: Track[] = [
@@ -143,6 +140,17 @@ interface PlayerState {
   hasRecordedPlay: boolean;
   hydratedFromSession: boolean;
 
+  // Backend-managed queue state
+  currentQueueIndex: number;
+  queueLength: number;
+  tracksUntilAd: number;
+
+  // Ad slot state
+  currentAd: AdSlot | null;
+  isPlayingAd: boolean;
+  /** Elapsed seconds for text-only (no audioUrl) ads, updated every second by PlayerAudioSync */
+  adElapsedSeconds: number;
+
   isProcessing: boolean;
   isResolvingPlayback: boolean;
   accessState: "PLAYABLE" | "BLOCKED" | "PREVIEW" | null;
@@ -159,13 +167,31 @@ interface PlayerState {
   setQueue: (queue: Track[]) => void;
   toggleShuffle: () => void;
   cycleLoopMode: () => void;
+
+  /**
+   * Load a queue context onto the backend and begin playing the start track.
+   * This is the preferred entry-point for playlist/artist/feed playback.
+   */
+  loadQueueContext: (body: LoadQueueBody) => Promise<void>;
+
+  /**
+   * Play a single track.  If called from next/prev navigation `_fromQueue`
+   * should be `true` to skip re-loading the backend queue.
+   */
+  fetchAndPlay: (track: Track, _fromQueue?: boolean) => Promise<void>;
+
   nextTrack: () => Promise<void>;
   previousTrack: () => Promise<void>;
   setVolume: (volume: number) => Promise<void>;
   setCurrentTime: (time: number) => void;
   setDuration: (duration: number) => void;
-  fetchAndPlay: (track: Track) => Promise<void>;
   seekTo: (time: number) => Promise<void>;
+
+  isQueuePanelOpen: boolean;
+  toggleQueuePanel: () => void;
+  /** Incremented every time a new queue is loaded on the backend.
+   *  QueuePanel subscribes to this to know when to re-fetch. */
+  queueVersion: number;
 
   loadResumePosition: (trackId: string) => Promise<number>;
   recordPlayEvent: (trackId: string) => Promise<void>;
@@ -187,6 +213,14 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   queue: [],
   hasRecordedPlay: false,
   hydratedFromSession: false,
+  currentQueueIndex: 0,
+  queueLength: 0,
+  tracksUntilAd: 3,
+  currentAd: null,
+  isPlayingAd: false,
+  adElapsedSeconds: 0,
+  isQueuePanelOpen: false,
+  queueVersion: 0,
   isProcessing: false,
   isResolvingPlayback: false,
   accessState: null,
@@ -279,7 +313,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       currentTime,
       isPlaying,
       volume,
-      queue,
       isShuffleOn,
       loopMode,
     } = get();
@@ -288,7 +321,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       positionSeconds: Math.floor(currentTime),
       isPlaying,
       volume: volume / 100,
-      queueTrackIds: queue.map((track) => track.trackId),
       shuffle: isShuffleOn,
       repeatMode: loopMode,
     };
@@ -314,25 +346,9 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         ? tracks.find((t) => t.trackId === data.currentTrack?.trackId) ?? null
         : null;
 
-      const restoredQueue = (data.queue ?? [])
-        .map((item) => {
-          const found = tracks.find((t) => t.trackId === item.trackId);
-          if (found) return found;
-
-          return {
-            trackId: item.trackId,
-            title: item.title,
-            artist: "Unknown Artist",
-            artistId: "usr_unknown",
-            artistHandle: undefined,
-            artistAvatarUrl: null,
-            cover: "/images/track-placeholder.png",
-          } as Track;
-        });
       console.log("[playerStore] restoring session track:", restoredCurrentTrack);
       set({
         currentTrack: restoredCurrentTrack,
-        queue: restoredQueue,
         currentTime: data.positionSeconds ?? 0,
         isPlaying: false,
         volume: typeof data.volume === "number" ? Math.round(data.volume * 100) : 75,
@@ -348,6 +364,18 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       const audio = getAudioElement();
       if (audio) {
         audio.volume = (typeof data.volume === "number" ? data.volume : 0.75);
+      }
+
+      // Restore backend queue state (currentQueueIndex / queueLength) without
+      // touching the queue itself - the backend owns it exclusively.
+      try {
+        const queueData = await getQueueState();
+        set({
+          currentQueueIndex: queueData.currentIndex,
+          queueLength: queueData.queueLength,
+        });
+      } catch {
+        // Non-fatal: queue state will be populated on next play
       }
     } catch (error) {
       console.error("Failed to hydrate player session:", error);
@@ -449,6 +477,45 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   setTracks: (tracks) => set({ tracks }),
   setQueue: (queue) => set({ queue }),
 
+  /**
+   * Load a playback context (playlist / artist / feed / single track) onto the
+   * backend and immediately start playing the designated start track.
+   */
+  loadQueueContext: async (body: LoadQueueBody) => {
+    try {
+      const response = await loadQueue(body);
+      set({
+        currentQueueIndex: response.currentIndex,
+        queueLength: response.queueLength,
+        tracksUntilAd: response.tracksUntilAd,
+        currentAd: null,
+        isPlayingAd: false,
+        queueVersion: get().queueVersion + 1,
+      });
+
+      if (response.currentTrack) {
+        const meta = response.currentTrack;
+        const track: Track = {
+          trackId: meta.trackId,
+          title: meta.title,
+          artist: meta.artist,
+          artistId: meta.artistId,
+          artistHandle: meta.artistHandle ?? undefined,
+          artistAvatarUrl: meta.artistAvatarUrl,
+          cover: meta.cover ?? "/images/track-placeholder.png",
+          duration: meta.duration ?? undefined,
+          genre: meta.genre ?? undefined,
+        };
+        // _fromQueue = true so fetchAndPlay won't call loadQueue again
+        await get().fetchAndPlay(track, true);
+      }
+    } catch (error) {
+      console.error("[playerStore] loadQueueContext failed:", error);
+    }
+  },
+
+  toggleQueuePanel: () => set((s) => ({ isQueuePanelOpen: !s.isQueuePanelOpen })),
+
   toggleShuffle: () => {
     const nextValue = !get().isShuffleOn;
     set({ isShuffleOn: nextValue });
@@ -465,11 +532,33 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },  
 
   //  fetch streamUrl, handle 409 and accessState
-  fetchAndPlay: async (track: Track) => {
+  fetchAndPlay: async (track: Track, _fromQueue = false) => {
     const { currentTrack } = get();
 
     if (currentTrack?.trackId === track.trackId && get().isPlaying) {
       return;
+    }
+
+    // If this is a user-initiated play (not from queue navigation),
+    // tell the backend to reset the queue to this single track.
+    if (!_fromQueue) {
+      try {
+        const response = await loadQueue({
+          contextType: "TRACK",
+          startTrackId: track.trackId,
+        });
+        set({
+          currentQueueIndex: response.currentIndex,
+          queueLength: response.queueLength,
+          tracksUntilAd: response.tracksUntilAd,
+          currentAd: null,
+          isPlayingAd: false,
+          queueVersion: get().queueVersion + 1,
+        });
+      } catch (err) {
+        // Non-fatal - continue with local playback even if queue load fails
+        console.error("[playerStore] fetchAndPlay queue load failed:", err);
+      }
     }
 
     const audio = getAudioElement();
@@ -488,7 +577,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       hasRecordedPlay: false,
     });
 
-    // ── Offline cache check ────────────────────────────────────────
+    // Offline cache check
     // If this track has been saved for offline listening, play it
     // directly from IndexedDB without any network request.
     try {
@@ -544,7 +633,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         return;
       }
     } catch {
-      // Cache read failure is non-fatal — fall through to network playback
+      // Cache read failure is non-fatal - fall through to network playback
     }
 
     try {
@@ -731,65 +820,165 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   nextTrack: async () => {
-    const { tracks, trackIndex, isShuffleOn, loopMode, currentTrack } = get();
-    if (!tracks.length) return;
+    const { loopMode, currentTrack } = get();
 
-    // Repeat current track
+    // Repeat ONE: frontend handles it locally (no backend call needed)
     if (loopMode === "ONE" && currentTrack) {
       const audio = getAudioElement();
       if (audio) audio.currentTime = 0;
       set({ currentTime: 0 });
-      await get().fetchAndPlay(currentTrack);
+      await get().fetchAndPlay(currentTrack, true);
       return;
     }
 
-    let nextIndex: number;
-
-    if (isShuffleOn) {
-      const currentIndex =
-        trackIndex >= 0
-          ? trackIndex
-          : currentTrack
-            ? tracks.findIndex((t) => t.trackId === currentTrack.trackId)
-            : 0;
-
-      nextIndex = getRandomIndexExcluding(tracks.length, currentIndex);
-    } else {
-      const isLastTrack = trackIndex >= tracks.length - 1;
-
-      if (isLastTrack) {
-        if (loopMode === "ALL") {
-          nextIndex = 0;
-        } else {
-          const audio = getAudioElement();
-          if (audio) {
-            audio.pause();
-            audio.currentTime = 0;
-          }
-
-          set({
-            isPlaying: false,
-            currentTime: 0,
-          });
-
-          await get().persistProgress();
-          await get().persistPlayerSession();
-          return;
-        }
-      } else {
-        nextIndex = trackIndex < 0 ? 0 : trackIndex + 1;
+    // Ensure the backend queue is loaded before navigating.
+    // This handles page-refresh hydration and any other path that
+    // sets currentTrack without going through loadQueue.
+    const { queueLength } = get();
+    if (queueLength === 0 && currentTrack) {
+      try {
+        const resp = await loadQueue({
+          contextType: "TRACK",
+          startTrackId: currentTrack.trackId,
+        });
+        set({
+          currentQueueIndex: resp.currentIndex,
+          queueLength: resp.queueLength,
+          tracksUntilAd: resp.tracksUntilAd,
+          queueVersion: get().queueVersion + 1,
+        });
+      } catch (err) {
+        console.error("[playerStore] nextTrack queue reload failed:", err);
+        return;
       }
     }
 
-    await get().fetchAndPlay(tracks[nextIndex]);
+    try {
+      const response = await requestNextTrack();
+
+      if (response.type === "ENDED") {
+        // Queue finished - autoplay radio from current artist (SoundCloud-style)
+        const { currentTrack } = get();
+        if (currentTrack?.artistId) {
+          try {
+            const radioResp = await loadQueue({
+              contextType: "ARTIST",
+              contextId: currentTrack.artistId,
+              startTrackId: undefined,
+            });
+            set({
+              currentQueueIndex: radioResp.currentIndex,
+              queueLength: radioResp.queueLength,
+              tracksUntilAd: radioResp.tracksUntilAd,
+              currentAd: null,
+              isPlayingAd: false,
+              queueVersion: get().queueVersion + 1,
+            });
+            if (radioResp.currentTrack) {
+              const meta = radioResp.currentTrack;
+              await get().fetchAndPlay(
+                {
+                  trackId: meta.trackId,
+                  title: meta.title,
+                  artist: meta.artist,
+                  artistId: meta.artistId,
+                  artistHandle: meta.artistHandle ?? undefined,
+                  artistAvatarUrl: meta.artistAvatarUrl,
+                  cover: meta.cover ?? "/images/track-placeholder.png",
+                  duration: meta.duration ?? undefined,
+                  genre: meta.genre ?? undefined,
+                },
+                true,
+              );
+            }
+            return;
+          } catch {
+            // Radio load failed - fall through to stop
+          }
+        }
+        // No artist or radio failed - stop playback
+        const audio = getAudioElement();
+        if (audio) {
+          audio.pause();
+          audio.currentTime = 0;
+        }
+        set({
+          isPlaying: false,
+          currentTime: 0,
+          currentQueueIndex: response.currentIndex,
+          queueLength: response.queueLength,
+        });
+        await get().persistProgress();
+        await get().persistPlayerSession();
+        return;
+      }
+
+      if (response.type === "AD") {
+        // Show ad overlay; no audio to play for MVP ads
+        set({
+          currentAd: response.ad,
+          isPlayingAd: true,
+          adElapsedSeconds: 0,
+          currentQueueIndex: response.currentIndex,
+          queueLength: response.queueLength,
+          tracksUntilAd: response.tracksUntilAd,
+        });
+
+        if (response.ad.audioUrl) {
+          // Play the ad audio if a URL is provided
+          const audio = getAudioElement();
+          if (audio) {
+            audio.pause();
+            audio.src = response.ad.audioUrl;
+            audio.load();
+            audio.volume = get().volume / 100;
+            try {
+              await audio.play();
+              set({ isPlaying: true });
+            } catch {
+              // If ad audio fails, auto-advance after a short delay is handled
+              // by PlayerAudioSync's ended/error events
+            }
+          }
+        }
+        // If no audioUrl, the ad overlay is shown and PlayerAudioSync will call
+        // nextTrack() again after the ad countdown (handled in Player.tsx)
+        return;
+      }
+
+      // type === "TRACK"
+      set({
+        currentQueueIndex: response.currentIndex,
+        queueLength: response.queueLength,
+        tracksUntilAd: response.tracksUntilAd,
+        currentAd: null,
+        isPlayingAd: false,
+      });
+
+      const meta = response.track;
+      const nextTrackObj: Track = {
+        trackId: meta.trackId,
+        title: meta.title,
+        artist: meta.artist,
+        artistId: meta.artistId,
+        artistHandle: meta.artistHandle ?? undefined,
+        artistAvatarUrl: meta.artistAvatarUrl,
+        cover: meta.cover ?? "/images/track-placeholder.png",
+        duration: meta.duration ?? undefined,
+        genre: meta.genre ?? undefined,
+      };
+
+      await get().fetchAndPlay(nextTrackObj, true);
+    } catch (error) {
+      console.error("[playerStore] nextTrack failed:", error);
+    }
   },
 
   previousTrack: async () => {
-    const { tracks, trackIndex, currentTime, isShuffleOn, loopMode, currentTrack } = get();
+    const { currentTime, currentTrack } = get();
     const audio = getAudioElement();
 
-    if (!tracks.length) return;
-
+    // If we're more than 3 seconds in, restart the current track
     if (currentTime > 3) {
       if (audio) audio.currentTime = 0;
       set({ currentTime: 0 });
@@ -798,28 +987,55 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       return;
     }
 
-    let prevIndex: number;
-
-    if (isShuffleOn) {
-      const currentIndex =
-        trackIndex >= 0
-          ? trackIndex
-          : currentTrack
-            ? tracks.findIndex((t) => t.trackId === currentTrack.trackId)
-            : 0;
-
-      prevIndex = getRandomIndexExcluding(tracks.length, currentIndex);
-    } else {
-      const isFirstTrack = trackIndex <= 0;
-
-      if (isFirstTrack) {
-        prevIndex = loopMode === "ALL" ? tracks.length - 1 : 0;
-      } else {
-        prevIndex = trackIndex - 1;
+    // Ensure the backend queue is loaded before navigating.
+    const { queueLength } = get();
+    if (queueLength === 0 && currentTrack) {
+      try {
+        const resp = await loadQueue({
+          contextType: "TRACK",
+          startTrackId: currentTrack.trackId,
+        });
+        set({
+          currentQueueIndex: resp.currentIndex,
+          queueLength: resp.queueLength,
+          tracksUntilAd: resp.tracksUntilAd,
+          queueVersion: get().queueVersion + 1,
+        });
+      } catch (err) {
+        console.error("[playerStore] previousTrack queue reload failed:", err);
+        return;
       }
     }
 
-    await get().fetchAndPlay(tracks[prevIndex]);
+    try {
+      const response = await requestPreviousTrack();
+
+      if (response.type !== "TRACK") return;
+
+      set({
+        currentQueueIndex: response.currentIndex,
+        queueLength: response.queueLength,
+        currentAd: null,
+        isPlayingAd: false,
+      });
+
+      const meta = response.track;
+      const prevTrackObj: Track = {
+        trackId: meta.trackId,
+        title: meta.title,
+        artist: meta.artist,
+        artistId: meta.artistId,
+        artistHandle: meta.artistHandle ?? undefined,
+        artistAvatarUrl: meta.artistAvatarUrl,
+        cover: meta.cover ?? "/images/track-placeholder.png",
+        duration: meta.duration ?? undefined,
+        genre: meta.genre ?? undefined,
+      };
+
+      await get().fetchAndPlay(prevTrackObj, true);
+    } catch (error) {
+      console.error("[playerStore] previousTrack failed:", error);
+    }
   },
 
   //: store keeps 0–100; audio element gets 0–1
