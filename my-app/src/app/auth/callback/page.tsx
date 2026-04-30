@@ -128,7 +128,9 @@ export default function AuthCallbackPage() {
         const returnTo = sessionStorage.getItem("oauth_return_to") || "/discover";
         sessionStorage.removeItem("oauth_return_to");
         sessionStorage.removeItem("oauth_provider");
-        router.replace(returnTo);
+        // Admins and moderators land on the dashboard, not the listener feed
+        const isStaff = me.system_role === "ADMIN" || me.system_role === "MODERATOR";
+        router.replace(isStaff && returnTo === "/discover" ? "/admin" : returnTo);
       } catch {
         setError("Login failed. Please try again.");
       }
