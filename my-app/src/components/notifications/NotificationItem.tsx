@@ -161,14 +161,14 @@ export function NotificationItem({ notification }: NotificationItemProps) {
           onClick={handleOpen}
           className="flex flex-1 cursor-pointer items-start gap-3"
         >
-          <div className="h-20 w-20 shrink-0 overflow-hidden rounded-full bg-neutral-700">
+          <div className="h-14 w-14 shrink-0 overflow-hidden rounded-full bg-neutral-700">
             {notification.actorAvatarUrl ? (
               <Image
                 src={notification.actorAvatarUrl}
                 alt={actorName}
                 width={56}
                 height={56}
-                className="h-20 w-20 object-cover"
+                className="h-14 w-14 object-cover"
                 unoptimized
               />
             ) : (
@@ -177,7 +177,7 @@ export function NotificationItem({ notification }: NotificationItemProps) {
                 alt={actorName}
                 width={56}
                 height={56}
-                className="h-20 w-20 object-cover"
+                className="h-14 w-14 object-cover"
               />
             )}
           </div>
