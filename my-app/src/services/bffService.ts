@@ -3,18 +3,17 @@ import api from "@/src/services/api";
 // ─────────────────────────────────────────────────────────────
 // BFF (Backend-for-Frontend) service
 //
-// Calls the aggregate /app/bootstrap endpoint that returns all
-// shell data in one round-trip. Mobile/desktop clients that call
-// individual REST endpoints (/auth/me, /profiles, etc.) are
-// completely unaffected — this is an additive endpoint.
+// Calls aggregate endpoints that replace clusters of parallel
+// API calls previously made by the app shell and page components.
+// Old individual APIs are untouched and remain available.
 //
-// Security notes:
+// Security notes (system_role):
 //   - The endpoint requires a valid JWT cookie (401 if not auth'd)
 //   - system_role is fetched fresh from the DB on every call,
-//     never from the JWT payload — so role changes take effect
-//     immediately on the next page load without requiring re-login
-//   - We validate the role against a known whitelist before storing
-//     it; anything unexpected is treated as the least-privilege role
+//     never from the JWT payload — role changes take effect on
+//     the next page load without requiring re-login
+//   - toSystemRole() validates the value against a known whitelist;
+//     anything unexpected is treated as the least-privilege "USER"
 //   - Client-side role values are used only for UI gating. All
 //     admin API routes enforce @Roles('ADMIN') server-side, so
 //     store manipulation cannot grant real access.
@@ -30,6 +29,8 @@ export function toSystemRole(raw: string | undefined | null): SystemRole {
   }
   return "USER";
 }
+
+// ── Bootstrap ────────────────────────────────────────────────
 
 export interface BootstrapMe {
   id: string;

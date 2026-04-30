@@ -1,33 +1,73 @@
 "use client";
 import { useEffect } from "react";
-import { getBootstrapData, toSystemRole } from "@/src/services/bffService";
+import { getBootstrapData, toSystemRole, BootstrapEntitlements } from "@/src/services/bffService";
 import { useAuthStore } from "@/src/store/useAuthStore";
 import { useProfileStore } from "@/src/store/useProfileStore";
+import { useNotificationStore } from "@/src/store/notificationsStore";
+import { useSubscriptionStore } from "@/src/store/useSubscriptionStore";
+import {
+  normalizeBackendSubscription,
+  SubscriptionDetails,
+} from "@/src/services/subscriptionService";
+import { PLAN_CONFIG } from "@/src/config/plans";
 
 // ─────────────────────────────────────────────────────────────
 // useAuthInit
 //
-// Runs once when the app shell mounts. Calls GET /app/bootstrap
-// (requires a valid JWT cookie) to restore session state in one
-// round-trip. On 401 or network error the user stays a guest.
+// Runs once when the app loads. Calls GET /app/bootstrap to
+// restore session state and seed all shell stores in one request,
+// replacing the previous pattern of calling /auth/me, then
+// having downstream hooks call /notifications/unread-count,
+// /notifications, /subscriptions/me, etc. separately.
 //
-// Security notes:
-//   • system_role is validated against a known whitelist via
-//     toSystemRole() before being stored. Unexpected values
-//     fall back to the least-privilege "USER" role.
-//   • All admin API routes enforce @Roles('ADMIN') server-side,
-//     so store manipulation cannot grant real access.
-//   • The role is fetched fresh from the DB on every bootstrap
-//     call — role changes take effect on the next page load
-//     without requiring a full re-login.
+// On 401 the bootstrap call is silently swallowed — the user
+// is simply treated as a guest.
+//
+// Security: system_role is validated against a known whitelist
+// via toSystemRole() before being stored. Unexpected values fall
+// back to the least-privilege "USER" role. All admin API routes
+// enforce @Roles('ADMIN') server-side, so store manipulation
+// cannot grant real access.
 // ─────────────────────────────────────────────────────────────
+
+/**
+ * Builds a SubscriptionDetails from the entitlements block when the
+ * full subscription object is absent from the bootstrap response.
+ */
+function entitlementsToSubDetails(e: BootstrapEntitlements): SubscriptionDetails {
+  const planCode = e.planCode ?? "FREE";
+  const subscriptionType: "FREE" | "PRO" | "GO+" =
+    planCode === "GO_PLUS" ? "GO+" : planCode === "PRO" ? "PRO" : "FREE";
+  const uploadLimit = e.uploadLimit < 0 ? Infinity : e.uploadLimit;
+  return {
+    userId: "",
+    subscriptionType,
+    planName: PLAN_CONFIG[subscriptionType]?.label ?? subscriptionType,
+    isPremium: e.isPremium,
+    subscriptionStatus: null,
+    uploadLimit,
+    uploadedTracks: e.uploadedCount ?? 0,
+    remainingUploads: e.remainingUploads,
+    cancelAtPeriodEnd: false,
+    currentPeriodEnd: null,
+    renewalDate: null,
+    expiresAt: null,
+    trialStart: null,
+    trialEnd: e.trialEnd ?? null,
+    paymentMethodSummary: null,
+    pendingDowngrade: null,
+    perks: {
+      adFree: !e.adsEnabled,
+      offlineListening: e.canDownload,
+    },
+  };
+}
 
 export const useAuthInit = () => {
   useEffect(() => {
     getBootstrapData()
       .then((data) => {
-        // Seed profile store (shell-level data; full profile still
-        // needs its own fetch for bio, links, genres, etc.)
+        // Seed profile store (minimal shell data; full profile loaded by profile page)
         if (data.profile) {
           const p = data.profile;
           useProfileStore.getState().setProfileData({
@@ -40,12 +80,37 @@ export const useAuthInit = () => {
             followersCount: p.followersCount ?? 0,
             followingCount: p.followingCount ?? 0,
             tracksCount: p.tracksCount ?? 0,
-            isLoaded: false,
+            isLoaded: false, // full profile still needs its own fetch for bio/links/genres
           });
         }
 
-        // Seed auth store last. Validate system_role against the known
-        // whitelist before storing — unknown values default to "USER".
+        // Seed notification store — skips the separate unread-count + list fetch
+        useNotificationStore.getState().setFromBootstrap(
+          data.notifications.unreadCount,
+          data.notifications.latest,
+        );
+
+        // Seed subscription store.
+        // The raw backend object must be normalized before storing so that
+        // planCode "GO_PLUS" → subscriptionType "GO+", adsEnabled is inverted
+        // to perks.adFree, etc.  Without this, premium checks fail everywhere.
+        if (data.subscription) {
+          const normalized = normalizeBackendSubscription(
+            data.subscription as Record<string, unknown>,
+          );
+          useSubscriptionStore.getState().setSubDirectly(normalized);
+        } else if (data.entitlements) {
+          // Fallback: build a minimal SubscriptionDetails from the lighter
+          // entitlements block when the full subscription object is absent.
+          useSubscriptionStore
+            .getState()
+            .setSubDirectly(entitlementsToSubDetails(data.entitlements));
+        }
+
+        // Seed auth store last. This avoids a race where AuthProvider sees
+        // user first and triggers fallback /subscriptions/me before bootstrap
+        // has hydrated subscription from /app/bootstrap.
+        // system_role is validated against a known whitelist before storing.
         const me = data.me;
         useAuthStore.getState().setUser({
           id: me.id,
