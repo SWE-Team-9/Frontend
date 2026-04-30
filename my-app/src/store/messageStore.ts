@@ -75,9 +75,6 @@ function upsertAndSortConversation(
   return sortConversationsByNewest([conversation, ...withoutCurrent]);
 }
 
-function getUnreadConversationCount(conversations: ConversationPreview[]) {
-  return conversations.filter((c) => c.unreadCount > 0).length;
-}
 
 interface MessageState {
   conversationView: "active" | "archived";
@@ -359,19 +356,30 @@ export const useMessageStore = create<MessageState>((set, get) => ({
   },
 
   markUnread: async (conversationId) => {
+    const currentUserId = useAuthStore.getState().user?.id;
+
+    const conversation =
+      get().conversations.find((c) => c.conversationId === conversationId) ??
+      get().dropdownConversations.find((c) => c.conversationId === conversationId) ??
+      get().selectedConversation;
+
+    const lastMessage = conversation?.lastMessage;
+
+    if (!lastMessage || lastMessage.senderId === currentUserId) {
+      return;
+    }
+
+    const hadRealUnreadMessages = get().unreadCount > 0;
+
     await messageService.markConversationUnread(conversationId);
 
     set((state) => {
       const conversations = state.conversations.map((c) =>
-        c.conversationId === conversationId
-          ? { ...c, unreadCount: 1 }
-          : c,
+        c.conversationId === conversationId ? { ...c, unreadCount: 1 } : c,
       );
 
       const dropdownConversations = state.dropdownConversations.map((c) =>
-        c.conversationId === conversationId
-          ? { ...c, unreadCount: 1 }
-          : c,
+        c.conversationId === conversationId ? { ...c, unreadCount: 1 } : c,
       );
 
       return {
@@ -381,8 +389,9 @@ export const useMessageStore = create<MessageState>((set, get) => ({
           state.selectedConversation?.conversationId === conversationId
             ? { ...state.selectedConversation, unreadCount: 1 }
             : state.selectedConversation,
-        unreadCount: state.unreadCount,
-        showUnreadDotOnly: state.unreadCount === 0,
+
+        unreadCount: hadRealUnreadMessages ? state.unreadCount : 0,
+        showUnreadDotOnly: !hadRealUnreadMessages,
       };
     });
   },
@@ -553,6 +562,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
             updatedConversation,
           ).slice(0, 5)
           : state.dropdownConversations,
+        showUnreadDotOnly: shouldIncrementUnread ? false : state.showUnreadDotOnly,
       };
     });
 
@@ -596,9 +606,14 @@ export const useMessageStore = create<MessageState>((set, get) => ({
   },
 
   handleSocketUnreadCountUpdated: ({ unreadCount }) => {
-    set({ unreadCount });
-  },
+    set((state) => {
+      if (state.showUnreadDotOnly) {
+        return { unreadCount: 0 };
+      }
 
+      return { unreadCount };
+    });
+  },
   handleSocketConversationUpdated: async () => {
     await get().loadConversations();
     await get().loadDropdownConversations();
