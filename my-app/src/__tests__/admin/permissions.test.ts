@@ -19,7 +19,7 @@ function makeUser(role: AdminUser["system_role"]): AdminUser {
     is_verified: true,
     created_at: new Date().toISOString(),
     avatar_url: null,
-    account_type: "FREE",
+    account_type: "LISTENER",
     track_count: 0,
     report_count: 0,
     last_login_at: new Date().toISOString(),
@@ -31,10 +31,22 @@ const modUser = makeUser("MODERATOR");
 const regularUser = makeUser("USER");
 
 // Actions only ADMIN can perform
-const ADMIN_ONLY_ACTIONS: PermissionAction[] = ["WARN_USER", "SUSPEND_USER", "BAN_USER"];
+const ADMIN_ONLY_ACTIONS: PermissionAction[] = [
+  "WARN_USER",
+  "SUSPEND_USER",
+  "BAN_USER",
+  "REACTIVATE_USER",
+  "DELETE_TRACK",
+];
 
-// Actions MODERATOR and ADMIN can perform
-const MOD_ADMIN_ACTIONS: PermissionAction[] = ["VIEW_REPORTS", "RESOLVE_REPORT", "REJECT_REPORT"];
+// Actions MODERATOR and ADMIN can both perform
+const MOD_ADMIN_ACTIONS: PermissionAction[] = [
+  "VIEW_REPORTS",
+  "RESOLVE_REPORT",
+  "REJECT_REPORT",
+  "HIDE_TRACK",
+  "DELETE_COMMENT",
+];
 
 describe("canPerform — ADMIN capabilities", () => {
   it.each(ADMIN_ONLY_ACTIONS)("ADMIN can perform %s", (action) => {

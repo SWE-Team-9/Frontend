@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { adminService } from '@/src/services/admin/adminService';
+import { useAuthStore } from './useAuthStore';
 import {
   AdminUser,
   Report,
@@ -44,21 +45,7 @@ interface AdminState {
 export const useAdminStore = create<AdminState>()(
   persist(
     (set, get) => ({
-      currentUser: {
-        id: "admin-1",
-        display_name: "Super Admin",
-        handle: "admin",
-        email: "admin@system.com",
-        account_status: "ACTIVE",
-        is_verified: true,
-        system_role: "ADMIN",
-        created_at: "2026-04-28T15:42:06.205Z",
-        avatar_url: null,
-        account_type: "PRO",
-        track_count: 0,
-        report_count: 0,
-        last_login_at: "2026-04-28T15:42:06.205Z"
-      },
+      currentUser: null,
 
       stats: null,
       reports: [],
@@ -74,6 +61,27 @@ export const useAdminStore = create<AdminState>()(
       fetchDashboardData: async () => {
         set({ isLoading: true });
         try {
+          const authUser = useAuthStore.getState().user;
+          if (authUser) {
+            set({
+              currentUser: {
+                id: authUser.id,
+                display_name: authUser.displayName,
+                handle: authUser.handle ?? '',
+                email: authUser.email,
+                system_role: authUser.systemRole ?? 'USER',
+                account_status: 'ACTIVE',
+                is_verified: authUser.isVerified ?? false,
+                created_at: '',
+                avatar_url: authUser.avatarUrl ?? null,
+                account_type: 'LISTENER',
+                track_count: 0,
+                report_count: 0,
+                last_login_at: '',
+              },
+            });
+          }
+
           const data = await adminService.getInitialData();
           set({
             stats: data.stats,

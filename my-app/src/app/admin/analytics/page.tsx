@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import { useAdminStore } from "@/src/store/useAdminStore";
+import { adminServiceReal } from "@/src/services/admin/adminService.real";
 import {
   AreaChart,
   Area,
@@ -16,218 +17,208 @@ import {
 } from "recharts";
 import { FiTrendingUp, FiActivity, FiHardDrive } from "react-icons/fi";
 
+interface DailyMetric {
+  date: string;
+  new_users: number;
+  tracks_uploaded: number;
+  total_storage_bytes: number;
+  active_subscribers: number;
+}
+
 export default function AnalyticsPage() {
   const { stats, fetchDashboardData, isLoading } = useAdminStore();
+  const [dailyMetrics, setDailyMetrics] = useState<DailyMetric[]>([]);
+  const [dailyLoading, setDailyLoading] = useState(true);
 
   useEffect(() => {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
-  // =========================
-  // DERIVED ANALYTICS (FROM STATS)
-  // =========================
-  const analytics = useMemo(() => {
-    if (!stats) return null;
+  useEffect(() => {
+    const dateTo = new Date().toISOString().split("T")[0];
+    const dateFrom = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split("T")[0];
+    setDailyLoading(true);
+    adminServiceReal
+      .getDailyStats(dateFrom, dateTo)
+      .then((data) => setDailyMetrics(data.metrics ?? []))
+      .catch(() => setDailyMetrics([]))
+      .finally(() => setDailyLoading(false));
+  }, []);
 
-    const growth = Array.from({ length: 7 }).map((_, i) => ({
-      date: `Day ${i + 1}`,
-      users: Math.floor(stats.users.total * (0.7 + i * 0.05)),
-      artists: Math.floor(stats.users.artists * (0.7 + i * 0.05)),
-    }));
-
-    const plays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(
-      (d, i) => ({
-        name: d,
-        value: Math.floor(
-          (stats.engagement.total_play_events / 7) *
-            // FIXED: Replaced Math.random() with a deterministic multiplier 
-            // to comply with React's purity rules.
-            (0.7 + (i % 3) * 0.2) 
-        ),
-      })
-    );
-
-    const usedGB = stats.storage.used_bytes / (1024 * 1024 * 1024);
-
-    const storageTrend = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"].map(
-      (m, i) => ({
-        month: m,
-        used: Math.min(100, Math.floor(usedGB * (0.6 + i * 0.1))),
-      })
-    );
-
-    return { growth, plays, storageTrend };
-  }, [stats]);
-
-  // =========================
-  // INSIGHTS (KPI)
-  // =========================
-  const insights = useMemo(() => {
-    if (!analytics) return null;
-
-    const growthRate =
-      analytics.growth.length > 1
-        ? (
-            ((analytics.growth.at(-1)!.users -
-              analytics.growth[0].users) /
-              analytics.growth[0].users) *
-            100
-          ).toFixed(1)
-        : "0";
-
-    const peakDay = analytics.plays.reduce((max, d) =>
-      d.value > max.value ? d : max
-    ).name;
-
-    const storageUsed = analytics.storageTrend.at(-1)?.used ?? 0;
-
-    return { growthRate, peakDay, storageUsed };
-  }, [analytics]);
-
-  // =========================
-  // LOADING
-  // =========================
-  if (isLoading || !analytics || !insights) {
+  if (isLoading || !stats) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
         <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-orange-500" />
         <p className="text-zinc-500 animate-pulse">
-          Calculating platform insights...
+          Loading platform analytics...
         </p>
       </div>
     );
   }
+
+  const storagePercent = stats.storage.total_bytes
+    ? ((stats.storage.used_bytes / stats.storage.total_bytes) * 100).toFixed(1)
+    : "0";
+
+  const growthData = dailyMetrics.map((d) => ({
+    date: d.date.slice(5), // MM-DD
+    new_users: d.new_users,
+    tracks: d.tracks_uploaded,
+  }));
+
+  const playsData = [
+    { name: "Total Plays", value: stats.engagement.total_play_events, color: "#f97316" },
+    { name: "Completed (≥90%)", value: stats.engagement.completed_play_events, color: "#22c55e" },
+  ];
+
+  const storageSegments = [
+    { month: "Used", used: parseFloat(storagePercent) },
+    { month: "Free", used: Math.max(0, 100 - parseFloat(storagePercent)) },
+  ];
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
 
       {/* HEADER */}
       <div>
-        <h1 className="text-2xl font-bold text-white">
-          Platform Analytics
-        </h1>
+        <h1 className="text-2xl font-bold text-white">Platform Analytics</h1>
         <p className="text-zinc-500 text-sm">
-          Real-time insights into platform growth & activity
+          Real-time insights into platform growth &amp; activity
         </p>
       </div>
 
-      {/* KPI CARDS */}
+      {/* KPI CARDS — real engagement data */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
         <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl">
-          <p className="text-xs text-zinc-500">User Growth</p>
+          <p className="text-xs text-zinc-500">Total Play Events</p>
           <h2 className="text-2xl font-bold text-orange-500 mt-1">
-            +{insights.growthRate}%
+            {stats.engagement.total_play_events.toLocaleString()}
           </h2>
-          <p className="text-[10px] text-zinc-600 mt-1">
-            Last 7 days trend
-          </p>
+          <p className="text-[10px] text-zinc-600 mt-1">All-time play events</p>
         </div>
 
         <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl">
-          <p className="text-xs text-zinc-500">Peak Activity</p>
+          <p className="text-xs text-zinc-500">Play-Through Rate</p>
           <h2 className="text-2xl font-bold text-green-400 mt-1">
-            {insights.peakDay}
+            {stats.engagement.play_through_rate_pct.toFixed(1)}%
           </h2>
           <p className="text-[10px] text-zinc-600 mt-1">
-            Highest streaming day
+            Listeners completing ≥90% of tracks
           </p>
         </div>
 
         <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl">
-          <p className="text-xs text-zinc-500">Storage Usage</p>
+          <p className="text-xs text-zinc-500">Storage Used</p>
           <h2 className="text-2xl font-bold text-blue-400 mt-1">
-            {insights.storageUsed}%
+            {stats.storage.total_human_readable}
           </h2>
           <p className="text-[10px] text-zinc-600 mt-1">
-            Capacity utilization
+            {storagePercent}% capacity utilization
           </p>
         </div>
 
       </div>
 
-      {/* GROWTH CHART */}
+      {/* DAILY USER GROWTH CHART */}
       <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-2xl">
         <div className="flex items-center gap-2 mb-6">
           <FiTrendingUp className="text-orange-500" />
           <h2 className="text-sm font-bold uppercase tracking-widest text-zinc-400">
-            User Growth Trend
+            New Users — Last 30 Days
           </h2>
         </div>
 
-        <div className="h-[300px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={analytics.growth}>
-              <defs>
-                <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#f97316" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
-                </linearGradient>
-              </defs>
+        {dailyLoading ? (
+          <div className="h-[300px] flex items-center justify-center text-zinc-600 text-sm">
+            Loading daily data...
+          </div>
+        ) : growthData.length === 0 ? (
+          <div className="h-[300px] flex items-center justify-center text-zinc-600 text-sm italic">
+            No daily data available for this period.
+          </div>
+        ) : (
+          <div className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={growthData}>
+                <defs>
+                  <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f97316" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
 
-              <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+                <XAxis dataKey="date" stroke="#52525b" fontSize={10} />
+                <YAxis stroke="#52525b" fontSize={10} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#18181b",
+                    border: "1px solid #27272a",
+                    borderRadius: "8px",
+                  }}
+                />
 
-              <XAxis dataKey="date" stroke="#52525b" fontSize={10} />
-              <YAxis stroke="#52525b" fontSize={10} />
-
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#18181b",
-                  border: "1px solid #27272a",
-                  borderRadius: "8px",
-                }}
-              />
-
-              <Area
-                type="monotone"
-                dataKey="users"
-                stroke="#f97316"
-                fillOpacity={1}
-                fill="url(#colorUsers)"
-                strokeWidth={3}
-              />
-
-              <Area
-                type="monotone"
-                dataKey="artists"
-                stroke="#a1a1aa"
-                strokeDasharray="5 5"
-                fill="transparent"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
+                <Area
+                  type="monotone"
+                  dataKey="new_users"
+                  name="New Users"
+                  stroke="#f97316"
+                  fillOpacity={1}
+                  fill="url(#colorUsers)"
+                  strokeWidth={3}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="tracks"
+                  name="Tracks Uploaded"
+                  stroke="#a1a1aa"
+                  strokeDasharray="5 5"
+                  fill="transparent"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </div>
 
       {/* LOWER SECTION */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-        {/* PLAYS */}
+        {/* PLAYS vs COMPLETED */}
         <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-2xl">
           <div className="flex items-center gap-2 mb-6">
             <FiActivity className="text-green-500" />
             <h2 className="text-sm font-bold uppercase text-zinc-400">
-              Streaming Activity
+              Total vs Completed Plays
             </h2>
           </div>
 
           <div className="h-[200px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={analytics.plays}>
+              <BarChart data={playsData}>
                 <XAxis dataKey="name" stroke="#52525b" fontSize={10} />
-                <Tooltip />
-
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#18181b",
+                    border: "1px solid #27272a",
+                    borderRadius: "8px",
+                  }}
+                />
                 <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                  {analytics.plays.map((_, i) => (
-                    <Cell
-                      key={i}
-                      fill={i === 6 ? "#f97316" : "#3f3f46"}
-                    />
+                  {playsData.map((entry, i) => (
+                    <Cell key={i} fill={entry.color} />
                   ))}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
+
+          <p className="text-[10px] text-zinc-600 mt-3">
+            Completed = listener stayed for ≥90% of track duration
+          </p>
         </div>
 
         {/* STORAGE */}
@@ -235,26 +226,43 @@ export default function AnalyticsPage() {
           <div className="flex items-center gap-2 mb-6">
             <FiHardDrive className="text-blue-500" />
             <h2 className="text-sm font-bold uppercase text-zinc-400">
-              Storage Trend
+              Storage Capacity
             </h2>
           </div>
 
-          <div className="space-y-3">
-            {analytics.storageTrend.map((item) => (
+          <div className="space-y-4 mt-4">
+            {storageSegments.map((item) => (
               <div key={item.month}>
-                <div className="flex justify-between text-xs">
+                <div className="flex justify-between text-xs mb-1">
                   <span className="text-zinc-400">{item.month}</span>
-                  <span className="text-white">{item.used}%</span>
+                  <span className="text-white">{item.used.toFixed(1)}%</span>
                 </div>
-
-                <div className="h-1.5 bg-zinc-800 rounded-full">
+                <div className="h-2 bg-zinc-800 rounded-full">
                   <div
-                    className="h-full bg-blue-500"
-                    style={{ width: `${item.used}%` }}
+                    className="h-full rounded-full"
+                    style={{
+                      width: `${item.used}%`,
+                      backgroundColor: item.month === "Used" ? "#3b82f6" : "#27272a",
+                    }}
                   />
                 </div>
               </div>
             ))}
+
+            <div className="pt-4 border-t border-zinc-800 space-y-1">
+              <div className="flex justify-between text-xs">
+                <span className="text-zinc-500">Used</span>
+                <span className="text-white">{stats.storage.total_human_readable}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-zinc-500">Total Artists</span>
+                <span className="text-white">{stats.users.artists.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-zinc-500">Total Tracks</span>
+                <span className="text-white">{stats.content.total_tracks.toLocaleString()}</span>
+              </div>
+            </div>
           </div>
         </div>
 
