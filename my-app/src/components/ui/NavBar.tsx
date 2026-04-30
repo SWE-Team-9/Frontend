@@ -209,7 +209,7 @@ const NavBar: React.FC<NavBarProps> = ({
       ref={menuRef}
       className={`fixed inset-x-0 z-50 bg-[#121212] py-2 ${className || "w-full mx-auto"}`}
     >
-      <div className="max-w-7xl mx-auto flex justify-center items-center gap-8">
+      <div className="w-full flex justify-between items-center gap-4 px-6">
         {/* LEFT SECTION */}
         <div className="flex items-center gap-4">
           <div className="flex items-center pt-2">
@@ -230,7 +230,7 @@ const NavBar: React.FC<NavBarProps> = ({
           </button>
 
           {leftRoutes.length > 0 && (
-            <div className="hidden md:flex gap-6">
+            <div className="hidden md:flex gap-8">
               {leftRoutes.map((route) => (
                 <NavBarItem
                   key={route.label}
@@ -244,15 +244,15 @@ const NavBar: React.FC<NavBarProps> = ({
 
         {/* CENTER SECTION */}
         {showSearch && (
-          <div className="w-32 sm:w-48 md:w-72 lg:w-96">
+          <div className="flex-1 mx-6 max-w-2xl">
             <SearchBar />
           </div>
         )}
 
         {/* RIGHT SECTION */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-6">
           {rightRoutes.length > 0 && (
-            <div className="hidden lg:flex gap-6">
+            <div className="hidden lg:flex gap-8">
               {rightRoutes.map((route) => (
                 <NavBarItem
                   key={route.label}
@@ -275,7 +275,7 @@ const NavBar: React.FC<NavBarProps> = ({
                 width={24}
                 height={24}
                 alt={displayLabel || "Profile"}
-                className="w-6 h-6 rounded-full object-cover"
+                className="w-7 h-7 rounded-full object-cover"
                 onError={(e) => {
                   e.currentTarget.onerror = null;
                   e.currentTarget.src = "/images/profile.png";
@@ -284,7 +284,7 @@ const NavBar: React.FC<NavBarProps> = ({
               {/* Show the user's display name and premium badge if applicable */}
               {displayLabel && (
                 <div className="flex items-center gap-2">
-                  <span className="hidden lg:block text-white text-sm font-medium max-w-24 truncate">
+                  <span className="hidden lg:block text-white text-base font-medium max-w-24 truncate">
                     {displayLabel}
                   </span>
 
@@ -372,7 +372,7 @@ const NavBar: React.FC<NavBarProps> = ({
       {/* MOBILE */}
       {openMenu === "mobile" && (
         <div className="md:hidden bg-neutral-900 border-t border-neutral-700 p-4 hover:text-white">
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-6">
             {[...leftRoutes, ...rightRoutes].length > 0 &&
               [...leftRoutes, ...rightRoutes].map((route) => (
                 <NavBarItem
