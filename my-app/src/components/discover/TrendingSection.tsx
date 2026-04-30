@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import RecentlyPlayedCard, {
   DiscoverCardTrack,
@@ -15,6 +15,9 @@ export default function TrendingSection() {
   const [tracks, setTracks] = useState<DiscoverCardTrack[]>([]);
   const [loading, setLoading] = useState(true);
   const rowRef = useRef<HTMLDivElement | null>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+const [canScrollRight, setCanScrollRight] = useState(false);
+
   const router = useRouter();
   const setPlayerTracks = usePlayerStore((state) => state.setTracks);
 
@@ -76,12 +79,34 @@ export default function TrendingSection() {
     [previewTracks],
   );
 
-  const scrollRight = () => {
-    rowRef.current?.scrollBy({
-      left: 720,
-      behavior: "smooth",
-    });
-  };
+  useEffect(() => {
+  updateScrollButtons();
+
+  window.addEventListener("resize", updateScrollButtons);
+  return () => window.removeEventListener("resize", updateScrollButtons);
+}, [previewTracks]);
+
+const updateScrollButtons = () => {
+  const el = rowRef.current;
+  if (!el) return;
+
+  setCanScrollLeft(el.scrollLeft > 0);
+  setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 5);
+};
+
+const scrollLeft = () => {
+  rowRef.current?.scrollBy({
+    left: -720,
+    behavior: "smooth",
+  });
+};
+
+const scrollRight = () => {
+  rowRef.current?.scrollBy({
+    left: 720,
+    behavior: "smooth",
+  });
+};
 
   if (loading) {
     return (
@@ -128,10 +153,11 @@ export default function TrendingSection() {
       </div>
 
       <div className="relative">
-        <div
-          ref={rowRef}
-          className="flex gap-8 overflow-x-auto overflow-y-visible scroll-smooth pb-16 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        >
+<div
+  ref={rowRef}
+  onScroll={updateScrollButtons}
+  className="flex gap-8 overflow-x-auto overflow-y-visible scroll-smooth pb-16 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+>
           {previewTracks.map((track) => (
             <RecentlyPlayedCard
               key={track.trackId}
@@ -141,16 +167,27 @@ export default function TrendingSection() {
           ))}
         </div>
 
-        {previewTracks.length > 4 && (
-          <button
-            type="button"
-            onClick={scrollRight}
-            className="absolute right-0 top-20 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-zinc-800/90 text-white shadow-lg hover:bg-zinc-700"
-            aria-label="Show more trending tracks"
-          >
-            <ChevronRight size={28} />
-          </button>
-        )}
+{canScrollLeft && (
+  <button
+    type="button"
+    onClick={scrollLeft}
+    className="absolute left-0 top-20 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-zinc-800/90 text-white shadow-lg hover:bg-zinc-700"
+    aria-label="Show previous trending tracks"
+  >
+    <ChevronLeft size={28} />
+  </button>
+)}
+
+{canScrollRight && (
+  <button
+    type="button"
+    onClick={scrollRight}
+    className="absolute right-0 top-20 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-zinc-800/90 text-white shadow-lg hover:bg-zinc-700"
+    aria-label="Show more trending tracks"
+  >
+    <ChevronRight size={28} />
+  </button>
+)}
       </div>
     </section>
   );
