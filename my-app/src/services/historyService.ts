@@ -289,7 +289,6 @@ export async function getRecentlyPlayed(limit = 6, page = 1): Promise<RecentlyPl
       likesCount: detail?.likesCount ?? 0,
       reposted: detail?.reposted ?? false,
       repostsCount: detail?.repostsCount ?? 0,
-      durationSeconds: detail?.durationMs ? detail.durationMs / 1000 : undefined,
       lastPlayedAt: historyTrack.lastPlayedAt,
       lastPositionSeconds: historyTrack.lastPositionSeconds,
     }));

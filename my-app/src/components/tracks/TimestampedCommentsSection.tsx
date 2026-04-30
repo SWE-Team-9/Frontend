@@ -235,7 +235,7 @@ export default function TimestampedCommentsSection({
                             type="button"
                             onClick={() => void handleSubmit()}
                             disabled={!text.trim() || isSubmitting}
-                            className="ml-3 cursor-pointer rounded p-2 text-zinc-400 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                            className="ml-3 rounded p-2 text-zinc-400 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
                             aria-label="Send comment"
                             title={`Comment at ${formatTime(snapshotTimestamp)}`}
                         >

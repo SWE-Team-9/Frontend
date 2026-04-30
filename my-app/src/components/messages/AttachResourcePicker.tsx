@@ -45,7 +45,6 @@ export default function AttachResourcePicker({
         return () => {
             isMounted = false;
         };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user?.id, user?.handle]);
 
     const filtered = items.filter((item) =>

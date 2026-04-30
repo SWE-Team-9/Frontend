@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Image from "next/image";
 import UploadButton from "@/src/components/upload/UploadButton";
 import { useUploadStore } from "@/src/store/useuploadStore";
 import DatePickerInput from "@/src/components/ui/DatePickerInput";
@@ -310,12 +309,10 @@ const TrackMetadataForm = () => {
             {coverArt && (
               <div className="mt-1 flex items-center gap-3 rounded border border-[#2a2a2a] bg-[#181818] p-2">
                 {coverArtPreview ? (
-                  <Image
+                  <img
                     src={coverArtPreview}
                     alt="Cover art preview"
-                    width={56}
-                    height={56}
-                    className="rounded object-cover"
+                    className="h-14 w-14 rounded object-cover"
                   />
                 ) : (
                   <div className="h-14 w-14 rounded bg-[#2a2a2a]" />

@@ -13,9 +13,9 @@ interface DropzoneProps {
 }
 
 const Dropzone: React.FC<DropzoneProps> = ({ onFilesAdded, disabled }) => {
-  const [_isDragActive, setIsDragActive] = useState(false);
+  const [isDragActive, setIsDragActive] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null); // Ref to the hidden file input element
-  const { addFile, files: _files } = useUploadStore();
+  const { addFile, files } = useUploadStore();
 
   const handleFiles = (filesList: FileList) => {
     const file = filesList[0];

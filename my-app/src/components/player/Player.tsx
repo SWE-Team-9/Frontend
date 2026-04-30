@@ -12,7 +12,6 @@ import { SlUserFollow, SlUserFollowing } from "react-icons/sl";
 import { PiQueue } from "react-icons/pi";
 import { PlaybackToast } from "./PlaybackToast";
 import { AdBanner } from "@/src/components/ui/AdBanner";
-import { QueuePanel } from "./QueuePanel";
 
 export function Player() {
   const {
@@ -24,8 +23,6 @@ export function Player() {
     accessState,
     accessReason,
     streamError,
-    isQueuePanelOpen,
-    toggleQueuePanel,
   } = usePlayerStore();
 
   const authUser = useAuthStore((state) => state.user);
@@ -191,19 +188,9 @@ export function Player() {
                 {followed ? <SlUserFollowing /> : <SlUserFollow />}
               </button>
 
-              <div className="relative">
-                <button
-                  type="button"
-                  title="Queue"
-                  onClick={toggleQueuePanel}
-                  className={`transition-colors hover:text-white ${
-                    isQueuePanelOpen ? "text-[#ff5500]" : ""
-                  }`}
-                >
-                  <PiQueue />
-                </button>
-                <QueuePanel />
-              </div>
+              <button className="hover:text-white transition-colors">
+                <PiQueue />
+              </button>
             </div>
           </div>
         </div>

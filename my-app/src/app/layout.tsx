@@ -6,7 +6,6 @@ import { Player } from "@/src/components/player/Player";
 import PlayerAudioSync from "@/src/components/player/PlayerAudioSync";
 import { Toaster } from "sonner";
 import { NotificationSocketBridge } from "@/src/components/notifications/NotificationSocketBridge";
-import { WsDebugIndicator } from "@/src/components/debug/WsDebugIndicator";
 
 
 const geistSans = Geist({
@@ -43,7 +42,6 @@ export default function RootLayout({
 
           <Player />
           <PlayerAudioSync />
-          <WsDebugIndicator />
 
           
           <Toaster

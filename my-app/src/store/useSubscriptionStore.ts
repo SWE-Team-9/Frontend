@@ -6,10 +6,8 @@ import {
   resumeSubscription,
   changePlan as changePlanService,
   getInvoices,
-  openBillingPortal,
   SubscriptionDetails,
   Invoice,
-  BillingPortalResult,
 } from "@/src/services/subscriptionService";
 
 interface SubscriptionStore {
@@ -24,12 +22,10 @@ interface SubscriptionStore {
   resume: () => Promise<void>;
   changePlan: (type: "PRO" | "GO+") => Promise<void>;
   fetchInvoices: () => Promise<void>;
-  openPortal: (flow?: "payment_methods" | "billing") => Promise<BillingPortalResult>;
   setSubDirectly: (sub: SubscriptionDetails) => void;
-  clearError: () => void;
 }
 
-export const useSubscriptionStore = create<SubscriptionStore>((set) => ({
+export const useSubscriptionStore = create<SubscriptionStore>((set, get) => ({
   sub: null,
   invoices: [],
   isLoading: false,
@@ -51,7 +47,6 @@ export const useSubscriptionStore = create<SubscriptionStore>((set) => ({
     set({ isLoading: true, error: null });
     try {
       await upgradeSubscription(type);
-      // Re-fetch to get fresh state (in mock mode; real Stripe navigates away)
       const updated = await getMySubscription();
       set({ sub: updated });
     } catch {
@@ -108,10 +103,5 @@ export const useSubscriptionStore = create<SubscriptionStore>((set) => ({
     }
   },
 
-  openPortal: async (flow) => {
-    return openBillingPortal(flow);
-  },
-
   setSubDirectly: (sub) => set({ sub }),
-  clearError: () => set({ error: null }),
 }));

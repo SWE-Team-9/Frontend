@@ -10,7 +10,6 @@ export interface RecentlyPlayedItem {
   likesCount?: number;
   reposted?: boolean;
   repostsCount?: number;
-  durationSeconds?: number;
   lastPlayedAt: string;
   lastPositionSeconds: number;
 }

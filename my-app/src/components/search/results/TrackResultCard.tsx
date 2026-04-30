@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { SearchTrack } from "@/src/types/search";
 
@@ -12,13 +11,12 @@ export default function TrackResultCard({ track }: Props) {
       href={`/tracks/${track.id}`}
       className="flex gap-3 rounded p-2"
     >
-      <div className="relative h-14 w-14 rounded bg-gray-200">
+      <div className="h-14 w-14 rounded bg-gray-200">
         {track.artwork_url && (
-          <Image
+          <img
             src={track.artwork_url}
             alt={track.title}
-            fill
-            className="rounded object-cover"
+            className="h-full w-full rounded object-cover"
           />
         )}
       </div>

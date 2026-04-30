@@ -1,6 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
 import { ListeningHistoryItem } from "@/src/types/history";
 import HistoryTrackRow from "./HistoryTrackRow";
 
@@ -11,11 +10,6 @@ interface ListeningHistoryListProps {
 export default function ListeningHistoryList({
   tracks,
 }: ListeningHistoryListProps) {
-  const contextTrackIds = useMemo(
-    () => tracks.map((t) => t.trackId),
-    [tracks],
-  );
-
   return (
     <section className="mb-20">
       <h2 className="mb-8 text-[18px] font-bold text-white">
@@ -24,11 +18,7 @@ export default function ListeningHistoryList({
 
       <div>
         {tracks.map((track) => (
-          <HistoryTrackRow
-            key={`${track.trackId}-${track.playedAt}`}
-            track={track}
-            contextTrackIds={contextTrackIds}
-          />
+          <HistoryTrackRow key={`${track.trackId}-${track.playedAt}`} track={track} />
         ))}
       </div>
     </section>

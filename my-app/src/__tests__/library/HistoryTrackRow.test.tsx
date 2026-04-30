@@ -13,7 +13,6 @@ const mockToggleLike = jest.fn();
 const mockToggleRepost = jest.fn();
 const mockIsLiked = jest.fn();
 const mockIsReposted = jest.fn();
-const mockClearLikeError = jest.fn();
 
 jest.mock("next/image", () => ({
   __esModule: true,
@@ -27,11 +26,9 @@ jest.mock("@/src/store/playerStore", () => ({
   usePlayerStore: () => mockUsePlayerStore(),
 }));
 
-jest.mock("@/src/store/likeStore", () => {
-  const useLikeStore = () => mockUseLikeStore();
-  useLikeStore.getState = () => mockUseLikeStore();
-  return { useLikeStore };
-});
+jest.mock("@/src/store/likeStore", () => ({
+  useLikeStore: () => mockUseLikeStore(),
+}));
 
 jest.mock("@/src/store/repostStore", () => ({
   useRepostStore: () => mockUseRepostStore(),
@@ -89,8 +86,6 @@ describe("HistoryTrackRow", () => {
       toggleLike: mockToggleLike,
       isLiked: mockIsLiked,
       loadingIds: [],
-      clearError: mockClearLikeError,
-      error: null,
     });
 
     mockUseRepostStore.mockReturnValue({

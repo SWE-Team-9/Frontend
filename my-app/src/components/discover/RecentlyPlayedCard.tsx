@@ -8,7 +8,6 @@ import { usePlayerStore } from "@/src/store/playerStore";
 import { useEffect, useRef, useState } from "react";
 import { useLikeStore } from "@/src/store/likeStore";
 import { TrackData } from "@/src/types/interactions";
-import { loadQueue } from "@/src/services/playerService";
 
 interface RecentlyPlayedItem {
     trackId: string;
@@ -25,13 +24,12 @@ interface RecentlyPlayedItem {
 
 interface RecentlyPlayedCardProps {
     track: RecentlyPlayedItem;
-    contextTrackIds?: string[];
 }
 
 const FALLBACK_IMAGE = "/images/track-placeholder.png";
 const ACCENT = "#ff5500";
 
-export default function RecentlyPlayedCard({ track, contextTrackIds }: RecentlyPlayedCardProps) {
+export default function RecentlyPlayedCard({ track }: RecentlyPlayedCardProps) {
     const [menuOpen, setMenuOpen] = useState(false);
 
     const { currentTrack, isPlaying, toggle, fetchAndPlay } = usePlayerStore();
@@ -65,13 +63,13 @@ export default function RecentlyPlayedCard({ track, contextTrackIds }: RecentlyP
         };
     }, [menuOpen]);
 
-    const handlePlayPause = async () => {
+    const handlePlayPause = () => {
         if (isCurrent) {
             toggle();
             return;
         }
 
-        const playerTrack = {
+        fetchAndPlay({
             trackId: track.trackId,
             title: track.title,
             cover: track.coverArtUrl || FALLBACK_IMAGE,
@@ -79,30 +77,7 @@ export default function RecentlyPlayedCard({ track, contextTrackIds }: RecentlyP
             artistId: track.artistId,
             artistHandle: track.artistHandle,
             artistAvatarUrl: track.artistAvatarUrl ?? null,
-        };
-
-        if (contextTrackIds && contextTrackIds.length > 1) {
-            try {
-                const resp = await loadQueue({
-                    contextType: "CONTEXT_IDS",
-                    trackIds: contextTrackIds,
-                    startTrackId: track.trackId,
-                });
-                usePlayerStore.setState({
-                    currentQueueIndex: resp.currentIndex,
-                    queueLength: resp.queueLength,
-                    tracksUntilAd: resp.tracksUntilAd,
-                    currentAd: null,
-                    isPlayingAd: false,
-                    queueVersion: usePlayerStore.getState().queueVersion + 1,
-                });
-                await fetchAndPlay(playerTrack, true);
-            } catch {
-                await fetchAndPlay(playerTrack);
-            }
-        } else {
-            await fetchAndPlay(playerTrack);
-        }
+        });
     };
 
     return (

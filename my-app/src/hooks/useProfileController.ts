@@ -27,16 +27,10 @@ type ProfileDraft = {
   }[];
 };
 
-/**
- * @param externalProfileId - When provided, skip the initial GET /profiles/:handle
- *   fetch and treat the profile store as already populated. The caller is
- *   responsible for seeding useProfileStore before calling this hook.
- */
-export const useProfileController = (handle?: string, externalProfileId?: string) => {
+export const useProfileController = (handle?: string) => {
   const store = useProfileStore();
 
-  const [fetchedUserId, setFetchedUserId] = useState<string | null>(null);
-  const userId = externalProfileId ?? fetchedUserId;
+  const [userId, setUserId] = useState<string | null>(null);
   const currentUserId = useAuthStore((state) => state.user?.id);
   const isOwner = userId === currentUserId;
   const [activeTab, setActiveTab] = useState("Tracks");
@@ -106,7 +100,7 @@ export const useProfileController = (handle?: string, externalProfileId?: string
       const profile = handle
         ? await getProfileByHandle(handle)
         : await getMyProfile();
-      setFetchedUserId(profile.id);
+      setUserId(profile.id);
 
       store.setProfileData({
         userId: profile.id,
@@ -154,13 +148,6 @@ export const useProfileController = (handle?: string, externalProfileId?: string
   }, [handle]);
 
   useEffect(() => {
-    // Fast path: caller pre-seeded the store (e.g. via useProfilePageData).
-    // Skip the network fetch entirely and trust the seeded data.
-    if (externalProfileId) {
-      hasRequestedProfileRef.current = true;
-      return;
-    }
-
     const current = useProfileStore.getState();
     if (current.handle === handle && current.isLoaded) {
       hasRequestedProfileRef.current = true;
@@ -171,7 +158,7 @@ export const useProfileController = (handle?: string, externalProfileId?: string
     (async () => {
       if (cancelled) return;
       setIsLoading(true);
-      setFetchedUserId(null);
+      setUserId(null);
       store.resetProfile();
       hasRequestedProfileRef.current = false;
       await loadProfile();
@@ -180,7 +167,7 @@ export const useProfileController = (handle?: string, externalProfileId?: string
     return () => {
       cancelled = true;
     };
-  }, [handle, externalProfileId]);
+  }, [handle]);
 
   const handleSave = async (draft: ProfileDraft) => {
     const nextProfile = {

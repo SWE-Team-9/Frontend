@@ -19,6 +19,9 @@ import {
   FaRegHeart,
   FaEllipsisH,
   FaTrash,
+  FaCopy,
+  FaShareSquare,
+  FaPen,
   FaLink,
   FaListUl,
 } from "react-icons/fa";

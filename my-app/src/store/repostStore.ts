@@ -57,7 +57,7 @@ deleteRepostAction: async (trackId: string) => {
 },
   
   toggleRepost: async (track) => {
-    const { loadingIds, isReposted } = get();
+    const { repostedTracks, loadingIds, isReposted } = get();
     // Support both ID formats and force string type
     const trackId = String('id' in track ? track.id : (track as { trackId?: string }).trackId);
     const isAlreadyReposted = isReposted(trackId);

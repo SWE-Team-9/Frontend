@@ -4,7 +4,6 @@ import { useEffect, useRef } from "react";
 import { io, Socket } from "socket.io-client";
 import { NotificationSocketEvent } from "@/src/types/notifications";
 import { pushMockNotification } from "@/src/services/mocks/notificationsMocks";
-import { useWsDebugStore } from "@/src/store/wsDebugStore";
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL;
@@ -66,13 +65,6 @@ export function useNotificationsSocket({
 
     socketRef.current = socket;
 
-    const { setNotif } = useWsDebugStore.getState();
-    setNotif("connecting");
-
-    socket.on("connect", () => setNotif("connected"));
-    socket.on("disconnect", () => setNotif("disconnected"));
-    socket.on("connect_error", () => setNotif("error"));
-
     socket.on("new_notification", (payload: unknown) => {
       onEvent(payload as NotificationSocketEvent);
     });
@@ -83,7 +75,6 @@ export function useNotificationsSocket({
 
     return () => {
       socket.disconnect();
-      setNotif("disconnected");
       socketRef.current = null;
     };
   }, [enabled, onEvent]);

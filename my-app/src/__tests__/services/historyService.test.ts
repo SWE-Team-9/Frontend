@@ -1,3 +1,5 @@
+import type { Mock } from "jest-mock";
+
 const mockApiGet = jest.fn();
 const mockApiDelete = jest.fn();
 const mockGetTrackDetails = jest.fn();

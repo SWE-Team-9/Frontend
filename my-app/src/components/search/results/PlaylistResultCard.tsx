@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { SearchPlaylist } from "@/src/types/search";
 
@@ -12,13 +11,12 @@ export default function PlaylistResultCard({ playlist }: Props) {
       href={`/playlists/${playlist.id}`}
       className="flex gap-3 rounded p-2"
     >
-      <div className="relative h-14 w-14 overflow-hidden rounded bg-gray-200">
+      <div className="h-14 w-14 overflow-hidden rounded bg-gray-200">
         {playlist.cover_url && (
-          <Image
+          <img
             src={playlist.cover_url}
             alt={playlist.title}
-            fill
-            className="object-cover"
+            className="h-full w-full object-cover"
           />
         )}
       </div>

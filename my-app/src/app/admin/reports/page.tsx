@@ -11,6 +11,7 @@ import {
   FiEye
 } from 'react-icons/fi';
 import { Music, User, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { ReportActions } from "@/src/components/admin/ReportActions";
 
 export default function ReportsPage() {
   const { 
@@ -68,7 +69,7 @@ export default function ReportsPage() {
       setConfirmModal({ isOpen: false, userId: '', mode: 'SUSPEND' });
       setReason('');
       setPassword('');
-    } catch (_error) {
+    } catch (error) {
       alert("Failed to update status. Check your admin password.");
     }
   };

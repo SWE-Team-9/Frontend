@@ -1,5 +1,5 @@
 import api from "./api";
-import { TrackData } from "../types/interactions";
+import { TrackData, UserInteractionResponse } from "../types/interactions";
 import {
   TrackInteractionNotificationMeta,
   triggerTrackInteractionNotification,

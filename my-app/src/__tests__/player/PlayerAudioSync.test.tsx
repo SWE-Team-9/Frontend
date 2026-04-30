@@ -3,16 +3,10 @@ import React from "react";
 import { act, render } from "@testing-library/react";
 import PlayerAudioSync from "@/src/components/player/PlayerAudioSync";
 
-jest.mock("@/src/store/useAuthStore", () => {
-  const authState = { isAuthenticated: true };
-  const useAuthStore = (
-    selector: (s: { isAuthenticated: boolean }) => unknown,
-  ) => selector(authState);
-
-  useAuthStore.getState = () => authState;
-
-  return { useAuthStore };
-});
+jest.mock("@/src/store/useAuthStore", () => ({
+  useAuthStore: (selector: (s: { isAuthenticated: boolean }) => unknown) =>
+    selector({ isAuthenticated: true }),
+}));
 
 const mockUsePlayerStore: jest.Mock = jest.fn();
 const mockGetAudioElement: jest.Mock = jest.fn();
@@ -23,7 +17,6 @@ const mockAudio = {
   currentTime: 42,
   duration: 180,
   src: "",
-  pause: jest.fn(),
   addEventListener: jest.fn(),
   removeEventListener: jest.fn(),
 };
@@ -31,9 +24,6 @@ const mockAudio = {
 const mockStoreState = {
   currentTrack: { trackId: "trk_1", title: "Layali" },
   isPlaying: false,
-  isPlayingAd: false,
-  currentAd: null,
-  adElapsedSeconds: 0,
   hydratedFromSession: false,
   hydratePlayerSession: jest.fn(),
   setCurrentTime: jest.fn(),
@@ -80,9 +70,6 @@ describe("PlayerAudioSync", () => {
       const state = {
         currentTrack: mockStoreState.currentTrack,
         isPlaying: mockStoreState.isPlaying,
-        isPlayingAd: mockStoreState.isPlayingAd,
-        currentAd: mockStoreState.currentAd,
-        adElapsedSeconds: mockStoreState.adElapsedSeconds,
         hydratedFromSession: mockStoreState.hydratedFromSession,
       };
 
@@ -181,9 +168,6 @@ describe("PlayerAudioSync", () => {
       const state = {
         currentTrack: mockStoreState.currentTrack,
         isPlaying: true,
-        isPlayingAd: mockStoreState.isPlayingAd,
-        currentAd: mockStoreState.currentAd,
-        adElapsedSeconds: mockStoreState.adElapsedSeconds,
         hydratedFromSession: false,
       };
 
@@ -204,9 +188,6 @@ describe("PlayerAudioSync", () => {
       const state = {
         currentTrack: mockStoreState.currentTrack,
         isPlaying: false,
-        isPlayingAd: mockStoreState.isPlayingAd,
-        currentAd: mockStoreState.currentAd,
-        adElapsedSeconds: mockStoreState.adElapsedSeconds,
         hydratedFromSession: true,
       };
 
@@ -216,9 +197,6 @@ describe("PlayerAudioSync", () => {
     mockAudio.src = "";
 
     render(<PlayerAudioSync />);
-    expect(mockStoreState.fetchAndPlay).toHaveBeenCalledWith(
-      mockStoreState.currentTrack,
-      true,
-    );
+    expect(mockStoreState.fetchAndPlay).toHaveBeenCalledWith(mockStoreState.currentTrack);
   });
 });
