@@ -142,7 +142,7 @@ describe("adminServiceReal.getInitialData", () => {
 
     expect(mockPost).toHaveBeenCalledWith(
       "/admin/users/user-uuid/suspend",
-      expect.objectContaining({ durationHours: 168 }),
+      expect.objectContaining({ durationDays: 7, currentPassword: "pass" }),
     );
   });
 });
