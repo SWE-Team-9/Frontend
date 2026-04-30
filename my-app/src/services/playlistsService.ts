@@ -49,7 +49,10 @@ async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
   }
 }
 
-async function requestMultipart<T>(url: string, formData: FormData): Promise<T> {
+async function requestMultipart<T>(
+  url: string,
+  formData: FormData,
+): Promise<T> {
   const token = getAuthToken();
 
   const res = await fetch(url, {
@@ -86,7 +89,10 @@ async function requestMultipart<T>(url: string, formData: FormData): Promise<T> 
 
 export const playlistsApi = {
   createPlaylist: (data: CreatePlaylistInput) =>
-    request<unknown>(BASE, { method: "POST", body: JSON.stringify(data) }),
+    request<unknown>(BASE, {
+      method: "POST",
+      body: JSON.stringify({ trackIds: [], ...data }),
+    }),
 
   getMyPlaylists: (page = 1, limit = 20) =>
     request<unknown>(`${BASE}/me?page=${page}&limit=${limit}`),
@@ -135,14 +141,14 @@ export const playlistsApi = {
     form.append("file", file);
     return requestMultipart<{ message: string; coverImageUrl: string }>(
       `${BASE}/${playlistId}/cover`,
-      form
+      form,
     );
   },
 
   addTrackToPlaylist: (playlistId: string, trackId: string) =>
     request<{ message: string; playlistId: string; trackId: string }>(
       `${BASE}/${playlistId}/tracks`,
-      { method: "POST", body: JSON.stringify({ trackId }) }
+      { method: "POST", body: JSON.stringify({ trackId }) },
     ),
 
   removeTrackFromPlaylist: (playlistId: string, trackId: string) =>
@@ -168,7 +174,7 @@ export const playlistsApi = {
       hideArtwork?: boolean;
       width?: number;
       height?: number;
-    }
+    },
   ) => {
     const qs = new URLSearchParams();
     if (options) {
@@ -178,7 +184,7 @@ export const playlistsApi = {
     }
     const suffix = qs.toString() ? `?${qs}` : "";
     return request<{ playlistId: string; embedCode: string }>(
-      `${BASE}/${playlistId}/embed${suffix}`
+      `${BASE}/${playlistId}/embed${suffix}`,
     );
   },
 };
@@ -190,12 +196,12 @@ export function normalizePlaylistList(raw: unknown): Playlist[] {
   const r = raw as any;
 
   let list: unknown[] = [];
-  if (Array.isArray(r))                      list = r;
-  else if (Array.isArray(r.playlists))       list = r.playlists;
+  if (Array.isArray(r)) list = r;
+  else if (Array.isArray(r.playlists)) list = r.playlists;
   else if (Array.isArray(r.data?.playlists)) list = r.data.playlists;
-  else if (Array.isArray(r.data))            list = r.data;
-  else if (Array.isArray(r.items))           list = r.items;
-  else if (Array.isArray(r.results))         list = r.results;
+  else if (Array.isArray(r.data)) list = r.data;
+  else if (Array.isArray(r.items)) list = r.items;
+  else if (Array.isArray(r.results)) list = r.results;
 
   return list.map(normalizePlaylist);
 }
