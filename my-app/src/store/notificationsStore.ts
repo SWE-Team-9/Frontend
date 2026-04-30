@@ -81,7 +81,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         page,
         limit: 20,
         type: selectedType === "all" ? undefined : selectedType,
-        status: selectedStatus,
+        status: selectedStatus === "all" ? undefined : selectedStatus,
         ...params,
       });
 
