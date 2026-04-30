@@ -35,7 +35,7 @@ export function AddTrackModal({ isOpen, onClose, onAdd }: Props) {
       setError(null);
       try {
         const res = await fetch(
-          `${API_BASE_URL}/api/v1/tracks/search?q=${encodeURIComponent(trimmed)}`,
+          `${API_BASE_URL}/tracks/search?q=${encodeURIComponent(trimmed)}`,
           { credentials: "include" }
         );
         if (!res.ok) throw new Error(`Search failed (${res.status})`);

@@ -44,7 +44,7 @@ export function CreatePlaylistModal({ isOpen, onClose, onSubmit }: Props) {
             ? localStorage.getItem("accessToken")
             : null;
         const res = await fetch(
-          `${API_BASE_URL}/api/v1/tracks/search?q=${encodeURIComponent(trimmed)}`,
+          `${API_BASE_URL}/tracks/search?q=${encodeURIComponent(trimmed)}`,
           {
             credentials: "include",
             headers: {

@@ -162,7 +162,7 @@ export default function PlayerAudioSync() {
           shuffle: isShuffleOn,
           repeatMode: loopMode,
         });
-        navigator.sendBeacon("/api/v1/player/session", new Blob([payload], { type: "application/json" }));
+        navigator.sendBeacon("/player/session", new Blob([payload], { type: "application/json" }));
       } else {
         state.persistPlayerSession();
       }
