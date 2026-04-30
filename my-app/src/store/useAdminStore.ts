@@ -81,9 +81,10 @@ export const useAdminStore = create<AdminState>()(
             analytics: data.analytics
           });
 
-          // Sync currentUser from the auth store (set during login/getMe)
+          // Sync currentUser from the auth store (set during login/getMe/bootstrap).
+          // Always refresh role fields so persisted stale roles cannot block admin UI.
           const authUser = useAuthStore.getState().user;
-          if (!get().currentUser && authUser) {
+          if (authUser) {
             set({
               currentUser: {
                 id: authUser.id,
