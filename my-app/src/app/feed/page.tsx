@@ -1,9 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { TrackCard } from "@/src/components/tracks/TrackCard";
-import { getFeed, type FeedItem, type FeedPagination } from "@/src/services/feedService";
+import {
+  getFeed,
+  type FeedItem,
+  type FeedPagination,
+} from "@/src/services/feedService";
 
 const FALLBACK_AVATAR = "/images/profile.png";
 
@@ -11,7 +15,6 @@ function timeAgo(date?: string) {
   if (!date) return "";
 
   const time = new Date(date).getTime();
-
   if (Number.isNaN(time)) return "";
 
   const diffMs = Date.now() - time;
@@ -35,11 +38,14 @@ export default function FeedPage() {
   const [items, setItems] = useState<FeedItem[]>([]);
   const [pagination, setPagination] = useState<FeedPagination | null>(null);
   const [page, setPage] = useState(1);
+
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadFeed = async (nextPage = 1, append = false) => {
+  const observerRef = useRef<IntersectionObserver | null>(null);
+
+  const loadFeed = useCallback(async (nextPage = 1, append = false) => {
     try {
       if (append) {
         setIsLoadingMore(true);
@@ -54,6 +60,7 @@ export default function FeedPage() {
       setItems((prev) =>
         append ? [...prev, ...response.data] : response.data,
       );
+
       setPagination(response.pagination);
       setPage(nextPage);
     } catch (err) {
@@ -63,16 +70,51 @@ export default function FeedPage() {
       setIsInitialLoading(false);
       setIsLoadingMore(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadFeed(1, false);
-  }, []);
+  }, [loadFeed]);
 
-  const handleLoadMore = () => {
-    if (!pagination?.hasNextPage || isLoadingMore) return;
-    loadFeed(page + 1, true);
-  };
+  const lastItemRef = useCallback(
+    (node: HTMLElement | null) => {
+      if (isInitialLoading || isLoadingMore) return;
+
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+
+      observerRef.current = new IntersectionObserver(
+        (entries) => {
+          const firstEntry = entries[0];
+
+          if (
+            firstEntry.isIntersecting &&
+            pagination?.hasNextPage &&
+            !isLoadingMore
+          ) {
+            loadFeed(page + 1, true);
+          }
+        },
+        {
+          root: null,
+          rootMargin: "300px",
+          threshold: 0,
+        },
+      );
+
+      if (node) {
+        observerRef.current.observe(node);
+      }
+    },
+    [
+      isInitialLoading,
+      isLoadingMore,
+      pagination?.hasNextPage,
+      page,
+      loadFeed,
+    ],
+  );
 
   return (
     <section className="mx-auto max-w-5xl px-6 py-6 text-white">
@@ -104,14 +146,20 @@ export default function FeedPage() {
 
       {!isInitialLoading && !error && items.length > 0 && (
         <div className="space-y-10">
-          {items.map((item) => {
+          {items.map((item, index) => {
             const profile = item.uploader?.profile;
 
             const displayName =
               profile?.displayName || profile?.handle || "Unknown Artist";
 
+            const isLastItem = index === items.length - 1;
+
             return (
-              <article key={item.id} className="space-y-3">
+              <article
+                key={item.id}
+                ref={isLastItem ? lastItemRef : undefined}
+                className="space-y-3"
+              >
                 <div className="flex items-center gap-3">
                   <Image
                     src={profile?.avatarUrl || FALLBACK_AVATAR}
@@ -165,17 +213,18 @@ export default function FeedPage() {
             );
           })}
 
-          {pagination?.hasNextPage && (
-            <div className="flex justify-center pt-2">
-              <button
-                type="button"
-                onClick={handleLoadMore}
-                disabled={isLoadingMore}
-                className="rounded bg-white px-5 py-2 text-sm font-bold text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isLoadingMore ? "Loading..." : "Load more"}
-              </button>
+          {isLoadingMore && (
+            <div className="flex justify-center py-6">
+              <p className="animate-pulse text-sm uppercase tracking-widest text-zinc-400">
+                Loading more...
+              </p>
             </div>
+          )}
+
+          {!pagination?.hasNextPage && items.length > 0 && (
+            <p className="py-6 text-center text-sm text-zinc-500">
+              You’re all caught up.
+            </p>
           )}
         </div>
       )}
