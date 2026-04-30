@@ -69,7 +69,7 @@ export default function NotificationsPage() {
                     onClick={() => fetchNotifications({ page: pageNumber })}
                     className={`h-8 w-8 rounded-full text-sm font-semibold ${
                       isActive
-                        ? "bg-[#ff5500] text-white"
+                        ? "bg-white text-black"
                         : "bg-neutral-900 text-neutral-300 hover:bg-neutral-800"
                     }`}
                   >
