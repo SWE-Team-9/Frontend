@@ -5,54 +5,6 @@ import { useRouter } from "next/navigation";
 import { getBootstrapData, toSystemRole } from "@/src/services/bffService";
 import { useAuthStore } from "@/src/store/useAuthStore";
 import { useProfileStore } from "@/src/store/useProfileStore";
-import { useNotificationStore } from "@/src/store/notificationsStore";
-import { useSubscriptionStore } from "@/src/store/useSubscriptionStore";
-import {
-  normalizeBackendSubscription,
-  SubscriptionDetails,
-} from "@/src/services/subscriptionService";
-import { PLAN_CONFIG } from "@/src/config/plans";
-
-function entitlementsToSubDetails(e: {
-  planCode?: string;
-  isPremium?: boolean;
-  uploadLimit?: number;
-  uploadedCount?: number;
-  remainingUploads?: number | null;
-  adsEnabled?: boolean;
-  canDownload?: boolean;
-  trialEnd?: string | null;
-}): SubscriptionDetails {
-  const planCode = e.planCode ?? "FREE";
-  const subscriptionType: "FREE" | "PRO" | "GO+" =
-    planCode === "GO_PLUS" ? "GO+" : planCode === "PRO" ? "PRO" : "FREE";
-  const uploadLimit = (e.uploadLimit ?? PLAN_CONFIG.FREE.uploadLimit) < 0
-    ? Infinity
-    : (e.uploadLimit ?? PLAN_CONFIG.FREE.uploadLimit);
-
-  return {
-    userId: "",
-    subscriptionType,
-    planName: PLAN_CONFIG[subscriptionType]?.label ?? subscriptionType,
-    isPremium: !!e.isPremium,
-    subscriptionStatus: null,
-    uploadLimit,
-    uploadedTracks: e.uploadedCount ?? 0,
-    remainingUploads: e.remainingUploads ?? uploadLimit,
-    cancelAtPeriodEnd: false,
-    currentPeriodEnd: null,
-    renewalDate: null,
-    expiresAt: null,
-    trialStart: null,
-    trialEnd: e.trialEnd ?? null,
-    paymentMethodSummary: null,
-    pendingDowngrade: null,
-    perks: {
-      adFree: !(e.adsEnabled ?? true),
-      offlineListening: !!e.canDownload,
-    },
-  };
-}
 
 // ─────────────────────────────────────────────────────────────
 // OAuth Callback Page
@@ -71,6 +23,7 @@ export default function OAuthCallbackPage() {
       try {
         const data = await getBootstrapData();
 
+        // Seed profile store
         if (data.profile) {
           const p = data.profile;
           useProfileStore.getState().setProfileData({
@@ -87,24 +40,7 @@ export default function OAuthCallbackPage() {
           });
         }
 
-        useNotificationStore.getState().setFromBootstrap(
-          data.notifications.unreadCount,
-          data.notifications.latest,
-        );
-
-        if (data.subscription) {
-          useSubscriptionStore
-            .getState()
-            .setSubDirectly(
-              normalizeBackendSubscription(data.subscription as Record<string, unknown>),
-            );
-        } else if (data.entitlements) {
-          useSubscriptionStore
-            .getState()
-            .setSubDirectly(entitlementsToSubDetails(data.entitlements));
-        }
-
-        // system_role validated against known whitelist before storing.
+        // Seed auth store — validate system_role before storing
         const me = data.me;
         useAuthStore.getState().setUser({
           id: me.id,
