@@ -73,7 +73,14 @@ export default function FeedPage() {
   }, []);
 
   useEffect(() => {
-    loadFeed(1, false);
+    let cancelled = false;
+    (async () => {
+      if (cancelled) return;
+      await loadFeed(1, false);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [loadFeed]);
 
   const lastItemRef = useCallback(
