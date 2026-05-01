@@ -154,25 +154,9 @@ export default function PlaylistDetailPage({
         style={dynamicGradient ? { background: dynamicGradient } : undefined}
       >
         <div className="flex flex-col md:flex-row gap-6 max-w-5xl">
-          {/* Cover */}
-          <div className="relative w-full md:w-48 h-48 rounded-md overflow-hidden bg-[#222] shadow-2xl shrink-0">
-            {playlist.cover ? (
-              <Image
-                src={playlist.cover}
-                alt={playlist.title}
-                fill
-                className="object-cover"
-                unoptimized
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-linear-to-br from-[#333] to-[#1a1a1a]">
-                <FaMusic className="text-zinc-600 text-5xl" />
-              </div>
-            )}
-          </div>
 
-          {/* Info */}
-          <div className="flex-1 flex flex-col justify-end">
+          {/* Info — left on desktop */}
+          <div className="flex-1 flex flex-col justify-end order-last md:order-first">
             <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase text-zinc-400 mb-2 tracking-wider">
               <VisibilityIcon size={9} />
               {playlist.visibility} Playlist
@@ -222,6 +206,24 @@ export default function PlaylistDetailPage({
               </button>
             </div>
           </div>
+
+          {/* Cover — right on desktop, top on mobile */}
+          <div className="relative w-full md:w-48 h-48 rounded-md overflow-hidden bg-[#222] shadow-2xl shrink-0 order-first md:order-last">
+            {playlist.cover ? (
+              <Image
+                src={playlist.cover}
+                alt={playlist.title}
+                fill
+                className="object-cover"
+                unoptimized
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-linear-to-br from-[#333] to-[#1a1a1a]">
+                <FaMusic className="text-zinc-600 text-5xl" />
+              </div>
+            )}
+          </div>
+
         </div>
       </div>
 

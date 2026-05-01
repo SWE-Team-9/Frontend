@@ -29,8 +29,6 @@ const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 // ============================================================
 //  NORMALIZERS — convert raw backend shapes → normalized shapes
 // ============================================================
-
-/* GET /tracks/{id} returns flat artist fields */
 function normalizeTrackDetails(raw: RawTrackDetails): TrackDetails {
   const artistObj: NormalizedArtist = {
     id: raw.artistId ?? null,
@@ -69,7 +67,6 @@ function normalizeTrackDetails(raw: RawTrackDetails): TrackDetails {
   };
 }
 
-/* GET /users/{id}/tracks returns a nested `artist` object per track */
 function normalizeArtistTrack(
   raw: RawArtistTrack,
   fallbackArtist?: { userId: string; name: string; avatarUrl: string },
@@ -214,7 +211,6 @@ export const getTrackStatus = async (
     );
     return res.data;
   } catch (err: unknown) {
-    // Track not yet available in DB (created but not committed) — treat as still processing
     if (
       typeof err === "object" &&
       err !== null &&
@@ -228,7 +224,7 @@ export const getTrackStatus = async (
 };
 
 // ===============================
-//  UPDATE TRACK METADATA (Edit Track)
+//  UPDATE TRACK METADATA (Edit Track)  ← UPDATED
 // ===============================
 export const updateTrackMetadata = async (
   trackId: string,
@@ -238,6 +234,7 @@ export const updateTrackMetadata = async (
     tags?: string[];
     releaseDate?: string;
     description?: string;
+    coverArt?: File;           // ← new
   },
 ) => {
   if (USE_MOCK) {
@@ -245,7 +242,29 @@ export const updateTrackMetadata = async (
     return { trackId, ...data };
   }
 
-  const res = await api.put(`/tracks/${trackId}`, data);
+  // When a cover art file is present, the endpoint requires multipart/form-data
+  if (data.coverArt) {
+    const formData = new FormData();
+    if (data.title !== undefined)       formData.append("title", data.title);
+    if (data.genre !== undefined)       formData.append("genre", data.genre);
+    if (data.description !== undefined) formData.append("description", data.description);
+    if (data.releaseDate !== undefined) formData.append("releaseDate", data.releaseDate);
+    if (data.tags !== undefined)        data.tags.forEach((tag) => formData.append("tags", tag));
+    formData.append("coverArt", data.coverArt);
+
+    const res = await api.put(`/tracks/${trackId}`, formData);
+    return res.data;
+  }
+
+  // No file — plain JSON is simpler and avoids multipart overhead
+  const body: Record<string, unknown> = {};
+  if (data.title !== undefined)       body.title = data.title;
+  if (data.genre !== undefined)       body.genre = data.genre;
+  if (data.description !== undefined) body.description = data.description;
+  if (data.releaseDate !== undefined) body.releaseDate = data.releaseDate;
+  if (data.tags !== undefined)        body.tags = data.tags;
+
+  const res = await api.put(`/tracks/${trackId}`, body);
   return res.data;
 };
 
