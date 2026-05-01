@@ -92,8 +92,11 @@ export const useSubscriptionStore = create<SubscriptionStore>((set) => ({
   changePlan: async (type) => {
     set({ isLoading: true, error: null });
     try {
+      // Backend always schedules the change — result includes latest sub state
       const updated = await changePlanService(type);
-      set({ sub: updated });
+      // Strip out non-SubscriptionDetails fields before storing
+      const { scheduled: _s, effectiveAt: _e, message: _m, ...subData } = updated as any;
+      set({ sub: subData });
     } catch {
       set({ error: "Plan change failed." });
       throw new Error("Plan change failed");

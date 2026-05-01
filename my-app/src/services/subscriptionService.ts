@@ -44,7 +44,14 @@ export interface SubscriptionDetails {
   remainingUploads: number;
   cancelAtPeriodEnd: boolean;
   currentPeriodEnd: string | null;
+  renewalDate: string | null;
   paymentMethodSummary: PaymentMethodSummary | null;
+  pendingDowngrade: {
+    planCode: string;
+    planId: string;
+    planName: string;
+    effectiveAt: string;
+  } | null;
   perks: {
     adFree: boolean;
     offlineListening: boolean;
@@ -88,7 +95,9 @@ let MOCK_SUBSCRIPTION: SubscriptionDetails = {
   remainingUploads: PLAN_CONFIG.FREE.uploadLimit - 1,
   cancelAtPeriodEnd: false,
   currentPeriodEnd: null,
+  renewalDate: null,
   paymentMethodSummary: null,
+  pendingDowngrade: null,
   perks: { adFree: false, offlineListening: false },
 };
 
@@ -136,12 +145,22 @@ function normalizeBackendSubscription(
       typeof raw.cancelAtPeriodEnd === "boolean" ? raw.cancelAtPeriodEnd : false,
     currentPeriodEnd:
       typeof raw.currentPeriodEnd === "string" ? raw.currentPeriodEnd : null,
+    renewalDate: typeof raw.renewalDate === "string" ? raw.renewalDate : null,
     // Backend sends the card object as `paymentMethod` (an object) and
     // `paymentMethodSummary` as a display string.  Read the object field.
     paymentMethodSummary:
       raw.paymentMethod &&
       typeof raw.paymentMethod === "object"
         ? (raw.paymentMethod as PaymentMethodSummary)
+        : null,
+    pendingDowngrade:
+      raw.pendingDowngrade && typeof raw.pendingDowngrade === "object"
+        ? (raw.pendingDowngrade as {
+            planCode: string;
+            planId: string;
+            planName: string;
+            effectiveAt: string;
+          })
         : null,
     perks: {
       adFree:
@@ -316,20 +335,23 @@ export const resumeSubscription = async (): Promise<SubscriptionDetails> => {
 
 export const changePlan = async (
   type: "PRO" | "GO+",
-): Promise<SubscriptionDetails> => {
+): Promise<SubscriptionDetails & { scheduled?: boolean; effectiveAt?: string; message?: string }> => {
   if (USE_MOCK) {
     await new Promise((resolve) => setTimeout(resolve, 500));
     MOCK_SUBSCRIPTION = {
       ...MOCK_SUBSCRIPTION,
-      subscriptionType: type,
-      uploadLimit: PLAN_CONFIG[type].uploadLimit,
-      remainingUploads:
-        PLAN_CONFIG[type].uploadLimit - MOCK_SUBSCRIPTION.uploadedTracks,
-      perks: { adFree: true, offlineListening: true },
+      cancelAtPeriodEnd: true,
+      pendingDowngrade: {
+        planCode: toPlanCode(type),
+        planId: "mock-plan-id",
+        planName: type,
+        effectiveAt: MOCK_SUBSCRIPTION.currentPeriodEnd ?? getMockPeriodEnd(),
+      },
     };
-    return { ...MOCK_SUBSCRIPTION };
+    return { ...MOCK_SUBSCRIPTION, scheduled: true };
   }
 
+  // Backend schedules the change — always fetch fresh subscription state after
   await api.post("/subscriptions/change-plan", {
     planCode: toPlanCode(type),
   });

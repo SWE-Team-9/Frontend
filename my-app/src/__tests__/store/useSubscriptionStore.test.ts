@@ -25,6 +25,8 @@ const mockSubscription = {
   remainingUploads: 90,
   cancelAtPeriodEnd: false,
   currentPeriodEnd: "2026-05-28T00:00:00.000Z",
+  renewalDate: "2026-05-28T00:00:00.000Z",
+  pendingDowngrade: null,
   paymentMethodSummary: {
     brand: "visa",
     last4: "4242",

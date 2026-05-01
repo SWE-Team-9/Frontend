@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -51,12 +51,26 @@ function CheckoutContent() {
   const [couponOpen, setCouponOpen] = useState(false);
   const [coupon, setCoupon] = useState("");
   const [buyError, setBuyError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const upgrade = useSubscriptionStore((state) => state.upgrade);
   const isLoading = useSubscriptionStore((state) => state.isLoading);
+  const sub = useSubscriptionStore((state) => state.sub);
+  const fetchSubscription = useSubscriptionStore((state) => state.fetchSubscription);
+
+  useEffect(() => {
+    fetchSubscription();
+  }, [fetchSubscription]);
+
+  // Trial eligibility: only FREE users subscribing to PRO for the first time get a trial.
+  // If the user already has/had a paid plan, no trial applies.
+  const isTrialEligible =
+    plan.upgradeType === "PRO" && (sub === null || sub.subscriptionType === "FREE");
+  const trialDays = isTrialEligible ? 7 : 0;
 
   const handleBuy = async () => {
     setBuyError(null);
+    setSuccessMessage(null);
 
     try {
       const result = await upgrade(plan.upgradeType);
@@ -65,7 +79,15 @@ function CheckoutContent() {
         return;
       }
 
-      router.push("/discover?upgraded=true");
+      // Show success message with actual amount before redirecting
+      const amountMsg = isTrialEligible
+        ? `7-day free trial started! You won't be charged until the trial ends, then $${plan.monthlyPrice}/mo.`
+        : `Subscription activated at $${plan.monthlyPrice}/mo. Redirecting...`;
+      setSuccessMessage(amountMsg);
+
+      setTimeout(() => {
+        router.push("/discover?upgraded=true");
+      }, 1500);
     } catch {
       setBuyError("Could not start checkout. Please try again.");
     }
@@ -170,12 +192,28 @@ function CheckoutContent() {
           <div className="bg-zinc-100 rounded-xl p-5 flex flex-col gap-3">
             <div className="flex justify-between items-center">
               <span className="font-bold text-zinc-900">Total</span>
-              <span className="font-bold text-zinc-900">${plan.monthlyPrice}/mo</span>
+              <span className="font-bold text-zinc-900">
+                {isTrialEligible
+                  ? `$0 for ${trialDays} days, then $${plan.monthlyPrice}/mo`
+                  : `$${plan.monthlyPrice}/mo`}
+              </span>
             </div>
             <div className="flex justify-between items-center text-sm">
               <span className="text-zinc-600">Billing cycle</span>
               <span className="text-zinc-800 font-medium">Monthly</span>
             </div>
+            {isTrialEligible && (
+              <div className="flex items-start gap-2 p-3 bg-green-50 rounded-lg border border-green-200">
+                <span className="text-green-700 text-xs font-semibold">
+                  7-day free trial included — cancel anytime before it ends and you won&apos;t be charged.
+                </span>
+              </div>
+            )}
+            {!isTrialEligible && plan.upgradeType === "PRO" && (
+              <p className="text-xs text-zinc-400">
+                Note: free trial applies to first-time PRO subscribers only.
+              </p>
+            )}
             <div className="border-t border-zinc-200 pt-3">
               <p className="text-xs text-zinc-500 leading-relaxed">
                 We&apos;ll send you to Stripe to confirm the subscription and finish payment details there.
@@ -186,6 +224,10 @@ function CheckoutContent() {
 
           {buyError && (
             <p className="text-red-500 text-sm font-medium">{buyError}</p>
+          )}
+
+          {successMessage && (
+            <p className="text-green-600 text-sm font-medium">{successMessage}</p>
           )}
 
           <button

@@ -70,10 +70,14 @@ export default function SubscriptionSettings() {
     message: string;
   } | null>(null);
 
-  const isPro = sub?.subscriptionType === "PRO" || sub?.subscriptionType === "GO+";
+  const isProOnly = sub?.subscriptionType === "PRO";
+  const isGoPlus = sub?.subscriptionType === "GO+";
+  const isPro = isProOnly || isGoPlus;
   const planLabel = isPro ? (sub?.subscriptionType ?? "PRO") : "Basic";
-  const isCancelPending = sub?.cancelAtPeriodEnd ?? false;
-  const targetPlan: "PRO" | "GO+" = sub?.subscriptionType === "PRO" ? "GO+" : "PRO";
+  const isCancelPending = (sub?.cancelAtPeriodEnd ?? false) && !sub?.pendingDowngrade;
+  // Switch button: only PRO users can switch up to GO+
+  const canSwitchUp = isProOnly && !sub?.cancelAtPeriodEnd && !sub?.pendingDowngrade;
+  const targetPlan: "PRO" | "GO+" = "GO+";
 
   useEffect(() => {
     fetchSubscription();
@@ -99,9 +103,11 @@ export default function SubscriptionSettings() {
   const handleChangePlanConfirm = async () => {
     try {
       await changePlan(targetPlan);
+      const periodEnd = useSubscriptionStore.getState().sub?.currentPeriodEnd;
+      const dateStr = periodEnd ? new Date(periodEnd).toLocaleDateString() : "period end";
       setActionStatus({
         type: "success",
-        message: `Plan changed to ${targetPlan} successfully.`,
+        message: `Your plan will switch to GO+ at the end of your billing period on ${dateStr}.`,
       });
       setShowChangePlanConfirm(false);
     } catch {
@@ -172,7 +178,7 @@ export default function SubscriptionSettings() {
       )}
       {showChangePlanConfirm && (
         <ConfirmDialog title={`Switch to ${targetPlan}?`}
-          message={`Your plan will be changed to ${targetPlan} at $${PLAN_CONFIG[targetPlan].monthlyPrice}/mo, effective immediately.`}
+          message={`Your plan will change to GO+ ($${PLAN_CONFIG["GO+"].monthlyPrice}/mo) at the end of your current billing period on ${sub?.currentPeriodEnd ? new Date(sub.currentPeriodEnd).toLocaleDateString() : 'period end'}. You keep all current benefits until then.`}
           confirmLabel={`Switch to ${targetPlan}`} loading={isLoading}
           onConfirm={handleChangePlanConfirm} onCancel={() => setShowChangePlanConfirm(false)} />
       )}
@@ -220,7 +226,12 @@ export default function SubscriptionSettings() {
                     ? `${PLAN_CONFIG[sub!.subscriptionType as "PRO" | "GO+"].uploadLimit.toLocaleString()} track uploads · Ad-free · Offline listening`
                     : `${PLAN_CONFIG.FREE.uploadLimit} track uploads · Ad-supported streaming`}
                 </p>
-                {isCancelPending && sub?.currentPeriodEnd && (
+                {sub?.pendingDowngrade && (
+                  <p className="text-blue-400 text-xs mt-1 font-semibold">
+                    Switches to {sub.pendingDowngrade.planName} on {new Date(sub.pendingDowngrade.effectiveAt).toLocaleDateString()} — keeping current plan until then
+                  </p>
+                )}
+                {isCancelPending && !sub?.pendingDowngrade && sub?.currentPeriodEnd && (
                   <p className="text-amber-400 text-xs mt-1 font-semibold">
                     Cancels {new Date(sub.currentPeriodEnd).toLocaleDateString()} — access until then
                   </p>
@@ -228,19 +239,19 @@ export default function SubscriptionSettings() {
               </div>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
-              {isPro && !isCancelPending && (
-                <>
-                  <button onClick={() => setShowChangePlanConfirm(true)} disabled={isLoading}
-                    className="px-4 py-2 border border-zinc-600 text-zinc-300 rounded-lg text-xs font-bold uppercase tracking-wide hover:border-zinc-400 transition-colors disabled:opacity-50">
-                    Switch to {targetPlan}
-                  </button>
-                  <button onClick={() => setShowCancelConfirm(true)} disabled={isLoading}
-                    className="px-4 py-2 border border-red-700 text-red-400 rounded-lg text-xs font-bold uppercase tracking-wide hover:bg-red-900/30 transition-colors flex items-center gap-2 disabled:opacity-50">
-                    <LuX size={13} /> Cancel
-                  </button>
-                </>
+              {canSwitchUp && (
+                <button onClick={() => setShowChangePlanConfirm(true)} disabled={isLoading}
+                  className="px-4 py-2 border border-zinc-600 text-zinc-300 rounded-lg text-xs font-bold uppercase tracking-wide hover:border-zinc-400 transition-colors disabled:opacity-50">
+                  Switch to {targetPlan}
+                </button>
               )}
-              {isPro && isCancelPending && (
+              {isPro && !sub?.cancelAtPeriodEnd && !sub?.pendingDowngrade && (
+                <button onClick={() => setShowCancelConfirm(true)} disabled={isLoading}
+                  className="px-4 py-2 border border-red-700 text-red-400 rounded-lg text-xs font-bold uppercase tracking-wide hover:bg-red-900/30 transition-colors flex items-center gap-2 disabled:opacity-50">
+                  <LuX size={13} /> Cancel
+                </button>
+              )}
+              {isPro && (sub?.cancelAtPeriodEnd || sub?.pendingDowngrade) && (
                 <button onClick={handleResume} disabled={isLoading}
                   className="px-4 py-2 border border-green-700 text-green-400 rounded-lg text-xs font-bold uppercase tracking-wide hover:bg-green-900/30 transition-colors flex items-center gap-2 disabled:opacity-50">
                   <LuRefreshCw size={13} /> {isLoading ? "Resuming..." : "Resume"}
