@@ -33,6 +33,7 @@ export interface UserInteractionResponse {
 export interface TrackCommentUser {
   id: string;
   display_name: string;
+  avatarUrl?: string | null;
 }
 
 export interface TrackComment {

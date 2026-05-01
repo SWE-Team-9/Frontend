@@ -105,6 +105,7 @@ export default function TimestampedCommentsSection({
             id: comment.commentId,
             progress: Math.min(1, Math.max(0, comment.timestampSeconds / durationSeconds)),
             label: `${comment.user.display_name}: ${comment.text}`,
+            avatarUrl: comment.user.avatarUrl,
         }));
     }, [comments, durationSeconds]);
 

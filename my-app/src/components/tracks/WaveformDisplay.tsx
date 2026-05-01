@@ -6,6 +6,7 @@ export interface WaveformMarker {
   id: string;
   progress: number; // 0 -> 1
   label?: string;
+  avatarUrl?: string | null;
 }
 
 interface WaveformDisplayProps {
@@ -122,11 +123,21 @@ export const WaveformDisplay: React.FC<WaveformDisplayProps> = ({
               type="button"
               onMouseEnter={() => onMarkerEnter?.(marker.id)}
               onMouseLeave={() => onMarkerLeave?.()}
-              className={`pointer-events-auto absolute top-0 h-3 w-3 -translate-x-1/2 rounded-full border border-zinc-900 transition ${activeMarkerId === marker.id ? "scale-110 bg-[#d28b82]" : "bg-[#c77c73]"
+              className={`pointer-events-auto absolute top-0 h-5 w-5 -translate-x-1/2 overflow-hidden rounded-full border border-zinc-900 bg-zinc-700 transition ${activeMarkerId === marker.id ? "scale-110" : ""
                 }`}
               style={{ left: `${marker.progress * 100}%` }}
               aria-label={marker.label ?? "Comment marker"}
-            />
+            >
+              {marker.avatarUrl ? (
+                <img
+                  src={marker.avatarUrl}
+                  alt=""
+                  className="h-full w-full rounded-full object-cover"
+                />
+              ) : (
+                <span className="block h-full w-full rounded-full bg-[#c77c73]" />
+              )}
+            </button>
           ))}
         </div>
       )}
