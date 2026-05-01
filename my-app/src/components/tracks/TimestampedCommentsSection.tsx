@@ -215,7 +215,7 @@ export default function TimestampedCommentsSection({
             )}
 
             <div
-                className={`mt-3 overflow-hidden transition-all duration-200 ${isOpen ? "max-h-28 opacity-100" : "max-h-0 opacity-0"
+                className={`mt-5 overflow-hidden transition-all duration-200 ${isOpen ? "max-h-28 opacity-100" : "max-h-0 opacity-0"
                     }`}
             >
                 <div className="flex items-center gap-3">

@@ -3,8 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import RecentlyPlayedCard from "./RecentlyPlayedCard";
-import { getRecentlyPlayed } from "@/src/services/playerService";
-import { getTrackDetails } from "@/src/services/trackService";
+import { getRecentlyPlayed } from "@/src/services/historyService";
 import { usePlayerStore } from "@/src/store/playerStore";
 import { RecentlyPlayedItem } from "@/src/types/history";
 
@@ -38,31 +37,7 @@ export default function RecentlyPlayedSection() {
             try {
                 setLoading(true);
 
-                const recentData = await getRecentlyPlayed(6, 1);
-
-                const detailedTracks = await Promise.all(
-                    recentData.tracks.map((item) => getTrackDetails(item.trackId))
-                );
-
-                const mergedTracks: RecentlyPlayedItem[] = recentData.tracks.map((item) => {
-                    const details = detailedTracks.find(
-                        (track) => track.trackId === item.trackId
-                    );
-
-                    return {
-                        trackId: item.trackId,
-                        title: details?.title || item.title,
-                        artist: details?.artist || item.artist.display_name,
-                        artistId: details?.artistId || item.artist.id,
-                        artistHandle: details?.artistHandle,
-                        artistAvatarUrl: details?.artistAvatarUrl ?? null,
-                        coverArtUrl: details?.coverArtUrl || null,
-                        liked: details?.liked ?? false,
-                        likesCount: details?.likesCount ?? 0,
-                        lastPlayedAt: item.lastPlayedAt,
-                        lastPositionSeconds: item.lastPositionSeconds,
-                    };
-                });
+                const mergedTracks = await getRecentlyPlayed(6, 1);
 
                 setTracks(mergedTracks);
 
@@ -75,6 +50,7 @@ export default function RecentlyPlayedSection() {
                         artistHandle: track.artistHandle,
                         artistAvatarUrl: track.artistAvatarUrl ?? null,
                         cover: track.coverArtUrl || "/images/track-placeholder.png",
+                        duration: track.durationSeconds,
                     }))
                 );
 
