@@ -8,10 +8,13 @@ import {
 const BASE = "/playlists";
 
 export const playlistsApi = {
-  createPlaylist: (data: CreatePlaylistInput) =>
-    api
-      .post<unknown>(BASE, { trackIds: [], ...data })
-      .then((r) => r.data),
+  createPlaylist: (data: CreatePlaylistInput) => {
+    if (!data.trackIds?.length) {
+      return Promise.reject(new Error("trackIds is required"));
+    }
+
+    return api.post<unknown>(BASE, data).then((r) => r.data);
+  },
 
   getMyPlaylists: (page = 1, limit = 20) =>
     api

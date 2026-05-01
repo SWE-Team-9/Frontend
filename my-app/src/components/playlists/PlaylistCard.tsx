@@ -8,6 +8,7 @@ import { usePlaylists } from "@/src/hooks/usePlaylists";
 import { playlistsApi } from "@/src/services/playlistsService";
 import SharePopup from "@/src/components/share/SharePopup";
 import { EmbedModal } from "./EmbedModal";
+import { buildPlaylistPermalink } from "@/src/lib/permalinks";
 import { toast } from "sonner";
 import { ConfirmModal } from "@/src/components/ui/ConfirmModal";
 import { EditPlaylistModal } from "@/src/components/playlists/EditPlaylistModal";
@@ -49,6 +50,11 @@ export function PlaylistCard({
   const [editOpen, setEditOpen] = useState(false);
 
   const playlistUrl = `/library/playlists/${playlist.playlistId}`;
+  const sharePermalink = buildPlaylistPermalink({
+    playlistId: playlist.playlistId,
+    ownerHandle: playlist.owner?.handle ?? null,
+    slug: playlist.slug ?? null,
+  });
 
   const toggleMenu = () => setMenuOpen((v) => !v);
   const closeMenu = () => setMenuOpen(false);
@@ -110,7 +116,7 @@ export function PlaylistCard({
 
   const handleCopyLink = async () => {
     if (typeof window === "undefined") return;
-    const url = `${window.location.origin}${playlistUrl}`;
+    const url = `${window.location.origin}${sharePermalink}`;
     try {
       await navigator.clipboard.writeText(url);
       toast.success("Link has been copied to the clipboard!");
@@ -256,7 +262,7 @@ export function PlaylistCard({
       {/* MODALS */}
       {shareOpen && (
         <SharePopup
-          permalink={playlistUrl}
+          permalink={sharePermalink}
           onClose={() => setShareOpen(false)}
           resourceType="PLAYLIST"
           resourceId={playlist.playlistId}

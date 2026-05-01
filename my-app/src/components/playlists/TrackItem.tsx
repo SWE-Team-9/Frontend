@@ -3,7 +3,8 @@
 // Next.js optimized image component
 import Image from "next/image";
 import Link from "next/link";
-// Icons used in track UI (play, controls, remove, etc.)
+import { usePlayerStore, type Track as PlayerTrack } from "@/src/store/playerStore";
+// Icons used in track UI (play, controls, remove)
 import {
   FaMusic,
   FaTimes,
@@ -56,6 +57,35 @@ export function TrackItem({
   onMoveDown,
   onPlay,
 }: Props) {
+  const playerTracks = usePlayerStore((state) => state.tracks);
+  const currentTrack = usePlayerStore((state) => state.currentTrack);
+  const toggle = usePlayerStore((state) => state.toggle);
+  const fetchAndPlay = usePlayerStore((state) => state.fetchAndPlay);
+
+  const handlePlay = async () => {
+    if (onPlay) {
+      onPlay(track);
+      return;
+    }
+
+    if (currentTrack?.trackId === track.trackId) {
+      await toggle();
+      return;
+    }
+
+    const matched = playerTracks.find((t) => t.trackId === track.trackId);
+    const fallbackTrack: PlayerTrack = {
+      trackId: track.trackId,
+      title: track.title,
+      artist: track.artist ?? "Unknown Artist",
+      artistId: "",
+      cover: track.cover ?? "/images/track-placeholder.png",
+      duration: track.duration,
+    };
+
+    await fetchAndPlay(matched ?? fallbackTrack);
+  };
+
   return (
     <div className="group flex items-center gap-4 px-3 py-2 rounded hover:bg-zinc-800/50 transition-colors">
       {/* Track index number */}
@@ -63,7 +93,7 @@ export function TrackItem({
 
       {/* Track thumbnail + play button */}
       <button
-        onClick={() => onPlay?.(track)}
+        onClick={handlePlay}
         className="relative w-10 h-10 rounded overflow-hidden bg-[#222] shrink-0"
       >
         {/* Cover image or fallback icon */}

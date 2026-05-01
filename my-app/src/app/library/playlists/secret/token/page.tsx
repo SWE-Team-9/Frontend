@@ -26,12 +26,22 @@ export default function SecretPlaylistPage({
     let cancelled = false;
     (async () => {
       try {
-        const raw = await playlistsApi.getSecretPlaylist(token);
+        const secret = await playlistsApi.getSecretPlaylist(token);
+        if (cancelled) return;
+
+        setAccessMessage(
+          extractMessage(secret) ?? "Access granted via secret token"
+        );
+
+        const playlistId = (secret as { playlistId?: string }).playlistId;
+        if (!playlistId) {
+          setError("Playlist not accessible");
+          return;
+        }
+
+        const details = await playlistsApi.getPlaylistById(playlistId);
         if (!cancelled) {
-          setPlaylist(normalizePlaylist(raw));
-          setAccessMessage(
-            extractMessage(raw) ?? "Access granted via secret token"
-          );
+          setPlaylist(normalizePlaylist(details));
         }
       } catch (err) {
         if (!cancelled) {

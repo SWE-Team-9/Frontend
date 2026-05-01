@@ -8,6 +8,7 @@ import { AddTrackModal } from "@/src/components/playlists/AddTrackModal";
 import SharePopup from "@/src/components/share/SharePopup";
 import { EmbedModal } from "@/src/components/playlists/EmbedModal";
 import { usePlayerStore } from "@/src/store/playerStore";
+import { buildPlaylistPermalink } from "@/src/lib/permalinks";
 
 import {
   FaPlay,
@@ -101,6 +102,12 @@ export default function PlaylistDetailPage({
 
   const VisibilityIcon =
     playlist.visibility === "PRIVATE" ? FaLock : FaGlobeAmericas;
+
+  const sharePermalink = buildPlaylistPermalink({
+    playlistId: playlist.playlistId,
+    ownerHandle: playlist.owner?.handle ?? null,
+    slug: playlist.slug ?? null,
+  });
 
   return (
     <div className="min-h-screen bg-[#121212] text-white">
@@ -209,7 +216,7 @@ export default function PlaylistDetailPage({
 
       {shareOpen && (
         <SharePopup
-          permalink={`/playlists/${playlist.playlistId}`}
+          permalink={sharePermalink}
           onClose={() => setShareOpen(false)}
           resourceType="PLAYLIST"
           resourceId={playlist.playlistId}

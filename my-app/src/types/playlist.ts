@@ -6,6 +6,7 @@ export interface PlaylistTrack {
 export interface PlaylistOwner {
   id?: string;
   display_name: string;
+  handle?: string;
 }
 
 export interface Playlist {
@@ -30,14 +31,14 @@ export interface Playlist {
 export interface CreatePlaylistInput {
   title: string;
   description?: string;
-  visibility: "PUBLIC" | "SECRET";
-  trackIds?: string[];
+  visibility: "PUBLIC" | "SECRET" | "PRIVATE";
+  trackIds: string[];
 }
 
 export interface UpdatePlaylistInput {
   title?: string;
   description?: string;
-  visibility?: "PUBLIC" | "SECRET";
+  visibility?: "PUBLIC" | "SECRET" | "PRIVATE";
   type?: string;
   releaseDate?: string;
   genreId?: number | null;
