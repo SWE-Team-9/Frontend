@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, use } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { adminService } from "@/src/services/admin/adminService";
 import { useAdminStore } from "@/src/store/useAdminStore";
 import { useAuthStore } from "@/src/store/useAuthStore";
@@ -20,11 +20,11 @@ import { OffenderCard } from "@/src/components/admin/OffenderCard";
 import { Report, AdminUser } from "@/src/types/admin";
 
 type PageProps = {
-  params: Promise <{ id: string }>;
+  params: Promise<{ id: string }>;
 };
 
 export default function ReportDetailsPage({ params }: PageProps) {
-  const {id} = React.use(params);
+  const { id } = React.use(params);
 
   const { user: authUser } = useAuthStore();
   const { moderateTrack, fetchUserById } = useAdminStore();
@@ -49,24 +49,30 @@ export default function ReportDetailsPage({ params }: PageProps) {
 
         if (cancelled) return;
 
-        setReport(reportData);
+        // 1. Fix: "reportData is possibly null" and "Type mismatch"
+        if (!reportData) {
+          setError("Report not found.");
+          setLoading(false);
+          return;
+        }
 
-        // =========================
-        // SAFE UUID RESOLUTION ONLY
-        // =========================
+        // Cast it to Report if the service returns a partial or union type
+        const validatedReport = reportData as Report;
+        setReport(validatedReport);
+
         const userIds: string[] = [];
 
-        if (reportData.reporter?.id) userIds.push(reportData.reporter.id);
-        if (reportData.offender?.id) userIds.push(reportData.offender.id);
+        // 2. Fix: "Property id does not exist on reporter"
+        if (validatedReport.reporter?.id) userIds.push(validatedReport.reporter.id);
+        if (validatedReport.offender?.id) userIds.push(validatedReport.offender.id);
 
-        // target can be user (UUID only), NOT handle
-        if (reportData.target?.type === "USER" && reportData.target?.id) {
-          userIds.push(reportData.target.id);
+        if (validatedReport.target?.type === "USER" && validatedReport.target?.id) {
+          userIds.push(validatedReport.target.id);
         }
 
         // fetch only valid UUIDs
-        for (const id of userIds) {
-          await fetchUserById(id);
+        for (const userId of userIds) {
+          await fetchUserById(userId);
         }
 
         setUser(null);
@@ -90,7 +96,7 @@ export default function ReportDetailsPage({ params }: PageProps) {
   // MODERATION ACTIONS
   // =========================
   const handleTrackModeration = async (
-    action: "HIDE" | "DELETE" | "RESTORE"
+    action: "HIDDEN" | "REMOVED" | "VISIBLE"
   ) => {
     if (!report?.target?.id) return;
 
@@ -195,21 +201,21 @@ export default function ReportDetailsPage({ params }: PageProps) {
 
                 <div className="grid grid-cols-3 gap-4">
                   <button
-                    onClick={() => handleTrackModeration("RESTORE")}
+                    onClick={() => handleTrackModeration("VISIBLE")}
                     className="bg-green-500/10 text-green-500 p-4 rounded-xl"
                   >
                     <FiRotateCcw /> Restore
                   </button>
 
                   <button
-                    onClick={() => handleTrackModeration("HIDE")}
+                    onClick={() => handleTrackModeration("HIDDEN")}
                     className="bg-zinc-800 p-4 rounded-xl"
                   >
                     <FiEyeOff /> Hide
                   </button>
 
                   <button
-                    onClick={() => handleTrackModeration("DELETE")}
+                    onClick={() => handleTrackModeration("REMOVED")}
                     className="bg-red-500/10 text-red-500 p-4 rounded-xl"
                   >
                     <FiTrash2 /> Delete

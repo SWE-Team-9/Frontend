@@ -4,23 +4,34 @@ import React, { useEffect, useState } from "react";
 import { adminServiceReal } from "@/src/services/admin/adminService.real";
 import { FiClipboard } from "react-icons/fi";
 
+export const dynamic = 'force-dynamic';
 interface AuditLogEntry {
   id: string;
+
   action_type: string;
-  admin: {
-    id: string;
-    display_name: string;
-    handle: string;
-  };
-  target_user?: {
-    id: string;
-    display_name: string;
-    handle: string;
-  } | null;
-  target_track?: { id: string; title: string } | null;
+
+  admin_id: string;
+  admin_name?: string;
+  admin_handle?: string;
+
+  target_user_name?: string;
+  target_user_handle?: string;
+
+  entity_type?: "USER" | "TRACK" | "COMMENT" | "PLAYLIST";
+  entity_id?: string;
+
   notes?: string | null;
   created_at: string;
 }
+
+// ===============================
+// SERVICE SWITCH (REAL / MOCK)
+// ===============================
+// You can toggle via env
+const service =
+  process.env.NEXT_PUBLIC_USE_MOCK === "true"
+    ? adminServiceReal // replace with adminServiceMock if you have it
+    : adminServiceReal;
 
 const ACTION_COLORS: Record<string, string> = {
   WARN_USER: "text-yellow-500 bg-yellow-500/10",
@@ -39,40 +50,24 @@ export default function AuditLogPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
-
-    const loadLogs = async () => {
-      setIsLoading(true);
-      try {
-        const data = await adminServiceReal.getAuditLog(page, 20);
-        if (cancelled) return;
-
-        // ✅ NORMALIZATION (critical fix)
-        const normalizedLogs =
-          data?.actions ||
-          data?.items ||
-          data?.data?.items ||
-          [];
-
-        setLogs(Array.isArray(normalizedLogs) ? normalizedLogs : []);
-
-        setTotalPages(
-          data?.total_pages ||
-          data?.totalPages ||
-          1
-        );
-
+    service.getAuditLog(page, 20)
+      .then((data) => {
+        const safeLogs = Array.isArray(data?.items)
+          ? data.items
+          : Array.isArray(data)
+          ? data
+          : [];
+        setLogs(safeLogs);
+        setTotalPages(data?.pagination?.totalPages ?? 1);
         setError(null);
-      } catch {
-        if (cancelled) return;
+      })
+      .catch((err) => {
+        console.error("Audit log error:", err);
         setError("Failed to load audit log.");
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    };
-
-    loadLogs();
-    return () => { cancelled = true; };
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
   }, [page]);
 
   return (
@@ -131,13 +126,13 @@ export default function AuditLogPage() {
 
                   <td className="px-6 py-4">
                     <div>
-                      <div>{entry.admin.display_name}</div>
-                      <div>@{entry.admin.handle}</div>
+                      <div>{entry.admin_name}</div>
+                      <div>@{entry.admin_handle}</div>
                     </div>
                   </td>
 
                   <td className="px-6 py-4">
-                    {entry.target_user ? entry.target_user.display_name : "—"}
+                    {entry. entity_id ? entry.target_user_name : "—"}
                   </td>
 
                   <td className="px-6 py-4">
