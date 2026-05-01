@@ -85,11 +85,11 @@ export function CreatePlaylistModal({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg bg-[#1a1a1a] border border-zinc-800 rounded-md shadow-2xl flex flex-col max-h-[90vh]"
+className="w-full max-w-lg bg-[#121212] border border-neutral-700 rounded-md shadow-2xl flex flex-col max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* HEADER */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-700 shrink-0">
           <h2 className="text-sm font-bold uppercase tracking-wider text-white">
             Create Playlist
           </h2>
@@ -262,7 +262,7 @@ export function CreatePlaylistModal({
           </div>
 
           {/* FOOTER */}
-          <div className="flex items-center justify-between px-6 py-4 border-t border-zinc-800 shrink-0">
+          <div className="flex items-center justify-between px-6 py-4 border-t border-neutral-700 shrink-0">
             <span className="text-xs text-zinc-500">
               {selectedTracks.length} track
               {selectedTracks.length !== 1 ? "s" : ""} selected
@@ -281,7 +281,7 @@ export function CreatePlaylistModal({
                 disabled={
                   isSubmitting || !title.trim() || selectedTracks.length === 0
                 }
-                className="px-5 py-2 bg-[#f50] hover:bg-[#e64a00] text-white text-xs font-bold uppercase tracking-wider rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-5 py-2 bg-white hover:bg-zinc-600 text-black text-md font-bold uppercase tracking-wider rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? "Creating..." : "Create"}
               </button>

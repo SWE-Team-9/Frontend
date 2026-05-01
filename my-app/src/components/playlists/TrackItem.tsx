@@ -2,9 +2,15 @@
 
 // Next.js optimized image component
 import Image from "next/image";
-
+import Link from "next/link";
 // Icons used in track UI (play, controls, remove, etc.)
-import { FaMusic, FaTimes, FaArrowUp, FaArrowDown, FaPlay } from "react-icons/fa";
+import {
+  FaMusic,
+  FaTimes,
+  FaArrowUp,
+  FaArrowDown,
+  FaPlay,
+} from "react-icons/fa";
 
 // Track data structure
 interface Track {
@@ -32,7 +38,9 @@ function formatDuration(seconds?: number) {
   if (!seconds) return "";
 
   const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60).toString().padStart(2, "0");
+  const s = Math.floor(seconds % 60)
+    .toString()
+    .padStart(2, "0");
 
   return `${m}:${s}`;
 }
@@ -50,11 +58,8 @@ export function TrackItem({
 }: Props) {
   return (
     <div className="group flex items-center gap-4 px-3 py-2 rounded hover:bg-zinc-800/50 transition-colors">
-      
       {/* Track index number */}
-      <span className="w-6 text-right text-zinc-500 text-xs">
-        {index + 1}
-      </span>
+      <span className="w-6 text-right text-zinc-500 text-xs">{index + 1}</span>
 
       {/* Track thumbnail + play button */}
       <button
@@ -84,7 +89,12 @@ export function TrackItem({
 
       {/* Track title + artist */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-white truncate">{track.title}</p>
+        <Link
+          href={`/tracks/${track.trackId}`}
+          className="text-sm text-white truncate hover:text-neutral-400 transition duration-200 block"
+        >
+          {track.title}
+        </Link>
 
         {track.artist && (
           <p className="text-xs text-zinc-500 truncate">{track.artist}</p>
@@ -99,7 +109,6 @@ export function TrackItem({
       {/* Edit controls (only for playlist owner/editor) */}
       {canEdit && (
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          
           {/* Move track up */}
           <button
             onClick={() => onMoveUp?.(index)}
