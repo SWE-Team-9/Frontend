@@ -51,10 +51,15 @@ export default function PlayerAudioSync() {
 
     const handleEnded = async () => {
       const state = usePlayerStore.getState();
-      // If an ad with audio just ended, advance to next real track
+      // If an ad with audio just ended, play the queued track or advance queue
       if (state.isPlayingAd) {
-        usePlayerStore.setState({ isPlayingAd: false, currentAd: null });
-        await state.nextTrack();
+        const pending = state.pendingTrack;
+        usePlayerStore.setState({ isPlayingAd: false, currentAd: null, pendingTrack: null });
+        if (pending) {
+          await usePlayerStore.getState().fetchAndPlay(pending, true);
+        } else {
+          await usePlayerStore.getState().nextTrack();
+        }
         return;
       }
       await state.persistProgress();
@@ -107,8 +112,13 @@ export default function PlayerAudioSync() {
           clearInterval(adIntervalRef.current);
           adIntervalRef.current = null;
         }
-        usePlayerStore.setState({ isPlayingAd: false, currentAd: null, adElapsedSeconds: 0 });
-        await usePlayerStore.getState().nextTrack();
+        const pending = usePlayerStore.getState().pendingTrack;
+        usePlayerStore.setState({ isPlayingAd: false, currentAd: null, adElapsedSeconds: 0, pendingTrack: null });
+        if (pending) {
+          await usePlayerStore.getState().fetchAndPlay(pending, true);
+        } else {
+          await usePlayerStore.getState().nextTrack();
+        }
       }, currentAd.durationSeconds * 1000);
     }
 
