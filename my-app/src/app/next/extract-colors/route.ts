@@ -39,7 +39,6 @@ export async function GET(req: NextRequest) {
     const total = info.width * info.height;
     const ch = 3;
 
-    // Collect all pixels sorted by lightness
     const pixels = Array.from({ length: total }, (_, i) => ({
       r: data[i * ch]!,
       g: data[i * ch + 1]!,
@@ -47,16 +46,13 @@ export async function GET(req: NextRequest) {
       l: getLightness(data[i * ch]!, data[i * ch + 1]!, data[i * ch + 2]!),
     })).sort((a, b) => a.l - b.l);
 
-    // Pick dark (bottom 25%), mid (middle 25%), light (top 25%)
     const dark  = avgColor(pixels.slice(0, Math.floor(total * 0.25)));
-    const mid   = avgColor(pixels.slice(Math.floor(total * 0.375), Math.floor(total * 0.625)));
     const light = avgColor(pixels.slice(Math.floor(total * 0.75)));
 
     const alpha = 0.72;
     const dc = `rgba(${dark.r}, ${dark.g}, ${dark.b}, ${alpha})`;
     const lc = `rgba(${light.r}, ${light.g}, ${light.b}, ${alpha})`;
 
-    // Symmetric: dark edges → light center → dark edges
     const gradient = `linear-gradient(to right, ${dc}, ${lc}, ${dc})`;
 
     return NextResponse.json({ gradient });
