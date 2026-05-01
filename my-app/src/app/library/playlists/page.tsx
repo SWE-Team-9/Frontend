@@ -26,8 +26,6 @@ export default function LibraryPlaylistsPage() {
 
   useEffect(() => {
     const trimmed = trackQuery.trim();
-
-    // Always go through the timer — never call setState synchronously in effect
     const delay = trimmed ? 350 : 0;
 
     const timer = setTimeout(async () => {

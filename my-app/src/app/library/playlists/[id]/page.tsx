@@ -66,9 +66,7 @@ export default function PlaylistDetailPage({
     playlist.visibility === "PRIVATE" ? FaLock : FaGlobeAmericas;
 
   return (
-    // Page wrapper
-    <div className="-mx-6">
-
+    <>
       {/* Header section with gradient background */}
       <div className="bg-linear-to-b from-[#2a2a2a] to-[#121212] px-6 py-10">
 
@@ -201,6 +199,6 @@ export default function PlaylistDetailPage({
         isOpen={embedOpen}
         onClose={() => setEmbedOpen(false)}
       />
-    </div>
+    </>
   );
 }

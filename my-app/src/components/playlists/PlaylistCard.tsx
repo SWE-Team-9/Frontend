@@ -70,11 +70,18 @@ export function PlaylistCard({
       } else {
         await playlistsApi.likePlaylist(playlist.playlistId);  
       }
-    } catch (err) {
+    } catch (error) {
+      const err = error as { response?: { status?: number }; message?: string };
+      if (err.response?.status === 409) {
+        // Server already has the desired state; keep optimistic UI.
+        return;
+      }
       // Revert on failure
       setLiked(wasLiked);
       setLikesCount(prevCount);
-      toast.error(err instanceof Error ? err.message : "Could not update like");
+      toast.error(
+        err instanceof Error ? err.message : "Could not update like"
+      );
     } finally {
       setIsLiking(false);
     }
@@ -137,7 +144,7 @@ export function PlaylistCard({
 
         {/* PLAY ICON */}
         <div className="pointer-events-none absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-20">
-          <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center">
+          <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center">
             <FaPlay className="text-black text-[2rem] ml-1" />
           </div>
         </div>
