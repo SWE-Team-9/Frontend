@@ -143,18 +143,36 @@ export function normalizePlaylist(raw: unknown): Playlist {
   const r = (raw ?? {}) as any;
   const inner = r.playlist ?? r.data ?? r;
 
+  const pickLiked = (source: Record<string, unknown> | null | undefined): unknown =>
+    source?.liked ??
+    source?.isLiked ??
+    source?.is_liked ??
+    source?.hasLiked ??
+    source?.has_liked ??
+    source?.viewerHasLiked ??
+    source?.viewer_has_liked ??
+    source?.viewerLiked ??
+    source?.viewer_liked ??
+    source?.likedByCurrentUser ??
+    source?.liked_by_current_user ??
+    source?.isLikedByCurrentUser ??
+    source?.is_liked_by_current_user ??
+    source?.likedByMe ??
+    source?.liked_by_me ??
+    source?.userHasLiked ??
+    source?.user_has_liked ??
+    source?.likedByUser ??
+    source?.liked_by_user ??
+    source?.likedByViewer ??
+    source?.liked_by_viewer;
+
   const likedRaw =
-    inner.liked ??
-    inner.isLiked ??
-    inner.is_liked ??
-    inner.viewerHasLiked ??
-    inner.viewer_has_liked ??
-    inner.likedByCurrentUser ??
-    inner.liked_by_current_user ??
-    inner.likedByMe ??
-    inner.liked_by_me ??
-    inner.userHasLiked ??
-    inner.user_has_liked;
+    pickLiked(inner) ??
+    pickLiked(inner?.viewer) ??
+    pickLiked(inner?.interactions) ??
+    pickLiked(inner?.interaction) ??
+    pickLiked(inner?.stats) ??
+    pickLiked(r);
 
   const liked =
     typeof likedRaw === "boolean"
@@ -167,7 +185,15 @@ export function normalizePlaylist(raw: unknown): Playlist {
     inner.likesCount ??
     inner.likes_count ??
     inner.likeCount ??
-    inner.like_count;
+    inner.like_count ??
+    inner.stats?.likesCount ??
+    inner.stats?.likes_count ??
+    inner.metrics?.likesCount ??
+    inner.metrics?.likes_count ??
+    inner.interactions?.likesCount ??
+    inner.interactions?.likes_count ??
+    inner.interaction?.likesCount ??
+    inner.interaction?.likes_count;
 
   let likesCount: number | undefined;
   if (typeof likesCountRaw === "number") {

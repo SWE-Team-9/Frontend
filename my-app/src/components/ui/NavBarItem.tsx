@@ -20,7 +20,7 @@ const NavBarItem: React.FC<NavBarItemProps> = ({ label, href, onClick }) => {
       href={href}
       onClick={onClick}
       className={twMerge(
-        "relative text-sm font-bold transition",
+        "relative text-base font-bold transition",
         isActive ? "text-white" : "text-neutral-400 hover:text-white"
       )}
     >
