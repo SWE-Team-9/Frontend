@@ -5,6 +5,7 @@ import { FiSend } from "react-icons/fi";
 import { WaveformDisplay, type WaveformMarker } from "@/src/components/tracks/WaveformDisplay";
 import { addTrackComment, getTrackComments } from "@/src/services/interactionService";
 import type { TrackComment } from "@/src/types/interactions";
+import { useAuthStore } from "@/src/store/useAuthStore";
 
 interface TimestampedCommentsSectionProps {
     trackId: string;
@@ -51,6 +52,8 @@ export default function TimestampedCommentsSection({
     const [snapshotTimestamp, setSnapshotTimestamp] = useState(0);
 
     const inputRef = useRef<HTMLInputElement | null>(null);
+
+    const currentUserAvatarUrl = useAuthStore((state) => state.user?.avatarUrl);
 
     const isOpen = isHovered || isInputActive;
 
@@ -209,7 +212,15 @@ export default function TimestampedCommentsSection({
                     }`}
             >
                 <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 shrink-0 rounded-full bg-[#c77c73]" />
+                    {currentUserAvatarUrl ? (
+                        <img
+                            src={currentUserAvatarUrl}
+                            alt="Your avatar"
+                            className="h-10 w-10 shrink-0 rounded-full object-cover"
+                        />
+                    ) : (
+                        <div className="h-10 w-10 shrink-0 rounded-full bg-[#c77c73]" />
+                    )}
 
                     <div className="flex min-w-0 flex-1 items-center rounded border border-zinc-600 bg-zinc-800/70 px-4">
                         <input
