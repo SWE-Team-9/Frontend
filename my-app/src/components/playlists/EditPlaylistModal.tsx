@@ -301,7 +301,7 @@ className="relative w-205 max-w-[95vw] max-h-[90vh] overflow-hidden bg-[#121212]
                   <button
                     type="button"
                     onClick={handleAddTag}
-                    className="px-3 py-2 bg-zinc-700 hover:bg-zinc-600 text-white text-xs rounded"
+                    className="px-3 py-2 bg-zinc-700 hover:bg-zinc-600 cursor-pointer text-white text-xs rounded"
                   >
                     Add
                   </button>
@@ -317,7 +317,7 @@ className="relative w-205 max-w-[95vw] max-h-[90vh] overflow-hidden bg-[#121212]
                         <button
                           type="button"
                           onClick={() => handleRemoveTag(tag)}
-                          className="text-zinc-400 hover:text-white ml-1"
+                          className="text-zinc-400 hover:text-white ml-1 cursor-pointer"
                         >
                           ×
                         </button>
@@ -335,7 +335,7 @@ className="relative w-205 max-w-[95vw] max-h-[90vh] overflow-hidden bg-[#121212]
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-sm text-white hover:bg-zinc-800 rounded-md"
+            className="px-4 py-2 text-sm text-white cursor-pointer hover:bg-zinc-800 rounded-md"
           >
             Cancel
           </button>
@@ -343,7 +343,7 @@ className="relative w-205 max-w-[95vw] max-h-[90vh] overflow-hidden bg-[#121212]
             type="button"
             onClick={handleSave}
             disabled={saving || !title.trim()}
-            className="px-4 py-2 text-sm font-semibold rounded-md bg-[#f50] text-white hover:bg-[#e64a00] disabled:opacity-50"
+            className="px-4 py-2 text-sm font-semibold rounded-md cursor-pointer bg-white text-black hover:bg-zinc-600 disabled:opacity-50"
           >
             {saving ? "Saving…" : "Save changes"}
           </button>

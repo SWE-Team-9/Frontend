@@ -90,7 +90,7 @@ className="w-full max-w-lg bg-[#121212] border border-neutral-700 rounded-md sha
       >
         {/* HEADER */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-700 shrink-0">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-white">
+          <h2 className="text-sm font-bold uppercase tracking-wider cursor-pointer text-white">
             Create Playlist
           </h2>
           <button
