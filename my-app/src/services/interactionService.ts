@@ -92,11 +92,11 @@ interface BackendTrackComment {
 type BackendGetTrackCommentsResponse =
   | BackendTrackComment[]
   | {
-      page?: number;
-      limit?: number;
-      total?: number;
-      comments?: BackendTrackComment[];
-    };
+    page?: number;
+    limit?: number;
+    total?: number;
+    comments?: BackendTrackComment[];
+  };
 
 /**
  * Fetch timestamped comments for a track.
@@ -130,6 +130,7 @@ export async function getTrackComments(
           comment.user.display_name ??
           comment.user.displayName ??
           "Unknown User",
+        avatarUrl: comment.user.avatarUrl ?? null,
       },
     })),
   };

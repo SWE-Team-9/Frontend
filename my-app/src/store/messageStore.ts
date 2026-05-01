@@ -356,42 +356,29 @@ export const useMessageStore = create<MessageState>((set, get) => ({
   },
 
   markUnread: async (conversationId) => {
-    const currentUserId = useAuthStore.getState().user?.id;
-
-    const conversation =
-      get().conversations.find((c) => c.conversationId === conversationId) ??
-      get().dropdownConversations.find((c) => c.conversationId === conversationId) ??
-      get().selectedConversation;
-
-    const lastMessage = conversation?.lastMessage;
-
-    if (!lastMessage || lastMessage.senderId === currentUserId) {
+    try {
+      await messageService.markConversationUnread(conversationId);
+    } catch {
       return;
     }
 
-    const hadRealUnreadMessages = get().unreadCount > 0;
-
-    await messageService.markConversationUnread(conversationId);
-
     set((state) => {
-      const conversations = state.conversations.map((c) =>
-        c.conversationId === conversationId ? { ...c, unreadCount: 1 } : c,
-      );
-
-      const dropdownConversations = state.dropdownConversations.map((c) =>
-        c.conversationId === conversationId ? { ...c, unreadCount: 1 } : c,
-      );
+      const alreadyHasRealUnread = state.unreadCount > 0;
 
       return {
-        conversations,
-        dropdownConversations,
+        conversations: state.conversations.map((c) =>
+          c.conversationId === conversationId ? { ...c, unreadCount: 1 } : c,
+        ),
+        dropdownConversations: state.dropdownConversations.map((c) =>
+          c.conversationId === conversationId ? { ...c, unreadCount: 1 } : c,
+        ),
         selectedConversation:
           state.selectedConversation?.conversationId === conversationId
             ? { ...state.selectedConversation, unreadCount: 1 }
             : state.selectedConversation,
-
-        unreadCount: hadRealUnreadMessages ? state.unreadCount : 0,
-        showUnreadDotOnly: !hadRealUnreadMessages,
+        // Never change the real unreadCount — only show a blank dot when there
+        // are no actual unread messages to avoid inflating the badge number.
+        showUnreadDotOnly: alreadyHasRealUnread ? state.showUnreadDotOnly : true,
       };
     });
   },
@@ -606,14 +593,14 @@ export const useMessageStore = create<MessageState>((set, get) => ({
   },
 
   handleSocketUnreadCountUpdated: ({ unreadCount }) => {
-    set((state) => {
-      if (state.showUnreadDotOnly) {
-        return { unreadCount: 0 };
-      }
-
-      return { unreadCount };
-    });
+    set((state) => ({
+      unreadCount,
+      // Clear the blank-dot flag now that there are real unread messages to show.
+      // If the server says 0, keep the blank dot if the user manually set it.
+      showUnreadDotOnly: unreadCount > 0 ? false : state.showUnreadDotOnly,
+    }));
   },
+
   handleSocketConversationUpdated: async () => {
     await get().loadConversations();
     await get().loadDropdownConversations();
