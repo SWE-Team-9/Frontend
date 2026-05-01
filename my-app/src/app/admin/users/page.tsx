@@ -13,9 +13,11 @@ import {
   FiSlash
 } from 'react-icons/fi';
 import { ShieldAlert, ShieldCheck, Gavel } from 'lucide-react';
+import { TablePagination } from '@/src/components/admin/TablePagination';
 
 export default function UserManagementPage() {
-  const { users = [], reports = [], suspendUser, restoreUser, banUser, fetchDashboardData } = useAdminStore();
+  // Added loadUsers to destructuring
+  const { users = [], loadUsers, suspendUser, restoreUser, banUser, pagination } = useAdminStore();
 
   const [isMounted, setIsMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -36,9 +38,10 @@ export default function UserManagementPage() {
 
   useEffect(() => {
     const timer = setTimeout(() => setIsMounted(true), 0);
-    fetchDashboardData();
+    // Use loadUsers() instead of fetchDashboardData for paginated view
+    loadUsers(1); 
     return () => clearTimeout(timer);
-  }, [fetchDashboardData]);
+  }, [loadUsers]);
 
   if (!isMounted) return null;
 
@@ -66,7 +69,7 @@ export default function UserManagementPage() {
         await restoreUser(confirmModal.userId, reason);
       }
 
-      await fetchDashboardData();
+      await loadUsers(); // Refresh current page after action
       setConfirmModal({ isOpen: false, userId: '', mode: 'SUSPEND' });
       setReason('');
       setPassword('');
@@ -89,7 +92,7 @@ export default function UserManagementPage() {
           <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
           <input
             type="text"
-            placeholder="Search by name or email..."
+            placeholder="Search current page..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-2 pl-10 pr-4 text-sm text-white focus:ring-1 focus:ring-orange-500 outline-none"
@@ -111,7 +114,7 @@ export default function UserManagementPage() {
         </div>
       </div>
 
-      <div className="bg-zinc-900/40 border border-zinc-800 rounded-2xl overflow-hidden">
+      <div className="bg-zinc-900/40 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl">
         <table className="w-full text-left border-collapse">
           <thead className="bg-zinc-950/50 text-zinc-500 text-[10px] uppercase font-bold tracking-widest border-b border-zinc-800">
             <tr>
@@ -135,7 +138,7 @@ export default function UserManagementPage() {
                         {user.display_name}
                         {user.is_verified && <FiUserCheck className="text-blue-400" size={14} />}
                       </div>
-                      <span className="text-xs text-zinc-500">{user.email}</span>
+                      <span className="text-xs text-zinc-500 font-mono">{user.email}</span>
                     </div>
                   </div>
                 </td>
@@ -157,14 +160,14 @@ export default function UserManagementPage() {
                 </td>
                 <td className="px-6 py-4 text-right">
                   <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Link href={`/admin/users/${user.id}`} className="p-2 hover:bg-zinc-800 text-zinc-500 rounded-lg">
+                    <Link href={`/admin/users/${user.id}`} className="p-2 hover:bg-zinc-800 text-zinc-500 rounded-lg transition-colors">
                       <FiEye size={16} />
                     </Link>
                     
                     <RoleGuard action="SUSPEND_USER">
                       <button 
                         onClick={() => setConfirmModal({ isOpen: true, userId: user.id, mode: user.account_status === 'ACTIVE' ? 'SUSPEND' : 'ACTIVATE' })}
-                        className={`p-2 rounded-lg ${user.account_status === 'ACTIVE' ? 'hover:text-red-500' : 'hover:text-green-500'} text-zinc-500`}
+                        className={`p-2 rounded-lg transition-colors ${user.account_status === 'ACTIVE' ? 'hover:text-red-500' : 'hover:text-green-500'} text-zinc-500`}
                       >
                         {user.account_status === 'ACTIVE' ? <FiUserX size={16} /> : <FiUserCheck size={16} />}
                       </button>
@@ -172,7 +175,7 @@ export default function UserManagementPage() {
                       {user.account_status !== 'BANNED' && (
                         <button 
                           onClick={() => setConfirmModal({ isOpen: true, userId: user.id, mode: 'BAN' })}
-                          className="p-2 hover:text-red-600 text-zinc-500 rounded-lg"
+                          className="p-2 hover:text-red-600 text-zinc-500 rounded-lg transition-colors"
                         >
                           <FiSlash size={16} title="Permanent Ban" />
                         </button>
@@ -184,6 +187,13 @@ export default function UserManagementPage() {
             ))}
           </tbody>
         </table>
+
+        {/* --- PAGINATION COMPONENT PLACEMENT --- */}
+        <TablePagination 
+           currentPage={pagination.currentPage} 
+           totalPages={pagination.totalPages} 
+           onPageChange={(page) => loadUsers(page)} 
+        />
       </div>
 
       {/* Confirmation Modal */}
@@ -205,7 +215,7 @@ export default function UserManagementPage() {
 
             <div className="space-y-4">
               <textarea 
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-white text-sm outline-none"
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-white text-sm outline-none focus:ring-1 focus:ring-orange-500"
                 placeholder="Reason..."
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
@@ -213,15 +223,15 @@ export default function UserManagementPage() {
               {confirmModal.mode !== 'ACTIVATE' && (
                 <input 
                   type="password"
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-white text-sm outline-none"
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-white text-sm outline-none focus:ring-1 focus:ring-orange-500"
                   placeholder="Admin Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
               )}
               <div className="flex gap-3 pt-2">
-                <button onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })} className="flex-1 py-3 bg-zinc-800 text-zinc-300 rounded-xl font-bold">Cancel</button>
-                <button onClick={executeAction} className={`flex-1 py-3 rounded-xl font-bold text-white ${confirmModal.mode === 'ACTIVATE' ? 'bg-green-600' : 'bg-red-600'}`}>Confirm</button>
+                <button onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })} className="flex-1 py-3 bg-zinc-800 text-zinc-300 rounded-xl font-bold hover:bg-zinc-700 transition-colors">Cancel</button>
+                <button onClick={executeAction} className={`flex-1 py-3 rounded-xl font-bold text-white transition-colors ${confirmModal.mode === 'ACTIVATE' ? 'bg-green-600 hover:bg-green-500' : 'bg-red-600 hover:bg-red-500'}`}>Confirm</button>
               </div>
             </div>
           </div>

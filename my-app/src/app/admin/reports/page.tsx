@@ -12,13 +12,15 @@ import {
 } from 'react-icons/fi';
 import { Music, User, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { adminService } from '@/src/services/admin/adminService';
+import { TablePagination } from '@/src/components/admin/TablePagination';
 
 export default function ReportsPage() {
   const { 
     reports = [], 
     updateReportStatus, 
-    suspendUser, 
     users = [], 
+    reportPagination,
+    loadReports,
     fetchDashboardData 
   } = useAdminStore();
   
@@ -114,15 +116,13 @@ export default function ReportsPage() {
             {filteredReports.map((report) => {
               if (!report?.target) return null;
 
-              const offender = users.find(u => {
-                const isUserReport = report.target.type === 'USER';
-                if (isUserReport) {
-                  return String(u.id) === String(report.target.id);
-                }
-                const targetHandle = report.target.owner_handle?.toLowerCase().replace('@', '');
-                const userHandle = u.handle?.toLowerCase().replace('@', '');
-                return targetHandle && userHandle === targetHandle;
-              });
+              const offender = report.offender
+              ? users.find(u => u.id === report.offender.id) || {
+              id: report.offender.id,
+              account_status: report.offender.account_status,
+              }
+              : null;
+
 
               return (
                 <tr key={report.id} className="hover:bg-zinc-800/30 transition-colors group">
@@ -210,6 +210,11 @@ export default function ReportsPage() {
             })}
           </tbody>
         </table>
+        <TablePagination 
+          currentPage={reportPagination.currentPage} 
+          totalPages={reportPagination.totalPages} 
+          onPageChange={(page) => loadReports(page)} 
+        />
       </div>
 
       {confirmModal.isOpen && (

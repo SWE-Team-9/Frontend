@@ -91,6 +91,65 @@ export const adminServiceMock = {
     await delay(200);
     return mockUsersState.find(u => u.id === id) || null;
   },
+  getUsersPaginated: async (page: number, limit: number) => {
+    // Simulate network delay
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    const total = mockUsersState.length;
+    const total_pages = Math.ceil(total / limit);
+    
+    // Calculate start and end indices for slicing
+    const start = (page - 1) * limit;
+    const end = start + limit;
+    const paginatedUsers = mockUsersState.slice(start, end);
+
+    return {
+      page,
+      limit,
+      total,
+      total_pages,
+      users: paginatedUsers,
+    };
+  },
+  getReportsPaginated: async (page: number, limit: number) => {
+    
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    const total = mockReportsState.length;
+    const total_pages = Math.ceil(total / limit);
+    
+    // Calculate start and end indices for slicing
+    const start = (page - 1) * limit;
+    const end = start + limit;
+    const paginatedUsers = mockReportsState.slice(start, end);
+
+    return {
+      page,
+      limit,
+      total,
+      total_pages,
+      users: paginatedUsers,
+    };
+  },
+  getDailyStats: async (dateFrom?: string, dateTo?: string) => {
+  // simulate 30 days
+  const days = 30;
+
+  const metrics = Array.from({ length: days }).map((_, i) => ({
+    date: `2026-04-${String(i + 1).padStart(2, "0")}`,
+    new_users: 20 + i * 2,
+    tracks_uploaded: 40 + i * 3,
+    total_storage_bytes: 120_000_000_000 + i * 2_000_000_000,
+    active_subscribers: 300 + i * 2,
+  }));
+
+  return {
+    metrics,
+    date_from: dateFrom,
+    date_to: dateTo,
+  };
+},
+  
 
   getReportById: async (reportId: string) => {
     await delay(400);
@@ -111,13 +170,13 @@ export const adminServiceMock = {
   updateReportStatus: async (id: string, payload: ActionPayload) => 
     adminServiceMock.submitAction('report-status', id, payload),
 
-  moderateTrack: async (id: string, payload: any) => 
+  moderateTrack: async (id: string, payload: ActionPayload) => 
     adminServiceMock.submitAction('track-mod', id, payload),
 
-  moderateComment: async (id: string, payload: any) => 
+  moderateComment: async (id: string, payload: ActionPayload) => 
     adminServiceMock.submitAction('comment-mod', id, payload),
 
-  moderatePlaylist: async (id: string, payload: any) => 
+  moderatePlaylist: async (id: string, payload: ActionPayload) => 
     adminServiceMock.submitAction('playlist-mod', id, payload),
 
   

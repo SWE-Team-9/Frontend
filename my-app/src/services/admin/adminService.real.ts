@@ -52,41 +52,68 @@ function transformOverviewStats(raw: Record<string, unknown>): AdminStats {
 
 export const adminServiceReal = {
   getInitialData: async () => {
-    const [rawStats, usersData, reportsData, auditData, mostReportedData] =
+    const [rawStats, usersData, reportsData, auditData, mostReportedData,dailyData] =
       await Promise.all([
         api.get('/admin/stats/overview').then(r => r.data),
         api.get('/admin/users').then(r => r.data),
         api.get('/admin/reports').then(r => r.data),
         api.get('/admin/audit-log').then(r => r.data).catch(() => ({ items: [] })),
         api.get('/admin/stats/most-reported').then(r => r.data).catch(() => null),
+        api.get('/admin/stats/daily', { params: { granularity: 'monthly' } }).then(r => r.data),
       ]);
 
     const stats = transformOverviewStats(rawStats);
+    const storageTrend = (dailyData.metrics || []).map((m: { 
+    date: string; 
+    total_storage_bytes: number; 
+    new_users: number; 
+    tracks_uploaded: number 
+  }) => ({
+    date: m.date,
+    value: m.total_storage_bytes,
+    newUsers: m.new_users,
+    tracks: m.tracks_uploaded
+  }));
+  return {
+    stats,
+    users: usersData.users ?? usersData,
+    reports: reportsData.items ?? reportsData.reports ?? reportsData,
+    analytics: { 
+      growth: storageTrend, // Use the same data for growth charts
+      plays: [], 
+      storageTrend: storageTrend 
+    },
+    auditLogs: auditData.items ?? [],
+    mostReported: mostReportedData ? {
+      tracks: mostReportedData.mostReportedTracks ?? mostReportedData.tracks ?? [],
+      users: mostReportedData.mostReportedUsers ?? mostReportedData.users ?? [],
+    } : null,
+  };
+},
 
-    return {
-      stats,
-      users: usersData.users ?? usersData,
-      reports: reportsData.items ?? reportsData.reports ?? reportsData,
-      analytics: { growth: [], plays: [], storageTrend: [] },
-      auditLogs: auditData.items ?? [],
-      mostReported: mostReportedData
-        ? {
-            tracks: mostReportedData.mostReportedTracks ?? mostReportedData.tracks ?? [],
-            users: mostReportedData.mostReportedUsers ?? mostReportedData.users ?? [],
-          }
-        : null,
-    };
-  },
 
   getUserById: async (id: string) => {
     const res = await api.get(`/admin/users/${id}`);
     return res.data.user ?? res.data;
   },
 
+  getUsersPaginated: async (page: number, limit: number) => {
+    const response = await api.get(`/admin/users`, { 
+      params: { page, limit } 
+    });
+    return response.data; // Return the raw data structure you shared
+  },
+
   getReportById: async (reportId: string) => {
     const r = await api.get(`/admin/reports/${reportId}`);
     return r.data;
   },
+  getReportsPaginated: async (page: number, limit: number) => {
+  const response = await api.get(`/admin/reports`, { 
+    params: { page, limit } 
+  });
+  return response.data; 
+},
 
   getAuditLog: async (page = 1, limit = 20) => {
     const r = await api.get('/admin/audit-log', { params: { page, limit } });
@@ -99,11 +126,16 @@ export const adminServiceReal = {
   },
 
   getDailyStats: async (dateFrom?: string, dateTo?: string) => {
-    const r = await api.get('/admin/stats/daily', {
-      params: { dateFrom, dateTo },
-    });
-    return r.data;
-  },
+  const r = await api.get('/admin/stats/daily', {
+    params: { dateFrom, dateTo },
+  });
+
+  return {
+    metrics: r.data.metrics ?? [],
+    date_from: r.data.date_from,
+    date_to: r.data.date_to,
+  };
+},
   getReports: async () => {
     const r = await api.get('/admin/reports');
     return r.data.items ?? r.data.reports ?? r.data;
@@ -129,13 +161,13 @@ export const adminServiceReal = {
   updateReportStatus: async (id: string, payload: ActionPayload) => 
     adminServiceReal.submitAction('report-status', id, payload),
 
-  moderateTrack: async (id: string, payload: any) => 
+  moderateTrack: async (id: string, payload: ActionPayload) => 
     adminServiceReal.submitAction('track-mod', id, payload),
 
-  moderateComment: async (id: string, payload: any) => 
+  moderateComment: async (id: string, payload: ActionPayload) => 
     adminServiceReal.submitAction('comment-mod', id, payload),
 
-  moderatePlaylist: async (id: string, payload: any) => 
+  moderatePlaylist: async (id: string, payload: ActionPayload) => 
     adminServiceReal.submitAction('playlist-mod', id, payload),
 
   // --- Core API Dispatcher ---
