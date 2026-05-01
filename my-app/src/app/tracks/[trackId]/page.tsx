@@ -269,7 +269,7 @@ export default function TrackDetailPage() {
               </div>
 
               {/* Waveform + timestamped comment input */}
-              <div className="h-32">
+              <div>
                 {track.allowComments ? (
                   <TimestampedCommentsSection
                     trackId={track.trackId}
@@ -284,7 +284,7 @@ export default function TrackDetailPage() {
                     onSeek={handleWaveformSeek}
                     currentPlaybackSeconds={isCurrentTrack ? currentTime : 0}
                     enabled={track.status === "FINISHED"}
-                    className="h-full"
+                    alwaysShowInput
                     onCommentAdded={() =>
                       setCommentsRefreshKey((previous) => previous + 1)
                     }

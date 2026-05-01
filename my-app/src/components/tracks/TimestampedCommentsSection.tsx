@@ -20,6 +20,7 @@ interface TimestampedCommentsSectionProps {
     enabled?: boolean;
     className?: string;
     onCommentAdded?: () => void;
+    alwaysShowInput?: boolean;
 }
 
 function formatTime(seconds: number) {
@@ -42,6 +43,7 @@ export default function TimestampedCommentsSection({
     enabled = true,
     className = "",
     onCommentAdded,
+    alwaysShowInput = false,
 }: TimestampedCommentsSectionProps) {
     const [isHovered, setIsHovered] = useState(false);
     const [isInputActive, setIsInputActive] = useState(false);
@@ -57,7 +59,7 @@ export default function TimestampedCommentsSection({
 
     const currentUserAvatarUrl = useAuthStore((state) => state.user?.avatarUrl);
 
-    const isOpen = isHovered || isInputActive;
+    const isOpen = alwaysShowInput || isHovered || isInputActive;
 
     const loadComments = async () => {
         try {
@@ -174,7 +176,9 @@ export default function TimestampedCommentsSection({
             className={`relative ${className}`}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => {
-                setIsHovered(false);
+                if (!alwaysShowInput) {
+                    setIsHovered(false);
+                }
                 setActiveMarkerId(null);
             }}
         >
@@ -211,7 +215,7 @@ export default function TimestampedCommentsSection({
             )}
 
             <div
-                className={`mt-5 overflow-hidden transition-all duration-200 ${isOpen ? "max-h-28 opacity-100" : "max-h-0 opacity-0"
+                className={`mt-3 overflow-hidden transition-all duration-200 ${isOpen ? "max-h-28 opacity-100" : "max-h-0 opacity-0"
                     }`}
             >
                 <div className="flex items-center gap-3">

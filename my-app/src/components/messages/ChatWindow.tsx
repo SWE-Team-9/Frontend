@@ -15,6 +15,7 @@ import {
     buildPlaylistPermalink,
     buildTrackPermalink,
 } from "@/src/lib/permalinks";
+import Link from "next/link";
 
 const FALLBACK = "/images/profile.png";
 
@@ -60,7 +61,16 @@ export default function ChatWindow() {
             <header className="mb-6 flex shrink-0 items-center justify-between">
                 <div className="flex items-center gap-8">
                     <div>
-                        <h2 className="text-lg font-bold">{selected.participant.display_name}</h2>
+                        {selected.participant.handle ? (
+                            <Link
+                                href={`/profiles/${selected.participant.handle}`}
+                                className="text-lg font-bold hover:underline"
+                            >
+                                {selected.participant.display_name}
+                            </Link>
+                        ) : (
+                            <h2 className="text-lg font-bold">{selected.participant.display_name}</h2>
+                        )}
 
                         {!selected.canMessage && (
                             <p className="mt-1 text-xs text-red-400">
@@ -207,9 +217,18 @@ export default function ChatWindow() {
                                 </div>
                                 <div className="min-w-0 flex-1">
                                     <div className="mb-1 flex justify-between">
-                                        <p className="font-bold text-white">
-                                            {isMe ? "Me" : selected.participant.display_name}
-                                        </p>
+                                        {!isMe && selected.participant.handle ? (
+                                            <Link
+                                                href={`/profiles/${selected.participant.handle}`}
+                                                className="font-bold text-white hover:underline"
+                                            >
+                                                {selected.participant.display_name}
+                                            </Link>
+                                        ) : (
+                                            <p className="font-bold text-white">
+                                                {isMe ? "Me" : selected.participant.display_name}
+                                            </p>
+                                        )}
                                         <span className="text-xs text-zinc-500">
                                             {timeLabel(message.createdAt)}
                                         </span>

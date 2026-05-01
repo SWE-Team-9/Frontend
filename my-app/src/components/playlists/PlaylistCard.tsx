@@ -78,7 +78,7 @@ export function PlaylistCard({
   };
 
   const handleLike = async (e?: React.MouseEvent) => {
-    e?.preventDefault(); 
+    e?.preventDefault();
     if (isLiking) return;
 
     const wasLiked = liked;
@@ -86,15 +86,15 @@ export function PlaylistCard({
 
     const nextLiked = !wasLiked;
     setLiked(nextLiked);
-    setLikesCount((c:number) => (wasLiked ? Math.max(0, c - 1) : c + 1));
+    setLikesCount((c: number) => (wasLiked ? Math.max(0, c - 1) : c + 1));
     setIsLiking(true);
     updateLocalLiked(nextLiked);
 
     try {
       if (wasLiked) {
-        await playlistsApi.unlikePlaylist(playlist.playlistId); 
+        await playlistsApi.unlikePlaylist(playlist.playlistId);
       } else {
-        await playlistsApi.likePlaylist(playlist.playlistId);  
+        await playlistsApi.likePlaylist(playlist.playlistId);
       }
     } catch (error) {
       const err = error as { response?: { status?: number }; message?: string };
@@ -251,13 +251,23 @@ export function PlaylistCard({
 
       {/* TITLE */}
       <Link href={playlistUrl} className="block">
-        <h3 className="text-white text-sm font-bold truncate hover:underline">
+        <h3 className="truncate text-sm font-bold text-white hover:underline">
           {playlist.title}
         </h3>
-        <p className="text-zinc-500 text-xs">
+      </Link>
+
+      {playlist.owner?.handle ? (
+        <Link
+          href={`/profiles/${playlist.owner.handle}`}
+          className="block truncate text-xs text-zinc-500 hover:text-white hover:underline"
+        >
+          {playlist.owner?.display_name ?? "You"}
+        </Link>
+      ) : (
+        <p className="truncate text-xs text-zinc-500">
           {playlist.owner?.display_name ?? "You"}
         </p>
-      </Link>
+      )}
 
       {/* MODALS */}
       {shareOpen && (

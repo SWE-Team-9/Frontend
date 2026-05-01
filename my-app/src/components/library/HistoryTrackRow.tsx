@@ -16,6 +16,7 @@ import TimestampedCommentsSection from "@/src/components/tracks/TimestampedComme
 import SharePopup from "@/src/components/share/SharePopup";
 import { buildFullShareUrl, buildTrackPermalink } from "@/src/lib/permalinks";
 import { loadQueue } from "@/src/services/playerService";
+import { TrackPageLink, UserProfileLink } from "@/src/components/navigation/EntityLinks";
 
 const FALLBACK_IMAGE = "/images/track-placeholder.png";
 const ACCENT = "#ff5500";
@@ -192,12 +193,21 @@ export default function HistoryTrackRow({ track, contextTrackIds }: HistoryTrack
           </button>
 
           <div className="min-w-0">
-            <p className="truncate text-[15px] text-zinc-400">
+            <UserProfileLink
+              handle={track.artistHandle}
+              className="block truncate text-[15px] text-zinc-400 hover:text-white hover:underline"
+            >
               {track.artist}
-            </p>
-            <p className="truncate text-[22px] font-bold text-white leading-tight">
+            </UserProfileLink>
+
+            <TrackPageLink
+              trackId={track.trackId}
+              artistHandle={track.artistHandle}
+              slug={track.slug}
+              className="block truncate text-[22px] font-bold leading-tight text-white hover:underline"
+            >
               {track.title}
-            </p>
+            </TrackPageLink>
           </div>
         </div>
 
@@ -317,13 +327,12 @@ export default function HistoryTrackRow({ track, contextTrackIds }: HistoryTrack
                   ? "Copy failed"
                   : "Copy link"
             }
-            className={`flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition ${
-              copyStatus === "success"
+            className={`flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition ${copyStatus === "success"
                 ? "border-green-600 bg-green-800/60 text-green-300"
                 : copyStatus === "error"
                   ? "border-red-600 bg-red-800/60 text-red-300"
                   : "border-zinc-700 bg-zinc-800/60 text-zinc-300 hover:border-zinc-500 hover:bg-zinc-700"
-            }`}
+              }`}
           >
             <TbCopy className="text-base" />
             <span>
