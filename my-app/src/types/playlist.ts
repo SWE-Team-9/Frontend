@@ -10,6 +10,7 @@ export interface PlaylistOwner {
 
 export interface Playlist {
   liked?: boolean; 
+  likesCount?: number;
   playlistId: string;
   title: string;
   description?: string | null;

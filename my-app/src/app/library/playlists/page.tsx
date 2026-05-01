@@ -11,6 +11,7 @@ import {
   LibraryPlaylistsHeader,
   PlaylistFilterMode,
 } from "@/src/components/library/LibraryPlaylistsHeader";
+import LibraryTabs from "@/src/components/library/LibraryTabs";
 
 export default function LibraryPlaylistsPage() {
   const { playlists, isLoading, createPlaylist } = usePlaylists();
@@ -71,7 +72,7 @@ export default function LibraryPlaylistsPage() {
 
   return (
     <div className="min-h-screen bg-[#121212] px-6 py-8 text-white">
-
+      <LibraryTabs />
       {/* HEADER FILTER */}
       <LibraryPlaylistsHeader
         filter={filter}
@@ -107,7 +108,7 @@ export default function LibraryPlaylistsPage() {
             <h1 className="text-xl font-bold">Your Playlists</h1>
             <button
               onClick={() => setIsCreateOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-[#f50] hover:bg-[#e64a00] text-white text-xs font-bold uppercase tracking-wider rounded transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-zinc-400 text-black text-xs font-bold uppercase tracking-wider rounded transition-colors"
             >
               <FaPlus size={11} /> Create Playlist
             </button>
