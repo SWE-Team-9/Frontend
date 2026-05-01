@@ -331,18 +331,19 @@ const NavBar: React.FC<NavBarProps> = ({
             <button
               className="relative cursor-pointer"
               onClick={() => toggleMenu("messages")}
+              aria-label="Messages"
             >
               <FiMail size={20} className="text-neutral-400 hover:text-white" />
 
-              {showUnreadDotOnly ? (
+              {unreadMessageCount > 0 ? (
+                // Real unread messages — always show the count, ignore showUnreadDotOnly
+                <span className="absolute -right-1.5 -top-1.5 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-[#ff5500] px-1 text-[10px] font-bold leading-none text-white">
+                  {unreadMessageCount > 99 ? "99+" : unreadMessageCount}
+                </span>
+              ) : showUnreadDotOnly ? (
+                // No real unread messages, but user marked a chat as unread — show blank dot
                 <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-[#ff5500]" />
-              ) : (
-                unreadMessageCount > 0 && (
-                  <span className="absolute -right-1.5 -top-1.5 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-[#ff5500] px-1 text-[10px] font-bold leading-none text-white">
-                    {unreadMessageCount > 99 ? "99+" : unreadMessageCount}
-                  </span>
-                )
-              )}
+              ) : null}
 
               {openMenu === "messages" && <MessagesDropdown />}
             </button>
