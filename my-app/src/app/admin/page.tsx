@@ -2,15 +2,21 @@
 import React, { useEffect } from 'react';
 import { useAdminStore } from '@/src/store/useAdminStore';
 import { StatCard } from '@/src/components/admin/StatCard';
-import { 
-  Users, 
-  HardDrive, 
-  Music, 
-  AlertCircle, 
+import {
+  Users,
+  HardDrive,
+  Music,
+  AlertCircle,
   TrendingUp,
   RefreshCcw,
   Disc,
-  ArrowRight
+  ArrowRight,
+  Mic2,
+  Headphones,
+  Play,
+  CheckCircle2,
+  Gauge,
+  Scale
 } from 'lucide-react';
 import { 
   PieChart, 
@@ -61,7 +67,9 @@ export default function AdminDashboard() {
     { name: 'Other', value: 5, color: '#27272a' },
   ];
 
-  const storagePercent = (stats.storage.used_bytes / stats.storage.total_bytes) * 100;
+  const storagePercent = stats.storage.total_bytes
+    ? (stats.storage.used_bytes / stats.storage.total_bytes) * 100
+    : 0;
   
   const getStorageColor = (percent: number) => {
     if (percent > 90) return '#ef4444';
@@ -156,6 +164,61 @@ export default function AdminDashboard() {
             ))}
           </div>
         </StatCard>
+      </div>
+
+      {/* Audience & Engagement Metrics */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="bg-[#1a1a1a] border border-zinc-800 p-4 rounded-xl">
+          <div className="flex items-center gap-2 mb-2">
+            <Mic2 size={14} className="text-orange-500" />
+            <p className="text-zinc-500 text-[10px] font-semibold uppercase tracking-wider">Artists</p>
+          </div>
+          <h3 className="text-xl font-bold text-white">{stats.users.artists.toLocaleString()}</h3>
+        </div>
+
+        <div className="bg-[#1a1a1a] border border-zinc-800 p-4 rounded-xl">
+          <div className="flex items-center gap-2 mb-2">
+            <Headphones size={14} className="text-blue-400" />
+            <p className="text-zinc-500 text-[10px] font-semibold uppercase tracking-wider">Listeners</p>
+          </div>
+          <h3 className="text-xl font-bold text-white">{stats.users.listeners.toLocaleString()}</h3>
+        </div>
+
+        <div className="bg-[#1a1a1a] border border-zinc-800 p-4 rounded-xl">
+          <div className="flex items-center gap-2 mb-2">
+            <Scale size={14} className="text-purple-400" />
+            <p className="text-zinc-500 text-[10px] font-semibold uppercase tracking-wider">Artist Ratio</p>
+          </div>
+          <h3 className="text-xl font-bold text-white">
+            {stats.users.artist_to_listener_ratio != null
+              ? stats.users.artist_to_listener_ratio.toFixed(4)
+              : '—'}
+          </h3>
+        </div>
+
+        <div className="bg-[#1a1a1a] border border-zinc-800 p-4 rounded-xl">
+          <div className="flex items-center gap-2 mb-2">
+            <Play size={14} className="text-green-400" />
+            <p className="text-zinc-500 text-[10px] font-semibold uppercase tracking-wider">Total Plays</p>
+          </div>
+          <h3 className="text-xl font-bold text-white">{stats.engagement.total_play_events.toLocaleString()}</h3>
+        </div>
+
+        <div className="bg-[#1a1a1a] border border-zinc-800 p-4 rounded-xl">
+          <div className="flex items-center gap-2 mb-2">
+            <CheckCircle2 size={14} className="text-emerald-400" />
+            <p className="text-zinc-500 text-[10px] font-semibold uppercase tracking-wider">Completed</p>
+          </div>
+          <h3 className="text-xl font-bold text-white">{stats.engagement.completed_play_events.toLocaleString()}</h3>
+        </div>
+
+        <div className="bg-[#1a1a1a] border border-zinc-800 p-4 rounded-xl">
+          <div className="flex items-center gap-2 mb-2">
+            <Gauge size={14} className="text-yellow-400" />
+            <p className="text-zinc-500 text-[10px] font-semibold uppercase tracking-wider">Play-Through</p>
+          </div>
+          <h3 className="text-xl font-bold text-white">{stats.engagement.play_through_rate_pct.toFixed(1)}%</h3>
+        </div>
       </div>
 
       {/* Analytics & Moderation Row */}

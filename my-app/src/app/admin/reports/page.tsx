@@ -11,7 +11,7 @@ import {
   FiEye
 } from 'react-icons/fi';
 import { Music, User, ShieldAlert, ShieldCheck } from 'lucide-react';
-import { ReportActions } from "@/src/components/admin/ReportActions";
+import { adminService } from '@/src/services/admin/adminService';
 
 export default function ReportsPage() {
   const { 
@@ -24,7 +24,6 @@ export default function ReportsPage() {
   
   const [filter, setFilter] = useState<'ALL' | 'PENDING' | 'RESOLVED'>('ALL');
   const [isMounted, setIsMounted] = useState(false);
-
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean; 
     userId: string; 
@@ -60,16 +59,16 @@ export default function ReportsPage() {
     try {
       const duration = confirmModal.mode === 'SUSPEND' ? 7 : 0;
       
-      await suspendUser(confirmModal.userId, duration, { 
-        reason, 
-        current_password: password 
+      await adminService.suspendUser(confirmModal.userId, {
+       reason,
+       current_password: password,
+       duration_days: duration,
       });
-      await fetchDashboardData();
 
       setConfirmModal({ isOpen: false, userId: '', mode: 'SUSPEND' });
       setReason('');
       setPassword('');
-    } catch (error) {
+    } catch (_error) {
       alert("Failed to update status. Check your admin password.");
     }
   };

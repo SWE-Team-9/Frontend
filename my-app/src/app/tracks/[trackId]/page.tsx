@@ -5,8 +5,10 @@ import Image from "next/image";
 import React, { useEffect, useState } from "react";
 import { FaPlay, FaPause } from "react-icons/fa";
 import { getTrackDetails } from "@/src/services/uploadService";
-import { WaveformDisplay } from "@/src/components/tracks/WaveformDisplay";
+import TimestampedCommentsSection from "@/src/components/tracks/TimestampedCommentsSection";
+import TrackCommentsSection from "@/src/components/tracks/TrackCommentsSection";
 import { DownloadButton } from "@/src/components/tracks/DownloadButton";
+import { ReportButton } from "@/src/components/reports/ReportButton";
 import {
   usePlayerStore,
   type Track as PlayerTrack,
@@ -88,57 +90,17 @@ const timeAgo = (iso: string | null) => {
   return years === 1 ? "1 year ago" : `${years} years ago`;
 };
 
-// Sample three vertical bands of the cover art and return a left→right gradient.
-// Falls back silently to null if CORS / loading fails so the default stays in place.
 async function extractGradientFromImage(src: string): Promise<string | null> {
-  return new Promise((resolve) => {
-    if (typeof window === "undefined") return resolve(null);
-
-    const img = document.createElement("img");
-    img.crossOrigin = "anonymous";
-
-    img.onload = () => {
-      try {
-        const size = 50;
-        const canvas = document.createElement("canvas");
-        canvas.width = size;
-        canvas.height = size;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return resolve(null);
-        ctx.drawImage(img, 0, 0, size, size);
-        const { data } = ctx.getImageData(0, 0, size, size);
-
-        const sampleBand = (xStart: number, xEnd: number) => {
-          let r = 0;
-          let g = 0;
-          let b = 0;
-          let count = 0;
-          for (let y = 0; y < size; y++) {
-            for (let x = xStart; x < xEnd; x++) {
-              const i = (y * size + x) * 4;
-              r += data[i];
-              g += data[i + 1];
-              b += data[i + 2];
-              count++;
-            }
-          }
-          return `rgb(${Math.round(r / count)}, ${Math.round(g / count)}, ${Math.round(b / count)})`;
-        };
-
-        const third = Math.floor(size / 3);
-        const c1 = sampleBand(0, third);
-        const c2 = sampleBand(third, third * 2);
-        const c3 = sampleBand(third * 2, size);
-
-        resolve(`linear-gradient(to right, ${c1}, ${c2}, ${c3})`);
-      } catch {
-        resolve(null);
-      }
-    };
-
-    img.onerror = () => resolve(null);
-    img.src = src;
-  });
+  try {
+    const res = await fetch(
+      `/next/extract-colors?imageUrl=${encodeURIComponent(src)}`
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as { gradient: string | null };
+    return data.gradient ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export default function TrackDetailPage() {
@@ -149,6 +111,7 @@ export default function TrackDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dynamicGradient, setDynamicGradient] = useState<string | null>(null);
+  const [commentsRefreshKey, setCommentsRefreshKey] = useState(0);
 
   // Player
   const currentTrack = usePlayerStore((state) => state.currentTrack);
@@ -305,13 +268,29 @@ export default function TrackDetailPage() {
                 </div>
               </div>
 
-              {/* Waveform */}
-              <div className="h-24">
-                {track.waveformData && (
-                  <WaveformDisplay
-                    progress={waveformProgress}
+              {/* Waveform + timestamped comment input */}
+              <div>
+                {track.allowComments ? (
+                  <TimestampedCommentsSection
+                    trackId={track.trackId}
+                    trackTitle={track.title}
+                    trackOwnerId={track.artistId ?? undefined}
+                    durationSeconds={
+                      track.durationMs ? Math.floor(track.durationMs / 1000) : 0
+                    }
+                    waveformData={track.waveformData}
+                    waveformSeed={track.trackId}
+                    waveformProgress={waveformProgress}
                     onSeek={handleWaveformSeek}
+                    currentPlaybackSeconds={isCurrentTrack ? currentTime : 0}
+                    enabled={track.status === "FINISHED"}
+                    alwaysShowInput
+                    onCommentAdded={() =>
+                      setCommentsRefreshKey((previous) => previous + 1)
+                    }
                   />
+                ) : (
+                  <p className="text-sm text-white/70">Comments are disabled.</p>
                 )}
               </div>
             </div>
@@ -372,6 +351,15 @@ export default function TrackDetailPage() {
                 )}
               </div>
             </section>
+            {track.allowComments && (
+              <section className="bg-[#121212] rounded-lg p-2">
+                <TrackCommentsSection
+                  trackId={track.trackId}
+                  enabled={track.status === "FINISHED"}
+                  refreshKey={commentsRefreshKey}
+                />
+              </section>
+            )}
           </div>
 
           {/* RIGHT COLUMN — track details */}
@@ -398,11 +386,10 @@ export default function TrackDetailPage() {
                   label="Visibility"
                   value={
                     <span
-                      className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full border ${
-                        track.visibility === "PUBLIC"
-                          ? "border-blue-400 text-blue-400"
-                          : "border-gray-500 text-gray-400"
-                      }`}
+                      className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full border ${track.visibility === "PUBLIC"
+                        ? "border-blue-400 text-blue-400"
+                        : "border-gray-500 text-gray-400"
+                        }`}
                     >
                       {track.visibility}
                     </span>
@@ -412,13 +399,12 @@ export default function TrackDetailPage() {
                   label="Status"
                   value={
                     <span
-                      className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full border ${
-                        track.status === "FINISHED"
-                          ? "border-green-500 text-green-400"
-                          : track.status === "FAILED"
-                            ? "border-red-500 text-red-400"
-                            : "border-yellow-500 text-yellow-400"
-                      }`}
+                      className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full border ${track.status === "FINISHED"
+                        ? "border-green-500 text-green-400"
+                        : track.status === "FAILED"
+                          ? "border-red-500 text-red-400"
+                          : "border-yellow-500 text-yellow-400"
+                        }`}
                     >
                       {track.status}
                     </span>
@@ -485,6 +471,15 @@ export default function TrackDetailPage() {
             )}
 
             {track.downloadable && <DownloadButton trackId={track.trackId} />}
+            <div className="mt-4">
+              <ReportButton
+                targetId={track.trackId}
+                targetType="TRACK"
+                targetLabel={track.title}
+                className="text-xs"
+                iconSize={14}
+              />
+            </div>
           </aside>
         </div>
       </div>

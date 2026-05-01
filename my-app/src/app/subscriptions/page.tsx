@@ -1,16 +1,18 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  LuPlay, LuGlobe, LuUpload, LuZap, LuShare2, 
+  LuPlay, LuGlobe, LuUpload, LuZap, LuShare2,
   LuRefreshCw, LuCheck, LuArrowRight,
 } from "react-icons/lu";
 import { HiSparkles } from "react-icons/hi2";
 import { FaDiamond } from "react-icons/fa6";
 import { PLAN_CONFIG } from "@/src/config/plans";
+import { useSubscriptionStore } from "@/src/store/useSubscriptionStore";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
+
 type BadgeStyle = "purple" | "gold" | null;
 
 interface FeatureRow {
@@ -26,36 +28,40 @@ interface Plan {
   name: string;
   tagline: string;
   price: string;
-
   features: FeatureRow[];
   cta: string;
   href: string;
   accentColor: string;
   textColor: string;
   popular: boolean;
+  /** Backend plan code matching SubscriptionDetails.subscriptionType */
+  subscriptionType: "FREE" | "PRO" | "GO+";
 }
 
-// ─── Feature icon map ──────────────────────────────────────────────────────────
+// ─── Feature icon map ─────────────────────────────────────────────────────────
+
 const FeatureIcon = ({ name }: { name: string }) => {
   const cls = "w-4 h-4 shrink-0";
   const map: Record<string, React.ReactNode> = {
-    upload:     <LuUpload className={cls} />,
-    boost:      <LuZap className={cls} />,
+    upload: <LuUpload className={cls} />,
+    boost: <LuZap className={cls} />,
     distribute: <LuShare2 className={cls} />,
-    replace:    <LuRefreshCw className={cls} />,
-    check:      <LuCheck className={cls} />,
-    play:       <LuPlay className={cls} />,
-    globe:      <LuGlobe className={cls} />,
+    replace: <LuRefreshCw className={cls} />,
+    check: <LuCheck className={cls} />,
+    play: <LuPlay className={cls} />,
+    globe: <LuGlobe className={cls} />,
   };
   return <>{map[name] ?? <LuCheck className={cls} />}</>;
 };
 
-// ─── Plans data — reads from PLAN_CONFIG ──────────────────────────────────────
+// ─── Plans data ───────────────────────────────────────────────────────────────
+
 const PLANS: Plan[] = [
   {
     key: "free",
     tier: "free",
     name: "Free",
+    subscriptionType: "FREE",
     tagline: "Basic features to get you started on your music journey.",
     price: `$${PLAN_CONFIG.FREE.monthlyPrice.toFixed(2)}`,
     accentColor: "#71717a",
@@ -64,16 +70,17 @@ const PLANS: Plan[] = [
     cta: "Get started",
     href: "/discover",
     features: [
-      { icon: <FeatureIcon name="play" />,       label: "Stream all public tracks" },
-      { icon: <FeatureIcon name="globe" />,      label: "Basic profile customization" },
-      { icon: <FeatureIcon name="upload" />,     label: `${PLAN_CONFIG.FREE.uploadLimit} track uploads limit` },
-      { icon: <FeatureIcon name="check" />,      label: "Standard audio quality" },
+      { icon: <FeatureIcon name="play" />, label: "Stream all public tracks" },
+      { icon: <FeatureIcon name="globe" />, label: "Basic profile customization" },
+      { icon: <FeatureIcon name="upload" />, label: `${PLAN_CONFIG.FREE.uploadLimit} track uploads limit` },
+      { icon: <FeatureIcon name="check" />, label: "Standard audio quality" },
     ],
   },
   {
     key: "pro",
     tier: "pro",
     name: "Artist Pro",
+    subscriptionType: "PRO",
     tagline: "Tailored access to essential artist tools",
     price: `$${PLAN_CONFIG.PRO.monthlyPrice.toFixed(2)}`,
     accentColor: "#7c3aed",
@@ -82,16 +89,17 @@ const PLANS: Plan[] = [
     cta: "Get started",
     href: "/subscriptions/checkout?plan=pro",
     features: [
-      { icon: <FeatureIcon name="upload" />,     label: `${PLAN_CONFIG.PRO.uploadLimit} track uploads` },
-      { icon: <FeatureIcon name="boost" />,      label: "Boost tracks & get 100+ listeners", badge: "2X MONTH",  badgeStyle: "purple" },
-      { icon: <FeatureIcon name="distribute" />, label: "Distribute & monetize tracks",       badge: "2X MONTH",  badgeStyle: "purple" },
-      { icon: <FeatureIcon name="replace" />,    label: "Track Replacement",                  badge: "3X MONTH",  badgeStyle: "purple" },
+      { icon: <FeatureIcon name="upload" />, label: `${PLAN_CONFIG.PRO.uploadLimit} track uploads` },
+      { icon: <FeatureIcon name="boost" />, label: "Boost tracks & get 100+ listeners", badge: "2X MONTH", badgeStyle: "purple" },
+      { icon: <FeatureIcon name="distribute" />, label: "Distribute & monetize tracks", badge: "2X MONTH", badgeStyle: "purple" },
+      { icon: <FeatureIcon name="replace" />, label: "Track Replacement", badge: "3X MONTH", badgeStyle: "purple" },
     ],
   },
   {
     key: "goplus",
     tier: "goplus",
     name: "GO+",
+    subscriptionType: "GO+",
     tagline: "Unlimited access to all artist tools",
     price: `$${PLAN_CONFIG["GO+"].monthlyPrice.toFixed(2)}`,
     accentColor: "#f0a046",
@@ -100,20 +108,21 @@ const PLANS: Plan[] = [
     cta: "Get started",
     href: "/subscriptions/checkout?plan=goplus",
     features: [
-      { icon: <FeatureIcon name="upload" />,     label: "Unlimited uploads" },
-      { icon: <FeatureIcon name="boost" />,      label: "Boost tracks and get 100+ listeners", badge: "UNLIMITED", badgeStyle: "gold" },
-      { icon: <FeatureIcon name="distribute" />, label: "Distribute & monetize tracks",        badge: "UNLIMITED", badgeStyle: "gold" },
-      { icon: <FeatureIcon name="replace" />,    label: "Replace tracks without losing stats", badge: "UNLIMITED", badgeStyle: "gold" },
+      { icon: <FeatureIcon name="upload" />, label: "Unlimited uploads" },
+      { icon: <FeatureIcon name="boost" />, label: "Boost tracks and get 100+ listeners", badge: "UNLIMITED", badgeStyle: "gold" },
+      { icon: <FeatureIcon name="distribute" />, label: "Distribute & monetize tracks", badge: "UNLIMITED", badgeStyle: "gold" },
+      { icon: <FeatureIcon name="replace" />, label: "Replace tracks without losing stats", badge: "UNLIMITED", badgeStyle: "gold" },
     ],
   },
 ];
 
 // ─── Badge ────────────────────────────────────────────────────────────────────
+
 function Badge({ text, style }: { text: string; style: BadgeStyle }) {
   if (!style) return null;
   const styles = {
     purple: "border border-violet-400 text-violet-500 bg-violet-50",
-    gold:   "border border-amber-400 text-amber-600 bg-amber-50",
+    gold: "border border-amber-400 text-amber-600 bg-amber-50",
   };
   return (
     <span className={`ml-auto shrink-0 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-sm ${styles[style]}`}>
@@ -122,16 +131,47 @@ function Badge({ text, style }: { text: string; style: BadgeStyle }) {
   );
 }
 
+// ─── Current plan pill ────────────────────────────────────────────────────────
+
+function CurrentPlanBadge() {
+  return (
+    <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-green-500/10 text-green-400 border border-green-500/30">
+      <LuCheck size={9} /> Current plan
+    </span>
+  );
+}
+
 // ─── Single plan card ─────────────────────────────────────────────────────────
-function PlanCard({ plan, hovered, onHover }: {
+
+function PlanCard({
+  plan,
+  hovered,
+  onHover,
+  isCurrent,
+}: {
   plan: Plan;
   hovered: boolean;
   onHover: (key: string | null) => void;
+  isCurrent: boolean;
 }) {
   const router = useRouter();
 
   const isPopular = plan.popular;
   const isFree = plan.tier === "free";
+
+  const ctaLabel = isCurrent
+    ? plan.tier === "free"
+      ? "Current plan"
+      : "Manage plan"
+    : plan.cta;
+
+  const handleCta = () => {
+    if (isCurrent && plan.tier !== "free") {
+      router.push("/settings?tab=subscription");
+    } else {
+      router.push(plan.href);
+    }
+  };
 
   return (
     <div
@@ -148,7 +188,7 @@ function PlanCard({ plan, hovered, onHover }: {
           Most Popular
         </div>
       ) : (
-        <div className="h-[37px]" /> // spacer to keep cards aligned
+        <div className="h-[37px]" />
       )}
 
       {/* ── Card body ───────────────────────────────────────────── */}
@@ -163,84 +203,103 @@ function PlanCard({ plan, hovered, onHover }: {
           ${hovered && isPopular ? "shadow-3xl -translate-y-1" : ""}
         `}
         style={{
-          borderColor: isPopular ? plan.accentColor : hovered ? plan.accentColor : undefined,
+          borderColor: isPopular
+            ? plan.accentColor
+            : hovered
+            ? plan.accentColor
+            : undefined,
           transition: "border-color 0.2s, box-shadow 0.2s, transform 0.2s",
         }}
       >
         {/* Name + icon */}
-        <div className="flex items-center gap-2 mb-3">
-          <h3 className="text-2xl font-black text-zinc-900 tracking-tight">{plan.name}</h3>
+        <div className="flex items-center gap-2 mb-2">
+          <h3 className="text-2xl font-black text-zinc-900 tracking-tight">
+            {plan.name}
+          </h3>
           <span style={{ color: plan.accentColor }} className="text-xl">
-            {plan.tier === "goplus" ? <HiSparkles /> : plan.tier === "pro" ? <FaDiamond size={14} /> : "✦"}
+            {plan.tier === "goplus" ? (
+              <HiSparkles />
+            ) : plan.tier === "pro" ? (
+              <FaDiamond size={14} />
+            ) : (
+              "✦"
+            )}
           </span>
         </div>
 
+        {/* Current plan indicator */}
+        {isCurrent && (
+          <div className="mb-2">
+            <CurrentPlanBadge />
+          </div>
+        )}
+
         {/* Tagline */}
-        <p className="text-zinc-500 text-sm leading-snug mb-6 min-h-[36px]">{plan.tagline}</p>
+        <p className="text-zinc-500 text-sm leading-snug mb-6 min-h-[36px]">
+          {plan.tagline}
+        </p>
 
         {/* Price */}
         <div className="mb-1">
           <div className="flex items-baseline gap-1">
-            <span className="text-4xl font-black tracking-tight" style={{ color: isFree ? "#71717a" : plan.accentColor }}>
+            <span
+              className="text-4xl font-black tracking-tight"
+              style={{ color: isFree ? "#71717a" : plan.accentColor }}
+            >
               {plan.price}
             </span>
-            <span className="text-zinc-400 text-[11px] font-bold uppercase tracking-tighter ml-1">/ Month</span>
+            <span className="text-zinc-400 text-[11px] font-bold uppercase tracking-tighter ml-1">
+              / Month
+            </span>
           </div>
         </div>
 
         {/* CTA */}
         <button
-          onClick={() => router.push(plan.href)}
+          onClick={handleCta}
           className={`
             w-full mt-6 mb-8 py-3.5 rounded-full font-black text-[11px] uppercase tracking-[0.2em]
             transition-all duration-200 text-white
             ${hovered ? "opacity-100 scale-[1.02]" : "opacity-95"}
+            ${isCurrent ? "opacity-70" : ""}
           `}
           style={
-  plan.tier === "goplus"
-    ? {
-        background: "linear-gradient(135deg, #F5C518 0%, #D4920A 50%, #B8780A 100%)",
-        border: "1px solid #C9940C",
-        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.25), 0 2px 8px rgba(180,120,0,0.4)",
-        color: "#fff",
-        letterSpacing: "0.15em",
-      }
-    : plan.tier === "pro"
-    ? {
-        background: "linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)",
-        border: "1px solid #7C3AED",
-        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.15), 0 2px 8px rgba(109,40,217,0.4)",
-      }
-    : { backgroundColor: "#111" }
-}
-onMouseEnter={(e) => {
-  if (plan.tier === "goplus") {
-    e.currentTarget.style.background =
-      "linear-gradient(135deg, #FFD700 0%, #E4A010 50%, #C8850C 100%)";
-    e.currentTarget.style.boxShadow =
-      "inset 0 1px 0 rgba(255,255,255,0.3), 0 4px 16px rgba(180,120,0,0.5)";
-  } else if (plan.tier === "pro") {
-    e.currentTarget.style.background =
-      "linear-gradient(135deg, #A78BFA 0%, #7C3AED 100%)";
-  } else {
-    e.currentTarget.style.backgroundColor = "#333";
-  }
-}}
-onMouseLeave={(e) => {
-  if (plan.tier === "goplus") {
-    e.currentTarget.style.background =
-      "linear-gradient(135deg, #F5C518 0%, #D4920A 50%, #B8780A 100%)";
-    e.currentTarget.style.boxShadow =
-      "inset 0 1px 0 rgba(255,255,255,0.25), 0 2px 8px rgba(180,120,0,0.4)";
-  } else if (plan.tier === "pro") {
-    e.currentTarget.style.background =
-      "linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)";
-  } else {
-    e.currentTarget.style.backgroundColor = "#111";
-  }
-}}
+            plan.tier === "goplus"
+              ? {
+                  background: "linear-gradient(135deg, #F5C518 0%, #D4920A 50%, #B8780A 100%)",
+                  border: "1px solid #C9940C",
+                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.25), 0 2px 8px rgba(180,120,0,0.4)",
+                  color: "#fff",
+                  letterSpacing: "0.15em",
+                }
+              : plan.tier === "pro"
+              ? {
+                  background: "linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)",
+                  border: "1px solid #7C3AED",
+                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.15), 0 2px 8px rgba(109,40,217,0.4)",
+                }
+              : { backgroundColor: "#111" }
+          }
+          onMouseEnter={(e) => {
+            if (plan.tier === "goplus") {
+              e.currentTarget.style.background = "linear-gradient(135deg, #FFD700 0%, #E4A010 50%, #C8850C 100%)";
+            } else if (plan.tier === "pro") {
+              e.currentTarget.style.background = "linear-gradient(135deg, #A78BFA 0%, #7C3AED 100%)";
+            } else {
+              e.currentTarget.style.backgroundColor = "#333";
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (plan.tier === "goplus") {
+              e.currentTarget.style.background = "linear-gradient(135deg, #F5C518 0%, #D4920A 50%, #B8780A 100%)";
+            } else if (plan.tier === "pro") {
+              e.currentTarget.style.background = "linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)";
+            } else {
+              e.currentTarget.style.backgroundColor = "#111";
+            }
+          }}
         >
-          {plan.cta}
+          {ctaLabel}
         </button>
 
         {/* Divider */}
@@ -251,8 +310,12 @@ onMouseLeave={(e) => {
           {plan.features.map((feat, i) => (
             <li key={i} className="flex items-center gap-3">
               <span style={{ color: plan.accentColor }}>{feat.icon}</span>
-              <span className="text-[13px] font-semibold text-zinc-700 leading-tight">{feat.label}</span>
-              {feat.badge && <Badge text={feat.badge} style={feat.badgeStyle ?? null} />}
+              <span className="text-[13px] font-semibold text-zinc-700 leading-tight">
+                {feat.label}
+              </span>
+              {feat.badge && (
+                <Badge text={feat.badge} style={feat.badgeStyle ?? null} />
+              )}
             </li>
           ))}
         </ul>
@@ -261,10 +324,18 @@ onMouseLeave={(e) => {
   );
 }
 
-// ─── Page ──────────────────────────────────────────────────────────────────────
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 export default function SubscriptionPage() {
   const router = useRouter();
   const [hoveredPlan, setHoveredPlan] = useState<string | null>(null);
+  const { sub, fetchSubscription } = useSubscriptionStore();
+
+  useEffect(() => {
+    fetchSubscription();
+  }, [fetchSubscription]);
+
+  const currentType = sub?.subscriptionType ?? null;
 
   return (
     <main className="min-h-screen bg-white">
@@ -274,9 +345,14 @@ export default function SubscriptionPage() {
           Select the plan that suits you best
         </p>
         <h1 className="text-4xl md:text-5xl font-black text-zinc-900 leading-tight tracking-tight max-w-xl mx-auto">
-          Unlock artist tools and<br />
-          <span className="text-transparent bg-clip-text"
-            style={{ backgroundImage: "linear-gradient(90deg, #7c3aed, #d97706)" }}>
+          Unlock artist tools and
+          <br />
+          <span
+            className="text-transparent bg-clip-text"
+            style={{
+              backgroundImage: "linear-gradient(90deg, #7c3aed, #d97706)",
+            }}
+          >
             reach more listeners
           </span>
         </h1>
@@ -291,6 +367,7 @@ export default function SubscriptionPage() {
               plan={plan}
               hovered={hoveredPlan === plan.key}
               onHover={setHoveredPlan}
+              isCurrent={currentType === plan.subscriptionType}
             />
           ))}
         </div>

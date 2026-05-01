@@ -1,7 +1,7 @@
 "use client";
 
 // Component responsible for rendering a list of tracks inside a playlist
-import { TrackItem } from "./TrackItem";
+import { TrackItem } from "@/src/components/playlists/TrackItem";
 
 // Track data structure definition
 interface Track {

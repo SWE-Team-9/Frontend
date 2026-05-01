@@ -16,7 +16,7 @@ export default function ConversationList() {
   const setConversationView = useMessageStore((s) => s.setConversationView);
 
   return (
-    <aside className="h-[calc(100vh-64px)] w-[380px] shrink-0 overflow-y-auto border-r border-zinc-800 p-5">
+    <aside className="h-[calc(100vh-64px)] w-95 shrink-0 overflow-y-auto border-r border-zinc-800 p-5">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-3xl font-bold">Messages</h1>
 

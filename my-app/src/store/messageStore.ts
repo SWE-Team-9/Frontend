@@ -5,6 +5,7 @@ import {
   disconnectMessageSocket,
 } from "@/src/services/messageSocketService";
 import { useAuthStore } from "@/src/store/useAuthStore";
+import { useWsDebugStore } from "@/src/store/wsDebugStore";
 import type {
   AttachResource,
   ConversationPreview,
@@ -49,17 +50,31 @@ function normalizeMessagesForDisplay(messages: Message[]) {
   );
 }
 
-function moveConversationToTop(
+function getConversationTime(conversation: ConversationPreview) {
+  return new Date(
+    conversation.lastMessage?.createdAt ??
+    conversation.updatedAt ??
+    0,
+  ).getTime();
+}
+
+function sortConversationsByNewest(conversations: ConversationPreview[]) {
+  return [...conversations].sort(
+    (a, b) => getConversationTime(b) - getConversationTime(a),
+  );
+}
+
+function upsertAndSortConversation(
   conversations: ConversationPreview[],
   conversation: ConversationPreview,
 ) {
-  return [
-    conversation,
-    ...conversations.filter(
-      (c) => c.conversationId !== conversation.conversationId,
-    ),
-  ];
+  const withoutCurrent = conversations.filter(
+    (c) => c.conversationId !== conversation.conversationId,
+  );
+
+  return sortConversationsByNewest([conversation, ...withoutCurrent]);
 }
+
 
 interface MessageState {
   conversationView: "active" | "archived";
@@ -70,6 +85,7 @@ interface MessageState {
   page: number;
   hasMore: boolean;
   unreadCount: number;
+  showUnreadDotOnly: boolean;
   isLoading: boolean;
   isLoadingConversations: boolean;
   isLoadingOlder: boolean;
@@ -113,6 +129,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
   page: 1,
   hasMore: false,
   unreadCount: 0,
+  showUnreadDotOnly: false,
   isLoading: false,
   isLoadingConversations: true,
   isLoadingOlder: false,
@@ -130,7 +147,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
       const archived = get().conversationView === "archived";
       const data = await messageService.getConversations(1, 20, archived);
 
-      set({ conversations: data.conversations });
+      set({ conversations: sortConversationsByNewest(data.conversations) });
     } catch {
       set({ error: "Could not load conversations." });
     } finally {
@@ -154,9 +171,15 @@ export const useMessageStore = create<MessageState>((set, get) => ({
   loadDropdownConversations: async () => {
     if (dropdownConversationsFetchInFlight) return;
     dropdownConversationsFetchInFlight = true;
+
     try {
-      const data = await messageService.getConversations(1, 5, false);
-      set({ dropdownConversations: data.conversations });
+      const data = await messageService.getConversations(1, 50, false);
+
+      set({
+        dropdownConversations: sortConversationsByNewest(
+          data.conversations.filter((c) => c.lastMessage),
+        ).slice(0, 5),
+      });
     } catch {
       set({ dropdownConversations: [] });
     } finally {
@@ -167,7 +190,10 @@ export const useMessageStore = create<MessageState>((set, get) => ({
   loadUnreadCount: async () => {
     try {
       const data = await messageService.getUnreadCount();
-      set({ unreadCount: data.count });
+      set({
+        unreadCount: data.count,
+        showUnreadDotOnly: false,
+      });
     } catch {
       set({ unreadCount: 0 });
     }
@@ -198,32 +224,33 @@ export const useMessageStore = create<MessageState>((set, get) => ({
 
       const updatedConversation: ConversationPreview = conversation
         ? {
-            ...conversation,
-            lastMessage,
-            updatedAt: lastMessage?.createdAt ?? conversation.updatedAt,
-            unreadCount: 0,
-            isBlockedByMe: data.isBlockedByMe,
-            hasBlockedMe: data.hasBlockedMe,
-            canMessage: data.canMessage,
-            blockReason: data.blockReason,
-          }
+          ...conversation,
+          lastMessage,
+          updatedAt: lastMessage?.createdAt ?? conversation.updatedAt,
+          unreadCount: 0,
+          isBlockedByMe: data.isBlockedByMe,
+          hasBlockedMe: data.hasBlockedMe,
+          canMessage: data.canMessage,
+          blockReason: data.blockReason,
+        }
         : {
-            conversationId,
-            participant: data.participant,
-            lastMessage,
-            unreadCount: 0,
-            updatedAt: lastMessage?.createdAt ?? new Date().toISOString(),
-            isArchived: false,
-            isBlockedByMe: data.isBlockedByMe,
-            hasBlockedMe: data.hasBlockedMe,
-            canMessage: data.canMessage,
-            blockReason: data.blockReason,
-          };
+          conversationId,
+          participant: data.participant,
+          lastMessage,
+          unreadCount: 0,
+          updatedAt: lastMessage?.createdAt ?? new Date().toISOString(),
+          isArchived: false,
+          isBlockedByMe: data.isBlockedByMe,
+          hasBlockedMe: data.hasBlockedMe,
+          canMessage: data.canMessage,
+          blockReason: data.blockReason,
+        };
 
       set((state) => ({
         selectedConversation: updatedConversation,
         messages: normalizedMessages,
         hasMore: data.hasMore,
+        showUnreadDotOnly: false,
         conversations: state.conversations.map((c) =>
           c.conversationId === conversationId ? updatedConversation : c,
         ),
@@ -283,10 +310,10 @@ export const useMessageStore = create<MessageState>((set, get) => ({
           ? await messageService.shareTrack(receiverId, attachment.id, cleanText)
           : attachment?.type === "PLAYLIST"
             ? await messageService.sharePlaylist(
-                receiverId,
-                attachment.id,
-                cleanText,
-              )
+              receiverId,
+              attachment.id,
+              cleanText,
+            )
             : await messageService.sendTextMessage(receiverId, cleanText);
 
       set((state) => {
@@ -295,21 +322,27 @@ export const useMessageStore = create<MessageState>((set, get) => ({
           state.selectedConversation?.conversationId ===
           result.conversation.conversationId;
 
+        const updatedConversation: ConversationPreview = {
+          ...result.conversation,
+          lastMessage: result.message,
+          updatedAt: result.message.createdAt,
+        };
+
         return {
           selectedConversation: isCurrent
-            ? result.conversation
+            ? updatedConversation
             : state.selectedConversation,
           messages:
             isCurrent && !exists
               ? normalizeMessagesForDisplay([...state.messages, result.message])
               : state.messages,
-          conversations: moveConversationToTop(
+          conversations: upsertAndSortConversation(
             state.conversations,
-            result.conversation,
+            updatedConversation,
           ),
-          dropdownConversations: moveConversationToTop(
+          dropdownConversations: upsertAndSortConversation(
             state.dropdownConversations,
-            result.conversation,
+            updatedConversation,
           ).slice(0, 5),
         };
       });
@@ -323,22 +356,31 @@ export const useMessageStore = create<MessageState>((set, get) => ({
   },
 
   markUnread: async (conversationId) => {
-    await messageService.markConversationUnread(conversationId);
+    try {
+      await messageService.markConversationUnread(conversationId);
+    } catch {
+      return;
+    }
 
-    set((state) => ({
-      conversations: state.conversations.map((c) =>
-        c.conversationId === conversationId
-          ? { ...c, unreadCount: Math.max(1, c.unreadCount) }
-          : c,
-      ),
-      dropdownConversations: state.dropdownConversations.map((c) =>
-        c.conversationId === conversationId
-          ? { ...c, unreadCount: Math.max(1, c.unreadCount) }
-          : c,
-      ),
-    }));
+    set((state) => {
+      const alreadyHasRealUnread = state.unreadCount > 0;
 
-    await get().loadUnreadCount();
+      return {
+        conversations: state.conversations.map((c) =>
+          c.conversationId === conversationId ? { ...c, unreadCount: 1 } : c,
+        ),
+        dropdownConversations: state.dropdownConversations.map((c) =>
+          c.conversationId === conversationId ? { ...c, unreadCount: 1 } : c,
+        ),
+        selectedConversation:
+          state.selectedConversation?.conversationId === conversationId
+            ? { ...state.selectedConversation, unreadCount: 1 }
+            : state.selectedConversation,
+        // Never change the real unreadCount — only show a blank dot when there
+        // are no actual unread messages to avoid inflating the badge number.
+        showUnreadDotOnly: alreadyHasRealUnread ? state.showUnreadDotOnly : true,
+      };
+    });
   },
 
   archiveConversation: async (conversationId) => {
@@ -386,7 +428,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
     );
 
     set((state) => ({
-      conversations: moveConversationToTop(state.conversations, conversation),
+      conversations: upsertAndSortConversation(state.conversations, conversation),
       isNewMessageOpen: false,
     }));
 
@@ -399,6 +441,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
     if (USE_MOCK) return;
 
     const socket = connectMessageSocket();
+    useWsDebugStore.getState().setMessages("connecting");
 
     socket.off("connect");
     socket.off("disconnect");
@@ -411,6 +454,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
 
     socket.on("connect", () => {
       set({ isSocketConnected: true });
+      useWsDebugStore.getState().setMessages("connected");
       void get().loadUnreadCount();
       void get().loadConversations();
       void get().loadDropdownConversations();
@@ -418,10 +462,12 @@ export const useMessageStore = create<MessageState>((set, get) => ({
 
     socket.on("disconnect", () => {
       set({ isSocketConnected: false });
+      useWsDebugStore.getState().setMessages("disconnected");
     });
 
     socket.on("connect_error", (error) => {
       console.error("Message socket connection failed:", error.message);
+      useWsDebugStore.getState().setMessages("error");
       set({ isSocketConnected: false });
     });
 
@@ -452,6 +498,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
   disconnectSocket: () => {
     disconnectMessageSocket();
     set({ isSocketConnected: false });
+    useWsDebugStore.getState().setMessages("disconnected");
   },
 
   handleSocketNewMessage: (payload) => {
@@ -474,13 +521,13 @@ export const useMessageStore = create<MessageState>((set, get) => ({
 
       const updatedConversation = existingConversation
         ? {
-            ...existingConversation,
-            lastMessage: message,
-            updatedAt: message.createdAt,
-            unreadCount: shouldIncrementUnread
-              ? existingConversation.unreadCount + 1
-              : existingConversation.unreadCount,
-          }
+          ...existingConversation,
+          lastMessage: message,
+          updatedAt: message.createdAt,
+          unreadCount: shouldIncrementUnread
+            ? existingConversation.unreadCount + 1
+            : existingConversation.unreadCount,
+        }
         : null;
 
       return {
@@ -494,14 +541,15 @@ export const useMessageStore = create<MessageState>((set, get) => ({
             : state.selectedConversation,
         conversations:
           updatedConversation && state.conversationView === "active"
-            ? moveConversationToTop(state.conversations, updatedConversation)
+            ? upsertAndSortConversation(state.conversations, updatedConversation)
             : state.conversations,
         dropdownConversations: updatedConversation
-          ? moveConversationToTop(
-              state.dropdownConversations,
-              updatedConversation,
-            ).slice(0, 5)
+          ? upsertAndSortConversation(
+            state.dropdownConversations,
+            updatedConversation,
+          ).slice(0, 5)
           : state.dropdownConversations,
+        showUnreadDotOnly: shouldIncrementUnread ? false : state.showUnreadDotOnly,
       };
     });
 
@@ -545,7 +593,12 @@ export const useMessageStore = create<MessageState>((set, get) => ({
   },
 
   handleSocketUnreadCountUpdated: ({ unreadCount }) => {
-    set({ unreadCount });
+    set((state) => ({
+      unreadCount,
+      // Clear the blank-dot flag now that there are real unread messages to show.
+      // If the server says 0, keep the blank dot if the user manually set it.
+      showUnreadDotOnly: unreadCount > 0 ? false : state.showUnreadDotOnly,
+    }));
   },
 
   handleSocketConversationUpdated: async () => {

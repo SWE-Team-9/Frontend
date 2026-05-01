@@ -1,38 +1,123 @@
-import React from 'react';
+"use client";
+
+import React, { useCallback, useEffect, useState, use } from "react";
 import { adminService } from "@/src/services/admin/adminService";
-import { FiArrowLeft, FiUser, FiMusic, FiAlertCircle } from 'react-icons/fi';
-import Link from 'next/link';
+import { FiArrowLeft, FiUser, FiMusic, FiAlertCircle } from "react-icons/fi";
+import Link from "next/link";
 import { ReportActions } from "@/src/components/admin/ReportActions";
-import { OffenderCard } from '@/src/components/admin/OffenderCard';
-import { AdminUser } from '@/src/types/admin';
+import { OffenderCard } from "@/src/components/admin/OffenderCard";
+import { Report, ModerationAction } from "@/src/types/admin";
+interface RouteParams {
+  id: string;
+}
 
+import { useAuthStore } from "@/src/store/useAuthStore";
 
-export default async function ReportDetailsPage({
-  params
+export default function ReportDetailsPage({
+  params,
 }: {
-  params: Promise<{ id: string }>
+  params: Promise<RouteParams>;
 }) {
-  const { id } = await params;
-  const report = await adminService.getReportById(id);
-  type ModerationAction = {
-  id: string;
-  action_type: string;
-  notes: string;
-};
+  const resolvedParams = use(params);
+  const id = resolvedParams.id;
 
-type User = {
-  id: string;
-  display_name?: string;
-  handle?: string;
-  account_status?: string;
-};
+  const { user } = useAuthStore(); // role-based access
+  const role = user?.systemRole; // "ADMIN" | "MODERATOR"
 
-  if (!report) {
+  const [report, setReport] = useState<Report | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [moderatorReview, setModeratorReview] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
+
+ 
+  const fetchReport = useCallback(async () => {
+    try {
+      const data = await adminService.getReportById(id);
+      if (!data) {
+        setError("Report not found");
+      } else {
+        setReport(data);
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Failed to load report");
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchReport();
+  }, [fetchReport]);
+
+  // =========================
+  // TRACK ACTIONS (ADMIN ONLY)
+  // =========================
+  const handleHideTrack = async () => {
+    if (!report?.target?.id) return;
+
+    try {
+      await adminService.hideTrack?.(report.target.id);
+      await fetchReport();
+    } catch (err) {
+      console.error("Hide track failed", err);
+    }
+  };
+
+  const handleRestoreTrack = async () => {
+    if (!report?.target?.id) return;
+
+    try {
+      await adminService.restoreTrack?.(report.target.id);
+      await fetchReport();
+    } catch (err) {
+      console.error("Restore track failed", err);
+    }
+  };
+
+  // =========================
+  // MODERATOR REVIEW SUBMIT
+  // =========================
+  const submitModeratorReview = async () => {
+    if (!moderatorReview.trim()) return;
+
+    try {
+      setSubmittingReview(true);
+      if (!report?.id) return;
+      await adminService.addModeratorReview?.({
+        reportId: report?.id,
+        content: moderatorReview,
+      });
+
+      setModeratorReview("");
+      await fetchReport();
+    } catch (err) {
+      console.error("Failed to submit review", err);
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="p-12 text-center text-zinc-500">
+        Loading report details...
+      </div>
+    );
+  }
+
+  if (error || !report) {
     return (
       <div className="p-12 text-center text-zinc-500">
         <FiAlertCircle className="mx-auto mb-4" size={48} />
-        <p>Report not found or has been deleted.</p>
-        <Link href="/admin/reports" className="text-orange-500 hover:underline mt-4 block">
+        <p>{error || "Report not found."}</p>
+        <Link
+          href="/admin/reports"
+          className="text-orange-500 hover:underline mt-4 block"
+        >
           Return to list
         </Link>
       </div>
@@ -40,109 +125,157 @@ type User = {
   }
 
   const actions = report.previous_actions_on_target ?? [];
- 
+  const moderatorReviews = report.moderator_reviews ?? [];
+
   return (
-    <div className="p-8 max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* Navigation Header */}
+    <div className="p-8 max-w-5xl mx-auto space-y-8">
+
+      {/* HEADER */}
       <div className="flex items-center justify-between">
         <Link
           href="/admin/reports"
-          className="group flex items-center gap-2 text-zinc-500 hover:text-white transition-colors text-sm"
+          className="flex items-center gap-2 text-zinc-500 hover:text-white"
         >
-          <FiArrowLeft className="group-hover:-translate-x-1 transition-transform" />
-          Back to Reports
+          <FiArrowLeft />
+          Back
         </Link>
-        <div className="flex gap-2">
-          <span className="px-3 py-1 bg-zinc-800 border border-zinc-700 rounded-md text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
-            ID: {report.id}
-          </span>
-        </div>
+
+        <span className="px-3 py-1 bg-zinc-800 text-xs text-zinc-400 rounded">
+          ID: {report.id}
+        </span>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+        {/* LEFT */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Main Report Content */}
-          <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-3xl">
-            <div className="flex items-center gap-2 mb-4">
-              <span className="bg-red-500/10 text-red-500 text-[10px] font-black px-2 py-0.5 rounded uppercase">
-                {report.category}
-              </span>
-              <span className="text-zinc-600 text-xs">
-                 {new Date(report.created_at).toLocaleDateString()}
-              </span>
-            </div>
-            <h1 className="text-2xl font-bold text-white mb-4">Moderation Review</h1>
-            <p className="text-zinc-300 leading-relaxed italic border-l-4 border-zinc-700 pl-4 py-2 bg-zinc-950/50 rounded-r-xl">
-              &quot;{report.description}&quot;
+
+          {/* REPORT */}
+          <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl">
+            <h1 className="text-xl font-bold text-white mb-2">
+              {report.category}
+            </h1>
+
+            <p className="text-zinc-400 italic">
+              {report.description}
             </p>
 
-
-            <div className="mt-6 pt-4 border-t border-zinc-800 flex justify-end">
+            <div className="mt-4 flex justify-end">
               <ReportActions reportId={report.id} />
             </div>
           </div>
 
-          {/* Moderation History */}
-          <div className="bg-zinc-900/50 border border-zinc-800 p-8 rounded-3xl">
-            <h3 className="text-sm font-bold text-white mb-6 uppercase tracking-widest text-zinc-500">
-              Target Moderation History
-            </h3>
+          {/* MODERATOR INPUT (ONLY MODERATOR) */}
+          {role === "MODERATOR" && (
+            <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl">
+              <h3 className="text-sm font-bold text-white mb-3">
+                Write Moderator Review
+              </h3>
 
-            <div className="space-y-4">
-              {actions.length > 0 ? (
-                actions.map((action: ModerationAction) => (
-                  <div key={action.id} className="flex gap-4 p-4 bg-zinc-900 rounded-2xl border border-zinc-800/50">
-                    <div className="w-1 bg-orange-500 rounded-full" />
-                    <div>
-                      <p className="text-xs font-black text-orange-500 uppercase">
-                        {action.action_type}
-                      </p>
-                      <p className="text-sm text-zinc-300 mt-1">
-                        {action.notes}
-                      </p>
-                    </div>
+              <textarea
+                value={moderatorReview}
+                onChange={(e) => setModeratorReview(e.target.value)}
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-sm text-white"
+                placeholder="Write your moderation notes..."
+              />
+
+              <button
+                onClick={submitModeratorReview}
+                disabled={submittingReview}
+                className="mt-3 px-4 py-2 bg-orange-500 text-black font-bold rounded-xl"
+              >
+                Submit Review
+              </button>
+            </div>
+          )}
+
+          {/* ADMIN VIEW MODERATOR REVIEWS */}
+          {role === "ADMIN" && (
+            <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl">
+              <h3 className="text-sm font-bold text-white mb-4">
+                Moderator Reviews
+              </h3>
+
+              {moderatorReviews.length > 0 ? (
+                moderatorReviews.map((r: import('@/src/types/admin').ModeratorReview) => (
+                  <div
+                    key={r.id}
+                    className="p-3 mb-2 bg-zinc-950 border border-zinc-800 rounded-xl"
+                  >
+                    <p className="text-sm text-zinc-300">{r.content}</p>
                   </div>
                 ))
               ) : (
-                <p className="text-zinc-600 text-sm italic text-center py-4">
-                  No previous history.
-                </p>
+                <p className="text-zinc-600 text-sm">No reviews yet.</p>
               )}
             </div>
+          )}
+
+          {/* HISTORY */}
+          <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl">
+            <h3 className="text-sm font-bold text-zinc-500 mb-4">
+              Moderation History
+            </h3>
+
+            {actions.length ? (
+              actions.map((action: ModerationAction) => (
+                <div
+                  key={action.id}
+                  className="p-3 mb-2 bg-zinc-950 border border-zinc-800 rounded-xl"
+                >
+                  <p className="text-orange-500 text-xs font-bold">
+                    {action.action_type}
+                  </p>
+                  <p className="text-zinc-300 text-sm">{action.reason}</p>
+                </div>
+              ))
+            ) : (
+              <p className="text-zinc-600 text-sm">No history.</p>
+            )}
           </div>
         </div>
 
-        {/* Sidebar */}
+        {/* RIGHT */}
         <div className="space-y-6">
-         <OffenderCard report={report} />
-          
-          {/* Reporter Details Card */}
+
+          <OffenderCard report={report} />
+
+          {/* TARGET + ADMIN CONTROLS */}
           <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl">
-            <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-4">Reporter</p>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-zinc-800 rounded-full flex items-center justify-center border border-zinc-700">
-                <FiUser className="text-zinc-400" />
-              </div>
-              <div>
-                <p className="text-white font-bold text-sm">{report.reporter.display_name}</p>
-                <p className="text-zinc-500 text-xs">@{report.reporter.handle}</p>
-              </div>
+            <p className="text-xs text-zinc-500 mb-3">Target</p>
+
+            <div className="flex items-center gap-2">
+              {report.target.type === "TRACK" ? (
+                <FiMusic className="text-orange-500" />
+              ) : (
+                <FiUser className="text-orange-500" />
+              )}
+
+              <span className="text-white font-bold">
+                {report.target.title}
+              </span>
             </div>
+
+            {/* ADMIN TRACK CONTROL */}
+            {role === "ADMIN" && report.target.type === "TRACK" && (
+              <div className="mt-4 flex gap-2">
+                <button
+                  onClick={handleHideTrack}
+                  className="px-3 py-1 bg-red-500 text-white rounded"
+                >
+                  Hide
+                </button>
+
+                <button
+                  onClick={handleRestoreTrack}
+                  className="px-3 py-1 bg-green-500 text-white rounded"
+                >
+                  Restore
+                </button>
+              </div>
+            )}
           </div>
 
-          {/* Target Item Card */}
-          <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl">
-            <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-4">Targeted Content</p>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-orange-500/10 rounded-xl flex items-center justify-center border border-orange-500/20">
-                {report.target.type === 'TRACK' ? <FiMusic className="text-orange-500" /> : <FiUser className="text-orange-500" />}
-              </div>
-              <div>
-                <p className="text-white font-bold text-sm truncate w-32">{report.target.title}</p>
-                <p className="text-zinc-500 text-[10px] uppercase">{report.target.type}</p>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>

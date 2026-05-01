@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { toast } from "sonner";
 import { FaTimes } from "react-icons/fa";
 import { Playlist } from "@/src/types/playlist";
-import { playlistsApi } from "@/src/services/api/playlists";
+import { playlistsApi } from "@/src/services/playlistsService";
 
 interface Props {
   playlist: Playlist;
@@ -21,25 +21,84 @@ export function EditPlaylistModal({ playlist, isOpen, onClose, onSaved }: Props)
   const [title, setTitle] = useState(playlist.title);
   const [description, setDescription] = useState(playlist.description ?? "");
   const [visibility, setVisibility] = useState<"PUBLIC" | "PRIVATE">(
-    (playlist.visibility as "PUBLIC" | "PRIVATE") ?? "PUBLIC"
+    playlist.visibility === "SECRET" ? "PRIVATE" : (playlist.visibility as "PUBLIC" | "PRIVATE") ?? "PUBLIC"
   );
-  const [genre, setGenre] = useState("None");
-  const [releaseDate, setReleaseDate] = useState("");
-  const [playlistType, setPlaylistType] = useState("Playlist");
+  const [releaseDate, setReleaseDate] = useState(playlist.releaseDate?.split("T")[0] ?? "");
+  const [playlistType, setPlaylistType] = useState(playlist.type ?? "Playlist");
+  const [tags, setTags] = useState<string[]>(playlist.tags ?? []);
+  const [tagInput, setTagInput] = useState("");
+  const [coverPreview, setCoverPreview] = useState<string | null>(playlist.cover ?? null);
   const [saving, setSaving] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load full edit data from backend when modal opens
+  useEffect(() => {
+    if (!isOpen) return;
+
+    playlistsApi.getEditDetails(playlist.playlistId)
+      .then((data) => {
+        setTitle(data.title);
+        setDescription(data.description ?? "");
+        setVisibility(data.visibility === "SECRET" ? "PRIVATE" : (data.visibility as "PUBLIC" | "PRIVATE"));
+        setReleaseDate(data.releaseDate?.split("T")[0] ?? "");
+        setPlaylistType(data.type ?? "Playlist");
+        setTags(data.tags ?? []);
+        setCoverPreview(data.coverImageUrl ?? null);
+      })
+      .catch(() => {
+        // Keep prop values as fallback if the request fails
+      });
+  }, [isOpen, playlist.playlistId]);
 
   if (!isOpen) return null;
 
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const res = await playlistsApi.uploadCover(playlist.playlistId, file);
+      setCoverPreview(res.coverImageUrl);
+      toast.success("Cover updated");
+      onSaved?.({ ...playlist, cover: res.coverImageUrl });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Upload failed");
+    }
+  };
+
+  const handleAddTag = () => {
+    const trimmed = tagInput.trim();
+    if (trimmed && !tags.includes(trimmed)) {
+      setTags((prev) => [...prev, trimmed]);
+    }
+    setTagInput("");
+  };
+
+  const handleRemoveTag = (tag: string) => {
+    setTags((prev) => prev.filter((t) => t !== tag));
+  };
+
   const handleSave = async () => {
+    if (!title.trim()) return;
     setSaving(true);
     try {
       await playlistsApi.updatePlaylist(playlist.playlistId, {
-        title,
-        description,
-        visibility,
+        title: title.trim(),
+        description: description.trim() || undefined,
+        visibility: visibility === "PRIVATE" ? "SECRET" : "PUBLIC",
+        type: playlistType !== "Playlist" ? playlistType : undefined,
+        releaseDate: releaseDate || undefined,
+        tags: tags.length > 0 ? tags : undefined,
       });
       toast.success("Playlist updated.");
-      onSaved?.({ ...playlist, title, description, visibility });
+      onSaved?.({
+        ...playlist,
+        title: title.trim(),
+        description: description.trim() || null,
+        visibility: visibility === "PRIVATE" ? "SECRET" : "PUBLIC",
+        cover: coverPreview,
+        tags,
+      });
       onClose();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not update playlist");
@@ -54,11 +113,11 @@ export function EditPlaylistModal({ playlist, isOpen, onClose, onSaved }: Props)
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className="relative w-[820px] max-w-[95vw] max-h-[90vh] overflow-hidden bg-[#1a1a1a] border border-zinc-800 rounded-lg shadow-2xl flex flex-col"
+className="relative w-205 max-w-[95vw] max-h-[90vh] overflow-hidden bg-[#121212] border border-neutral-700 rounded-lg shadow-2xl flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -70,7 +129,8 @@ export function EditPlaylistModal({ playlist, isOpen, onClose, onSaved }: Props)
           <FaTimes size={14} />
         </button>
 
-        <div className="flex items-center gap-6 px-6 pt-5 border-b border-zinc-800">
+        {/* TABS */}
+        <div className="flex items-center gap-6 px-6 pt-5 border-b border-neutral-700">
           {(
             [
               ["basic", "Basic info"],
@@ -94,18 +154,33 @@ export function EditPlaylistModal({ playlist, isOpen, onClose, onSaved }: Props)
         </div>
 
         <div className="flex-1 overflow-y-auto p-6">
+          {/* BASIC TAB */}
           {tab === "basic" && (
             <div className="grid grid-cols-[260px_1fr] gap-6">
               <div>
                 <div className="relative aspect-square rounded bg-[#222] overflow-hidden flex items-center justify-center">
-                  {playlist.cover ? (
-                    <Image src={playlist.cover} alt={title} fill className="object-cover" unoptimized />
+                  {coverPreview ? (
+                    <Image
+                      src={coverPreview}
+                      alt={title}
+                      fill
+                      className="object-cover"
+                      unoptimized
+                    />
                   ) : (
-                    <span className="text-zinc-500 text-sm">Upload image</span>
+                    <span className="text-zinc-500 text-sm">No cover</span>
                   )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleCoverUpload}
+                  />
                   <button
                     type="button"
-                    className="absolute inset-x-0 bottom-0 bg-black/60 text-white text-xs py-2 hover:bg-black/80"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="absolute inset-x-0 bottom-0 bg-black/60 text-white text-xs py-2 hover:bg-black/80 transition-colors"
                   >
                     Upload image
                   </button>
@@ -133,9 +208,9 @@ export function EditPlaylistModal({ playlist, isOpen, onClose, onSaved }: Props)
                       onChange={(e) => setPlaylistType(e.target.value)}
                       className={inputCls}
                     >
-                      <option>Playlist</option>
-                      <option>Album</option>
-                      <option>EP</option>
+                      <option value="Playlist">Playlist</option>
+                      <option value="Album">Album</option>
+                      <option value="EP">EP</option>
                     </select>
                   </div>
                   <div>
@@ -147,18 +222,6 @@ export function EditPlaylistModal({ playlist, isOpen, onClose, onSaved }: Props)
                       className={inputCls}
                     />
                   </div>
-                </div>
-
-                <div>
-                  <label className={labelCls}>Genre</label>
-                  <select value={genre} onChange={(e) => setGenre(e.target.value)} className={inputCls}>
-                    <option>None</option>
-                    <option>Hip-Hop</option>
-                    <option>Pop</option>
-                    <option>Rock</option>
-                    <option>Electronic</option>
-                    <option>Jazz</option>
-                  </select>
                 </div>
 
                 <div>
@@ -209,20 +272,66 @@ export function EditPlaylistModal({ playlist, isOpen, onClose, onSaved }: Props)
             </div>
           )}
 
+          {/* TRACKS TAB */}
           {tab === "tracks" && (
             <div className="text-zinc-400 text-sm">
-              Reorder or remove tracks here. (Wire to your reorder/remove endpoints.)
+              Reorder or remove tracks here. Wire to your reorder/remove endpoints.
             </div>
           )}
 
+          {/* METADATA TAB */}
           {tab === "metadata" && (
-            <div className="text-zinc-400 text-sm">
-              Add ISRC, label, copyright, and other metadata.
+            <div className="space-y-4">
+              <div>
+                <label className={labelCls}>Tags</label>
+                <div className="flex gap-2 mb-2">
+                  <input
+                    type="text"
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddTag();
+                      }
+                    }}
+                    placeholder="Add a tag and press Enter"
+                    className={inputCls}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddTag}
+                    className="px-3 py-2 bg-zinc-700 hover:bg-zinc-600 text-white text-xs rounded"
+                  >
+                    Add
+                  </button>
+                </div>
+                {tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="flex items-center gap-1 bg-zinc-800 text-white text-xs px-2 py-1 rounded"
+                      >
+                        {tag}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveTag(tag)}
+                          className="text-zinc-400 hover:text-white ml-1"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
 
-        <div className="flex justify-end gap-2 px-6 py-4 border-t border-zinc-800">
+        {/* FOOTER */}
+        <div className="flex justify-end gap-2 px-6 py-4 border-t border-neutral-700">
           <button
             type="button"
             onClick={onClose}

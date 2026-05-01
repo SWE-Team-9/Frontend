@@ -8,6 +8,7 @@ import { useLikeStore } from '@/src/store/likeStore';
 import { useRepostStore } from '@/src/store/repostStore';
 import { TrackData } from "@/src/types/interactions";
 import { DownloadButton } from "@/src/components/tracks/DownloadButton";
+import { ReportButton } from "@/src/components/reports/ReportButton";
 
 export interface TrackActionButtonsProps {
   trackId: string;
@@ -39,7 +40,7 @@ interface SCButtonProps {
   disabled?: boolean;
 }
 
-function SCButton({ active, onClick, label, children, disabled }: SCButtonProps) {
+function SCButton({ active, onClick, label: _label, children, disabled }: SCButtonProps) {
   return (
     <button
       onClick={onClick}
@@ -57,7 +58,7 @@ function SCButton({ active, onClick, label, children, disabled }: SCButtonProps)
 }
 
 export function RepostButton({
-  trackId, title, artistName, artistId, artistHandle, artistAvatarUrl, coverArt, repostsCount, size = "full",
+  trackId, title, artistName, artistId, artistHandle, artistAvatarUrl, coverArt, repostsCount, size: _size = "full",
 }: {
   trackId: string;
   title: string;
@@ -97,7 +98,7 @@ export function RepostButton({
 }
 
 export function LikeButton({
-  trackId, title, artistName, artistId, artistHandle, artistAvatarUrl, coverArt, likesCount, size = "full",
+  trackId, title, artistName, artistId, artistHandle, artistAvatarUrl, coverArt, likesCount, size: _size = "full",
 }: {
   trackId: string;
   title: string;
@@ -217,6 +218,11 @@ export function TrackActionButtons({
         size={size}
       />
 
+      <ReportButton
+        targetId={trackId}
+        targetType="TRACK"
+        targetLabel={title}
+      />
     </div>
   );
 }

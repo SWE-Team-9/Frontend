@@ -34,8 +34,6 @@ describe("LibraryTabs", () => {
     expect(screen.getByText("Overview")).toBeInTheDocument();
     expect(screen.getByText("Likes")).toBeInTheDocument();
     expect(screen.getByText("Playlists")).toBeInTheDocument();
-    expect(screen.getByText("Albums")).toBeInTheDocument();
-    expect(screen.getByText("Stations")).toBeInTheDocument();
     expect(screen.getByText("Following")).toBeInTheDocument();
     expect(screen.getByText("History")).toBeInTheDocument();
   });

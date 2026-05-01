@@ -32,7 +32,7 @@ export function NotificationFilters() {
       <button
         type="button"
         onClick={markAllAsRead}
-        className="rounded-full bg-[#ff5500] px-4 py-2 text-sm font-bold text-white hover:bg-[#ff3300]"
+        className="rounded-full bg-white px-4 py-2 text-sm font-bold text-black hover:bg-zinc-400"
       >
         Mark all as read
       </button>

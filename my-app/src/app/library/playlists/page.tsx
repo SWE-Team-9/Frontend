@@ -1,14 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePlaylists } from "@/src/hooks/usePlaylists";
 import { PlaylistCard } from "@/src/components/playlists/PlaylistCard";
 import { CreatePlaylistModal } from "@/src/components/playlists/CreatePlaylistModal";
+import { searchService } from "@/src/services/searchService";
+import type { SearchTrack } from "@/src/types/search";
 import { FaPlus } from "react-icons/fa";
 import {
   LibraryPlaylistsHeader,
   PlaylistFilterMode,
 } from "@/src/components/library/LibraryPlaylistsHeader";
+import LibraryTabs from "@/src/components/library/LibraryTabs";
 
 export default function LibraryPlaylistsPage() {
   const { playlists, isLoading, createPlaylist } = usePlaylists();
@@ -16,6 +19,40 @@ export default function LibraryPlaylistsPage() {
   const [filter, setFilter] = useState("");
   const [mode, setMode] = useState<PlaylistFilterMode>("all");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+
+  const [trackQuery, setTrackQuery] = useState("");
+  const [searchTracks, setSearchTracks] = useState<SearchTrack[]>([]);
+  const [isSearchingTracks, setIsSearchingTracks] = useState(false);
+
+  useEffect(() => {
+    const trimmed = trackQuery.trim();
+    const delay = trimmed ? 350 : 0;
+
+    const timer = setTimeout(async () => {
+      if (!trimmed) {
+        setSearchTracks([]);
+        return;
+      }
+
+      setIsSearchingTracks(true);
+      try {
+        const res = await searchService.search({ q: trimmed, type: "tracks" });
+        setSearchTracks(res.data.tracks);
+      } catch {
+        setSearchTracks([]);
+      } finally {
+        setIsSearchingTracks(false);
+      }
+    }, delay);
+
+    return () => clearTimeout(timer);
+  }, [trackQuery]);
+
+  const handleClose = () => {
+    setIsCreateOpen(false);
+    setTrackQuery("");
+    setSearchTracks([]);
+  };
 
   const visible = useMemo(() => {
     let list = playlists ?? [];
@@ -25,9 +62,7 @@ export default function LibraryPlaylistsPage() {
 
     if (filter.trim()) {
       const q = filter.toLowerCase();
-      list = list.filter((p) =>
-        p.title.toLowerCase().includes(q)
-      );
+      list = list.filter((p) => p.title.toLowerCase().includes(q));
     }
 
     return list;
@@ -35,7 +70,7 @@ export default function LibraryPlaylistsPage() {
 
   return (
     <div className="min-h-screen bg-[#121212] px-6 py-8 text-white">
-
+      <LibraryTabs />
       {/* HEADER FILTER */}
       <LibraryPlaylistsHeader
         filter={filter}
@@ -55,7 +90,6 @@ export default function LibraryPlaylistsPage() {
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
             You have no playlists yet
           </h2>
-
           <button
             onClick={() => setIsCreateOpen(true)}
             className="flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-zinc-100 text-black text-xs font-bold uppercase tracking-wider rounded transition-colors"
@@ -70,10 +104,9 @@ export default function LibraryPlaylistsPage() {
         <>
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-xl font-bold">Your Playlists</h1>
-
             <button
               onClick={() => setIsCreateOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-[#f50] hover:bg-[#e64a00] text-white text-xs font-bold uppercase tracking-wider rounded transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-zinc-400 text-black text-xs font-bold uppercase tracking-wider rounded transition-colors"
             >
               <FaPlus size={11} /> Create Playlist
             </button>
@@ -92,10 +125,13 @@ export default function LibraryPlaylistsPage() {
 
       {/* MODAL  */}
       <CreatePlaylistModal
-        key={isCreateOpen ? "open" : "closed"}
         isOpen={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
+        onClose={handleClose}
         onSubmit={createPlaylist}
+        availableTracks={searchTracks}
+        isSearchingTracks={isSearchingTracks}
+        trackQuery={trackQuery}
+        onTrackQueryChange={setTrackQuery}
       />
     </div>
   );

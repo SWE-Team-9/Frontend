@@ -66,7 +66,7 @@ export const loginUser = async ({
 
 
   const { user } = response.data;
-  
+
   // Backend returns snake_case fields — we map them to camelCase for the store
   if (user) {
     useAuthStore.getState().setUser({
@@ -76,6 +76,7 @@ export const loginUser = async ({
       handle: user.handle ?? "",
       avatarUrl: user.avatar_url ?? null,
       isVerified: user.is_verified ?? false,
+      systemRole: user.system_role ?? "USER",
     });
   }
   return response.data;
@@ -177,6 +178,7 @@ export const getCurrentUser = async () => {
       handle: "demo",
       avatar_url: null,
       is_verified: true,
+      system_role: "USER" as const,
     };
 
     useAuthStore.getState().setUser({
@@ -186,6 +188,7 @@ export const getCurrentUser = async () => {
       handle: mockUser.handle,
       avatarUrl: mockUser.avatar_url,
       isVerified: mockUser.is_verified,
+      systemRole: mockUser.system_role,
     });
 
     return mockUser;
@@ -204,6 +207,7 @@ export const getCurrentUser = async () => {
       handle: user.handle ?? "",
       avatarUrl: user.avatar_url ?? null,
       isVerified: user.is_verified ?? false,
+      systemRole: user.system_role ?? "USER",
     });
   }
   return user;

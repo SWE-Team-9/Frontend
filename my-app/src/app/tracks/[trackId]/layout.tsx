@@ -1,7 +1,7 @@
 import NavBar from "@/src/components/ui/NavBar";
 
 
-export default function UploadLayout({
+export default function TrackLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;

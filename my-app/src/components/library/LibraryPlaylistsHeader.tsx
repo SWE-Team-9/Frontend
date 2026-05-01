@@ -24,10 +24,6 @@ export function LibraryPlaylistsHeader({
 
   return (
     <div className="flex items-center justify-between mb-6">
-      <p className="text-zinc-400 text-sm">
-        Hear your own playlists and the playlists you&apos;ve liked:
-      </p>
-
       <div className="flex items-center gap-3">
         <input
           type="text"

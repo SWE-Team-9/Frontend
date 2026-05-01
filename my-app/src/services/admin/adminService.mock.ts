@@ -1,4 +1,4 @@
-import { ActionPayload, AdminStats, Report, AdminUser } from "@/src/types/admin";
+import { ActionPayload, Report, } from "@/src/types/admin";
 
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
@@ -69,14 +69,15 @@ export const adminServiceMock = {
 
     return {
       stats: {
-        users: { total: 12450, active: 11800, suspended: 42, banned: 108, verified: 11200, unverified: 1250 },
-        content: { total_tracks: 45000, total_playlists: 8200, total_comments: 156000 },
+        users: { total: 12450, active: 11800, suspended: 42, banned: 108, verified: 11200, unverified: 1250, artists: 2600, listeners: 9850 },
+        content: { total_tracks: 45000, tracks_visible: 44000, total_playlists: 8200, total_comments: 156000 },
         storage: {
           total_bytes: 5368709120000,
           used_bytes: 3221225472000,
           total_human_readable: "5.0 TB"
         },
-        moderation: { reports_pending: 23, reports_in_review: 5, reports_resolved_this_week: 41 }
+        moderation: { reports_pending: 23, reports_in_review: 5, reports_resolved_this_week: 41 },
+        engagement: { total_play_events: 0, completed_play_events: 0, play_through_rate_pct: 0 }
       },
       users: mockUsersState,
       reports: mockReportsState,
@@ -95,6 +96,38 @@ export const adminServiceMock = {
     await delay(400);
     return mockReportsState.find(r => r.id === reportId) || null;
   },
+  warnUser: async (id: string, payload: ActionPayload) => 
+    adminServiceMock.submitAction('warn', id, payload),
+
+  suspendUser: async (id: string, payload: ActionPayload) => 
+    adminServiceMock.submitAction('suspend', id, payload),
+
+  banUser: async (id: string, payload: ActionPayload) => 
+    adminServiceMock.submitAction('ban', id, payload),
+
+  restoreUser: async (id: string, payload: ActionPayload) => 
+    adminServiceMock.submitAction('restore', id, payload),
+
+  updateReportStatus: async (id: string, payload: ActionPayload) => 
+    adminServiceMock.submitAction('report-status', id, payload),
+
+  moderateTrack: async (id: string, payload: ActionPayload) =>
+    adminServiceMock.submitAction('track-mod', id, payload),
+
+  moderateComment: async (id: string, payload: ActionPayload) =>
+    adminServiceMock.submitAction('comment-mod', id, payload),
+
+  moderatePlaylist: async (id: string, payload: ActionPayload) =>
+    adminServiceMock.submitAction('playlist-mod', id, payload),
+
+  
+  getReports: async () => {
+    await delay(300);
+    return { reports: mockReportsState };
+  },
+  addModeratorReview: async () => {},
+  hideTrack: async () => {},
+  restoreTrack: async () => {},
 
   submitAction: async (
     type: string,

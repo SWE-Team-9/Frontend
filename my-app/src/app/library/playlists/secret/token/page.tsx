@@ -6,7 +6,7 @@ import {
   playlistsApi,
   normalizePlaylist,
   extractMessage,
-} from "@/src/services/api/playlists";
+} from "@/src/services/playlistsService";
 import { Playlist } from "@/src/types/playlist";
 import { TrackList } from "@/src/components/playlists/TrackList";
 import { FaLock, FaCheckCircle, FaMusic, FaPlay } from "react-icons/fa";
@@ -26,12 +26,22 @@ export default function SecretPlaylistPage({
     let cancelled = false;
     (async () => {
       try {
-        const raw = await playlistsApi.getSecretPlaylist(token);
+        const secret = await playlistsApi.getSecretPlaylist(token);
+        if (cancelled) return;
+
+        setAccessMessage(
+          extractMessage(secret) ?? "Access granted via secret token"
+        );
+
+        const playlistId = (secret as { playlistId?: string }).playlistId;
+        if (!playlistId) {
+          setError("Playlist not accessible");
+          return;
+        }
+
+        const details = await playlistsApi.getPlaylistById(playlistId);
         if (!cancelled) {
-          setPlaylist(normalizePlaylist(raw));
-          setAccessMessage(
-            extractMessage(raw) ?? "Access granted via secret token"
-          );
+          setPlaylist(normalizePlaylist(details));
         }
       } catch (err) {
         if (!cancelled) {
@@ -69,7 +79,7 @@ export default function SecretPlaylistPage({
 
   return (
     <div className="-mx-6">
-      <div className="bg-gradient-to-b from-[#2a2a2a] to-[#121212] px-6 py-10">
+      <div className="bg-linear-to-b from-[#2a2a2a] to-[#121212] px-6 py-10">
         <div className="max-w-5xl">
           <div className="flex items-center gap-2 text-green-400 text-[10px] font-bold uppercase mb-4 tracking-wider">
             <FaCheckCircle size={11} />
@@ -77,7 +87,7 @@ export default function SecretPlaylistPage({
           </div>
 
           <div className="flex flex-col md:flex-row gap-6">
-            <div className="relative w-full md:w-48 h-48 rounded-md overflow-hidden bg-[#222] shadow-2xl flex-shrink-0">
+            <div className="relative w-full md:w-48 h-48 rounded-md overflow-hidden bg-[#222] shadow-2xl shrink-0">
               {playlist.cover ? (
                 <Image
                   src={playlist.cover}
@@ -87,7 +97,7 @@ export default function SecretPlaylistPage({
                   unoptimized
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#333] to-[#1a1a1a]">
+                <div className="w-full h-full flex items-center justify-center bg-linear-to-br from-[#333] to-[#1a1a1a]">
                   <FaMusic className="text-zinc-600 text-5xl" />
                 </div>
               )}

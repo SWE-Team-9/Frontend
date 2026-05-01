@@ -136,7 +136,6 @@ export function AvatarUpload({
               </button>
             ) : (
               <label className="absolute inset-0 flex items-center justify-center bg-black/40 text-white text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity rounded-full cursor-pointer">
-                Upload image
                 <input
                   type="file"
                   accept="image/*"

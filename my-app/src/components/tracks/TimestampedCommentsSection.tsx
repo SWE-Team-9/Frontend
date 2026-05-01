@@ -5,6 +5,7 @@ import { FiSend } from "react-icons/fi";
 import { WaveformDisplay, type WaveformMarker } from "@/src/components/tracks/WaveformDisplay";
 import { addTrackComment, getTrackComments } from "@/src/services/interactionService";
 import type { TrackComment } from "@/src/types/interactions";
+import { useAuthStore } from "@/src/store/useAuthStore";
 
 interface TimestampedCommentsSectionProps {
     trackId: string;
@@ -18,6 +19,8 @@ interface TimestampedCommentsSectionProps {
     currentPlaybackSeconds: number;
     enabled?: boolean;
     className?: string;
+    onCommentAdded?: () => void;
+    alwaysShowInput?: boolean;
 }
 
 function formatTime(seconds: number) {
@@ -39,6 +42,8 @@ export default function TimestampedCommentsSection({
     currentPlaybackSeconds,
     enabled = true,
     className = "",
+    onCommentAdded,
+    alwaysShowInput = false,
 }: TimestampedCommentsSectionProps) {
     const [isHovered, setIsHovered] = useState(false);
     const [isInputActive, setIsInputActive] = useState(false);
@@ -52,7 +57,9 @@ export default function TimestampedCommentsSection({
 
     const inputRef = useRef<HTMLInputElement | null>(null);
 
-    const isOpen = isHovered || isInputActive;
+    const currentUserAvatarUrl = useAuthStore((state) => state.user?.avatarUrl);
+
+    const isOpen = alwaysShowInput || isHovered || isInputActive;
 
     const loadComments = async () => {
         try {
@@ -105,6 +112,7 @@ export default function TimestampedCommentsSection({
             id: comment.commentId,
             progress: Math.min(1, Math.max(0, comment.timestampSeconds / durationSeconds)),
             label: `${comment.user.display_name}: ${comment.text}`,
+            avatarUrl: comment.user.avatarUrl,
         }));
     }, [comments, durationSeconds]);
 
@@ -153,6 +161,7 @@ export default function TimestampedCommentsSection({
 
             setText("");
             await loadComments();
+            onCommentAdded?.();
             setIsInputActive(false);
             inputRef.current?.blur();
         } catch (error) {
@@ -167,7 +176,9 @@ export default function TimestampedCommentsSection({
             className={`relative ${className}`}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => {
-                setIsHovered(false);
+                if (!alwaysShowInput) {
+                    setIsHovered(false);
+                }
                 setActiveMarkerId(null);
             }}
         >
@@ -204,11 +215,19 @@ export default function TimestampedCommentsSection({
             )}
 
             <div
-                className={`mt-5 overflow-hidden transition-all duration-200 ${isOpen ? "max-h-28 opacity-100" : "max-h-0 opacity-0"
+                className={`mt-2 overflow-hidden transition-all duration-200 ${isOpen ? "max-h-28 opacity-100" : "max-h-0 opacity-0"
                     }`}
             >
                 <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 shrink-0 rounded-full bg-[#c77c73]" />
+                    {currentUserAvatarUrl ? (
+                        <img
+                            src={currentUserAvatarUrl}
+                            alt="Your avatar"
+                            className="h-10 w-10 shrink-0 rounded-full object-cover"
+                        />
+                    ) : (
+                        <div className="h-10 w-10 shrink-0 rounded-full bg-[#c77c73]" />
+                    )}
 
                     <div className="flex min-w-0 flex-1 items-center rounded border border-zinc-600 bg-zinc-800/70 px-4">
                         <input
@@ -235,7 +254,7 @@ export default function TimestampedCommentsSection({
                             type="button"
                             onClick={() => void handleSubmit()}
                             disabled={!text.trim() || isSubmitting}
-                            className="ml-3 rounded p-2 text-zinc-400 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                            className="ml-3 cursor-pointer rounded p-2 text-zinc-400 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
                             aria-label="Send comment"
                             title={`Comment at ${formatTime(snapshotTimestamp)}`}
                         >

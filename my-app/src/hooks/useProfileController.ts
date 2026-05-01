@@ -27,10 +27,16 @@ type ProfileDraft = {
   }[];
 };
 
-export const useProfileController = (handle?: string) => {
+/**
+ * @param externalProfileId - When provided, skip the initial GET /profiles/:handle
+ *   fetch and treat the profile store as already populated. The caller is
+ *   responsible for seeding useProfileStore before calling this hook.
+ */
+export const useProfileController = (handle?: string, externalProfileId?: string) => {
   const store = useProfileStore();
 
-  const [userId, setUserId] = useState<string | null>(null);
+  const [fetchedUserId, setFetchedUserId] = useState<string | null>(null);
+  const userId = externalProfileId ?? fetchedUserId;
   const currentUserId = useAuthStore((state) => state.user?.id);
   const isOwner = userId === currentUserId;
   const [activeTab, setActiveTab] = useState("Tracks");
@@ -100,7 +106,7 @@ export const useProfileController = (handle?: string) => {
       const profile = handle
         ? await getProfileByHandle(handle)
         : await getMyProfile();
-      setUserId(profile.id);
+      setFetchedUserId(profile.id);
 
       store.setProfileData({
         userId: profile.id,
@@ -148,6 +154,13 @@ export const useProfileController = (handle?: string) => {
   }, [handle]);
 
   useEffect(() => {
+    // Fast path: caller pre-seeded the store (e.g. via useProfilePageData).
+    // Skip the network fetch entirely and trust the seeded data.
+    if (externalProfileId) {
+      hasRequestedProfileRef.current = true;
+      return;
+    }
+
     const current = useProfileStore.getState();
     if (current.handle === handle && current.isLoaded) {
       hasRequestedProfileRef.current = true;
@@ -158,7 +171,7 @@ export const useProfileController = (handle?: string) => {
     (async () => {
       if (cancelled) return;
       setIsLoading(true);
-      setUserId(null);
+      setFetchedUserId(null);
       store.resetProfile();
       hasRequestedProfileRef.current = false;
       await loadProfile();
@@ -167,7 +180,7 @@ export const useProfileController = (handle?: string) => {
     return () => {
       cancelled = true;
     };
-  }, [handle]);
+  }, [handle, externalProfileId]);
 
   const handleSave = async (draft: ProfileDraft) => {
     const nextProfile = {
