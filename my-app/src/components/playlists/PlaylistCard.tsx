@@ -53,6 +53,24 @@ export function PlaylistCard({
   const toggleMenu = () => setMenuOpen((v) => !v);
   const closeMenu = () => setMenuOpen(false);
 
+  const updateLocalLiked = (nextLiked: boolean) => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem("likedPlaylistIds");
+      const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+      const ids = new Set(Array.isArray(parsed) ? parsed.map(String) : []);
+      const id = String(playlist.playlistId);
+      if (nextLiked) ids.add(id);
+      else ids.delete(id);
+      window.localStorage.setItem(
+        "likedPlaylistIds",
+        JSON.stringify(Array.from(ids))
+      );
+    } catch {
+      // Ignore storage errors to avoid breaking the UI.
+    }
+  };
+
   const handleLike = async (e?: React.MouseEvent) => {
     e?.preventDefault(); 
     if (isLiking) return;
@@ -60,9 +78,11 @@ export function PlaylistCard({
     const wasLiked = liked;
     const prevCount = likesCount;
 
-    setLiked(!wasLiked);
+    const nextLiked = !wasLiked;
+    setLiked(nextLiked);
     setLikesCount((c:number) => (wasLiked ? Math.max(0, c - 1) : c + 1));
     setIsLiking(true);
+    updateLocalLiked(nextLiked);
 
     try {
       if (wasLiked) {
@@ -79,6 +99,7 @@ export function PlaylistCard({
       // Revert on failure
       setLiked(wasLiked);
       setLikesCount(prevCount);
+      updateLocalLiked(wasLiked);
       toast.error(
         err instanceof Error ? err.message : "Could not update like"
       );

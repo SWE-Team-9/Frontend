@@ -21,7 +21,7 @@ const SideBar: React.FC<SideBarProps> = ({ children, showSidebar = true }) => {
   return (
     <div className="flex h-screen">
       {/* Main Content Area */}
-      <main className="h-full flex-1 overflow-y-auto p-2 bg-[#121212] py-16">
+      <main className="h-full flex-1 overflow-y-auto p-2 bg-[#121212]">
         {children}
       </main>
 
@@ -37,12 +37,6 @@ const SideBar: React.FC<SideBarProps> = ({ children, showSidebar = true }) => {
             </div>
           </Box>
         )}
-
-        <Box className="flex-1">
-          <div className="px-5 py-4">
-            <SideBarItem label="ARTISTS TOOLS" href="/" />
-          </div>
-        </Box>
 
         <Box className="flex-1">
           <div className="px-5 py-4">

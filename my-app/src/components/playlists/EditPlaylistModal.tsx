@@ -117,7 +117,7 @@ export function EditPlaylistModal({ playlist, isOpen, onClose, onSaved }: Props)
       onClick={onClose}
     >
       <div
-        className="relative w-205 max-w-[95vw] max-h-[90vh] overflow-hidden bg-[#1a1a1a] border border-zinc-800 rounded-lg shadow-2xl flex flex-col"
+className="relative w-205 max-w-[95vw] max-h-[90vh] overflow-hidden bg-[#121212] border border-neutral-700 rounded-lg shadow-2xl flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -130,7 +130,7 @@ export function EditPlaylistModal({ playlist, isOpen, onClose, onSaved }: Props)
         </button>
 
         {/* TABS */}
-        <div className="flex items-center gap-6 px-6 pt-5 border-b border-zinc-800">
+        <div className="flex items-center gap-6 px-6 pt-5 border-b border-neutral-700">
           {(
             [
               ["basic", "Basic info"],
@@ -331,7 +331,7 @@ export function EditPlaylistModal({ playlist, isOpen, onClose, onSaved }: Props)
         </div>
 
         {/* FOOTER */}
-        <div className="flex justify-end gap-2 px-6 py-4 border-t border-zinc-800">
+        <div className="flex justify-end gap-2 px-6 py-4 border-t border-neutral-700">
           <button
             type="button"
             onClick={onClose}

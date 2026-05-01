@@ -247,7 +247,7 @@ export default function ProfilePage({
   );
   
 
-  // ─── DETAILS VIEW ─────────────────────────────────────────────────────────
+  // DETAILS VIEW
   const renderDetailsPage = () => (
     <div className="container mx-auto px-8 py-10 animate-in fade-in duration-500">
       <div className="flex items-center gap-6 mb-12">

@@ -9,6 +9,17 @@ import {
 import { Playlist, CreatePlaylistInput } from "@/src/types/playlist";
 
 export function usePlaylists() {
+  const getLocalLikedIds = () => {
+    if (typeof window === "undefined") return new Set<string>();
+    try {
+      const raw = window.localStorage.getItem("likedPlaylistIds");
+      const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+      return new Set(Array.isArray(parsed) ? parsed.map(String) : []);
+    } catch {
+      return new Set<string>();
+    }
+  };
+
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +31,14 @@ export function usePlaylists() {
     try {
       const raw = await playlistsApi.getMyPlaylists();
       const list = normalizePlaylistList(raw);
-      setPlaylists(list);
+      const likedIds = getLocalLikedIds();
+      setPlaylists(
+        list.map((playlist) =>
+          likedIds.has(String(playlist.playlistId))
+            ? { ...playlist, liked: true }
+            : playlist
+        )
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load playlists");
       setPlaylists([]);
