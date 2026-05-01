@@ -1,32 +1,41 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { use, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useResolvePermalink } from "@/src/hooks/useResolvePermalink";
 
-export default function HandleResolverPage() {
-  const router = useRouter();
-  const params = useParams<{ handle: string }>();
-  const permalink = `/${params.handle}`;
+interface Props {
+  params: Promise<{ handle: string; slug: string }>;
+}
 
+export default function PlaylistBySlugPage({ params }: Props) {
+  const { handle, slug } = use(params);
+  const router = useRouter();
+
+  const permalink = `/${handle}/sets/${slug}`;
   const { data, loading, error } = useResolvePermalink(permalink);
 
   useEffect(() => {
     if (!data) return;
-    switch (data.resourceType) {
-      case "USER":
-        router.replace(`/profiles/${params.handle}`);
-        break;
-      case "TRACK":
-        router.replace(`/tracks/${data.id}`);
-        break;
-      case "PLAYLIST":
-        router.replace(`/playlists/${data.id}`);
-        break;
-    }
-  }, [data, router, params.handle]);
 
-  if (loading) return <div className="p-8">Resolving link…</div>;
-  if (error) return <div className="p-8 text-red-500">Link not found.</div>;
-  return null;
+    if (data.matched && data.resourceType === "PLAYLIST" && data.id) {
+      router.replace(`/playlists/${data.id}`);
+    }
+  }, [data, router]);
+
+  if (loading || (data?.matched && data.resourceType === "PLAYLIST")) {
+    return (
+      <div className="min-h-screen bg-[#121212] flex items-center justify-center">
+        <p className="text-zinc-500 animate-pulse uppercase tracking-widest text-sm">
+          Loading...
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#121212] flex items-center justify-center">
+      <p className="text-zinc-500">Playlist not found.</p>
+    </div>
+  );
 }
