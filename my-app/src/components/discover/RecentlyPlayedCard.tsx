@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLikeStore } from "@/src/store/likeStore";
 import { TrackData } from "@/src/types/interactions";
 import { loadQueue } from "@/src/services/playerService";
+import { TrackPageLink, UserProfileLink } from "@/src/components/navigation/EntityLinks";
 
 export interface DiscoverCardTrack {
   trackId: string;
@@ -193,12 +194,20 @@ export default function RecentlyPlayedCard({
         </div>
       </div>
 
-      <p className="mt-2 line-clamp-1 text-[15px] font-semibold text-white">
+      <TrackPageLink
+        trackId={track.trackId}
+        artistHandle={track.artistHandle}
+        className="mt-2 block line-clamp-1 text-[15px] font-semibold text-white hover:underline"
+      >
         {track.title}
-      </p>
-      <p className="line-clamp-1 text-[14px] font-medium text-zinc-400">
+      </TrackPageLink>
+
+      <UserProfileLink
+        handle={track.artistHandle}
+        className="block line-clamp-1 text-[14px] font-medium text-zinc-400 hover:text-white hover:underline"
+      >
         {track.artist}
-      </p>
+      </UserProfileLink>
     </div>
   );
 }

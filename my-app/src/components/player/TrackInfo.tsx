@@ -5,6 +5,7 @@ import { FaHeart, FaRegHeart } from "react-icons/fa";
 import { useLikeStore } from "@/src/store/likeStore";
 import { TrackData } from "@/src/types/interactions";
 import Image from "next/image";
+import { TrackPageLink, UserProfileLink } from "@/src/components/navigation/EntityLinks";
 
 export function TrackInfo() {
   const currentTrack = usePlayerStore((s) => s.currentTrack);
@@ -74,12 +75,20 @@ export function TrackInfo() {
         unoptimized
       />
       <div className="min-w-0 flex-1">
-        <p className="text-white text-sm font-medium truncate leading-tight">
+        <TrackPageLink
+          trackId={currentTrack.trackId}
+          artistHandle={currentTrack.artistHandle}
+          className="block truncate text-sm font-medium leading-tight text-white hover:underline"
+        >
           {currentTrack.title}
-        </p>
-        <p className="text-[#999] text-xs truncate mt-0.5">
+        </TrackPageLink>
+
+        <UserProfileLink
+          handle={currentTrack.artistHandle}
+          className="mt-0.5 block truncate text-xs text-[#999] hover:text-white hover:underline"
+        >
           {artistLabel}
-        </p>
+        </UserProfileLink>
 
         {accessState === "PREVIEW" && (
           <span className="text-[10px] text-[#f50] font-bold uppercase">

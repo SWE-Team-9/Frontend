@@ -12,12 +12,16 @@ import {
   FaArrowDown,
   FaPlay,
 } from "react-icons/fa";
+import { buildTrackPermalink } from "@/src/lib/permalinks";
+import { UserProfileLink } from "@/src/components/navigation/EntityLinks";
 
 // Track data structure
 interface Track {
   trackId: string;
   title: string;
   artist?: string;
+  artistHandle?: string;
+  slug?: string;
   cover?: string;
   duration?: number;
 }
@@ -86,6 +90,12 @@ export function TrackItem({
     await fetchAndPlay(matched ?? fallbackTrack);
   };
 
+  const trackHref = buildTrackPermalink({
+    trackId: track.trackId,
+    artistHandle: track.artistHandle,
+    slug: track.slug,
+  });
+
   return (
     <div className="group flex items-center gap-4 px-3 py-2 rounded hover:bg-zinc-800/50 transition-colors">
       {/* Track index number */}
@@ -120,14 +130,19 @@ export function TrackItem({
       {/* Track title + artist */}
       <div className="flex-1 min-w-0">
         <Link
-          href={`/tracks/${track.trackId}`}
-          className="text-sm text-white truncate hover:text-neutral-400 transition duration-200 block"
+          href={trackHref}
+          className="block truncate text-sm text-white transition duration-200 hover:text-neutral-400 hover:underline"
         >
           {track.title}
         </Link>
 
         {track.artist && (
-          <p className="text-xs text-zinc-500 truncate">{track.artist}</p>
+          <UserProfileLink
+            handle={track.artistHandle}
+            className="block truncate text-xs text-zinc-500 hover:text-white hover:underline"
+          >
+            {track.artist}
+          </UserProfileLink>
         )}
       </div>
 
