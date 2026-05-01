@@ -93,7 +93,7 @@ const timeAgo = (iso: string | null) => {
 async function extractGradientFromImage(src: string): Promise<string | null> {
   try {
     const res = await fetch(
-      `/api/extract-colors?imageUrl=${encodeURIComponent(src)}`
+      `/next/extract-colors?imageUrl=${encodeURIComponent(src)}`
     );
     if (!res.ok) return null;
     const data = (await res.json()) as { gradient: string | null };

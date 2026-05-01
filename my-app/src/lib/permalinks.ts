@@ -56,13 +56,17 @@ export function buildPlaylistPermalink(
     slug?: string,
 ) {
     if (typeof handleOrParams === "string") {
-        return `/${handleOrParams}/sets/${slug}`;
+        return `/playlists/${slug}`;
     }
 
     const { playlistId, ownerHandle } = handleOrParams;
 
     if (isValidPart(ownerHandle) && isValidPart(handleOrParams.slug)) {
-        return `/${ownerHandle?.trim()}/sets/${handleOrParams.slug?.trim()}`;
+        return `/playlists/${handleOrParams.slug?.trim()}`;
+    }
+
+    if (isValidPart(handleOrParams.slug)) {
+        return `/playlists/${handleOrParams.slug?.trim()}`;
     }
 
     return `/playlists/${playlistId}`;
