@@ -217,6 +217,7 @@ export default function HistoryTrackRow({ track, contextTrackIds }: HistoryTrack
             trackTitle={track.title}
             trackOwnerId={track.artistId}
             durationSeconds={track.durationSeconds ?? 0}
+            waveformData={track.waveformData ?? null}
             waveformSeed={track.trackId}
             waveformProgress={waveformProgress}
             onSeek={isCurrent ? handleWaveformSeek : undefined}

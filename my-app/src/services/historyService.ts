@@ -1,17 +1,28 @@
 import api from "@/src/services/api";
-import { getTrackDetails } from "@/src/services/trackService";
 import { ListeningHistoryItem, RecentlyPlayedItem } from "@/src/types/history";
-import axios from "axios";
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
+
+interface HistoryArtistResponse {
+  id: string;
+  display_name: string;
+  handle?: string;
+  avatar_url?: string | null;
+}
 
 interface RecentTrackResponseItem {
   trackId: string;
   title: string;
-  artist: {
-    id: string;
-    display_name: string;
-  };
+  slug?: string;
+  artist: HistoryArtistResponse;
+  coverArtUrl?: string | null;
+  durationMs?: number;
+  durationSeconds?: number;
+  waveformData?: number[] | null;
+  liked?: boolean;
+  likesCount?: number;
+  reposted?: boolean;
+  repostsCount?: number;
   lastPlayedAt: string;
   lastPositionSeconds: number;
 }
@@ -26,9 +37,18 @@ interface RecentlyPlayedResponse {
 interface ListeningHistoryResponseItem {
   trackId: string;
   title: string;
+  slug?: string;
+  artist: HistoryArtistResponse;
+  coverArtUrl?: string | null;
+  durationMs?: number;
+  durationSeconds?: number;
+  waveformData?: number[] | null;
+  liked?: boolean;
+  likesCount?: number;
+  reposted?: boolean;
+  repostsCount?: number;
   playedAt: string;
   positionSeconds: number;
-  durationSeconds: number;
   isCompleted: boolean;
 }
 
@@ -39,17 +59,6 @@ interface ListeningHistoryResponse {
   history: ListeningHistoryResponseItem[];
 }
 
-async function getTrackDetailsSafe(trackId: string) {
-  try {
-    return await getTrackDetails(trackId);
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.status === 404) {
-      return null;
-    }
-
-    throw error;
-  }
-}
 
 // ===============================
 //  MOCK DATA
@@ -268,31 +277,27 @@ export async function getRecentlyPlayed(limit = 6, page = 1): Promise<RecentlyPl
     `/player/history/recent?page=${page}&limit=${limit}`
   );
 
-  const details = await Promise.all(
-    data.tracks.map(async (track) => ({
-      historyTrack: track,
-      detail: await getTrackDetailsSafe(track.trackId),
-    }))
-  );
-
-  return details
-    .filter((item) => item.detail !== null)
-    .map(({ historyTrack, detail }) => ({
-      trackId: historyTrack.trackId,
-      title: detail?.title || historyTrack.title,
-      artist: detail?.artist || historyTrack.artist.display_name,
-      artistId: detail?.artistId || historyTrack.artist.id,
-      artistHandle: detail?.artistHandle,
-      artistAvatarUrl: detail?.artistAvatarUrl ?? null,
-      coverArtUrl: detail?.coverArtUrl ?? null,
-      liked: detail?.liked ?? false,
-      likesCount: detail?.likesCount ?? 0,
-      reposted: detail?.reposted ?? false,
-      repostsCount: detail?.repostsCount ?? 0,
-      durationSeconds: detail?.durationMs ? detail.durationMs / 1000 : undefined,
-      lastPlayedAt: historyTrack.lastPlayedAt,
-      lastPositionSeconds: historyTrack.lastPositionSeconds,
-    }));
+  return data.tracks.map((track) => ({
+    trackId: track.trackId,
+    title: track.title,
+    slug: track.slug,
+    artist: track.artist.display_name,
+    artistId: track.artist.id,
+    artistHandle: track.artist.handle,
+    artistAvatarUrl: track.artist.avatar_url ?? null,
+    coverArtUrl: track.coverArtUrl ?? null,
+    liked: track.liked ?? false,
+    likesCount: track.likesCount ?? 0,
+    reposted: track.reposted ?? false,
+    repostsCount: track.repostsCount ?? 0,
+    durationMs: track.durationMs,
+    durationSeconds:
+      track.durationSeconds ??
+      (track.durationMs ? track.durationMs / 1000 : undefined),
+    waveformData: track.waveformData ?? null,
+    lastPlayedAt: track.lastPlayedAt,
+    lastPositionSeconds: track.lastPositionSeconds,
+  }));
 }
 
 // ===============================
@@ -310,32 +315,28 @@ export async function getListeningHistory(limit = 20, page = 1): Promise<Listeni
     `/player/history?page=${page}&limit=${limit}`
   );
 
-  const details = await Promise.all(
-    data.history.map(async (track) => ({
-      historyTrack: track,
-      detail: await getTrackDetailsSafe(track.trackId),
-    }))
-  );
-
-  return details
-    .filter((item) => item.detail !== null)
-    .map(({ historyTrack, detail }) => ({
-      trackId: historyTrack.trackId,
-      title: detail?.title || historyTrack.title,
-      artist: detail?.artist || "Unknown Artist",
-      artistId: detail?.artistId || "usr_unknown",
-      artistHandle: detail?.artistHandle,
-      artistAvatarUrl: detail?.artistAvatarUrl ?? null,
-      coverArtUrl: detail?.coverArtUrl ?? null,
-      liked: detail?.liked ?? false,
-      likesCount: detail?.likesCount ?? 0,
-      reposted: detail?.reposted ?? false,
-      repostsCount: detail?.repostsCount ?? 0,
-      playedAt: historyTrack.playedAt,
-      positionSeconds: historyTrack.positionSeconds,
-      durationSeconds: historyTrack.durationSeconds,
-      isCompleted: historyTrack.isCompleted,
-    }));
+  return data.history.map((track) => ({
+    trackId: track.trackId,
+    title: track.title,
+    slug: track.slug,
+    artist: track.artist.display_name,
+    artistId: track.artist.id,
+    artistHandle: track.artist.handle,
+    artistAvatarUrl: track.artist.avatar_url ?? null,
+    coverArtUrl: track.coverArtUrl ?? null,
+    liked: track.liked ?? false,
+    likesCount: track.likesCount ?? 0,
+    reposted: track.reposted ?? false,
+    repostsCount: track.repostsCount ?? 0,
+    durationMs: track.durationMs,
+    durationSeconds:
+      track.durationSeconds ??
+      (track.durationMs ? track.durationMs / 1000 : undefined),
+    waveformData: track.waveformData ?? null,
+    playedAt: track.playedAt,
+    positionSeconds: track.positionSeconds,
+    isCompleted: track.isCompleted,
+  }));
 }
 
 // ===============================

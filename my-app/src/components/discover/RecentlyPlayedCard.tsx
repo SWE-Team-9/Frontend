@@ -14,6 +14,7 @@ import { TrackPageLink, UserProfileLink } from "@/src/components/navigation/Enti
 export interface DiscoverCardTrack {
   trackId: string;
   title: string;
+  slug?: string;
   artist: string;
   artistId: string;
   artistHandle?: string;
@@ -21,6 +22,11 @@ export interface DiscoverCardTrack {
   coverArtUrl?: string | null;
   liked?: boolean;
   likesCount?: number;
+  reposted?: boolean;
+  repostsCount?: number;
+  durationMs?: number;
+  durationSeconds?: number;
+  waveformData?: number[] | null;
 }
 
 interface RecentlyPlayedCardProps {
