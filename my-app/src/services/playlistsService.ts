@@ -143,8 +143,44 @@ export function normalizePlaylist(raw: unknown): Playlist {
   const r = (raw ?? {}) as any;
   const inner = r.playlist ?? r.data ?? r;
 
+  const likedRaw =
+    inner.liked ??
+    inner.isLiked ??
+    inner.is_liked ??
+    inner.viewerHasLiked ??
+    inner.viewer_has_liked ??
+    inner.likedByCurrentUser ??
+    inner.liked_by_current_user ??
+    inner.likedByMe ??
+    inner.liked_by_me ??
+    inner.userHasLiked ??
+    inner.user_has_liked;
+
+  const liked =
+    typeof likedRaw === "boolean"
+      ? likedRaw
+      : likedRaw == null
+        ? undefined
+        : Boolean(likedRaw);
+
+  const likesCountRaw =
+    inner.likesCount ??
+    inner.likes_count ??
+    inner.likeCount ??
+    inner.like_count;
+
+  let likesCount: number | undefined;
+  if (typeof likesCountRaw === "number") {
+    likesCount = likesCountRaw;
+  } else if (typeof likesCountRaw === "string" && likesCountRaw.trim()) {
+    const parsed = Number(likesCountRaw);
+    if (Number.isFinite(parsed)) likesCount = parsed;
+  }
+
   return {
     ...inner,
+    liked,
+    likesCount,
     playlistId: inner.playlistId ?? inner.id ?? inner._id ?? "",
     title: inner.title ?? inner.name ?? "",
     visibility: inner.visibility ?? "PUBLIC",
