@@ -19,6 +19,7 @@ interface TimestampedCommentsSectionProps {
     currentPlaybackSeconds: number;
     enabled?: boolean;
     className?: string;
+    onCommentAdded?: () => void;
 }
 
 function formatTime(seconds: number) {
@@ -40,6 +41,7 @@ export default function TimestampedCommentsSection({
     currentPlaybackSeconds,
     enabled = true,
     className = "",
+    onCommentAdded,
 }: TimestampedCommentsSectionProps) {
     const [isHovered, setIsHovered] = useState(false);
     const [isInputActive, setIsInputActive] = useState(false);
@@ -157,6 +159,7 @@ export default function TimestampedCommentsSection({
 
             setText("");
             await loadComments();
+            onCommentAdded?.();
             setIsInputActive(false);
             inputRef.current?.blur();
         } catch (error) {
