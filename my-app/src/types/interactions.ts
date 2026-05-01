@@ -34,6 +34,7 @@ export interface TrackCommentUser {
   id: string;
   display_name: string;
   avatarUrl?: string | null;
+  avatar_url?: string | null;
 }
 
 export interface TrackComment {
