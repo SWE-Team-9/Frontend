@@ -2,7 +2,7 @@
 import { act } from "@testing-library/react";
 import { useLikeStore } from "@/src/store/likeStore";
 import * as likeService from "@/src/services/likeService";
-import { TrackData, UserInteractionResponse } from "@/src/types/interactions";
+import { TrackData } from "@/src/types/interactions";
 
 jest.mock("@/src/services/likeService");
 const mockedService = likeService as jest.Mocked<typeof likeService>;

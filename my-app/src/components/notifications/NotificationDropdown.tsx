@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { MdPersonOutline } from "react-icons/md";
 import { UserCard, UserCardUser } from "@/src/components/user/UserCard";
@@ -14,10 +15,12 @@ function getRelativeTime(dateString: string) {
   const diffMinutes = Math.floor(diffMs / 60000);
 
   if (diffMinutes < 1) return "just now";
-  if (diffMinutes < 60) return `${diffMinutes} minute${diffMinutes === 1 ? "" : "s"} ago`;
+  if (diffMinutes < 60)
+    return `${diffMinutes} minute${diffMinutes === 1 ? "" : "s"} ago`;
 
   const diffHours = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? "" : "s"} ago`;
+  if (diffHours < 24)
+    return `${diffHours} hour${diffHours === 1 ? "" : "s"} ago`;
 
   const diffDays = Math.floor(diffHours / 24);
   if (diffDays < 7) return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`;
@@ -49,7 +52,7 @@ function getActorNameFromNotification(notification: Notification) {
   if (!message) return "Someone";
 
   const match = message.match(
-    /^(.*?)\s(?:started following you|liked your track|commented on your track|reposted your track)\b/i
+    /^(.*?)\s(?:started following you|liked your track|commented on your track|reposted your track)\b/i,
   );
 
   if (match?.[1]) {
@@ -59,7 +62,9 @@ function getActorNameFromNotification(notification: Notification) {
   return message.split(" ")[0] ?? "Someone";
 }
 
-function mapFollowNotificationToUserCard(notification: Notification): UserCardUser {
+function mapFollowNotificationToUserCard(
+  notification: Notification,
+): UserCardUser {
   return {
     userId: notification.actorId,
     displayName: getActorNameFromNotification(notification),
@@ -81,10 +86,19 @@ function getNotificationTarget(notification: Notification) {
 
 export function NotificationDropdown() {
   const router = useRouter();
-  const notifications = useNotificationStore((state) => state.notifications);
+  const notifications = useNotificationStore(
+    (state) => state.dropdownNotifications,
+  );
   const isLoading = useNotificationStore((state) => state.isLoading);
   const error = useNotificationStore((state) => state.error);
   const markAsRead = useNotificationStore((state) => state.markAsRead);
+  const fetchDropdownNotifications = useNotificationStore(
+    (state) => state.fetchDropdownNotifications,
+  );
+
+  useEffect(() => {
+    void fetchDropdownNotifications();
+  }, [fetchDropdownNotifications]);
 
   async function handleOpenNotification(notification: Notification) {
     await markAsRead(notification);
@@ -92,7 +106,7 @@ export function NotificationDropdown() {
   }
 
   return (
-    <div className="absolute top-10 right-0 z-50 w-[380px] rounded-lg border border-neutral-700 bg-neutral-900 text-white shadow-2xl">
+    <div className="absolute top-10 right-0 z-50 w-95 rounded-lg border border-neutral-700 bg-[#121212] text-white shadow-2xl overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3">
         <h3 className="font-bold text-2xl">Notifications</h3>
 
@@ -104,17 +118,19 @@ export function NotificationDropdown() {
         </Link>
       </div>
 
-      <div className="max-h-[420px] overflow-y-auto">
+      <div className="max-h-105 overflow-y-auto">
         {isLoading && (
-          <p className="px-4 py-6 text-sm text-neutral-400">Loading notifications...</p>
+          <p className="px-4 py-6 text-sm text-neutral-400">
+            Loading notifications...
+          </p>
         )}
 
-        {error && (
-          <p className="px-4 py-6 text-sm text-red-400">{error}</p>
-        )}
+        {error && <p className="px-4 py-6 text-sm text-red-400">{error}</p>}
 
         {!isLoading && !error && notifications.length === 0 && (
-          <p className="px-4 py-6 text-sm text-neutral-400">No new notifications</p>
+          <p className="px-4 py-6 text-sm text-neutral-400">
+            No new notifications
+          </p>
         )}
 
         {!isLoading &&
@@ -124,20 +140,12 @@ export function NotificationDropdown() {
             const action = getActionText(notification);
 
             if (notification.type === "follow") {
+              const _profileSlug =
+                notification.actorHandle || notification.actorId;
               return (
                 <div
                   key={notification.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => {
-                    void markAsRead(notification);
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      void markAsRead(notification);
-                    }
-                  }}
+                  onClick={() => void markAsRead(notification)}
                   className={`relative border-b border-neutral-800/70 px-4 py-3 transition hover:bg-neutral-800/40 ${
                     notification.isRead ? "opacity-70" : ""
                   }`}
@@ -146,14 +154,20 @@ export function NotificationDropdown() {
                     <span className="absolute right-4 top-4 h-2 w-2 rounded-full bg-[#ff5500]" />
                   )}
 
-                  <div className="mb-2 pr-4">
-                    <p className="text-xs text-neutral-300">started following you</p>
-                    <p className="mt-1 text-xs text-neutral-500">
-                      {getRelativeTime(notification.createdAt)}
-                    </p>
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    className="pr-4 [&_p]:text-left [&_span]:text-left [&>div]:justify-start"
+                  >
+                    <UserCard
+                      compact
+                      user={mapFollowNotificationToUserCard(notification)}
+                    />
                   </div>
 
-                  <UserCard compact user={mapFollowNotificationToUserCard(notification)} />
+                  <div className="mt-1 flex items-center gap-1 pl-13 text-xs text-neutral-400">
+                    <MdPersonOutline className="h-3.5 w-3.5" />
+                    <span>{getRelativeTime(notification.createdAt)}</span>
+                  </div>
                 </div>
               );
             }
@@ -190,7 +204,9 @@ export function NotificationDropdown() {
 
                 <div className="min-w-0 flex-1">
                   <p className="text-sm leading-snug">
-                    <span className="font-semibold text-white">{actorName}</span>{" "}
+                    <span className="font-semibold text-white">
+                      {actorName}
+                    </span>{" "}
                     <span className="text-neutral-300">{action}</span>
                   </p>
 

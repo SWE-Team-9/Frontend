@@ -79,7 +79,12 @@ interface RawNotificationsResponse {
   notifications?: RawNotification[];
 }
 
-const NOTIFICATION_TYPES: NotificationType[] = ["like", "comment", "follow", "repost"];
+const NOTIFICATION_TYPES: NotificationType[] = [
+  "like",
+  "comment",
+  "follow",
+  "repost",
+];
 const NOTIFICATION_ENTITY_TYPES: NotificationEntityType[] = [
   "track",
   "user",
@@ -136,7 +141,8 @@ function pickBoolean(...values: unknown[]): boolean | undefined {
 }
 
 function normalizeType(value: unknown): NotificationType {
-  const normalized = typeof value === "string" ? value.trim().toLowerCase() : "";
+  const normalized =
+    typeof value === "string" ? value.trim().toLowerCase() : "";
 
   if (NOTIFICATION_TYPES.includes(normalized as NotificationType)) {
     return normalized as NotificationType;
@@ -145,10 +151,16 @@ function normalizeType(value: unknown): NotificationType {
   return "like";
 }
 
-function normalizeEntityType(value: unknown, fallbackType: NotificationType): NotificationEntityType {
-  const normalized = typeof value === "string" ? value.trim().toLowerCase() : "";
+function normalizeEntityType(
+  value: unknown,
+  fallbackType: NotificationType,
+): NotificationEntityType {
+  const normalized =
+    typeof value === "string" ? value.trim().toLowerCase() : "";
 
-  if (NOTIFICATION_ENTITY_TYPES.includes(normalized as NotificationEntityType)) {
+  if (
+    NOTIFICATION_ENTITY_TYPES.includes(normalized as NotificationEntityType)
+  ) {
     return normalized as NotificationEntityType;
   }
 
@@ -182,7 +194,7 @@ export function normalizeNotification(payload: unknown): Notification {
       actor?.actorId,
       actor?.actor_id,
       raw.entityId,
-      raw.entity_id
+      raw.entity_id,
     ) ?? "";
 
   const actorDisplayName = pickString(
@@ -190,14 +202,14 @@ export function normalizeNotification(payload: unknown): Notification {
     raw.actor_display_name,
     actor?.displayName,
     actor?.display_name,
-    actor?.name
+    actor?.name,
   );
 
   const actorHandle = pickString(
     raw.actorHandle,
     raw.actor_handle,
     actor?.handle,
-    actor?.username
+    actor?.username,
   );
 
   const actorAvatarUrl = pickNullableString(
@@ -208,11 +220,17 @@ export function normalizeNotification(payload: unknown): Notification {
     actor?.profileImageUrl,
     actor?.profile_image_url,
     actor?.imageUrl,
-    actor?.image_url
+    actor?.image_url,
   );
 
   const entityId =
-    pickString(raw.entityId, raw.entity_id, raw.targetId, raw.target_id, actorId) ?? actorId;
+    pickString(
+      raw.entityId,
+      raw.entity_id,
+      raw.targetId,
+      raw.target_id,
+      actorId,
+    ) ?? actorId;
 
   const createdAt =
     pickString(raw.createdAt, raw.created_at, raw.timestamp, raw.time) ??
@@ -233,10 +251,14 @@ export function normalizeNotification(payload: unknown): Notification {
   };
 }
 
-function normalizeNotificationsResponse(payload: unknown): NotificationsResponse {
+function normalizeNotificationsResponse(
+  payload: unknown,
+): NotificationsResponse {
   const raw = (payload || {}) as RawNotificationsResponse;
   const notifications = Array.isArray(raw.notifications)
-    ? raw.notifications.map((notification) => normalizeNotification(notification))
+    ? raw.notifications.map((notification) =>
+        normalizeNotification(notification),
+      )
     : [];
 
   return {
@@ -251,12 +273,20 @@ function normalizeNotificationsResponse(payload: unknown): NotificationsResponse
 //  GET NOTIFICATIONS
 // ===============================
 export async function getNotifications(
-  params: GetNotificationsParams = {}
+  params: GetNotificationsParams = {},
 ): Promise<NotificationsResponse> {
   if (USE_MOCK) {
     await new Promise((resolve) => setTimeout(resolve, 400));
     return normalizeNotificationsResponse(mockGetNotifications(params));
   }
+
+  const apiParams = {
+    page: params.page,
+    limit: params.limit,
+    type: mapNotificationTypeToBackend(params.type),
+    isRead: mapNotificationStatusToBackendIsRead(params.status),
+  };
+  console.log("[getNotifications] sending to API:", apiParams);
 
   const { data } = await api.get<NotificationsResponse>("/notifications", {
     params: {
@@ -266,7 +296,7 @@ export async function getNotifications(
       isRead: mapNotificationStatusToBackendIsRead(params.status),
     },
   });
-
+  console.log("[getNotifications] raw response from API:", data);
   return normalizeNotificationsResponse(data);
 }
 
@@ -279,40 +309,52 @@ export async function getUnreadNotificationCount(): Promise<UnreadNotificationCo
     return mockGetUnreadCount();
   }
 
-  const { data } = await api.get<UnreadNotificationCountResponse>("/notifications/unread-count");
+  const { data } = await api.get<UnreadNotificationCountResponse>(
+    "/notifications/unread-count",
+  );
   return data;
 }
 
 // ===============================
 //  MARK NOTIFICATION AS READ
 // ===============================
-export async function markNotificationAsRead(notificationId: string): Promise<{ message: string }> {
+export async function markNotificationAsRead(
+  notificationId: string,
+): Promise<{ message: string }> {
   if (USE_MOCK) {
     await new Promise((resolve) => setTimeout(resolve, 200));
     return mockMarkAsRead(notificationId);
   }
 
-  const { data } = await api.patch<{ message: string }>(`/notifications/${notificationId}/read`);
+  const { data } = await api.patch<{ message: string }>(
+    `/notifications/${notificationId}/read`,
+  );
   return data;
 }
 
 // ===============================
 //  MARK ALL NOTIFICATIONS AS READ
 // ===============================
-export async function markAllNotificationsAsRead(): Promise<{ message: string }> {
+export async function markAllNotificationsAsRead(): Promise<{
+  message: string;
+}> {
   if (USE_MOCK) {
     await new Promise((resolve) => setTimeout(resolve, 200));
     return mockMarkAllAsRead();
   }
 
-  const { data } = await api.patch<{ message: string }>("/notifications/read-all");
+  const { data } = await api.patch<{ message: string }>(
+    "/notifications/read-all",
+  );
   return data;
 }
 
 // ===============================
 //  DELETE NOTIFICATION
 // ===============================
-export async function deleteNotification(notificationId: string): Promise<void> {
+export async function deleteNotification(
+  notificationId: string,
+): Promise<void> {
   if (USE_MOCK) {
     await new Promise((resolve) => setTimeout(resolve, 200));
     mockDeleteNotification(notificationId);
@@ -331,7 +373,9 @@ export async function getNotificationPreferences(): Promise<NotificationPreferen
     return mockGetPreferences();
   }
 
-  const { data } = await api.get<NotificationPreferences>("/notifications/preferences");
+  const { data } = await api.get<NotificationPreferences>(
+    "/notifications/preferences",
+  );
   return data;
 }
 
@@ -339,14 +383,17 @@ export async function getNotificationPreferences(): Promise<NotificationPreferen
 //  UPDATE NOTIFICATION PREFERENCES
 // ===============================
 export async function updateNotificationPreferences(
-  preferences: NotificationPreferences
+  preferences: NotificationPreferences,
 ): Promise<{ message: string }> {
   if (USE_MOCK) {
     await new Promise((resolve) => setTimeout(resolve, 200));
     return mockUpdatePreferences(preferences);
   }
 
-  const { data } = await api.put<{ message: string }>("/notifications/preferences", preferences);
+  const { data } = await api.put<{ message: string }>(
+    "/notifications/preferences",
+    preferences,
+  );
   return data;
 }
 
@@ -362,19 +409,26 @@ export async function registerPushNotificationDevice(payload: {
     return mockRegisterPushDevice(payload);
   }
 
-  const { data } = await api.post<{ message: string }>("/notifications/push/register", payload);
+  const { data } = await api.post<{ message: string }>(
+    "/notifications/push/register",
+    payload,
+  );
   return data;
 }
 
 // =================================
 //  REMOVE PUSH NOTIFICATION DEVICE
 // =================================
-export async function removePushNotificationDevice(deviceId: string): Promise<{ message: string }> {
+export async function removePushNotificationDevice(
+  deviceId: string,
+): Promise<{ message: string }> {
   if (USE_MOCK) {
     await new Promise((resolve) => setTimeout(resolve, 200));
     return mockRemovePushDevice(deviceId);
   }
 
-  const { data } = await api.delete<{ message: string }>(`/notifications/push/${deviceId}`);
+  const { data } = await api.delete<{ message: string }>(
+    `/notifications/push/${deviceId}`,
+  );
   return data;
 }

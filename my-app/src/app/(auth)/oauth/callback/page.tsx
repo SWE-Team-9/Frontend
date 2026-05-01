@@ -2,15 +2,64 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getCurrentUser } from "@/src/services/authService";
+import { getBootstrapData } from "@/src/services/bffService";
+import { useAuthStore } from "@/src/store/useAuthStore";
+import { useProfileStore } from "@/src/store/useProfileStore";
+import { useNotificationStore } from "@/src/store/notificationsStore";
+import { useSubscriptionStore } from "@/src/store/useSubscriptionStore";
+import {
+  normalizeBackendSubscription,
+  SubscriptionDetails,
+} from "@/src/services/subscriptionService";
+import { PLAN_CONFIG } from "@/src/config/plans";
+
+function entitlementsToSubDetails(e: {
+  planCode?: string;
+  isPremium?: boolean;
+  uploadLimit?: number;
+  uploadedCount?: number;
+  remainingUploads?: number | null;
+  adsEnabled?: boolean;
+  canDownload?: boolean;
+  trialEnd?: string | null;
+}): SubscriptionDetails {
+  const planCode = e.planCode ?? "FREE";
+  const subscriptionType: "FREE" | "PRO" | "GO+" =
+    planCode === "GO_PLUS" ? "GO+" : planCode === "PRO" ? "PRO" : "FREE";
+  const uploadLimit = (e.uploadLimit ?? PLAN_CONFIG.FREE.uploadLimit) < 0
+    ? Infinity
+    : (e.uploadLimit ?? PLAN_CONFIG.FREE.uploadLimit);
+
+  return {
+    userId: "",
+    subscriptionType,
+    planName: PLAN_CONFIG[subscriptionType]?.label ?? subscriptionType,
+    isPremium: !!e.isPremium,
+    subscriptionStatus: null,
+    uploadLimit,
+    uploadedTracks: e.uploadedCount ?? 0,
+    remainingUploads: e.remainingUploads ?? uploadLimit,
+    cancelAtPeriodEnd: false,
+    currentPeriodEnd: null,
+    renewalDate: null,
+    expiresAt: null,
+    trialStart: null,
+    trialEnd: e.trialEnd ?? null,
+    paymentMethodSummary: null,
+    pendingDowngrade: null,
+    perks: {
+      adFree: !(e.adsEnabled ?? true),
+      offlineListening: !!e.canDownload,
+    },
+  };
+}
 
 // ─────────────────────────────────────────────────────────────
 // OAuth Callback Page
 //
 // After Google OAuth finishes, the backend redirects the browser
-// here. The backend already set httpOnly cookies, so we just
-// call /auth/me to confirm the user is logged in, then redirect
-// to /discover (or wherever they came from).
+// here. The backend already set httpOnly cookies, so we call
+// /app/bootstrap once to seed all shell stores and redirect.
 // ─────────────────────────────────────────────────────────────
 
 export default function OAuthCallbackPage() {
@@ -18,20 +67,65 @@ export default function OAuthCallbackPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const checkAuth = async () => {
+    const handleCallback = async () => {
       try {
-        // getCurrentUser will set the user in the store automatically
-        await getCurrentUser();
+        const data = await getBootstrapData();
 
-        // Redirect to wherever the user wanted to go (default: /discover)
+        if (data.profile) {
+          const p = data.profile;
+          useProfileStore.getState().setProfileData({
+            userId: p.id,
+            displayName: p.displayName ?? "",
+            handle: p.handle ?? "",
+            avatarUrl: p.avatarUrl ?? null,
+            coverUrl: p.coverUrl ?? null,
+            accountType: (p.accountType as "ARTIST" | "LISTENER") ?? "LISTENER",
+            followersCount: p.followersCount ?? 0,
+            followingCount: p.followingCount ?? 0,
+            tracksCount: p.tracksCount ?? 0,
+            isLoaded: false,
+          });
+        }
+
+        useNotificationStore.getState().setFromBootstrap(
+          data.notifications.unreadCount,
+          data.notifications.latest,
+        );
+
+        if (data.subscription) {
+          useSubscriptionStore
+            .getState()
+            .setSubDirectly(
+              normalizeBackendSubscription(data.subscription as Record<string, unknown>),
+            );
+        } else if (data.entitlements) {
+          useSubscriptionStore
+            .getState()
+            .setSubDirectly(entitlementsToSubDetails(data.entitlements));
+        }
+
+        const me = data.me;
+        useAuthStore.getState().setUser({
+          id: me.id,
+          email: me.email,
+          displayName: me.display_name ?? "",
+          handle: me.handle ?? "",
+          avatarUrl: me.avatar_url ?? null,
+          isVerified: me.is_verified ?? false,
+          systemRole: (me.system_role as "ADMIN" | "MODERATOR" | "USER") ?? "USER",
+        });
+
         const returnTo = sessionStorage.getItem("oauth_return_to") || "/discover";
-        router.replace(returnTo);
+        sessionStorage.removeItem("oauth_return_to");
+        // Admins and moderators land on the dashboard, not the listener feed
+        const isStaff = me.system_role === "ADMIN" || me.system_role === "MODERATOR";
+        router.replace(isStaff && returnTo === "/discover" ? "/admin" : returnTo);
       } catch {
         setError("Login failed. Please try again.");
       }
     };
 
-    checkAuth();
+    handleCallback();
   }, [router]);
 
   return (

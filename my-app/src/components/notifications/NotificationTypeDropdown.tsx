@@ -15,7 +15,9 @@ const typeOptions: Array<{ value: NotificationType | "all"; label: string }> = [
 
 export function NotificationTypeDropdown() {
   const selectedType = useNotificationStore((state) => state.selectedType);
-  const setSelectedType = useNotificationStore((state) => state.setSelectedType);
+  const setSelectedType = useNotificationStore(
+    (state) => state.setSelectedType,
+  );
 
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -26,7 +28,10 @@ export function NotificationTypeDropdown() {
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     }
@@ -36,11 +41,11 @@ export function NotificationTypeDropdown() {
   }, []);
 
   return (
-    <div className="relative w-fit" ref={dropdownRef}>
+    <div className="relative w-52" ref={dropdownRef}>
       <button
         type="button"
         onClick={() => setIsOpen((current) => !current)}
-        className="flex items-center gap-3 rounded-md bg-neutral-700 px-3 py-1 text-sm font-bold text-white hover:bg-neutral-800"
+        className="flex w-full items-center justify-between gap-3 rounded-md bg-neutral-700 px-3 py-1 text-sm font-bold text-white hover:bg-neutral-800"
       >
         <span>{selectedLabel}</span>
         {isOpen ? (
@@ -51,7 +56,7 @@ export function NotificationTypeDropdown() {
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 top-full z-50 mt-2 w-52 rounded-md border border-neutral-700 bg-[#1a1a1a] py-2 shadow-2xl">
+        <div className="absolute left-0 top-full z-50 mt-2 w-full rounded-md border border-neutral-600 bg-[#1a1a1a] py-2 shadow-2xl">
           {typeOptions.map((option) => {
             const isActive = selectedType === option.value;
             return (

@@ -12,6 +12,8 @@ import SharePopup from "@/src/components/share/SharePopup";
 import { buildFullShareUrl, buildPlaylistPermalink } from "@/src/lib/permalinks";
 import { messageService } from "@/src/services/messageService";
 import MessageWaveform from "@/src/components/messages/MessageWaveform";
+import { TrackPageLink, UserProfileLink } from "@/src/components/navigation/EntityLinks";
+import Link from "next/link";
 
 const FALLBACK = "/images/track-placeholder.png";
 
@@ -143,7 +145,7 @@ export default function SharedPlaylistCard({
     };
 
     return (
-        <div className="mt-3 max-w-[680px] text-white">
+        <div className="mt-3 max-w-170 text-white">
             <div className="flex gap-5">
                 <div className="relative h-40 w-40 shrink-0 overflow-hidden bg-zinc-800">
                     <Image
@@ -167,12 +169,20 @@ export default function SharedPlaylistCard({
                         </button>
 
                         <div className="min-w-0">
-                            <p className="truncate text-sm font-bold text-zinc-400">
+                            <UserProfileLink
+                                handle={playlist.owner.handle}
+                                className="block truncate text-sm font-bold text-zinc-400 hover:text-white hover:underline"
+                            >
                                 {playlist.owner.display_name}
-                            </p>
-                            <p className="truncate text-base font-bold text-white">
+                            </UserProfileLink>
+
+                            <Link
+                                href={playlistHref}
+                                className="block truncate text-base font-bold text-white hover:underline"
+                                onClick={(e) => e.stopPropagation()}
+                            >
                                 {playlist.title}
-                            </p>
+                            </Link>
                         </div>
                     </div>
 
@@ -211,13 +221,21 @@ export default function SharedPlaylistCard({
                                         />
                                     </div>
 
-                                    <span className="truncate text-zinc-400">
+                                    <UserProfileLink
+                                        handle={track.artist.handle}
+                                        className="truncate text-zinc-400 hover:text-white hover:underline"
+                                    >
                                         {track.artist.display_name}
-                                    </span>
+                                    </UserProfileLink>
 
-                                    <span className="truncate font-bold text-white">
+                                    <TrackPageLink
+                                        trackId={track.id}
+                                        artistHandle={track.artist.handle}
+                                        slug={track.slug}
+                                        className="truncate font-bold text-white hover:underline"
+                                    >
                                         · {track.title}
-                                    </span>
+                                    </TrackPageLink>
 
                                     <span className="ml-auto shrink-0 text-xs text-zinc-500">
                                         {isCurrentTrack && isPlaying ? "Playing" : `▶ ${formatCount(track.playCount)}`}

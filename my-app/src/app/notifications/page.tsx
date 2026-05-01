@@ -1,4 +1,6 @@
 "use client";
+
+import { useEffect } from "react";
 import { NotificationFilters } from "@/src/components/notifications/NotificationFilters";
 import { NotificationItem } from "@/src/components/notifications/NotificationItem";
 import { NotificationTypeDropdown } from "@/src/components/notifications/NotificationTypeDropdown";
@@ -13,6 +15,23 @@ export default function NotificationsPage() {
   const fetchNotifications = useNotificationStore(
     (state) => state.fetchNotifications,
   );
+  const setSelectedStatus = useNotificationStore(
+    (state) => state.setSelectedStatus,
+  );
+  const setSelectedType = useNotificationStore(
+    (state) => state.setSelectedType,
+  );
+
+  // Fetch on mount
+  useEffect(() => {
+    void fetchNotifications({ page: 1 });
+
+    // Reset filters when leaving the page so stale state doesn't persist
+    return () => {
+      setSelectedStatus("all");
+      setSelectedType("all");
+    };
+  }, [fetchNotifications, setSelectedStatus, setSelectedType]);
 
   return (
     <div className="mx-auto max-w-3xl overflow-hidden rounded-2xl bg-[#121212]">
@@ -69,7 +88,7 @@ export default function NotificationsPage() {
                     onClick={() => fetchNotifications({ page: pageNumber })}
                     className={`h-8 w-8 rounded-full text-sm font-semibold ${
                       isActive
-                        ? "bg-[#ff5500] text-white"
+                        ? "bg-white text-black"
                         : "bg-neutral-900 text-neutral-300 hover:bg-neutral-800"
                     }`}
                   >

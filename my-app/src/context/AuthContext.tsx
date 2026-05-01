@@ -35,6 +35,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     <AuthContext.Provider value={{ openAuth, logout }}>
       {children}
       <AuthModal
+        key={authView ?? "closed"}
         isOpen={authView !== null}
         initialView={authView || "login"}
         onClose={closeAuth}

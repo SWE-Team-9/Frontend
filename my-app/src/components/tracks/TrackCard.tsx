@@ -37,6 +37,7 @@ import {
   usePlayerStore,
   type Track as PlayerTrack,
 } from "@/src/store/playerStore";
+import { loadQueue } from "@/src/services/playerService";
 import { buildTrackPermalink } from "@/src/lib/permalinks";
 
 const FALLBACK_IMAGE = "/images/track-placeholder.png";
@@ -61,6 +62,10 @@ interface TrackCardProps {
   onDelete?: (id: string, title: string) => void;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onEdit?: (track: any) => void;
+  /** All track IDs visible in the current context (list/profile/feed).
+   *  When provided, the backend queue is loaded with the full list so
+   *  next/previous navigation works across the whole context. */
+  contextTrackIds?: string[];
 }
 
 function getArtistLabel(value: unknown): string {
@@ -82,15 +87,16 @@ export const TrackCard: React.FC<TrackCardProps> = ({
   track,
   isOwner,
   onDelete,
-  onEdit,
+  onEdit: _onEdit,
+  contextTrackIds,
 }) => {
-const trackHref = buildTrackPermalink({
-  trackId: track.trackId,
-  artistHandle: track.artistHandle,
-  slug: track.slug,
-});
+  const trackHref = buildTrackPermalink({
+    trackId: track.trackId,
+    artistHandle: track.artistHandle,
+    slug: track.slug,
+  });
 
-const hasCanonicalTrackRoute = !trackHref.startsWith("/tracks/");
+  const hasCanonicalTrackRoute = !trackHref.startsWith("/tracks/");
 
   const toEditData = (
     source: Pick<
@@ -107,7 +113,7 @@ const hasCanonicalTrackRoute = !trackHref.startsWith("/tracks/");
     (state) => state.deleteRepostAction,
   );
   const isReposted = useRepostStore((state) => state.isReposted(track.trackId));
-  const handleDeleteClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
+  const _handleDeleteClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation(); // Prevent card click
     if (!isOwner && isReposted) {
       if (confirm("Do you want to remove your repost?")) {
@@ -260,7 +266,26 @@ const hasCanonicalTrackRoute = !trackHref.startsWith("/tracks/");
         return;
       }
 
-      await fetchAndPlay(playerTrack);
+      // If a full context list is provided, load all IDs into the backend queue
+      // so next/previous work across the whole list.
+      if (contextTrackIds && contextTrackIds.length > 1) {
+        const resp = await loadQueue({
+          contextType: "CONTEXT_IDS",
+          trackIds: contextTrackIds,
+          startTrackId: playerTrack.trackId,
+        });
+        usePlayerStore.setState({
+          currentQueueIndex: resp.currentIndex,
+          queueLength: resp.queueLength,
+          tracksUntilAd: resp.tracksUntilAd,
+          currentAd: null,
+          isPlayingAd: false,
+          queueVersion: usePlayerStore.getState().queueVersion + 1,
+        });
+        await fetchAndPlay(playerTrack, true);
+      } else {
+        await fetchAndPlay(playerTrack);
+      }
     } catch {
       setError("Could not start playback. Please try again.");
     }
@@ -374,12 +399,22 @@ const hasCanonicalTrackRoute = !trackHref.startsWith("/tracks/");
                   )}
                 </button>
                 <div className="truncate">
-                  <p className="text-zinc-400 text-sm">
-                    {getArtistLabel(track.artistName ?? track.artist)}
-                  </p>
+                  {track.artistHandle ? (
+                    <Link
+                      href={`/profiles/${track.artistHandle}`}
+                      className="block truncate text-sm text-zinc-400 hover:text-white hover:underline"
+                    >
+                      {getArtistLabel(track.artistName ?? track.artist)}
+                    </Link>
+                  ) : (
+                    <p className="truncate text-sm text-zinc-400">
+                      {getArtistLabel(track.artistName ?? track.artist)}
+                    </p>
+                  )}
+
                   <Link
-                    href={`/tracks/${track.trackId}`}
-                    className="text-white text-xl font-bold truncate hover:text-neutral-700 transition duration-200"
+                    href={trackHref}
+                    className="block truncate text-xl font-bold text-white transition duration-200 hover:underline"
                   >
                     {savedData.title}
                   </Link>
@@ -389,8 +424,8 @@ const hasCanonicalTrackRoute = !trackHref.startsWith("/tracks/");
               <div className="flex items-center gap-2 relative">
                 <span
                   className={`text-[10px] px-2 py-0.5 rounded font-bold ${visibility === "PUBLIC"
-                      ? "bg-green-900/30 text-green-400"
-                      : "bg-zinc-800 text-zinc-500"
+                    ? "bg-green-900/30 text-green-400"
+                    : "bg-zinc-800 text-zinc-500"
                     }`}
                 >
                   {visibility}

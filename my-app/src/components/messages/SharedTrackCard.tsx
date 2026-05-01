@@ -15,6 +15,7 @@ import type { TrackData } from "@/src/types/interactions";
 import SharePopup from "@/src/components/share/SharePopup";
 import { buildFullShareUrl, buildTrackPermalink } from "@/src/lib/permalinks";
 import MessageWaveform from "@/src/components/messages/MessageWaveform";
+import { TrackPageLink, UserProfileLink } from "@/src/components/navigation/EntityLinks";
 
 const FALLBACK = "/images/track-placeholder.png";
 const ACCENT = "#ff5500";
@@ -124,7 +125,7 @@ export default function SharedTrackCard({ track }: { track: SharedTrack }) {
     };
 
     return (
-        <div className="mt-3 max-w-[620px] text-white">
+        <div className="mt-3 max-w-155 text-white">
             <div className="flex gap-4">
                 <div className="relative h-36 w-36 shrink-0 overflow-hidden bg-zinc-800">
                     <Image
@@ -145,14 +146,22 @@ export default function SharedTrackCard({ track }: { track: SharedTrack }) {
                         >
                             <Play className="ml-0.5 h-5 w-5 fill-black" />
                         </button>
-
                         <div className="min-w-0">
-                            <p className="truncate text-sm font-bold text-zinc-400">
+                            <UserProfileLink
+                                handle={track.artist.handle}
+                                className="block truncate text-sm font-bold text-zinc-400 hover:text-white hover:underline"
+                            >
                                 {track.artist.display_name}
-                            </p>
-                            <p className="truncate text-base font-bold text-white">
+                            </UserProfileLink>
+
+                            <TrackPageLink
+                                trackId={track.id}
+                                artistHandle={track.artist.handle}
+                                slug={track.slug}
+                                className="block truncate text-base font-bold text-white hover:underline"
+                            >
                                 {track.title}
-                            </p>
+                            </TrackPageLink>
                         </div>
                     </div>
 

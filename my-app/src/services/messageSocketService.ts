@@ -12,11 +12,12 @@ export function getMessageSocket() {
   if (!socket) {
     socket = io(`${SOCKET_URL}/messages`, {
       withCredentials: true,
-      transports: ["websocket", "polling"],
+      transports: ["websocket"],
+      autoConnect: false,
       reconnection: true,
       reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-      autoConnect: false,
+      reconnectionDelay: 2000,
+      reconnectionDelayMax: 30000,
     });
   }
 

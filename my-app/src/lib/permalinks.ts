@@ -60,9 +60,18 @@ export function buildPlaylistPermalink(
     }
 
     const { playlistId, ownerHandle } = handleOrParams;
+    const playlistSlug = handleOrParams.slug;
 
-    if (isValidPart(ownerHandle) && isValidPart(handleOrParams.slug)) {
-        return `/${ownerHandle?.trim()}/sets/${handleOrParams.slug?.trim()}`;
+    if (isValidPart(ownerHandle) && isValidPart(playlistSlug)) {
+        return `/${ownerHandle!.trim()}/sets/${playlistSlug!.trim()}`;
+    }
+
+    if (isValidPart(playlistSlug)) {
+        return `/playlists/${playlistSlug!.trim()}`;
+    }
+
+    if (isValidPart(ownerHandle)) {
+        return `/${ownerHandle!.trim()}/sets/${playlistId}`;
     }
 
     return `/playlists/${playlistId}`;

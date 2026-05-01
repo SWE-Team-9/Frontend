@@ -9,14 +9,14 @@ interface Props {
 
 export default function UserResultCard({
   user,
-  compact = true,
+  compact = false,
   onNavigate,
 }: Props) {
   return (
     <div
+      className="rounded-lg p-3 hover:bg-neutral-800 transition-colors"
       onClick={(event) => {
         if (!onNavigate) return;
-
         const target = event.target as HTMLElement | null;
         if (target?.closest("a")) {
           onNavigate();
@@ -25,6 +25,8 @@ export default function UserResultCard({
     >
       <UserCard
         compact={compact}
+        noBorder
+        avatarSize="xl"
         user={{
           userId: user.id,
           displayName: user.display_name,

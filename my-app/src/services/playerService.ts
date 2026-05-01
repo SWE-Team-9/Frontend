@@ -76,8 +76,8 @@ export interface PlayerSessionResponse {
     isPlaying: boolean;
     volume: number;
     queue: QueueTrackItem[];
-    isShuffleOn?: boolean;
-    loopMode?: "OFF" | "ALL" | "ONE";
+    shuffle?: boolean;
+    repeatMode?: "OFF" | "ALL" | "ONE";
 }
 
 export interface UpdatePlayerSessionBody {
@@ -85,13 +85,66 @@ export interface UpdatePlayerSessionBody {
     positionSeconds: number;
     isPlaying: boolean;
     volume: number;
-    queueTrackIds: string[];
-    isShuffleOn?: boolean;
-    loopMode?: "OFF" | "ALL" | "ONE";
+    shuffle?: boolean;
+    repeatMode?: "OFF" | "ALL" | "ONE";
 }
 
 export interface UpdatePlayerSessionResponse {
     message: string;
+}
+
+// Queue management types
+
+export type QueueContextType = "TRACK" | "PLAYLIST" | "ARTIST" | "CONTEXT_IDS";
+
+export interface LoadQueueBody {
+    contextType: QueueContextType;
+    contextId?: string;
+    startTrackId?: string;
+    shuffle?: boolean;
+    trackIds?: string[];
+}
+
+/** Full track metadata returned by queue endpoints. */
+export interface QueueTrackMetadata {
+    trackId: string;
+    title: string;
+    artist: string;
+    artistId: string;
+    artistHandle: string | null;
+    artistAvatarUrl: string | null;
+    cover: string | null;
+    duration: number | null;
+    genre: string | null;
+}
+
+export interface AdSlot {
+    adId: string;
+    title: string;
+    durationSeconds: number;
+    clickUrl: string | null;
+    audioUrl?: string;
+}
+
+export type NextQueueResponse =
+    | { type: "TRACK"; track: QueueTrackMetadata; currentIndex: number; queueLength: number; tracksUntilAd: number }
+    | { type: "AD"; ad: AdSlot; currentIndex: number; queueLength: number; tracksUntilAd: number }
+    | { type: "ENDED"; currentIndex: number; queueLength: number };
+
+export interface LoadQueueResponse {
+    currentTrack: QueueTrackMetadata | null;
+    currentIndex: number;
+    queueLength: number;
+    tracksUntilAd: number;
+}
+
+export interface QueueStateResponse {
+    queue: QueueTrackMetadata[];
+    currentIndex: number;
+    queueLength: number;
+    tracksUntilAd: number;
+    shuffle: boolean;
+    repeatMode: "OFF" | "ALL" | "ONE";
 }
 
 // ===============================
@@ -149,8 +202,8 @@ let MOCK_PLAYER_SESSION: PlayerSessionResponse = {
     isPlaying: false,
     volume: 0.75,
     queue: [],
-    isShuffleOn: false,
-    loopMode: "OFF",
+    shuffle: false,
+    repeatMode: "OFF",
 };
 
 const MOCK_RESUME_POSITIONS: Record<string, number> = {
@@ -311,12 +364,9 @@ export async function updatePlayerSession(
             positionSeconds: body.positionSeconds,
             isPlaying: body.isPlaying,
             volume: body.volume,
-            queue: body.queueTrackIds.map((id) => ({
-                trackId: id,
-                title: `Mock Track ${id}`,
-            })),
-            isShuffleOn: body.isShuffleOn ?? false,
-            loopMode: body.loopMode ?? "OFF",
+            queue: MOCK_PLAYER_SESSION.queue, // queue is backend-managed; not touched by session update
+            shuffle: body.shuffle ?? false,
+            repeatMode: body.repeatMode ?? "OFF",
         };
 
         return {
@@ -325,5 +375,40 @@ export async function updatePlayerSession(
     }
 
     const { data } = await api.put(`/player/session`, body);
+    return data;
+}
+
+// Queue management
+
+/**
+ * Tell the backend to load a new playback queue from the given context.
+ * The backend is now the sole owner of queue state.
+ */
+export async function loadQueue(body: LoadQueueBody): Promise<LoadQueueResponse> {
+    const { data } = await api.post<LoadQueueResponse>(`/player/queue/load`, body);
+    return data;
+}
+
+/** Ask the backend for the next track (or ad slot, or ENDED). */
+export async function requestNextTrack(): Promise<NextQueueResponse> {
+    const { data } = await api.post<NextQueueResponse>(`/player/queue/next`);
+    return data;
+}
+
+/** Ask the backend for the previous track. */
+export async function requestPreviousTrack(): Promise<NextQueueResponse> {
+    const { data } = await api.post<NextQueueResponse>(`/player/queue/previous`);
+    return data;
+}
+
+/** Get the full current queue state (up to 100 tracks). */
+export async function getQueueState(): Promise<QueueStateResponse> {
+    const { data } = await api.get<QueueStateResponse>(`/player/queue`);
+    return data;
+}
+
+/** Jump the backend queue to a specific track by ID. */
+export async function jumpToQueueTrack(trackId: string): Promise<NextQueueResponse> {
+    const { data } = await api.post<NextQueueResponse>(`/player/queue/jump`, { trackId });
     return data;
 }

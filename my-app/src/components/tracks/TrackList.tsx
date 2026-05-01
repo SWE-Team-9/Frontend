@@ -42,10 +42,10 @@ const TrackList: React.FC<TrackListProps> = ({
   const [tracks, setTracks] = useState<TrackDetails[]>([]);
   const [totalTracksCount, setTotalTracksCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [_error, setError] = useState<string | null>(null);
 
   // Get repost state from store
-  const { isReposted, repostedTracks } = useRepostStore();
+  const { isReposted: _isReposted, repostedTracks } = useRepostStore();
   const [actionError, setActionError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const setPlayerTracks = usePlayerStore((state) => state.setTracks);
@@ -66,6 +66,11 @@ const TrackList: React.FC<TrackListProps> = ({
       genre: track.genre ?? undefined,
     }));
   }, [tracks, userId]);
+
+  const contextTrackIds = useMemo(
+    () => mappedPlayerTracks.map((t) => t.trackId),
+    [mappedPlayerTracks],
+  );
 
   useEffect(() => {
     setPlayerTracks(mappedPlayerTracks);
@@ -114,7 +119,7 @@ const data = await getUserTracks(userId, page, limit);
   loadTracks();
   // We include repostedTracks.length to refresh the list instantly 
   // if you repost/unrepost a track while looking at your own list.
-}, [userId, type, isOwner, repostedTracks.length, onTracksTotalChange, page, limit]); 
+}, [userId, type, isOwner, repostedTracks.length, onTracksTotalChange, page, limit]); // eslint-disable-line react-hooks/exhaustive-deps 
   const handleEdit = (track: TrackDetails) => {
     setNotice(`Edit \"${track.title}\" is not available yet.`);
     setTimeout(() => setNotice(null), 2500);
@@ -201,6 +206,7 @@ const data = await getUserTracks(userId, page, limit);
           coverArtUrl: track.coverArtUrl ?? undefined,
           genre: track.genre ?? undefined,
         }}
+        contextTrackIds={contextTrackIds}
         // 2. Dynamic Owner Check: Only true if the logged-in user 
         // matches the track creator's ID
         isOwner={isActuallyOwner} 

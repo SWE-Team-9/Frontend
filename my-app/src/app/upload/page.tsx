@@ -3,16 +3,15 @@
 import React, { useEffect, useState } from "react";
 import UploadForm from "@/src/components/upload/UploadForm";
 import TrackMetadataForm from "@/src/components/upload/TrackMetadataForm";
-import { getMyProfile } from "@/src/services/profileService";
 // --- NEW IMPORTS FOR UPLOAD GUARD ---
 import { useSubscriptionStore } from "@/src/store/useSubscriptionStore";
 import SubscriptionModal from "@/src/components/subscription/SubscriptionModal";
 import { useRouter } from 'next/navigation';
 export default function UploadPage() {
   const [step, setStep] = useState<"upload" | "metadata">("upload");
-  const [isCheckingAccess, setIsCheckingAccess] = useState(false);
-  const [canUpload, setCanUpload] = useState(true);
-  const [accessMessage, setAccessMessage] = useState<string | null>(null);
+  const [isCheckingAccess, _setIsCheckingAccess] = useState(false);
+  const [canUpload, _setCanUpload] = useState(true);
+  const [accessMessage, _setAccessMessage] = useState<string | null>(null);
   const router = useRouter();
 
   // --- SUBSCRIPTION STORE STATE ---
@@ -63,7 +62,7 @@ export default function UploadPage() {
     if (!sub) return;
 
     // Check if user has remaining uploads allowed 
-    if (sub.remainingUploads <= 0) {
+    if (sub.remainingUploads !== null && sub.remainingUploads <= 0) {
       // User reached the limit (e.g., 3 tracks for FREE tier) 
       setIsModalOpen(true);
     } else {
@@ -114,7 +113,7 @@ export default function UploadPage() {
       This div acts as a 'Shield'. If remainingUploads is 0, this transparent layer 
       intercepts the click and shows the Modal instead of opening the file picker. [cite: 65]
   */}
-  {sub && sub.remainingUploads <= 0 && step === "upload" && (
+  {sub && sub.remainingUploads !== null && sub.remainingUploads <= 0 && step === "upload" && (
     <div 
       onClick={() => setIsModalOpen(true)} 
       className="absolute inset-0 z-50 cursor-pointer bg-transparent"

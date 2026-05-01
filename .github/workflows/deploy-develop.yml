@@ -88,5 +88,5 @@ jobs:
             aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
             cd /home/ec2-user/dev
             docker-compose pull
-            docker-compose up -d
-            docker system prune -a -f
+            docker-compose up -d --force-recreate --remove-orphans
+            docker image prune -a -f || true

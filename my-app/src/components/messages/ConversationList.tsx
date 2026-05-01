@@ -6,7 +6,7 @@ import { useMessageStore } from "@/src/store/messageStore";
 export default function ConversationList() {
   const conversations = useMessageStore((s) => s.conversations);
   const selected = useMessageStore((s) => s.selectedConversation);
-  const isLoading = useMessageStore((s) => s.isLoading);
+  const isLoadingConversations = useMessageStore((s) => s.isLoadingConversations);
   const error = useMessageStore((s) => s.error);
   const conversationView = useMessageStore((s) => s.conversationView);
 
@@ -16,7 +16,7 @@ export default function ConversationList() {
   const setConversationView = useMessageStore((s) => s.setConversationView);
 
   return (
-    <aside className="h-[calc(100vh-64px)] w-[380px] shrink-0 overflow-y-auto border-r border-zinc-800 p-5">
+    <aside className="h-[calc(100vh-64px)] w-95 shrink-0 overflow-y-auto border-r border-zinc-800 p-5">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-3xl font-bold">Messages</h1>
 
@@ -52,7 +52,7 @@ export default function ConversationList() {
         </button>
       </div>
 
-      {isLoading && conversations.length === 0 && (
+      {isLoadingConversations && conversations.length === 0 && (
         <div className="space-y-3">
           {[1, 2, 3, 4].map((item) => (
             <div
@@ -69,7 +69,7 @@ export default function ConversationList() {
         </div>
       )}
 
-      {error && !isLoading && conversations.length === 0 && (
+      {error && !isLoadingConversations && conversations.length === 0 && (
         <div className="rounded border border-red-900/50 bg-red-950/20 p-4 text-center">
           <p className="text-sm text-red-300">{error}</p>
           <button
@@ -81,7 +81,7 @@ export default function ConversationList() {
         </div>
       )}
 
-      {!isLoading && !error && conversations.length === 0 && (
+      {!isLoadingConversations && !error && conversations.length === 0 && (
         <div className="py-16 text-center">
           <p className="text-lg font-bold text-zinc-400">
             {conversationView === "active"

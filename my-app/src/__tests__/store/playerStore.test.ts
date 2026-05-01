@@ -6,6 +6,12 @@ const mockMarkTrackPlayed = jest.fn();
 const mockGetResumePosition = jest.fn();
 const mockGetPlayerSession = jest.fn();
 const mockUpdatePlayerSession = jest.fn();
+const mockLoadQueue = jest.fn();
+const mockRequestNextTrack = jest.fn();
+const mockRequestPreviousTrack = jest.fn();
+const mockGetQueueState = jest.fn();
+const mockGetOfflineCacheEntry = jest.fn();
+const mockCreateObjectUrl = jest.fn();
 
 jest.mock("@/src/services/playerService", () => ({
   getPlaybackState: (...args: unknown[]) => mockGetPlaybackState(...args),
@@ -16,6 +22,15 @@ jest.mock("@/src/services/playerService", () => ({
   getResumePosition: (...args: unknown[]) => mockGetResumePosition(...args),
   getPlayerSession: (...args: unknown[]) => mockGetPlayerSession(...args),
   updatePlayerSession: (...args: unknown[]) => mockUpdatePlayerSession(...args),
+  loadQueue: (...args: unknown[]) => mockLoadQueue(...args),
+  requestNextTrack: (...args: unknown[]) => mockRequestNextTrack(...args),
+  requestPreviousTrack: (...args: unknown[]) => mockRequestPreviousTrack(...args),
+  getQueueState: (...args: unknown[]) => mockGetQueueState(...args),
+}));
+
+jest.mock("@/src/services/offlineAudioCache", () => ({
+  getOfflineCacheEntry: (...args: unknown[]) => mockGetOfflineCacheEntry(...args),
+  createObjectUrl: (...args: unknown[]) => mockCreateObjectUrl(...args),
 }));
 
 describe("playerStore", () => {
@@ -41,6 +56,33 @@ describe("playerStore", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.resetModules();
+
+    mockLoadQueue.mockResolvedValue({
+      currentIndex: 0,
+      queueLength: 0,
+      tracksUntilAd: 3,
+      currentTrack: null,
+    });
+    mockRequestNextTrack.mockResolvedValue({
+      type: "ENDED",
+      currentIndex: 0,
+      queueLength: 0,
+      tracksUntilAd: 0,
+    });
+    mockRequestPreviousTrack.mockResolvedValue({
+      type: "TRACK",
+      currentIndex: 0,
+      queueLength: 0,
+      track: {
+        trackId: "t1",
+        title: "One",
+        artist: "Artist",
+        artistId: "u1",
+      },
+    });
+    mockGetQueueState.mockResolvedValue({ currentIndex: 0, queueLength: 0 });
+    mockGetOfflineCacheEntry.mockResolvedValue(null);
+    mockCreateObjectUrl.mockReturnValue("blob:mock-audio");
 
     class FakeAudio {
       preload = "";
@@ -247,9 +289,8 @@ describe("playerStore", () => {
       positionSeconds: 25,
       isPlaying: true,
       volume: 0.8,
-      queueTrackIds: ["trk_2"],
-      isShuffleOn: true,
-      loopMode: "ALL",
+      shuffle: true,
+      repeatMode: "ALL",
     });
   });
 
@@ -352,24 +393,40 @@ describe("playerStore", () => {
     expect(mockUpdatePlayerSession).toHaveBeenCalled();
   });
 
-  it("nextTrack fetches the next track in order when shuffle is off", async () => {
+  it("nextTrack requests the next track from the backend queue", async () => {
     const { usePlayerStore } = await import("@/src/store/playerStore");
     const fetchSpy = jest.spyOn(usePlayerStore.getState(), "fetchAndPlay");
 
+    mockRequestNextTrack.mockResolvedValue({
+      type: "TRACK",
+      currentIndex: 1,
+      queueLength: 2,
+      tracksUntilAd: 2,
+      track: {
+        trackId: "t2",
+        title: "Two",
+        artist: "Artist 2",
+        artistId: "u2",
+        cover: "/2.jpg",
+      },
+    });
+
     usePlayerStore.setState({
-      tracks: [
-        { trackId: "t1", title: "1", artist: "A", artistId: "u1", cover: "/1.jpg" },
-        { trackId: "t2", title: "2", artist: "B", artistId: "u2", cover: "/2.jpg" },
-      ],
-      trackIndex: 0,
-      isShuffleOn: false,
-      loopMode: "OFF",
+      currentTrack: {
+        trackId: "t1",
+        title: "One",
+        artist: "Artist 1",
+        artistId: "u1",
+        cover: "/1.jpg",
+      },
+      queueLength: 0,
     });
 
     await usePlayerStore.getState().nextTrack();
 
     expect(fetchSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ trackId: "t2" })
+      expect.objectContaining({ trackId: "t2" }),
+      true,
     );
   });
 
@@ -386,41 +443,41 @@ describe("playerStore", () => {
     };
 
     usePlayerStore.setState({
-      tracks: [currentTrack],
-      trackIndex: 0,
       currentTrack,
       loopMode: "ONE",
-      isShuffleOn: false,
     });
 
     await usePlayerStore.getState().nextTrack();
 
-    expect(fetchSpy).toHaveBeenCalledWith(expect.objectContaining({ trackId: "t1" }));
+    expect(fetchSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ trackId: "t1" }),
+      true,
+    );
   });
 
-  it("nextTrack stops playback at the last track when loop mode is OFF", async () => {
+  it("nextTrack stops playback when the queue ends", async () => {
     mockSavePlaybackProgress.mockResolvedValue({});
     mockUpdatePlayerSession.mockResolvedValue({});
 
     const { usePlayerStore, getAudioElement } = await import("@/src/store/playerStore");
     const audio = getAudioElement();
 
+    mockRequestNextTrack.mockResolvedValue({
+      type: "ENDED",
+      currentIndex: 2,
+      queueLength: 2,
+      tracksUntilAd: 0,
+    });
+
     usePlayerStore.setState({
-      tracks: [
-        { trackId: "t1", title: "1", artist: "A", artistId: "u1", cover: "/1.jpg" },
-        { trackId: "t2", title: "2", artist: "B", artistId: "u2", cover: "/2.jpg" },
-      ],
-      trackIndex: 1,
       currentTrack: {
         trackId: "t2",
         title: "2",
         artist: "B",
-        artistId: "u2",
+        artistId: "",
         cover: "/2.jpg",
       },
       isPlaying: true,
-      loopMode: "OFF",
-      isShuffleOn: false,
     });
 
     await usePlayerStore.getState().nextTrack();
@@ -430,50 +487,35 @@ describe("playerStore", () => {
     expect(usePlayerStore.getState().currentTime).toBe(0);
   });
 
-  it("nextTrack wraps to first track when loop mode is ALL", async () => {
+  it("nextTrack surfaces ad state when backend returns an ad", async () => {
     const { usePlayerStore } = await import("@/src/store/playerStore");
-    const fetchSpy = jest.spyOn(usePlayerStore.getState(), "fetchAndPlay");
+
+    mockRequestNextTrack.mockResolvedValue({
+      type: "AD",
+      currentIndex: 1,
+      queueLength: 2,
+      tracksUntilAd: 0,
+      ad: {
+        id: "ad_1",
+        title: "Promo",
+        durationSeconds: 5,
+        audioUrl: null,
+      },
+    });
 
     usePlayerStore.setState({
-      tracks: [
-        { trackId: "t1", title: "1", artist: "A", artistId: "u1", cover: "/1.jpg" },
-        { trackId: "t2", title: "2", artist: "B", artistId: "u2", cover: "/2.jpg" },
-      ],
-      trackIndex: 1,
-      loopMode: "ALL",
-      isShuffleOn: false,
+      currentTrack: {
+        trackId: "t1",
+        title: "One",
+        artist: "Artist 1",
+        artistId: "u1",
+        cover: "/1.jpg",
+      },
     });
 
     await usePlayerStore.getState().nextTrack();
 
-    expect(fetchSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ trackId: "t1" })
-    );
-  });
-
-  it("nextTrack picks a random different track when shuffle is on", async () => {
-    const randomSpy = jest.spyOn(Math, "random").mockReturnValue(0.9);
-
-    const { usePlayerStore } = await import("@/src/store/playerStore");
-    const fetchSpy = jest.spyOn(usePlayerStore.getState(), "fetchAndPlay");
-
-    usePlayerStore.setState({
-      tracks: [
-        { trackId: "t1", title: "1", artist: "A", artistId: "u1", cover: "/1.jpg" },
-        { trackId: "t2", title: "2", artist: "B", artistId: "u2", cover: "/2.jpg" },
-      ],
-      trackIndex: 0,
-      isShuffleOn: true,
-      loopMode: "OFF",
-    });
-
-    await usePlayerStore.getState().nextTrack();
-
-    expect(fetchSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ trackId: "t2" })
-    );
-
-    randomSpy.mockRestore();
+    expect(usePlayerStore.getState().isPlayingAd).toBe(true);
   });
 
   it("previousTrack resets to zero when currentTime is over 3 seconds", async () => {
@@ -504,41 +546,68 @@ describe("playerStore", () => {
     const { usePlayerStore } = await import("@/src/store/playerStore");
     const fetchSpy = jest.spyOn(usePlayerStore.getState(), "fetchAndPlay");
 
+    mockRequestPreviousTrack.mockResolvedValue({
+      type: "TRACK",
+      currentIndex: 0,
+      queueLength: 2,
+      track: {
+        trackId: "t1",
+        title: "1",
+        artist: "A",
+        artistId: "u1",
+        cover: "/1.jpg",
+      },
+    });
+
     usePlayerStore.setState({
-      tracks: [
-        { trackId: "t1", title: "1", artist: "A", artistId: "u1", cover: "/1.jpg" },
-        { trackId: "t2", title: "2", artist: "B", artistId: "u2", cover: "/2.jpg" },
-      ],
-      trackIndex: 1,
+      currentTrack: {
+        trackId: "t2",
+        title: "2",
+        artist: "B",
+        artistId: "u2",
+        cover: "/2.jpg",
+      },
       currentTime: 2,
     });
 
     await usePlayerStore.getState().previousTrack();
     expect(fetchSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ trackId: "t1" })
+      expect.objectContaining({ trackId: "t1" }),
+      true,
     );
   });
 
-  it("previousTrack wraps to last track when loop mode is ALL and current time is 3 or less", async () => {
+  it("previousTrack does nothing when backend returns non-track", async () => {
     const { usePlayerStore } = await import("@/src/store/playerStore");
     const fetchSpy = jest.spyOn(usePlayerStore.getState(), "fetchAndPlay");
 
+    mockRequestPreviousTrack.mockResolvedValue({
+      type: "AD",
+      currentIndex: 0,
+      queueLength: 2,
+      tracksUntilAd: 0,
+      ad: {
+        id: "ad_2",
+        title: "Promo",
+        durationSeconds: 5,
+        audioUrl: null,
+      },
+    });
+
     usePlayerStore.setState({
-      tracks: [
-        { trackId: "t1", title: "1", artist: "A", artistId: "u1", cover: "/1.jpg" },
-        { trackId: "t2", title: "2", artist: "B", artistId: "u2", cover: "/2.jpg" },
-      ],
-      trackIndex: 0,
       currentTime: 2,
-      isShuffleOn: false,
-      loopMode: "ALL",
+      currentTrack: {
+        trackId: "t1",
+        title: "1",
+        artist: "A",
+        artistId: "u1",
+        cover: "/1.jpg",
+      },
     });
 
     await usePlayerStore.getState().previousTrack();
 
-    expect(fetchSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ trackId: "t2" })
-    );
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it("setVolume stores 0-100 but writes audio volume as 0-1", async () => {
@@ -574,9 +643,8 @@ describe("playerStore", () => {
       positionSeconds: 55,
       isPlaying: true,
       volume: 0.5,
-      queue: [{ trackId: "t2", title: "Two" }],
-      isShuffleOn: true,
-      loopMode: "ONE",
+      shuffle: true,
+      repeatMode: "ONE",
     });
 
     const { usePlayerStore, getAudioElement } = await import("@/src/store/playerStore");
@@ -593,7 +661,7 @@ describe("playerStore", () => {
 
     const state = usePlayerStore.getState();
     expect(state.currentTrack?.trackId).toBe("t1");
-    expect(state.queue[0].trackId).toBe("t2");
+    expect(state.queue).toEqual([]);
     expect(state.currentTime).toBe(55);
     expect(state.isPlaying).toBe(false);
     expect(state.volume).toBe(50);

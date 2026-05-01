@@ -10,7 +10,7 @@ jest.mock("@/src/services/subscriptionService", () => ({
   resumeSubscription: jest.fn(),
   changePlan: jest.fn(),
   getInvoices: jest.fn(),
-  removePaymentMethod: jest.fn(),
+  openBillingPortal: jest.fn(),
 }));
 
 const mockedSubscriptionService = subscriptionService as jest.Mocked<
@@ -20,12 +20,18 @@ const mockedSubscriptionService = subscriptionService as jest.Mocked<
 const mockSubscription = {
   userId: "usr_1",
   subscriptionType: "PRO" as const,
+  planName: "Artist Pro",
+  isPremium: true,
+  subscriptionStatus: "ACTIVE",
   uploadLimit: 100,
   uploadedTracks: 10,
   remainingUploads: 90,
   cancelAtPeriodEnd: false,
   currentPeriodEnd: "2026-05-28T00:00:00.000Z",
   renewalDate: "2026-05-28T00:00:00.000Z",
+  expiresAt: null,
+  trialStart: null,
+  trialEnd: null,
   pendingDowngrade: null,
   paymentMethodSummary: {
     brand: "visa",
@@ -78,36 +84,21 @@ describe("useSubscriptionStore", () => {
     );
   });
 
-  it("refreshes the subscription after an activated upgrade", async () => {
+  it("refreshes the subscription after upgrade", async () => {
     mockedSubscriptionService.upgradeSubscription.mockResolvedValue({
-      status: "activated",
+      subscriptionId: "sub_mock",
+      planCode: "PRO",
     });
     mockedSubscriptionService.getMySubscription.mockResolvedValue(
       mockSubscription,
     );
 
     await act(async () => {
-      const result = await useSubscriptionStore.getState().upgrade("PRO");
-      expect(result).toEqual({ status: "activated" });
+      await useSubscriptionStore.getState().upgrade("PRO");
     });
 
     expect(mockedSubscriptionService.getMySubscription).toHaveBeenCalledTimes(1);
     expect(useSubscriptionStore.getState().sub).toEqual(mockSubscription);
-  });
-
-  it("does not refresh the subscription when checkout redirects", async () => {
-    mockedSubscriptionService.upgradeSubscription.mockResolvedValue({
-      status: "redirect",
-      checkoutUrl: "https://checkout.stripe.com/pay/cs_test_123",
-    });
-
-    await act(async () => {
-      const result = await useSubscriptionStore.getState().upgrade("GO+");
-      expect(result.status).toBe("redirect");
-    });
-
-    expect(mockedSubscriptionService.getMySubscription).not.toHaveBeenCalled();
-    expect(useSubscriptionStore.getState().sub).toBeNull();
   });
 
   it("sets an error when upgrade fails", async () => {
@@ -160,30 +151,18 @@ describe("useSubscriptionStore", () => {
     expect(useSubscriptionStore.getState().sub?.subscriptionType).toBe("GO+");
   });
 
-  it("stores the updated subscription after removing a payment method", async () => {
-    mockedSubscriptionService.removePaymentMethod.mockResolvedValue({
-      ...mockSubscription,
-      paymentMethodSummary: null,
-      cancelAtPeriodEnd: true,
-    });
-
-    await act(async () => {
-      await useSubscriptionStore.getState().removePaymentMethod();
-    });
-
-    expect(useSubscriptionStore.getState().sub?.paymentMethodSummary).toBeNull();
-    expect(useSubscriptionStore.getState().sub?.cancelAtPeriodEnd).toBe(true);
-  });
-
   it("loads invoices successfully", async () => {
     mockedSubscriptionService.getInvoices.mockResolvedValue([
       {
         id: "inv_1",
         invoiceId: "stripe_inv_1",
+        amountDueCents: 999,
         amountPaidCents: 999,
         currency: "usd",
         status: "paid",
         planName: "Artist Pro",
+        planTier: "PRO",
+        dueAt: null,
         paidAt: "2026-04-28T00:00:00.000Z",
         createdAt: "2026-04-28T00:00:00.000Z",
       },
