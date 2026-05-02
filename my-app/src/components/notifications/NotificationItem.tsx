@@ -7,6 +7,15 @@ import { UserCard, UserCardUser } from "@/src/components/user/UserCard";
 import { Notification } from "@/src/types/notifications";
 import { useNotificationStore } from "@/src/store/notificationsStore";
 
+function isSocialNotification(type: Notification["type"]) {
+  return (
+    type === "follow" ||
+    type === "like" ||
+    type === "comment" ||
+    type === "repost"
+  );
+}
+
 function getRelativeTime(dateString: string) {
   const date = new Date(dateString);
   const diffMs = Date.now() - date.getTime();
@@ -37,7 +46,7 @@ function getActionText(notification: Notification) {
     case "repost":
       return "reposted your track";
     default:
-      return "";
+      return notification.message?.trim() || "sent you a notification";
   }
 }
 
@@ -47,7 +56,13 @@ function getActorNameFromNotification(notification: Notification) {
   }
 
   const message = notification.message?.trim();
-  if (!message) return "Someone";
+  if (!message) {
+    return isSocialNotification(notification.type) ? "Someone" : "IQA3";
+  }
+
+  if (!isSocialNotification(notification.type)) {
+    return "IQA3";
+  }
 
   const match = message.match(
     /^(.*?)\s(?:started following you|liked your track|commented on your track|reposted your track)\b/i,
@@ -105,6 +120,7 @@ export function NotificationItem({ notification }: NotificationItemProps) {
 
   const actorName = getActorNameFromNotification(notification);
   const action = getActionText(notification);
+  const isSocial = isSocialNotification(notification.type);
 
   if (notification.type === "follow") {
     return (
@@ -184,8 +200,14 @@ export function NotificationItem({ notification }: NotificationItemProps) {
 
           <div className="min-w-0 flex-1">
             <p className="text-sm leading-snug">
-              <span className="font-semibold text-white">{actorName}</span>{" "}
-              <span className="text-neutral-300">{action}</span>
+              {isSocial ? (
+                <>
+                  <span className="font-semibold text-white">{actorName}</span>{" "}
+                  <span className="text-neutral-300">{action}</span>
+                </>
+              ) : (
+                <span className="text-neutral-200">{action}</span>
+              )}
             </p>
             <div className="mt-1 flex items-center gap-1 text-xs text-neutral-400">
               <MdPersonOutline className="h-3.5 w-3.5" />

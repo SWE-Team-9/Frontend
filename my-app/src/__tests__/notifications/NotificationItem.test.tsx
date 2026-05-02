@@ -194,6 +194,26 @@ describe("NotificationItem — like/comment/repost notification", () => {
     render(<NotificationItem notification={notif} />);
     expect(screen.getByText("Someone")).toBeInTheDocument();
   });
+
+  it("renders admin notification message without like text", () => {
+    render(
+      <NotificationItem
+        notification={
+          makeNotification({
+            type: "account_suspended",
+            actorDisplayName: undefined,
+            message: "Your account has been suspended by an administrator",
+            entityType: "user",
+          })
+        }
+      />,
+    );
+
+    expect(
+      screen.getByText("Your account has been suspended by an administrator"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("liked your track")).not.toBeInTheDocument();
+  });
 });
 
 describe("NotificationItem — follow notification", () => {
