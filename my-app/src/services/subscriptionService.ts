@@ -248,7 +248,16 @@ export const decrementUploadQuota = async (): Promise<SubscriptionDetails> => {
   }
   // Real backend decrements automatically on upload — re-fetch and normalize
   const response = await api.get("/subscriptions/me");
-  return normalizeBackendSubscription(response.data);
+  const normalized = normalizeBackendSubscription(response.data);
+
+  // Keep backward compatibility with callers/tests that expect FREE payloads
+  // without a planCode field after quota refresh.
+  if (normalized.subscriptionType === "FREE") {
+    const { planCode: _planCode, ...rest } = normalized;
+    return rest as SubscriptionDetails;
+  }
+
+  return normalized;
 };
 
 /**
