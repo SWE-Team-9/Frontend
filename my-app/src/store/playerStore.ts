@@ -151,7 +151,7 @@ interface PlayerState {
   isPlayingAd: boolean;
   /** Elapsed seconds for text-only (no audioUrl) ads, updated every second by PlayerAudioSync */
   adElapsedSeconds: number;
-  /** Track queued by the user while an ad is playing; played immediately after the ad ends */
+  /** Track selected while an ad is playing; played once the ad completes. */
   pendingTrack: Track | null;
 
   isProcessing: boolean;
@@ -554,9 +554,9 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       return;
     }
 
-    // While an ad is playing, queue the requested track rather than interrupting.
-    // PlayerAudioSync drains pendingTrack as soon as the ad finishes.
-    if (get().isPlayingAd && !_fromQueue) {
+    // While an ad is playing, keep the latest user-selected track as pending.
+    // It will be played immediately after ad completion.
+    if (get().isPlayingAd) {
       set({ pendingTrack: track });
       return;
     }
@@ -708,6 +708,45 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
               typeof (error as { response?: { status?: number } }).response?.status === "number"
               ? (error as { response?: { status?: number } }).response?.status
               : undefined;
+
+          const errorPayload =
+            typeof error === "object" &&
+              error !== null &&
+              "response" in error
+              ? (error as { response?: { data?: unknown } }).response?.data
+              : undefined;
+          const errorCode =
+            typeof errorPayload === "object" &&
+              errorPayload !== null &&
+              "code" in errorPayload
+              ? (errorPayload as { code?: string }).code
+              : undefined;
+
+          if (status === 409 && errorCode === "AD_REQUIRED") {
+            const adData =
+              typeof errorPayload === "object" &&
+                errorPayload !== null &&
+                "ad" in errorPayload
+                ? (errorPayload as { ad?: AdSlot }).ad
+                : undefined;
+
+            if (audio) {
+              audio.pause();
+              audio.removeAttribute("src");
+              audio.load();
+            }
+
+            set({
+              isProcessing: false,
+              isResolvingPlayback: false,
+              isPlaying: false,
+              currentAd: adData ?? null,
+              isPlayingAd: true,
+              adElapsedSeconds: 0,
+              streamError: null,
+            });
+            return;
+          }
 
           if (status === 409) {
             if (audio) {

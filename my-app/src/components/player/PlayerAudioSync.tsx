@@ -52,7 +52,7 @@ export default function PlayerAudioSync() {
 
     const handleEnded = async () => {
       const state = usePlayerStore.getState();
-      // If an ad with audio just ended, notify backend then play queued track or advance queue
+      // If an ad with audio just ended, notify backend then play pending user-selected track (if any).
       if (state.isPlayingAd) {
         const pending = state.pendingTrack;
         usePlayerStore.setState({ isPlayingAd: false, currentAd: null, pendingTrack: null, adElapsedSeconds: 0 });
