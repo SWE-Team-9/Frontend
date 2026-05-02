@@ -154,11 +154,11 @@ let MOCK_SUBSCRIPTION: SubscriptionDetails = {
 
 // ─── Backend normalizer ────────────────────────────────────────────────────────
 
-export function normalizeBackendSubscription(raw: Record<string, unknown>): SubscriptionDetails {
-  const planCode = (raw.planCode as string) ?? "FREE";
-  const subscriptionType: "FREE" | "PRO" | "GO+" =
-    planCode === "GO_PLUS" ? "GO+" : planCode === "PRO" ? "PRO" : "FREE";
-
+export function normalizeBackendSubscription(raw: Record<string, unknown>): SubscriptionDetails {  const rawPlanCode = (raw.planCode as string) ?? "FREE";
+  const planCode = rawPlanCode === "GO_PLUS" ? "GO+" : rawPlanCode;
+  
+const subscriptionType: "FREE" | "PRO" | "GO+" = 
+    planCode === "GO+" ? "GO+" : planCode === "PRO" ? "PRO" : "FREE";
   const adsEnabled = (raw.adsEnabled as boolean) ?? true;
   const canDownload = (raw.canDownload as boolean) ?? false;
 
@@ -190,7 +190,7 @@ export function normalizeBackendSubscription(raw: Record<string, unknown>): Subs
     userId: (raw.userId as string) ?? "",
     subscriptionType,
     planCode,
-    planName: (raw.planName as string) ?? subscriptionType,
+    planName: PLAN_CONFIG[subscriptionType]?.label || (raw.planName as string) || subscriptionType,
     isPremium: (raw.isPremium as boolean) ?? planCode !== "FREE",
     subscriptionStatus: (raw.subscriptionStatus as string) ?? null,
     uploadLimit,
@@ -209,6 +209,7 @@ export function normalizeBackendSubscription(raw: Record<string, unknown>): Subs
       adFree: !adsEnabled,
       offlineListening: canDownload,
     },
+    
   };
 }
 
@@ -221,6 +222,7 @@ export const getMySubscription = async (): Promise<SubscriptionDetails> => {
   }
   const response = await api.get("/subscriptions/me");
   return normalizeBackendSubscription(response.data);
+  
 };
 
 export const getSubscriptionPlans = async (): Promise<SubscriptionPlan[]> => {
