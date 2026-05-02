@@ -9,11 +9,12 @@ export interface AiChatContext {
 
 export interface AiChatResponse {
   reply: string;
-  provider: 'mock' | 'openai';
+  provider: 'mock' | 'n8n' | 'openai' | 'ollama';
   intent: string;
   actionsTaken: string[];
   data?: Record<string, unknown>;
   suggestions?: string[];
+  needsConfirmation?: boolean;
 }
 
 export const aiService = {

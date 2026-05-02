@@ -21,7 +21,15 @@ export function AiChatWidget({ context }: AiChatWidgetProps) {
     {
       id: '0',
       role: 'assistant',
-      text: "Hi! I can help you discover music, create playlists, and answer questions. Try asking me to \"find sha3by tracks\" or \"how do I upload?\"",
+      text: "Hi! I can help you discover music, create playlists, and answer questions.",
+      suggestions: [
+        'Create a Sha3by playlist',
+        'Find trending tracks',
+        'Add this track to a playlist',
+        'How do I upload music?',
+        'Create a playlist with top 10 Sha3by tracks',
+        'Send this track to a friend',
+      ],
     },
   ]);
   const [input, setInput] = useState('');
@@ -109,11 +117,11 @@ export function AiChatWidget({ context }: AiChatWidgetProps) {
                   )}
                   {msg.suggestions && msg.suggestions.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1">
-                      {msg.suggestions.slice(0, 3).map((s, i) => (
+                      {msg.suggestions.slice(0, 6).map((s, i) => (
                         <button
                           key={i}
                           onClick={() => setInput(s)}
-                          className="text-xs bg-white/20 hover:bg-white/30 rounded-full px-2 py-0.5"
+                          className="text-xs bg-white/20 hover:bg-white/30 rounded-full px-2 py-0.5 text-left"
                         >
                           {s}
                         </button>
