@@ -14,9 +14,12 @@ export default function DatePickerInput({
 }: DatePickerInputProps) {
   const selected = value ? new Date(value) : null;
 
-  const handleChange = (d: Date | null) => {
+   const handleChange = (d: Date | null) => {
     if (d) {
-      onChange(d.toISOString());
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      onChange(`${yyyy}-${mm}-${dd}`);
     } else {
       onChange("");
     }

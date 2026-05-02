@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { FaTimes } from "react-icons/fa";
 import { Playlist } from "@/src/types/playlist";
 import { playlistsApi } from "@/src/services/playlistsService";
+import DatePickerInput from "@/src/components/ui/DatePickerInput";
 
 interface Props {
   playlist: Playlist;
@@ -70,6 +71,7 @@ export function EditPlaylistModal({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLocalTracks(playlist.tracks ?? []);
   }, [playlist.tracks]);
+
   const handleRemoveTrack = async (trackId: string) => {
     const previous = localTracks;
     setLocalTracks((prev) => prev.filter((t) => t.trackId !== trackId));
@@ -87,6 +89,7 @@ export function EditPlaylistModal({
       );
     }
   };
+
   const handleSaveOrder = async () => {
     setReordering(true);
     try {
@@ -102,7 +105,9 @@ export function EditPlaylistModal({
       setReordering(false);
     }
   };
+
   const handleDragStart = (index: number) => setDragIndex(index);
+
   const handleDragOver = (e: React.DragEvent, index: number) => {
     e.preventDefault();
     if (dragIndex === null || dragIndex === index) return;
@@ -114,6 +119,7 @@ export function EditPlaylistModal({
     });
     setDragIndex(index);
   };
+
   const handleDragEnd = () => setDragIndex(null);
 
   if (!isOpen) return null;
@@ -162,6 +168,7 @@ export function EditPlaylistModal({
         description: description.trim() || null,
         visibility: visibility === "PRIVATE" ? "SECRET" : "PUBLIC",
         cover: coverPreview,
+        releaseDate: releaseDate || null,
         tags,
       });
       onClose();
@@ -220,7 +227,7 @@ export function EditPlaylistModal({
           ))}
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 cursor-pointer">
+        <div className="flex-1 overflow-y-auto p-6">
           {/* BASIC TAB */}
           {tab === "basic" && (
             <div className="grid grid-cols-[260px_1fr] gap-6">
@@ -247,7 +254,7 @@ export function EditPlaylistModal({
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="absolute inset-x-0 bottom-0 bg-black/60 text-white text-xs  cursor-pointer py-2 hover:bg-black/80 transition-colors"
+                    className="absolute inset-x-0 bottom-0 bg-black/60 text-white text-xs cursor-pointer py-2 hover:bg-black/80 transition-colors"
                   >
                     Upload image
                   </button>
@@ -281,12 +288,9 @@ export function EditPlaylistModal({
                     </select>
                   </div>
                   <div>
-                    <label className={labelCls}>Release date</label>
-                    <input
-                      type="date"
+                    <DatePickerInput
                       value={releaseDate}
-                      onChange={(e) => setReleaseDate(e.target.value)}
-                      className={inputCls}
+                      onChange={setReleaseDate}
                     />
                   </div>
                 </div>
@@ -478,9 +482,9 @@ export function EditPlaylistModal({
             type="button"
             onClick={handleSave}
             disabled={saving || loadingEdit}
-            className="px-4 py-2 bg-white hover:bg-zinc-600 text-black text-sm font-bold rounded-md disabled:opacity-50"
+            className="px-4 py-2 text-sm font-bold bg-[#f50] hover:bg-[#e64a00] disabled:opacity-50 text-white rounded-md transition-colors cursor-pointer"
           >
-            {saving ? "Saving..." : loadingEdit ? "Loading..." : "Save"}
+            {saving ? "Saving…" : "Save"}
           </button>
         </div>
       </div>

@@ -68,31 +68,16 @@ const NavBar: React.FC<NavBarProps> = ({
 
   profileMenu = [
     { label: "Profile", icon: MdPerson, href: "/profiles" },
-    { label: "Likes", icon: ImHeart },
-    { label: "Playlists", icon: FiList },
-    { label: "Stations", icon: IoRadio },
-    { label: "Following", icon: BsPersonCheckFill },
+    { label: "Likes", icon: ImHeart, href:"/library/likes" },
+    { label: "Playlists", icon: FiList, href:"/library/playlists" },
+    { label: "Following", icon: BsPersonCheckFill, href:"/library/following" },
     { label: "Who to follow", icon: MdPersonAddAlt1 },
-    { label: "ArtistPro", icon: MdStars },
-    { label: "Tracks", icon: PiWaveformBold },
+    { label: "ArtistPro", icon: MdStars, href:"/subscriptions" },
     { label: "Insights", icon: MdBarChart },
-    { label: "Distribute", icon: TbArrowLeftRight },
   ],
 
   moreMenu = [
-    { label: "About us" },
-    { label: "Legal" },
-    { label: "Copyright", dividerAfter: true },
-
     { label: "Mobile apps" },
-    { label: "Artist Membership" },
-    { label: "Jobs" },
-    { label: "Developers" },
-    { label: "SoundCloud Store", dividerAfter: true },
-
-    { label: "Support" },
-    { label: "Keyboard shortcuts", dividerAfter: true },
-
     { label: "Subscription" },
     { label: "Settings", href: "/settings" },
     { label: "Sign out" },

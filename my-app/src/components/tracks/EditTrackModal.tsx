@@ -4,6 +4,7 @@ import React, { useState, useRef, useCallback } from "react";
 import Image from "next/image";
 import { X, Upload, Check } from "lucide-react";
 import { updateTrackMetadata } from "@/src/services/uploadService";
+import DatePickerInput from "@/src/components/ui/DatePickerInput";
 
 const FALLBACK_IMAGE = "/images/track-placeholder.png";
 
@@ -131,9 +132,9 @@ export const EditTrackModal: React.FC<EditTrackModalProps> = ({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="relative w-full max-w-2xl bg-[#181818] rounded-xl shadow-2xl border border-zinc-800 overflow-hidden">
+      <div className="relative w-full max-w-2xl max-h-[90vh] bg-[#181818] rounded-xl shadow-2xl border border-zinc-800 flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-zinc-800">
+        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-zinc-800 shrink-0">
           <h2 className="text-white font-semibold text-base">Edit track</h2>
           <button
             onClick={onClose}
@@ -143,11 +144,11 @@ export const EditTrackModal: React.FC<EditTrackModalProps> = ({
           </button>
         </div>
 
-        {/* Body */}
-        <div className="flex min-h-[420px]">
+        {/* Body — scrollable */}
+        <div className="flex flex-col sm:flex-row flex-1 overflow-hidden">
           {/* Left — cover art */}
-          <div className="w-52 shrink-0 flex flex-col items-center gap-3 p-5 border-r border-zinc-800 bg-[#141414]">
-            <div className="relative w-36 h-36 rounded-md overflow-hidden bg-zinc-800 group">
+          <div className="sm:w-52 shrink-0 flex sm:flex-col items-center gap-3 p-5 border-b sm:border-b-0 sm:border-r border-zinc-800 bg-[#141414]">
+            <div className="relative w-24 h-24 sm:w-36 sm:h-36 rounded-md overflow-hidden bg-zinc-800 group shrink-0">
               <Image
                 src={coverArtPreview || FALLBACK_IMAGE}
                 alt="Cover art"
@@ -156,36 +157,38 @@ export const EditTrackModal: React.FC<EditTrackModalProps> = ({
               />
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity text-white text-xs font-medium"
+                className="absolute inset-0 flex flex-col items-center cursor-pointer justify-center gap-1.5 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity text-white text-xs font-medium"
               >
                 <Upload className="w-4 h-4" />
                 Replace image
               </button>
             </div>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="text-xs text-zinc-400 hover:text-white border border-zinc-700 rounded px-3 py-1.5 transition-colors w-full text-center"
-            >
-              Replace image
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="hidden"
-              onChange={handleCoverArtChange}
-            />
-            {coverArtFile && (
-              <p className="text-[10px] text-zinc-500 text-center truncate w-full px-1">
-                {coverArtFile.name}
-              </p>
-            )}
+            <div className="flex flex-col gap-2 flex-1 sm:flex-none sm:w-full">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="text-xs text-zinc-400 hover:text-white border border-zinc-700 rounded px-3 py-1.5 transition-colors w-full text-center"
+              >
+                Replace image
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={handleCoverArtChange}
+              />
+              {coverArtFile && (
+                <p className="text-[10px] text-zinc-500 text-center truncate w-full px-1">
+                  {coverArtFile.name}
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Right — tabs + fields */}
-          <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
             {/* Tabs */}
-            <div className="flex border-b border-zinc-800 px-5">
+            <div className="flex border-b border-zinc-800 px-5 shrink-0">
               {TABS.map((tab) => (
                 <button
                   key={tab.id}
@@ -242,7 +245,7 @@ export const EditTrackModal: React.FC<EditTrackModalProps> = ({
                     <label className="block text-xs text-zinc-400 mb-1.5">
                       Additional tags
                     </label>
-                    <div className="min-h-[40px] flex flex-wrap gap-1.5 bg-[#111] border border-zinc-700 rounded-md px-3 py-2 focus-within:border-zinc-500 transition-colors">
+                    <div className="min-h-10 flex flex-wrap gap-1.5 bg-[#111] border border-zinc-700 rounded-md px-3 py-2 focus-within:border-zinc-500 transition-colors">
                       {tags.map((tag) => (
                         <span
                           key={tag}
@@ -270,7 +273,7 @@ export const EditTrackModal: React.FC<EditTrackModalProps> = ({
                         placeholder={
                           tags.length === 0 ? "Add tags (press Enter)" : ""
                         }
-                        className="flex-1 min-w-[100px] bg-transparent text-sm text-white placeholder-zinc-600 focus:outline-none"
+                        className="flex-1 min-w-25 bg-transparent text-sm text-white placeholder-zinc-600 focus:outline-none"
                       />
                     </div>
                     <p className="text-[10px] text-zinc-600 mt-1">
@@ -302,11 +305,9 @@ export const EditTrackModal: React.FC<EditTrackModalProps> = ({
                   <label className="block text-xs text-zinc-400 mb-1.5">
                     Release date
                   </label>
-                  <input
-                    type="date"
+                  <DatePickerInput
                     value={releaseDate}
-                    onChange={(e) => setReleaseDate(e.target.value)}
-                    className="w-full bg-[#111] border border-zinc-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-zinc-500 transition-colors [color-scheme:dark]"
+                    onChange={setReleaseDate}
                   />
                 </div>
               )}
@@ -315,7 +316,7 @@ export const EditTrackModal: React.FC<EditTrackModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-zinc-800 bg-[#141414]">
+        <div className="flex items-center justify-between px-6 py-4 border-t border-zinc-800 bg-[#141414] shrink-0">
           <p className="text-[11px] text-zinc-600">
             <span className="text-red-500">*</span> Required fields
           </p>
@@ -329,19 +330,10 @@ export const EditTrackModal: React.FC<EditTrackModalProps> = ({
             <button
               onClick={handleSave}
               disabled={isSaving || isFormInvalid}
-              className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-semibold bg-white text-black rounded-md hover:bg-zinc-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center cursor-pointer gap-1.5 px-4 py-1.5 text-sm font-semibold bg-white text-black rounded-md hover:bg-zinc-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {isSaving ? (
-                <>
-                  <span className="w-3.5 h-3.5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Check className="w-3.5 h-3.5" />
-                  Save changes
-                </>
-              )}
+              <Check className="w-3.5 h-3.5" />
+              {isSaving ? "Saving…" : "Save changes"}
             </button>
           </div>
         </div>
