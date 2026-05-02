@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, Suspense } from "react";
+import { useSubscriptionStore } from "@/src/store/useSubscriptionStore"; 
+import { usePaymentMethodsStore } from "@/src/store/usePaymentMethodsStore"; 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/src/store/useAuthStore";
 import {
@@ -640,6 +642,17 @@ function SettingsContent() {
       fetchBlockedUsers();
     }
   }, [activeTab, fetchBlockedUsers]);
+
+  const fetchSubscription = useSubscriptionStore((s) => s.fetchSubscription);
+  const fetchMethods = usePaymentMethodsStore((s) => s.fetchMethods);
+
+  useEffect(() => {
+    if (activeTab === "subscription") {
+      fetchSubscription(); 
+      fetchMethods();     
+    }
+  }, [activeTab, fetchSubscription, fetchMethods]);
+
 
   const tabs: { id: Tab; label: string }[] = [
     { id: "security", label: "Security" },

@@ -4,7 +4,7 @@ import React, { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { LuCircleCheck, LuLoader, LuArrowRight } from "react-icons/lu";
 import { useSubscriptionStore } from "@/src/store/useSubscriptionStore";
-
+import { useAuthStore } from "@/src/store/useAuthStore";
 // ─── Success content (needs useSearchParams, must be wrapped in Suspense) ─────
 function SuccessContent() {
   const searchParams = useSearchParams();
@@ -16,7 +16,6 @@ function SuccessContent() {
 
   const fetchSubscription = useSubscriptionStore((s) => s.fetchSubscription);
   const sub = useSubscriptionStore((s) => s.sub);
-
   const [status, setStatus] = useState<"loading" | "ready">("loading");
 
   useEffect(() => {
@@ -28,7 +27,9 @@ function SuccessContent() {
 
     const poll = async () => {
       await fetchSubscription();
+      
       attempts++;
+      
       const state = useSubscriptionStore.getState().sub;
       const currentType = state?.subscriptionType;
       // Consider the subscription ready only when:
@@ -40,6 +41,7 @@ function SuccessContent() {
         : currentType !== "FREE";
       const isReady = (statusIsConfirmed && planMatches) || attempts >= maxAttempts;
       if (isReady) {
+        router.refresh();
         setStatus("ready");
         return;
       }
