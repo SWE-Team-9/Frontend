@@ -255,4 +255,21 @@ describe("NotificationDropdown", () => {
     render(<NotificationDropdown />);
     expect(screen.getByText("Someone")).toBeInTheDocument();
   });
+
+  it("renders admin notification text without like wording", () => {
+    setupStore({
+      notifications: [
+        makeNotification({
+          type: "account_restored",
+          actorDisplayName: undefined,
+          message: "Your account has been restored",
+          entityType: "user",
+        }),
+      ],
+    });
+
+    render(<NotificationDropdown />);
+    expect(screen.getByText("Your account has been restored")).toBeInTheDocument();
+    expect(screen.queryByText("liked your track")).not.toBeInTheDocument();
+  });
 });

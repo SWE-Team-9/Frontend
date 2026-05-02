@@ -161,9 +161,14 @@ describe("normalizeNotification", () => {
     expect(result.id).toContain("track-x");
   });
 
-  it("defaults type to 'like' for unknown types", () => {
+  it("defaults type to 'report_resolved' for unknown types", () => {
     const raw = makeRawNotification({ type: "UNKNOWN_TYPE" });
-    expect(normalizeNotification(raw).type).toBe("like");
+    expect(normalizeNotification(raw).type).toBe("report_resolved");
+  });
+
+  it("preserves account/admin notification types", () => {
+    const raw = makeRawNotification({ type: "ACCOUNT_SUSPENDED" });
+    expect(normalizeNotification(raw).type).toBe("account_suspended");
   });
 
   it("normalizes uppercase type to lowercase", () => {
@@ -270,14 +275,14 @@ describe("normalizeNotification", () => {
 
   it("handles null payload gracefully", () => {
     const result = normalizeNotification(null);
-    expect(result.type).toBe("like");
+    expect(result.type).toBe("report_resolved");
     expect(result.actorId).toBe("");
     expect(result.isRead).toBe(false);
   });
 
   it("handles undefined payload gracefully", () => {
     const result = normalizeNotification(undefined);
-    expect(result.type).toBe("like");
+    expect(result.type).toBe("report_resolved");
   });
 
   it("handles empty object payload", () => {
