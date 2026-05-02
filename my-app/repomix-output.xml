@@ -413,6 +413,7 @@ const customJestConfig = {
   restoreMocks: true,
 };
 
+
 module.exports = createJestConfig(customJestConfig);
 </file>
 
@@ -8972,6 +8973,117 @@ describe("playerStore", () => {
     expect(usePlayerStore.getState().isPlaying).toBe(true);
     expect(usePlayerStore.getState().streamError).toBeNull();
     expect(usePlayerStore.getState().accessState).toBe("PLAYABLE");
+  });
+
+  it("fetchAndPlay queues manual track as pending while an ad is active", async () => {
+    const { usePlayerStore } = await import("@/src/store/playerStore");
+
+    usePlayerStore.setState({
+      isPlayingAd: true,
+      currentAd: {
+        adId: "ad_1",
+        title: "Promo",
+        durationSeconds: 5,
+        clickUrl: null,
+      },
+      currentTrack: {
+        trackId: "current",
+        title: "Current",
+        artist: "Artist",
+        artistId: "u1",
+        cover: "/current.jpg",
+      },
+    });
+
+    await usePlayerStore.getState().fetchAndPlay({
+      trackId: "next",
+      title: "Next",
+      artist: "Artist",
+      artistId: "u2",
+      cover: "/next.jpg",
+    });
+
+    expect(mockLoadQueue).not.toHaveBeenCalled();
+    expect(mockGetPlaybackState).not.toHaveBeenCalled();
+    expect(usePlayerStore.getState().currentTrack?.trackId).toBe("current");
+    expect(usePlayerStore.getState().pendingTrack?.trackId).toBe("next");
+  });
+
+  it("fetchAndPlay also queues pending track when called with _fromQueue=true during ad", async () => {
+    const { usePlayerStore } = await import("@/src/store/playerStore");
+
+    usePlayerStore.setState({
+      isPlayingAd: true,
+      currentAd: {
+        adId: "ad_1",
+        title: "Promo",
+        durationSeconds: 5,
+        clickUrl: null,
+      },
+      currentTrack: {
+        trackId: "current",
+        title: "Current",
+        artist: "Artist",
+        artistId: "u1",
+        cover: "/current.jpg",
+      },
+    });
+
+    await usePlayerStore.getState().fetchAndPlay(
+      {
+        trackId: "next",
+        title: "Next",
+        artist: "Artist",
+        artistId: "u2",
+        cover: "/next.jpg",
+      },
+      true,
+    );
+
+    expect(mockLoadQueue).not.toHaveBeenCalled();
+    expect(mockGetPlaybackState).not.toHaveBeenCalled();
+    expect(usePlayerStore.getState().currentTrack?.trackId).toBe("current");
+    expect(usePlayerStore.getState().pendingTrack?.trackId).toBe("next");
+  });
+
+  it("fetchAndPlay enters ad mode when backend returns AD_REQUIRED", async () => {
+    mockGetPlaybackState.mockResolvedValue({
+      trackId: "trk_1",
+      accessState: "PLAYABLE",
+      reason: null,
+    });
+
+    mockGetPlaybackSource.mockRejectedValue({
+      response: {
+        status: 409,
+        data: {
+          code: "AD_REQUIRED",
+          ad: {
+            adId: "ad_001",
+            title: "Upgrade to IQA3 Premium - No Ads",
+            durationSeconds: 15,
+            clickUrl: null,
+          },
+          canSkip: false,
+        },
+      },
+    });
+
+    const { usePlayerStore } = await import("@/src/store/playerStore");
+
+    await usePlayerStore.getState().fetchAndPlay({
+      trackId: "trk_1",
+      title: "Layali",
+      artist: "Ahmed Hassan",
+      artistId: "usr_1",
+      cover: "/cover.jpg",
+    });
+
+    const state = usePlayerStore.getState();
+    expect(state.isPlayingAd).toBe(true);
+    expect(state.currentAd?.adId).toBe("ad_001");
+    expect(state.isProcessing).toBe(false);
+    expect(state.streamError).toBeNull();
   });
 
   it("fetchAndPlay handles blocked state without playback", async () => {
@@ -17724,6 +17836,8 @@ export default function SettingsLayout({
 "use client";
 
 import React, { useState, useEffect, useCallback, Suspense } from "react";
+import { useSubscriptionStore } from "@/src/store/useSubscriptionStore"; 
+import { usePaymentMethodsStore } from "@/src/store/usePaymentMethodsStore"; 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/src/store/useAuthStore";
 import {
@@ -18363,6 +18477,17 @@ function SettingsContent() {
       fetchBlockedUsers();
     }
   }, [activeTab, fetchBlockedUsers]);
+
+  const fetchSubscription = useSubscriptionStore((s) => s.fetchSubscription);
+  const fetchMethods = usePaymentMethodsStore((s) => s.fetchMethods);
+
+  useEffect(() => {
+    if (activeTab === "subscription") {
+      fetchSubscription(); 
+      fetchMethods();     
+    }
+  }, [activeTab, fetchSubscription, fetchMethods]);
+
 
   const tabs: { id: Tab; label: string }[] = [
     { id: "security", label: "Security" },
@@ -19254,7 +19379,7 @@ import React, { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { LuCircleCheck, LuLoader, LuArrowRight } from "react-icons/lu";
 import { useSubscriptionStore } from "@/src/store/useSubscriptionStore";
-
+import { useAuthStore } from "@/src/store/useAuthStore";
 // ─── Success content (needs useSearchParams, must be wrapped in Suspense) ─────
 function SuccessContent() {
   const searchParams = useSearchParams();
@@ -19266,7 +19391,6 @@ function SuccessContent() {
 
   const fetchSubscription = useSubscriptionStore((s) => s.fetchSubscription);
   const sub = useSubscriptionStore((s) => s.sub);
-
   const [status, setStatus] = useState<"loading" | "ready">("loading");
 
   useEffect(() => {
@@ -19278,7 +19402,9 @@ function SuccessContent() {
 
     const poll = async () => {
       await fetchSubscription();
+      
       attempts++;
+      
       const state = useSubscriptionStore.getState().sub;
       const currentType = state?.subscriptionType;
       // Consider the subscription ready only when:
@@ -19290,6 +19416,7 @@ function SuccessContent() {
         : currentType !== "FREE";
       const isReady = (statusIsConfirmed && planMatches) || attempts >= maxAttempts;
       if (isReady) {
+        router.refresh();
         setStatus("ready");
         return;
       }
@@ -25613,7 +25740,7 @@ export default function PlayerAudioSync() {
 
     const handleEnded = async () => {
       const state = usePlayerStore.getState();
-      // If an ad with audio just ended, notify backend then play queued track or advance queue
+      // If an ad with audio just ended, notify backend then play pending user-selected track (if any).
       if (state.isPlayingAd) {
         const pending = state.pendingTrack;
         usePlayerStore.setState({ isPlayingAd: false, currentAd: null, pendingTrack: null, adElapsedSeconds: 0 });
@@ -42924,11 +43051,11 @@ let MOCK_SUBSCRIPTION: SubscriptionDetails = {
 
 // ─── Backend normalizer ────────────────────────────────────────────────────────
 
-export function normalizeBackendSubscription(raw: Record<string, unknown>): SubscriptionDetails {
-  const planCode = (raw.planCode as string) ?? "FREE";
-  const subscriptionType: "FREE" | "PRO" | "GO+" =
-    planCode === "GO_PLUS" ? "GO+" : planCode === "PRO" ? "PRO" : "FREE";
-
+export function normalizeBackendSubscription(raw: Record<string, unknown>): SubscriptionDetails {  const rawPlanCode = (raw.planCode as string) ?? "FREE";
+  const planCode = rawPlanCode === "GO_PLUS" ? "GO+" : rawPlanCode;
+  
+const subscriptionType: "FREE" | "PRO" | "GO+" = 
+    planCode === "GO+" ? "GO+" : planCode === "PRO" ? "PRO" : "FREE";
   const adsEnabled = (raw.adsEnabled as boolean) ?? true;
   const canDownload = (raw.canDownload as boolean) ?? false;
 
@@ -42960,7 +43087,7 @@ export function normalizeBackendSubscription(raw: Record<string, unknown>): Subs
     userId: (raw.userId as string) ?? "",
     subscriptionType,
     planCode,
-    planName: (raw.planName as string) ?? subscriptionType,
+    planName: PLAN_CONFIG[subscriptionType]?.label || (raw.planName as string) || subscriptionType,
     isPremium: (raw.isPremium as boolean) ?? planCode !== "FREE",
     subscriptionStatus: (raw.subscriptionStatus as string) ?? null,
     uploadLimit,
@@ -42979,6 +43106,7 @@ export function normalizeBackendSubscription(raw: Record<string, unknown>): Subs
       adFree: !adsEnabled,
       offlineListening: canDownload,
     },
+    
   };
 }
 
@@ -42991,6 +43119,7 @@ export const getMySubscription = async (): Promise<SubscriptionDetails> => {
   }
   const response = await api.get("/subscriptions/me");
   return normalizeBackendSubscription(response.data);
+  
 };
 
 export const getSubscriptionPlans = async (): Promise<SubscriptionPlan[]> => {
@@ -45184,7 +45313,7 @@ interface PlayerState {
   isPlayingAd: boolean;
   /** Elapsed seconds for text-only (no audioUrl) ads, updated every second by PlayerAudioSync */
   adElapsedSeconds: number;
-  /** Track queued by the user while an ad is playing; played immediately after the ad ends */
+  /** Track selected while an ad is playing; played once the ad completes. */
   pendingTrack: Track | null;
 
   isProcessing: boolean;
@@ -45587,9 +45716,9 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       return;
     }
 
-    // While an ad is playing, queue the requested track rather than interrupting.
-    // PlayerAudioSync drains pendingTrack as soon as the ad finishes.
-    if (get().isPlayingAd && !_fromQueue) {
+    // While an ad is playing, keep the latest user-selected track as pending.
+    // It will be played immediately after ad completion.
+    if (get().isPlayingAd) {
       set({ pendingTrack: track });
       return;
     }
@@ -45741,6 +45870,45 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
               typeof (error as { response?: { status?: number } }).response?.status === "number"
               ? (error as { response?: { status?: number } }).response?.status
               : undefined;
+
+          const errorPayload =
+            typeof error === "object" &&
+              error !== null &&
+              "response" in error
+              ? (error as { response?: { data?: unknown } }).response?.data
+              : undefined;
+          const errorCode =
+            typeof errorPayload === "object" &&
+              errorPayload !== null &&
+              "code" in errorPayload
+              ? (errorPayload as { code?: string }).code
+              : undefined;
+
+          if (status === 409 && errorCode === "AD_REQUIRED") {
+            const adData =
+              typeof errorPayload === "object" &&
+                errorPayload !== null &&
+                "ad" in errorPayload
+                ? (errorPayload as { ad?: AdSlot }).ad
+                : undefined;
+
+            if (audio) {
+              audio.pause();
+              audio.removeAttribute("src");
+              audio.load();
+            }
+
+            set({
+              isProcessing: false,
+              isResolvingPlayback: false,
+              isPlaying: false,
+              currentAd: adData ?? null,
+              isPlayingAd: true,
+              adElapsedSeconds: 0,
+              streamError: null,
+            });
+            return;
+          }
 
           if (status === 409) {
             if (audio) {
@@ -47729,6 +47897,7 @@ export interface RawArtistTracksResponse {
         "name": "next"
       }
     ],
+    
     "paths": {
       "@/*": [
         "./*"

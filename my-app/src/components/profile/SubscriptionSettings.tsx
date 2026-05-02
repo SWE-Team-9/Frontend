@@ -5,8 +5,14 @@ import { useRouter } from "next/navigation";
 import { useSubscriptionStore } from "@/src/store/useSubscriptionStore";
 import { usePaymentMethodsStore } from "@/src/store/usePaymentMethodsStore";
 import {
-  LuCreditCard, LuX, LuPlus,
-  LuShieldCheck, LuCheck, LuStar, LuRefreshCw, LuTrash2,
+  LuCreditCard,
+  LuX,
+  LuPlus,
+  LuShieldCheck,
+  LuCheck,
+  LuStar,
+  LuRefreshCw,
+  LuTrash2,
 } from "react-icons/lu";
 import { SiVisa, SiMastercard, SiAmericanexpress } from "react-icons/si";
 import { PLAN_CONFIG } from "@/src/config/plans";
@@ -188,14 +194,18 @@ export default function SubscriptionSettings() {
   const [portalLoading, setPortalLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [settingDefaultId, setSettingDefaultId] = useState<string | null>(null);
-  const [autoCancelExpiresAt, setAutoCancelExpiresAt] = useState<string | null>(null);
+  const [autoCancelExpiresAt, setAutoCancelExpiresAt] = useState<string | null>(
+    null,
+  );
 
   const isProOnly = sub?.subscriptionType === "PRO";
   const isGoPlus = sub?.subscriptionType === "GO+";
   const isPro = isProOnly || isGoPlus;
   const planLabel = isPro ? (sub?.subscriptionType ?? "PRO") : "Basic";
-  const isCancelPending = (sub?.cancelAtPeriodEnd ?? false) && !sub?.pendingDowngrade;
-  const canSwitchUp = isProOnly && !sub?.cancelAtPeriodEnd && !sub?.pendingDowngrade;
+  const isCancelPending =
+    (sub?.cancelAtPeriodEnd ?? false) && !sub?.pendingDowngrade;
+  const canSwitchUp =
+    isProOnly && !sub?.cancelAtPeriodEnd && !sub?.pendingDowngrade;
   const targetPlan: "PRO" | "GO+" = "GO+";
 
   useEffect(() => {
@@ -282,7 +292,6 @@ export default function SubscriptionSettings() {
       )}
 
       <div className="space-y-8">
-
         {/* ── Current Plan ─────────────────────────────────────── */}
         <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-6">
           <h2 className="text-base font-bold uppercase tracking-wide text-zinc-300 mb-5">
@@ -292,7 +301,11 @@ export default function SubscriptionSettings() {
             <div className="flex items-center gap-3">
               {isPro && (
                 <div className="w-9 h-9 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
-                  <LuStar size={16} className="text-amber-400" fill="currentColor" />
+                  <LuStar
+                    size={16}
+                    className="text-amber-400"
+                    fill="currentColor"
+                  />
                 </div>
               )}
               <div>
@@ -306,7 +319,11 @@ export default function SubscriptionSettings() {
                 </p>
                 {sub?.pendingDowngrade && (
                   <p className="text-blue-400 text-xs mt-1 font-semibold">
-                    Switches to {sub.pendingDowngrade.planName} on {new Date(sub.pendingDowngrade.effectiveAt).toLocaleDateString()} — keeping current plan until then
+                    Switches to {sub.pendingDowngrade.planName} on{" "}
+                    {new Date(
+                      sub.pendingDowngrade.effectiveAt,
+                    ).toLocaleDateString()}{" "}
+                    — keeping current plan until then
                   </p>
                 )}
                 {isCancelPending && sub?.currentPeriodEnd && (
@@ -325,8 +342,10 @@ export default function SubscriptionSettings() {
                 )}
               </div>
             </div>
+
             <div className="flex items-center gap-2 flex-wrap">
-              {canSwitchUp && (
+              {/* 1. Switch Plan: Visible only if the subscription is active and NOT scheduled for cancellation */}
+              {canSwitchUp && !sub?.cancelAtPeriodEnd && (
                 <button
                   onClick={() => setShowChangePlanConfirm(true)}
                   disabled={subLoading}
@@ -335,6 +354,7 @@ export default function SubscriptionSettings() {
                   Switch to {targetPlan}
                 </button>
               )}
+              {/* 2. CANCEL Button: Shown only for active Pro users who haven't cancelled yet (cancelAtPeriodEnd is false) */}
               {isPro && !sub?.cancelAtPeriodEnd && !sub?.pendingDowngrade && (
                 <button
                   onClick={() => setShowCancelConfirm(true)}
@@ -344,18 +364,24 @@ export default function SubscriptionSettings() {
                   <LuX size={13} /> Cancel
                 </button>
               )}
-              {isPro && (sub?.cancelAtPeriodEnd || sub?.pendingDowngrade) && (
+              {/* 3. RESUME Button: Visible only if the user has already initiated cancellation (cancelAtPeriodEnd is true) */}
+              {/* Per Backend/Bootstrap logic: This prevents users from resuming an already active subscription */}
+              {isPro && sub?.cancelAtPeriodEnd && (
                 <button
                   onClick={() => resume()}
                   disabled={subLoading}
                   className="px-4 py-2 border border-green-700 text-green-400 rounded-lg text-xs font-bold uppercase tracking-wide hover:bg-green-900/30 transition-colors flex items-center gap-2 disabled:opacity-50"
                 >
-                  <LuRefreshCw size={13} /> {subLoading ? "Resuming..." : "Resume"}
+                  <LuRefreshCw size={13} />{" "}
+                  {subLoading ? "Resuming..." : "Resume"}
                 </button>
               )}
+              {/* 4. Free Tier Upgrade CTA: Shown only if the user is not currently on a premium plan */}
               {!isPro && (
                 <button
-                  onClick={() => router.push("/subscriptions/checkout?plan=pro")}
+                  onClick={() =>
+                    router.push("/subscriptions/checkout?plan=pro")
+                  }
                   className="px-5 py-2 bg-white text-black rounded-lg text-sm font-bold hover:bg-[#ff5500] hover:text-white transition-colors"
                 >
                   Try Artist Pro — ${PLAN_CONFIG.PRO.monthlyPrice}/mo
@@ -386,10 +412,8 @@ export default function SubscriptionSettings() {
                 </span>
                 <span className="text-zinc-300 text-xs font-bold">
                   {sub.uploadedTracks} /{" "}
-                  {sub.uploadLimit === Infinity
-                    ? "∞"
-                    : sub.uploadLimit}{" "}
-                  tracks used
+                  {sub.uploadLimit === Infinity ? "∞" : sub.uploadLimit} tracks
+                  used
                 </span>
               </div>
               {sub.uploadLimit !== Infinity && (
@@ -405,8 +429,8 @@ export default function SubscriptionSettings() {
                         sub.uploadedTracks >= sub.uploadLimit
                           ? "#ef4444"
                           : sub.uploadedTracks / sub.uploadLimit > 0.7
-                          ? "#f97316"
-                          : "#ff5500",
+                            ? "#f97316"
+                            : "#ff5500",
                     }}
                   />
                 </div>
