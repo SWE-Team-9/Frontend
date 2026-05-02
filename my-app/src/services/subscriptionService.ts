@@ -251,6 +251,16 @@ export const cancelSubscription = async (): Promise<SubscriptionDetails> => {
 };
 
 /**
+ * Cancel a pending scheduled plan change (e.g. PRO -> GO+) while keeping the
+ * current subscription active.
+ */
+export const cancelPendingPlanChange = async (): Promise<SubscriptionDetails> => {
+  await api.post("/subscriptions/cancel-plan-change");
+  const refreshed = await api.get("/subscriptions/me");
+  return normalizeBackendSubscription(refreshed.data);
+};
+
+/**
  * Resume a subscription that is scheduled to cancel (clears cancelAtPeriodEnd).
  */
 export const resumeSubscription = async (): Promise<SubscriptionDetails> => {

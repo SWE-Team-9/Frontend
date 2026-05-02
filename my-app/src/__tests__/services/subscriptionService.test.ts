@@ -266,6 +266,30 @@ describe("subscriptionService (real API mode)", () => {
     });
   });
 
+  describe("cancelPendingPlanChange", () => {
+    it("POSTs to /subscriptions/cancel-plan-change then re-fetches /subscriptions/me", async () => {
+      mockApiPost.mockResolvedValue({ data: { message: "Plan change canceled" } });
+      mockApiGet.mockResolvedValue({ data: PRO_BACKEND_RESPONSE });
+
+      const { cancelPendingPlanChange } = await import("@/src/services/subscriptionService");
+      await cancelPendingPlanChange();
+
+      expect(mockApiPost).toHaveBeenCalledWith("/subscriptions/cancel-plan-change");
+      expect(mockApiGet).toHaveBeenCalledWith("/subscriptions/me");
+    });
+
+    it("returns normalized subscription after canceling pending plan change", async () => {
+      mockApiPost.mockResolvedValue({ data: { message: "Plan change canceled" } });
+      mockApiGet.mockResolvedValue({ data: PRO_BACKEND_RESPONSE });
+
+      const { cancelPendingPlanChange } = await import("@/src/services/subscriptionService");
+      const result = await cancelPendingPlanChange();
+
+      expect(result.subscriptionType).toBe("PRO");
+      expect(result.cancelAtPeriodEnd).toBe(false);
+    });
+  });
+
   // ── resumeSubscription ─────────────────────────────────────────────────────
 
   describe("resumeSubscription", () => {

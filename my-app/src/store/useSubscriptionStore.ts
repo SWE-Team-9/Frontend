@@ -3,6 +3,7 @@ import {
   getMySubscription,
   upgradeSubscription,
   cancelSubscription,
+  cancelPendingPlanChange as cancelPendingPlanChangeService,
   resumeSubscription,
   changePlan as changePlanService,
   getInvoices,
@@ -22,6 +23,7 @@ interface SubscriptionStore {
   fetchSubscription: () => Promise<void>;
   upgrade: (type: "PRO" | "GO+") => Promise<CheckoutResult>;
   cancel: () => Promise<void>;
+  cancelPendingPlanChange: () => Promise<void>;
   resume: () => Promise<void>;
   changePlan: (type: "PRO" | "GO+") => Promise<void>;
   fetchInvoices: () => Promise<void>;
@@ -73,6 +75,19 @@ export const useSubscriptionStore = create<SubscriptionStore>((set) => ({
     } catch {
       set({ error: "Cancellation failed. Please try again." });
       throw new Error("Cancellation failed");
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  cancelPendingPlanChange: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const updated = await cancelPendingPlanChangeService();
+      set({ sub: updated });
+    } catch {
+      set({ error: "Failed to cancel scheduled plan change." });
+      throw new Error("Failed to cancel scheduled plan change");
     } finally {
       set({ isLoading: false });
     }

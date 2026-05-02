@@ -50,6 +50,7 @@ function makeDefaultSubState() {
     isLoading: false,
     error: null as string | null,
     cancel: jest.fn().mockResolvedValue(undefined),
+    cancelPendingPlanChange: jest.fn().mockResolvedValue(undefined),
     resume: jest.fn().mockResolvedValue(undefined),
     changePlan: jest.fn().mockResolvedValue(undefined),
     fetchInvoices: jest.fn().mockResolvedValue(undefined),
@@ -269,10 +270,11 @@ describe("SubscriptionSettings", () => {
       });
     });
 
-    it("keeps cancel available when a pending plan change exists", () => {
+    it("shows two actions when a pending plan change exists", () => {
       setup({
         sub: {
           ...PRO_SUB,
+          cancelAtPeriodEnd: true,
           pendingDowngrade: {
             planCode: "GO_PLUS",
             planId: "plan-go-plus",
@@ -282,8 +284,40 @@ describe("SubscriptionSettings", () => {
         },
       });
 
-      expect(screen.getByRole("button", { name: /Cancel/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /Cancel GO\+ upgrade/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /Cancel subscription/i }),
+      ).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: /Switch to GO\+/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /Resume/i })).not.toBeInTheDocument();
+    });
+
+    it("calls cancelPendingPlanChange when confirming pending-plan cancellation", async () => {
+      const cancelPendingPlanChange = jest.fn().mockResolvedValue(undefined);
+      setup(
+        {
+          sub: {
+            ...PRO_SUB,
+            cancelAtPeriodEnd: true,
+            pendingDowngrade: {
+              planCode: "GO_PLUS",
+              planId: "plan-go-plus",
+              planName: "GO+",
+              effectiveAt: "2026-05-28T00:00:00.000Z",
+            },
+          },
+          cancelPendingPlanChange,
+        },
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: /Cancel GO\+ upgrade/i }));
+      fireEvent.click(screen.getByRole("button", { name: /Cancel plan change/i }));
+
+      await waitFor(() => {
+        expect(cancelPendingPlanChange).toHaveBeenCalled();
+      });
     });
 
     it("calls resume action when Resume is clicked", async () => {

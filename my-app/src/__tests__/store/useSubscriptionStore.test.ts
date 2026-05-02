@@ -7,6 +7,7 @@ jest.mock("@/src/services/subscriptionService", () => ({
   getMySubscription: jest.fn(),
   upgradeSubscription: jest.fn(),
   cancelSubscription: jest.fn(),
+  cancelPendingPlanChange: jest.fn(),
   resumeSubscription: jest.fn(),
   changePlan: jest.fn(),
   getInvoices: jest.fn(),
@@ -20,6 +21,7 @@ const mockedSubscriptionService = subscriptionService as jest.Mocked<
 const mockSubscription = {
   userId: "usr_1",
   subscriptionType: "PRO" as const,
+  planCode: "PRO",
   planName: "Artist Pro",
   isPremium: true,
   subscriptionStatus: "ACTIVE",
@@ -40,6 +42,7 @@ const mockSubscription = {
     expiryYear: 2030,
     isDefault: true,
   },
+  latestInvoice: null,
   perks: {
     adFree: true,
     offlineListening: true,
@@ -137,6 +140,35 @@ describe("useSubscriptionStore", () => {
 
     expect(useSubscriptionStore.getState().error).toBe(
       "Cancellation failed. Please try again.",
+    );
+  });
+
+  it("stores updated subscription after canceling pending plan change", async () => {
+    mockedSubscriptionService.cancelPendingPlanChange.mockResolvedValue({
+      ...mockSubscription,
+      cancelAtPeriodEnd: false,
+      pendingDowngrade: null,
+    });
+
+    await act(async () => {
+      await useSubscriptionStore.getState().cancelPendingPlanChange();
+    });
+
+    expect(mockedSubscriptionService.cancelPendingPlanChange).toHaveBeenCalled();
+    expect(useSubscriptionStore.getState().sub?.cancelAtPeriodEnd).toBe(false);
+  });
+
+  it("sets an error and rejects when cancelPendingPlanChange fails", async () => {
+    mockedSubscriptionService.cancelPendingPlanChange.mockRejectedValue(new Error());
+
+    await expect(
+      act(async () => {
+        await useSubscriptionStore.getState().cancelPendingPlanChange();
+      }),
+    ).rejects.toThrow("Failed to cancel scheduled plan change");
+
+    expect(useSubscriptionStore.getState().error).toBe(
+      "Failed to cancel scheduled plan change.",
     );
   });
 

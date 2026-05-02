@@ -169,6 +169,7 @@ export default function SubscriptionSettings() {
     sub,
     invoices,
     cancel,
+    cancelPendingPlanChange,
     resume,
     changePlan,
     fetchInvoices,
@@ -192,6 +193,8 @@ export default function SubscriptionSettings() {
   const router = useRouter();
 
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [showCancelPlanChangeConfirm, setShowCancelPlanChangeConfirm] =
+    useState(false);
   const [showChangePlanConfirm, setShowChangePlanConfirm] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -214,10 +217,11 @@ export default function SubscriptionSettings() {
     sub?.subscriptionStatus === "TRIALING" &&
     trialEndsAt !== null &&
     !isNaN(trialEndsAt.getTime());
+  const hasPendingPlanChange = Boolean(sub?.pendingDowngrade);
   const isCancelPending =
-    (sub?.cancelAtPeriodEnd ?? false) && !sub?.pendingDowngrade;
+    (sub?.cancelAtPeriodEnd ?? false) && !hasPendingPlanChange;
   const canSwitchUp =
-    isProOnly && !sub?.cancelAtPeriodEnd && !sub?.pendingDowngrade;
+    isProOnly && !sub?.cancelAtPeriodEnd && !hasPendingPlanChange;
   const targetPlan: "PRO" | "GO+" = "GO+";
 
   useEffect(() => {
@@ -230,6 +234,15 @@ export default function SubscriptionSettings() {
     try {
       await cancel();
       setShowCancelConfirm(false);
+    } catch {
+      // Store owns the visible error message.
+    }
+  };
+
+  const handleCancelPlanChangeConfirm = async () => {
+    try {
+      await cancelPendingPlanChange();
+      setShowCancelPlanChangeConfirm(false);
     } catch {
       // Store owns the visible error message.
     }
@@ -304,6 +317,17 @@ export default function SubscriptionSettings() {
           loading={subLoading}
           onConfirm={handleChangePlanConfirm}
           onCancel={() => setShowChangePlanConfirm(false)}
+        />
+      )}
+
+      {showCancelPlanChangeConfirm && (
+        <ConfirmDialog
+          title="Cancel scheduled plan change?"
+          message={`Your ${sub?.pendingDowngrade?.planName ?? "new"} plan change will be removed. You will stay on ${planLabel}.`}
+          confirmLabel="Cancel plan change"
+          loading={subLoading}
+          onConfirm={handleCancelPlanChangeConfirm}
+          onCancel={() => setShowCancelPlanChangeConfirm(false)}
         />
       )}
 
@@ -394,9 +418,34 @@ export default function SubscriptionSettings() {
                   <LuX size={13} /> Cancel
                 </button>
               )}
+              {/* Pending plan change actions: cancel only the scheduled switch OR cancel the full subscription */}
+              {isPro && hasPendingPlanChange && (
+                <>
+                  <button
+                    onClick={() => {
+                      clearSubError();
+                      setShowCancelPlanChangeConfirm(true);
+                    }}
+                    disabled={subLoading}
+                    className="px-4 py-2 border border-blue-700 text-blue-300 rounded-lg text-xs font-bold uppercase tracking-wide hover:bg-blue-900/30 transition-colors disabled:opacity-50"
+                  >
+                    Cancel {sub?.pendingDowngrade?.planName ?? "plan"} upgrade
+                  </button>
+                  <button
+                    onClick={() => {
+                      clearSubError();
+                      setShowCancelConfirm(true);
+                    }}
+                    disabled={subLoading}
+                    className="px-4 py-2 border border-red-700 text-red-400 rounded-lg text-xs font-bold uppercase tracking-wide hover:bg-red-900/30 transition-colors flex items-center gap-2 disabled:opacity-50"
+                  >
+                    <LuX size={13} /> Cancel subscription
+                  </button>
+                </>
+              )}
               {/* 3. RESUME Button: Visible only if the user has already initiated cancellation (cancelAtPeriodEnd is true) */}
               {/* Per Backend/Bootstrap logic: This prevents users from resuming an already active subscription */}
-              {isPro && sub?.cancelAtPeriodEnd && (
+              {isPro && sub?.cancelAtPeriodEnd && !hasPendingPlanChange && (
                 <button
                   onClick={async () => {
                     clearSubError();
