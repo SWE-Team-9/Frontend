@@ -76,10 +76,8 @@ export default function LikedTracksGrid({ userId }: LikedTracksGridProps) {
                     <TrackCard
                         key={track.id}
                         track={{
-                            trackId: track.id,
+                            trackId: track.trackId ?? track.id,
                             title: track.title,
-                            likesCount: track.likesCount,
-                            liked: true,
                             artistName: track.artistName ?? undefined,
                             artistId: track.artistId,
                             artistHandle: track.artistHandle,
@@ -87,6 +85,9 @@ export default function LikedTracksGrid({ userId }: LikedTracksGridProps) {
                             coverArtUrl: track.coverArtUrl ?? track.coverArt ?? undefined,
                             coverArt: track.coverArt ?? track.coverArtUrl ?? undefined,
                             repostsCount: track.repostsCount ?? 0,
+                            likesCount: track.likesCount,
+                            liked: true,
+                            waveformData: track.waveformData ?? null,
                         }}
                         isOwner={false}
                     />

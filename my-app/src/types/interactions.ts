@@ -9,10 +9,11 @@ export interface TrackData {
   likesCount: number;
   repostsCount: number;
   coverArtUrl: string | null;
-  coverArt?: string | null; //  for UI compatibility
-  imageUrl?: string | null; // for UI compatibility
+  coverArt?: string | null;
+  imageUrl?: string | null;
   slug?: string;
   publishedAt?: string;
+  waveformData?: number[] | null;
 }
 
 export interface UserInteractionResponse {

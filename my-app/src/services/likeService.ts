@@ -124,6 +124,8 @@ export const getUserLikes = async (userId: string, page = 1, limit = 10): Promis
         coverArt: cover,
         imageUrl: cover,
 
+        waveformData: t.waveformData ?? null,
+
         interactedAt: item.interactedAt,
         likesCount: t.likesCount ?? 0,
         repostsCount: t.repostsCount ?? 0,
