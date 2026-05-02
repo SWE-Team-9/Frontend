@@ -86,6 +86,7 @@ const NOTIFICATION_TYPES: NotificationType[] = [
   "repost",
   "message",
   "report_resolved",
+  "system",
   "subscription",
   "account_suspended",
   "account_banned",
@@ -155,7 +156,7 @@ function normalizeType(value: unknown): NotificationType {
     return normalized as NotificationType;
   }
 
-  return "report_resolved";
+  return "system";
 }
 
 function normalizeEntityType(
