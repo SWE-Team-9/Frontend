@@ -7,6 +7,7 @@ import PlayerAudioSync from "@/src/components/player/PlayerAudioSync";
 import { Toaster } from "sonner";
 import { NotificationSocketBridge } from "@/src/components/notifications/NotificationSocketBridge";
 import { WsDebugIndicator } from "@/src/components/debug/WsDebugIndicator";
+import { AiChatWidget } from "@/src/components/ai/AiChatWidget";
 
 
 const geistSans = Geist({
@@ -44,8 +45,8 @@ export default function RootLayout({
           <Player />
           <PlayerAudioSync />
           <WsDebugIndicator />
+          <AiChatWidget />
 
-          
           <Toaster
             position="top-right"
             theme="dark"
