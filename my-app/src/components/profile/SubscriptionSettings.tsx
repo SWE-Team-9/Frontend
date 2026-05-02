@@ -175,6 +175,8 @@ export default function SubscriptionSettings() {
     fetchSubscription,
     openPortal,
     isLoading: subLoading,
+    error: subError,
+    clearError: clearSubError,
   } = useSubscriptionStore();
   const {
     methods,
@@ -198,10 +200,14 @@ export default function SubscriptionSettings() {
     null,
   );
 
-  const isProOnly = sub?.subscriptionType === "PRO";
-  const isGoPlus = sub?.subscriptionType === "GO+";
+  const rawSubscriptionType = sub?.subscriptionType as string | undefined;
+  const effectiveSubscriptionType =
+    rawSubscriptionType === "GO_PLUS" ? "GO+" : rawSubscriptionType;
+  const isProOnly = effectiveSubscriptionType === "PRO";
+  const isGoPlus = effectiveSubscriptionType === "GO+";
   const isPro = isProOnly || isGoPlus;
-  const planLabel = isPro ? (sub?.subscriptionType ?? "PRO") : "Basic";
+  const paidPlanKey = isGoPlus ? "GO+" : "PRO";
+  const planLabel = isPro ? paidPlanKey : "Basic";
   const isCancelPending =
     (sub?.cancelAtPeriodEnd ?? false) && !sub?.pendingDowngrade;
   const canSwitchUp =
@@ -215,8 +221,12 @@ export default function SubscriptionSettings() {
   }, [fetchSubscription, fetchInvoices, fetchMethods]);
 
   const handleCancelConfirm = async () => {
-    await cancel();
-    setShowCancelConfirm(false);
+    try {
+      await cancel();
+      setShowCancelConfirm(false);
+    } catch {
+      // Store owns the visible error message.
+    }
   };
 
   const handleChangePlanConfirm = async () => {
@@ -271,8 +281,8 @@ export default function SubscriptionSettings() {
       {showCancelConfirm && (
         <ConfirmDialog
           title="End your subscription?"
-          message={`You will lose access to all ${sub?.subscriptionType} features at the end of your billing period.`}
-          confirmLabel="End subscription"
+          message={`Your ${planLabel} plan stays active until ${sub?.currentPeriodEnd ? new Date(sub.currentPeriodEnd).toLocaleDateString() : "the end of your current billing period"}. After that date, it will move to Free unless you resume before then.`}
+          confirmLabel="Cancel at period end"
           danger
           loading={subLoading}
           onConfirm={handleCancelConfirm}
@@ -292,6 +302,12 @@ export default function SubscriptionSettings() {
       )}
 
       <div className="space-y-8">
+        {subError && (
+          <div className="rounded-lg border border-red-700/60 bg-red-950/30 px-4 py-3 text-sm text-red-300" role="alert">
+            {subError}
+          </div>
+        )}
+
         {/* ── Current Plan ─────────────────────────────────────── */}
         <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-6">
           <h2 className="text-base font-bold uppercase tracking-wide text-zinc-300 mb-5">
@@ -314,7 +330,7 @@ export default function SubscriptionSettings() {
                 </h3>
                 <p className="text-zinc-400 text-sm mt-0.5">
                   {isPro
-                    ? `${PLAN_CONFIG[sub!.subscriptionType as "PRO" | "GO+"].uploadLimit.toLocaleString()} track uploads · Ad-free · Offline listening`
+                    ? `${PLAN_CONFIG[paidPlanKey].uploadLimit.toLocaleString()} track uploads · Ad-free · Offline listening`
                     : `${PLAN_CONFIG.FREE.uploadLimit} track uploads · Ad-supported streaming`}
                 </p>
                 {sub?.pendingDowngrade && (
@@ -355,9 +371,12 @@ export default function SubscriptionSettings() {
                 </button>
               )}
               {/* 2. CANCEL Button: Shown only for active Pro users who haven't cancelled yet (cancelAtPeriodEnd is false) */}
-              {isPro && !sub?.cancelAtPeriodEnd && !sub?.pendingDowngrade && (
+              {isPro && !sub?.cancelAtPeriodEnd && (
                 <button
-                  onClick={() => setShowCancelConfirm(true)}
+                  onClick={() => {
+                    clearSubError();
+                    setShowCancelConfirm(true);
+                  }}
                   disabled={subLoading}
                   className="px-4 py-2 border border-red-700 text-red-400 rounded-lg text-xs font-bold uppercase tracking-wide hover:bg-red-900/30 transition-colors flex items-center gap-2 disabled:opacity-50"
                 >
@@ -368,7 +387,14 @@ export default function SubscriptionSettings() {
               {/* Per Backend/Bootstrap logic: This prevents users from resuming an already active subscription */}
               {isPro && sub?.cancelAtPeriodEnd && (
                 <button
-                  onClick={() => resume()}
+                  onClick={async () => {
+                    clearSubError();
+                    try {
+                      await resume();
+                    } catch {
+                      // Store owns the visible error message.
+                    }
+                  }}
                   disabled={subLoading}
                   className="px-4 py-2 border border-green-700 text-green-400 rounded-lg text-xs font-bold uppercase tracking-wide hover:bg-green-900/30 transition-colors flex items-center gap-2 disabled:opacity-50"
                 >
