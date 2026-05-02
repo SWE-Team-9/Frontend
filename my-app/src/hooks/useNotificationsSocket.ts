@@ -55,11 +55,21 @@ export function useNotificationsSocket({
       };
     }
 
-    const socket = io(`${SOCKET_URL}/notifications`, {
+    const socket = io(`${SOCKET_URL}/api/v1/notifications`, {
       withCredentials: true,
       transports: ["websocket"],
+      path: "/api/v1/socket.io",
+      // Called on every connect/reconnect — always uses the freshest token.
+      // Handles both same-domain (cookie sent automatically) and cross-domain
+      // testing (IS_LOCAL=false from localhost) via the /api/socket-token bridge.
+      auth: (cb: (data: Record<string, string>) => void) => {
+        fetch("/api/socket-token")
+          .then((r) => r.json())
+          .then((d: { token: string | null }) => cb(d.token ? { token: d.token } : {}))
+          .catch(() => cb({}));
+      },
       reconnection: true,
-      reconnectionAttempts: 5,
+      reconnectionAttempts: Infinity,
       reconnectionDelay: 2000,
       reconnectionDelayMax: 30000,
     });

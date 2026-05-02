@@ -10,12 +10,20 @@ export function getMessageSocket() {
   }
 
   if (!socket) {
-    socket = io(`${SOCKET_URL}/messages`, {
+    socket = io(`${SOCKET_URL}/api/v1/messages`, {
       withCredentials: true,
       transports: ["websocket"],
+      path: "/api/v1/socket.io",
+      // Called on every connect/reconnect — always uses the freshest token.
+      auth: (cb: (data: Record<string, string>) => void) => {
+        fetch("/api/socket-token")
+          .then((r) => r.json())
+          .then((d: { token: string | null }) => cb(d.token ? { token: d.token } : {}))
+          .catch(() => cb({}));
+      },
       autoConnect: false,
       reconnection: true,
-      reconnectionAttempts: 5,
+      reconnectionAttempts: Infinity,
       reconnectionDelay: 2000,
       reconnectionDelayMax: 30000,
     });
