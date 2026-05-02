@@ -1,6 +1,5 @@
 const mockApiGet = jest.fn();
 const mockApiDelete = jest.fn();
-const mockGetTrackDetails = jest.fn();
 
 jest.mock("@/src/services/api", () => ({
   __esModule: true,
@@ -10,17 +9,13 @@ jest.mock("@/src/services/api", () => ({
   },
 }));
 
-jest.mock("@/src/services/trackService", () => ({
-  getTrackDetails: (...args: unknown[]) => mockGetTrackDetails(...args),
-}));
-
 describe("historyService", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.resetModules();
   });
 
-  it("getRecentlyPlayed maps API + track details into enriched recent items", async () => {
+  it("getRecentlyPlayed maps API into recent items", async () => {
     (process.env as Record<string, string | undefined>).NEXT_PUBLIC_USE_MOCK = "false";
 
     mockApiGet.mockResolvedValue({
@@ -31,8 +26,21 @@ describe("historyService", () => {
         tracks: [
           {
             trackId: "trk_1",
-            title: "Fallback Title",
-            artist: { id: "usr_1", display_name: "Fallback Artist" },
+            title: "Layali",
+            slug: "layali",
+            artist: {
+              id: "usr_1",
+              display_name: "Ahmed Hassan",
+              handle: "ahmed",
+              avatar_url: null,
+            },
+            coverArtUrl: "/cover.jpg",
+            liked: true,
+            likesCount: 8,
+            reposted: false,
+            repostsCount: 2,
+            durationSeconds: 180,
+            waveformData: null,
             lastPlayedAt: "2026-04-12T10:00:00Z",
             lastPositionSeconds: 90,
           },
@@ -40,30 +48,16 @@ describe("historyService", () => {
       },
     });
 
-    mockGetTrackDetails.mockResolvedValue({
-      trackId: "trk_1",
-      title: "Layali",
-      artist: "Ahmed Hassan",
-      artistId: "usr_1",
-      artistHandle: "ahmed",
-      artistAvatarUrl: null,
-      coverArtUrl: "/cover.jpg",
-      liked: true,
-      likesCount: 8,
-      reposted: false,
-      repostsCount: 2,
-    });
-
     const { getRecentlyPlayed } = await import("@/src/services/historyService");
     const result = await getRecentlyPlayed(6, 1);
 
     expect(mockApiGet).toHaveBeenCalledWith("/player/history/recent?page=1&limit=6");
-    expect(mockGetTrackDetails).toHaveBeenCalledWith("trk_1");
 
     expect(result).toEqual([
       {
         trackId: "trk_1",
         title: "Layali",
+        slug: "layali",
         artist: "Ahmed Hassan",
         artistId: "usr_1",
         artistHandle: "ahmed",
@@ -73,13 +67,16 @@ describe("historyService", () => {
         likesCount: 8,
         reposted: false,
         repostsCount: 2,
+        durationMs: undefined,
+        durationSeconds: 180,
+        waveformData: null,
         lastPlayedAt: "2026-04-12T10:00:00Z",
         lastPositionSeconds: 90,
       },
     ]);
   });
 
-  it("getRecentlyPlayed skips deleted tracks when getTrackDetails returns 404", async () => {
+  it("getRecentlyPlayed returns all tracks from the API", async () => {
     (process.env as Record<string, string | undefined>).NEXT_PUBLIC_USE_MOCK = "false";
 
     mockApiGet.mockResolvedValue({
@@ -91,42 +88,45 @@ describe("historyService", () => {
           {
             trackId: "trk_1",
             title: "Still Exists",
-            artist: { id: "usr_1", display_name: "Artist One" },
+            slug: "still-exists",
+            artist: {
+              id: "usr_1",
+              display_name: "Artist One",
+              handle: "artistone",
+              avatar_url: null,
+            },
+            coverArtUrl: "/cover.jpg",
+            liked: true,
+            likesCount: 8,
+            reposted: false,
+            repostsCount: 2,
+            durationSeconds: 180,
+            waveformData: null,
             lastPlayedAt: "2026-04-12T10:00:00Z",
             lastPositionSeconds: 90,
           },
           {
             trackId: "trk_deleted",
             title: "Deleted Track",
-            artist: { id: "usr_deleted", display_name: "Deleted Artist" },
+            slug: "deleted-track",
+            artist: {
+              id: "usr_deleted",
+              display_name: "Deleted Artist",
+              handle: "deletedartist",
+              avatar_url: null,
+            },
+            coverArtUrl: null,
+            liked: false,
+            likesCount: 0,
+            reposted: false,
+            repostsCount: 0,
+            durationSeconds: 120,
+            waveformData: null,
             lastPlayedAt: "2026-04-12T09:00:00Z",
             lastPositionSeconds: 30,
           },
         ],
       },
-    });
-
-    mockGetTrackDetails.mockImplementation((trackId: string) => {
-      if (trackId === "trk_1") {
-        return Promise.resolve({
-          trackId: "trk_1",
-          title: "Layali",
-          artist: "Ahmed Hassan",
-          artistId: "usr_1",
-          artistHandle: "ahmed",
-          artistAvatarUrl: null,
-          coverArtUrl: "/cover.jpg",
-          liked: true,
-          likesCount: 8,
-          reposted: false,
-          repostsCount: 2,
-        });
-      }
-
-      return Promise.reject({
-        isAxiosError: true,
-        response: { status: 404 },
-      });
     });
 
     const { getRecentlyPlayed } = await import("@/src/services/historyService");
@@ -135,23 +135,46 @@ describe("historyService", () => {
     expect(result).toEqual([
       {
         trackId: "trk_1",
-        title: "Layali",
-        artist: "Ahmed Hassan",
+        title: "Still Exists",
+        slug: "still-exists",
+        artist: "Artist One",
         artistId: "usr_1",
-        artistHandle: "ahmed",
+        artistHandle: "artistone",
         artistAvatarUrl: null,
         coverArtUrl: "/cover.jpg",
         liked: true,
         likesCount: 8,
         reposted: false,
         repostsCount: 2,
+        durationMs: undefined,
+        durationSeconds: 180,
+        waveformData: null,
         lastPlayedAt: "2026-04-12T10:00:00Z",
         lastPositionSeconds: 90,
+      },
+      {
+        trackId: "trk_deleted",
+        title: "Deleted Track",
+        slug: "deleted-track",
+        artist: "Deleted Artist",
+        artistId: "usr_deleted",
+        artistHandle: "deletedartist",
+        artistAvatarUrl: null,
+        coverArtUrl: null,
+        liked: false,
+        likesCount: 0,
+        reposted: false,
+        repostsCount: 0,
+        durationMs: undefined,
+        durationSeconds: 120,
+        waveformData: null,
+        lastPlayedAt: "2026-04-12T09:00:00Z",
+        lastPositionSeconds: 30,
       },
     ]);
   });
 
-  it("getListeningHistory maps API + track details into enriched history items", async () => {
+  it("getListeningHistory maps API into history items", async () => {
     (process.env as Record<string, string | undefined>).NEXT_PUBLIC_USE_MOCK = "false";
 
     mockApiGet.mockResolvedValue({
@@ -162,28 +185,27 @@ describe("historyService", () => {
         history: [
           {
             trackId: "trk_2",
-            title: "Backend Title",
+            title: "Neon Pulse",
+            slug: "neon-pulse",
+            artist: {
+              id: "usr_2",
+              display_name: "Synthwave Ghost",
+              handle: "synth",
+              avatar_url: "/artist.jpg",
+            },
+            coverArtUrl: "/cover2.jpg",
+            liked: false,
+            likesCount: 10,
+            reposted: true,
+            repostsCount: 4,
+            durationSeconds: 180,
+            waveformData: null,
             playedAt: "2026-04-12T11:00:00Z",
             positionSeconds: 40,
-            durationSeconds: 180,
             isCompleted: false,
           },
         ],
       },
-    });
-
-    mockGetTrackDetails.mockResolvedValue({
-      trackId: "trk_2",
-      title: "Neon Pulse",
-      artist: "Synthwave Ghost",
-      artistId: "usr_2",
-      artistHandle: "synth",
-      artistAvatarUrl: "/artist.jpg",
-      coverArtUrl: "/cover2.jpg",
-      liked: false,
-      likesCount: 10,
-      reposted: true,
-      repostsCount: 4,
     });
 
     const { getListeningHistory } = await import("@/src/services/historyService");
@@ -194,6 +216,7 @@ describe("historyService", () => {
       {
         trackId: "trk_2",
         title: "Neon Pulse",
+        slug: "neon-pulse",
         artist: "Synthwave Ghost",
         artistId: "usr_2",
         artistHandle: "synth",
@@ -203,15 +226,17 @@ describe("historyService", () => {
         likesCount: 10,
         reposted: true,
         repostsCount: 4,
+        durationMs: undefined,
+        durationSeconds: 180,
+        waveformData: null,
         playedAt: "2026-04-12T11:00:00Z",
         positionSeconds: 40,
-        durationSeconds: 180,
         isCompleted: false,
       },
     ]);
   });
 
-  it("getListeningHistory skips deleted tracks when getTrackDetails returns 404", async () => {
+  it("getListeningHistory returns all history items from the API", async () => {
     (process.env as Record<string, string | undefined>).NEXT_PUBLIC_USE_MOCK = "false";
 
     mockApiGet.mockResolvedValue({
@@ -222,45 +247,49 @@ describe("historyService", () => {
         history: [
           {
             trackId: "trk_2",
-            title: "Backend Title",
+            title: "Neon Pulse",
+            slug: "neon-pulse",
+            artist: {
+              id: "usr_2",
+              display_name: "Synthwave Ghost",
+              handle: "synth",
+              avatar_url: "/artist.jpg",
+            },
+            coverArtUrl: "/cover2.jpg",
+            liked: false,
+            likesCount: 10,
+            reposted: true,
+            repostsCount: 4,
+            durationSeconds: 180,
+            waveformData: null,
             playedAt: "2026-04-12T11:00:00Z",
             positionSeconds: 40,
-            durationSeconds: 180,
             isCompleted: false,
           },
           {
             trackId: "trk_deleted",
             title: "Deleted Backend Title",
+            slug: "deleted-backend-title",
+            artist: {
+              id: "usr_deleted",
+              display_name: "Deleted Artist",
+              handle: "deletedartist",
+              avatar_url: null,
+            },
+            coverArtUrl: null,
+            liked: false,
+            likesCount: 0,
+            reposted: false,
+            repostsCount: 0,
+            durationSeconds: 200,
+            waveformData: null,
             playedAt: "2026-04-12T10:30:00Z",
             positionSeconds: 20,
-            durationSeconds: 200,
+            duratioSeconds: 200,
             isCompleted: true,
           },
         ],
       },
-    });
-
-    mockGetTrackDetails.mockImplementation((trackId: string) => {
-      if (trackId === "trk_2") {
-        return Promise.resolve({
-          trackId: "trk_2",
-          title: "Neon Pulse",
-          artist: "Synthwave Ghost",
-          artistId: "usr_2",
-          artistHandle: "synth",
-          artistAvatarUrl: "/artist.jpg",
-          coverArtUrl: "/cover2.jpg",
-          liked: false,
-          likesCount: 10,
-          reposted: true,
-          repostsCount: 4,
-        });
-      }
-
-      return Promise.reject({
-        isAxiosError: true,
-        response: { status: 404 },
-      });
     });
 
     const { getListeningHistory } = await import("@/src/services/historyService");
@@ -270,6 +299,7 @@ describe("historyService", () => {
       {
         trackId: "trk_2",
         title: "Neon Pulse",
+        slug: "neon-pulse",
         artist: "Synthwave Ghost",
         artistId: "usr_2",
         artistHandle: "synth",
@@ -279,10 +309,32 @@ describe("historyService", () => {
         likesCount: 10,
         reposted: true,
         repostsCount: 4,
+        durationMs: undefined,
+        durationSeconds: 180,
+        waveformData: null,
         playedAt: "2026-04-12T11:00:00Z",
         positionSeconds: 40,
-        durationSeconds: 180,
         isCompleted: false,
+      },
+      {
+        trackId: "trk_deleted",
+        title: "Deleted Backend Title",
+        slug: "deleted-backend-title",
+        artist: "Deleted Artist",
+        artistId: "usr_deleted",
+        artistHandle: "deletedartist",
+        artistAvatarUrl: null,
+        coverArtUrl: null,
+        liked: false,
+        likesCount: 0,
+        reposted: false,
+        repostsCount: 0,
+        durationMs: undefined,
+        durationSeconds: 200,
+        waveformData: null,
+        playedAt: "2026-04-12T10:30:00Z",
+        positionSeconds: 20,
+        isCompleted: true,
       },
     ]);
   });

@@ -77,7 +77,7 @@ export default function SearchQuickResults({
       <Link
         href={`/search?q=${encodeURIComponent(query)}`}
         onClick={onClose}
-        className="mt-2 block border-t pt-2 text-sm font-semibold text-[#ff5500]"
+        className="mt-2 block border-t pt-2 text-sm font-semibold text-white"
       >
         See all results →
       </Link>

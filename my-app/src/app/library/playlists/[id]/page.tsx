@@ -20,13 +20,28 @@ import {
   FaCode,
 } from "react-icons/fa";
 
-// Simple shape that TrackList / TrackItem expect
 interface Track {
   trackId: string;
   title: string;
   artist?: string;
   cover?: string;
   duration?: number;
+}
+
+const DEFAULT_GRADIENT_CLASS =
+  "bg-linear-to-r from-[#8D8284] via-[#89747C] to-[#866975]";
+
+async function extractGradientFromImage(src: string): Promise<string | null> {
+  try {
+    const res = await fetch(
+      `/next/extract-colors?imageUrl=${encodeURIComponent(src)}`
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as { gradient: string | null };
+    return data.gradient ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export default function PlaylistDetailPage({
@@ -41,10 +56,10 @@ export default function PlaylistDetailPage({
   const [addOpen, setAddOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [embedOpen, setEmbedOpen] = useState(false);
+  const [dynamicGradient, setDynamicGradient] = useState<string | null>(null);
 
   const setPlayerTracks = usePlayerStore((s) => s.setTracks);
 
-  // Map playlist tracks → Track shape for TrackList / TrackItem
   const tracks: Track[] = useMemo(() => {
     if (!playlist?.tracks?.length) return [];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -60,9 +75,6 @@ export default function PlaylistDetailPage({
     }));
   }, [playlist?.tracks]);
 
-  const contextTrackIds = useMemo(() => tracks.map((t) => t.trackId), [tracks]);
-
-  // Load tracks into the global player queue
   useEffect(() => {
     if (!tracks.length) return;
     setPlayerTracks(
@@ -81,6 +93,27 @@ export default function PlaylistDetailPage({
       })),
     );
   }, [tracks, setPlayerTracks, playlist]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!playlist?.cover) {
+      void Promise.resolve().then(() => {
+        if (!cancelled) setDynamicGradient(null);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    extractGradientFromImage(playlist.cover).then((gradient) => {
+      if (!cancelled) setDynamicGradient(gradient);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [playlist?.cover]);
 
   if (isLoading) {
     return (
@@ -112,27 +145,18 @@ export default function PlaylistDetailPage({
   return (
     <div className="min-h-screen bg-[#121212] text-white">
       {/* Header */}
-      <div className="bg-linear-to-r from-[#8D8284] via-[#89747C] to-[#866975] px-6 py-10">
+      <div
+        className={
+          dynamicGradient
+            ? "px-6 py-10"
+            : `${DEFAULT_GRADIENT_CLASS} px-6 py-10`
+        }
+        style={dynamicGradient ? { background: dynamicGradient } : undefined}
+      >
         <div className="flex flex-col md:flex-row gap-6 max-w-5xl">
-          {/* Cover */}
-          <div className="relative w-full md:w-48 h-48 rounded-md overflow-hidden bg-[#222] shadow-2xl shrink-0">
-            {playlist.cover ? (
-              <Image
-                src={playlist.cover}
-                alt={playlist.title}
-                fill
-                className="object-cover"
-                unoptimized
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-linear-to-br from-[#333] to-[#1a1a1a]">
-                <FaMusic className="text-zinc-600 text-5xl" />
-              </div>
-            )}
-          </div>
 
-          {/* Info */}
-          <div className="flex-1 flex flex-col justify-end">
+          {/* Info — left on desktop */}
+          <div className="flex-1 flex flex-col justify-end order-last md:order-first">
             <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase text-zinc-400 mb-2 tracking-wider">
               <VisibilityIcon size={9} />
               {playlist.visibility} Playlist
@@ -182,6 +206,24 @@ export default function PlaylistDetailPage({
               </button>
             </div>
           </div>
+
+          {/* Cover — right on desktop, top on mobile */}
+          <div className="relative w-full md:w-48 h-48 rounded-md overflow-hidden bg-[#222] shadow-2xl shrink-0 order-first md:order-last">
+            {playlist.cover ? (
+              <Image
+                src={playlist.cover}
+                alt={playlist.title}
+                fill
+                className="object-cover"
+                unoptimized
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-linear-to-br from-[#333] to-[#1a1a1a]">
+                <FaMusic className="text-zinc-600 text-5xl" />
+              </div>
+            )}
+          </div>
+
         </div>
       </div>
 

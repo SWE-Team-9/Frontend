@@ -227,6 +227,8 @@ export default function ProfilePage({
     accountType,
     setIsEditOpen,
     handleAvatarUpload,
+    handleCoverDelete,
+    handleAvatarDelete,
     avatarUrl,
     coverUrl,
     handleCoverUpload,
@@ -596,12 +598,14 @@ export default function ProfilePage({
                 <CoverPhoto
                   isOwner={isOwner}
                   coverUrl={coverUrl}
+                  onDelete={handleCoverDelete}
                   onUpload={handleCoverUpload}
                 />
                 <AvatarUpload
                   username={displayName}
                   location={location}
                   onUpload={handleAvatarUpload}
+                  onDelete={handleAvatarDelete}
                   avatarUrl={avatarUrl}
                   isOwner={isOwner}
                 />

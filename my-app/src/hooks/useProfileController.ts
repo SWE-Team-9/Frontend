@@ -8,6 +8,7 @@ import {
   updateMyLinks,
   uploadProfileImage,
   getProfileByHandle,
+  deleteProfileImage,
 } from "@/src/services/profileService";
 
 type AccountType = "ARTIST" | "LISTENER";
@@ -232,6 +233,17 @@ export const useProfileController = (handle?: string, externalProfileId?: string
     }
   };
 
+  const handleAvatarDelete = async () => {
+  await deleteProfileImage("avatar");
+  // Keep the profile store in sync so the avatar disappears everywhere on the page
+  setProfileData({ avatarUrl: null });
+};
+
+const handleCoverDelete = async () => {
+  await deleteProfileImage("cover");
+  setProfileData({ coverUrl: null });
+};
+
   const handleAvatarUpload = async (file: File): Promise<string | undefined> => {
     if (isAvatarUploading) return store.avatarUrl || undefined;
 
@@ -313,5 +325,7 @@ export const useProfileController = (handle?: string, externalProfileId?: string
     isCoverUploading,
     handleAvatarUpload,
     handleCoverUpload,
+    handleAvatarDelete,
+    handleCoverDelete,
   };
 };
