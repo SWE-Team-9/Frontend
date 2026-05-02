@@ -272,7 +272,7 @@ className="w-full max-w-lg bg-[#121212] border border-neutral-700 rounded-md sha
                 type="button"
                 onClick={onClose}
                 disabled={isSubmitting}
-                className="px-4 py-2 text-zinc-400 hover:text-white text-xs font-bold uppercase tracking-wider transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-zinc-400 hover:text-white text-sm font-bold uppercase tracking-wider transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -281,7 +281,7 @@ className="w-full max-w-lg bg-[#121212] border border-neutral-700 rounded-md sha
                 disabled={
                   isSubmitting || !title.trim() || selectedTracks.length === 0
                 }
-                className="px-5 py-2 bg-white hover:bg-zinc-600 text-black text-md font-bold uppercase tracking-wider rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-5 py-2 bg-white hover:bg-zinc-600 text-black text-sm font-bold uppercase tracking-wider rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? "Creating..." : "Create"}
               </button>

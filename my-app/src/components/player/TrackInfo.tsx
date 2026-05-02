@@ -21,7 +21,7 @@ export function TrackInfo() {
     return (
       <div className="flex items-center gap-3 min-w-0 flex-1 max-w-xs">
         {/* Ad artwork placeholder */}
-        <div className="w-12 h-12 rounded shrink-0 bg-gradient-to-br from-zinc-700 to-zinc-600 flex items-center justify-center shadow-lg">
+        <div className="w-12 h-12 rounded shrink-0 bg-linear-to-br from-zinc-700 to-zinc-600 flex items-center justify-center shadow-lg">
           <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">AD</span>
         </div>
         <div className="min-w-0 flex-1">
@@ -78,14 +78,14 @@ export function TrackInfo() {
         <TrackPageLink
           trackId={currentTrack.trackId}
           artistHandle={currentTrack.artistHandle}
-          className="block truncate text-sm font-medium leading-tight text-white hover:underline"
+          className="block truncate text-sm font-medium leading-tight text-white hover:text-zinc-600 transition-colors"
         >
           {currentTrack.title}
         </TrackPageLink>
 
         <UserProfileLink
           handle={currentTrack.artistHandle}
-          className="mt-0.5 block truncate text-xs text-[#999] hover:text-white hover:underline"
+          className="mt-0.5 block truncate text-xs text-[#999] hover:text-white transition-colors"
         >
           {artistLabel}
         </UserProfileLink>

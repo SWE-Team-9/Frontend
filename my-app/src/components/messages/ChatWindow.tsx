@@ -64,7 +64,7 @@ export default function ChatWindow() {
                         {selected.participant.handle ? (
                             <Link
                                 href={`/profiles/${selected.participant.handle}`}
-                                className="text-lg font-bold hover:underline"
+                                className="text-lg font-bold hover:text-zinc-600 transition-colors"
                             >
                                 {selected.participant.display_name}
                             </Link>
@@ -220,7 +220,7 @@ export default function ChatWindow() {
                                         {!isMe && selected.participant.handle ? (
                                             <Link
                                                 href={`/profiles/${selected.participant.handle}`}
-                                                className="font-bold text-white hover:underline"
+                                                className="font-bold text-white hover:text-zinc-600 transition-colors"
                                             >
                                                 {selected.participant.display_name}
                                             </Link>

@@ -149,7 +149,7 @@ export default function SharedTrackCard({ track }: { track: SharedTrack }) {
                         <div className="min-w-0">
                             <UserProfileLink
                                 handle={track.artist.handle}
-                                className="block truncate text-sm font-bold text-zinc-400 hover:text-white hover:underline"
+                                className="block truncate text-sm font-bold text-zinc-400 hover:text-white transition-colors"
                             >
                                 {track.artist.display_name}
                             </UserProfileLink>
@@ -158,7 +158,7 @@ export default function SharedTrackCard({ track }: { track: SharedTrack }) {
                                 trackId={track.id}
                                 artistHandle={track.artist.handle}
                                 slug={track.slug}
-                                className="block truncate text-base font-bold text-white hover:underline"
+                                className="block truncate text-base font-bold text-white hover:text-zinc-600 transition-colors"
                             >
                                 {track.title}
                             </TrackPageLink>

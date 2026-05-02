@@ -119,14 +119,14 @@ export function TrackItem({
       <div className="flex-1 min-w-0">
         <Link
           href={trackHref}
-          className="block truncate text-sm text-white transition duration-200 hover:text-neutral-400 hover:underline"
+          className="block truncate text-sm text-white transition duration-200 hover:text-neutral-600"
         >
           {track.title}
         </Link>
         {track.artist && (
           <UserProfileLink
             handle={track.artistHandle}
-            className="block truncate text-xs text-zinc-500 hover:text-white hover:underline"
+            className="block truncate text-xs text-zinc-500 hover:text-white transition-colors"
           >
             {track.artist}
           </UserProfileLink>

@@ -233,7 +233,7 @@ export default function FeedPage() {
                                         {profile?.handle ? (
                                             <Link
                                                 href={`/profiles/${profile.handle}`}
-                                                className="font-bold text-white hover:underline"
+                                                className="font-bold text-white hover:text-zinc-600 transition-colors"
                                             >
                                                 {displayName}
                                             </Link>

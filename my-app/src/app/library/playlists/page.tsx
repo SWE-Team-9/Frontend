@@ -92,7 +92,7 @@ export default function LibraryPlaylistsPage() {
           </h2>
           <button
             onClick={() => setIsCreateOpen(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-zinc-100 text-black text-xs font-bold uppercase tracking-wider rounded transition-colors"
+            className="flex items-center gap-2 px-5 py-2.5 bg-white cursor-pointer hover:bg-zinc-100 text-black text-md font-bold uppercase tracking-wider rounded transition-colors"
           >
             <FaPlus size={11} /> Create Playlist
           </button>
@@ -106,7 +106,7 @@ export default function LibraryPlaylistsPage() {
             <h1 className="text-xl font-bold">Your Playlists</h1>
             <button
               onClick={() => setIsCreateOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-zinc-400 text-black text-xs font-bold uppercase tracking-wider rounded transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-white cursor-pointer hover:bg-zinc-400 text-black text-md font-bold uppercase tracking-wider rounded transition-colors"
             >
               <FaPlus size={11} /> Create Playlist
             </button>

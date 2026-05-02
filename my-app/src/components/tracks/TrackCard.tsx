@@ -272,7 +272,7 @@ export const TrackCard: React.FC<TrackCardProps> = ({
                   {track.artistHandle ? (
                     <Link
                       href={`/profiles/${track.artistHandle}`}
-                      className="block truncate text-sm text-zinc-400 hover:text-white hover:underline"
+                      className="block truncate text-sm text-zinc-400 hover:text-white transition-colors"
                     >
                       {getArtistLabel(track.artistName ?? track.artist)}
                     </Link>
@@ -283,7 +283,7 @@ export const TrackCard: React.FC<TrackCardProps> = ({
                   )}
                   <Link
                     href={trackHref}
-                    className="block truncate text-xl font-bold text-white transition duration-200 hover:underline"
+                    className="block truncate text-xl font-bold text-white transition duration-200 hover:text-zinc-600"
                   >
                     {savedData.title}
                   </Link>

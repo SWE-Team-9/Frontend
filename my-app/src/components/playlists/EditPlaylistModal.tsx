@@ -166,7 +166,7 @@ export function EditPlaylistModal({
           ))}
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-6 cursor-pointer">
           {/* BASIC TAB */}
           {tab === "basic" && (
             <div className="grid grid-cols-[260px_1fr] gap-6">
@@ -193,7 +193,7 @@ export function EditPlaylistModal({
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="absolute inset-x-0 bottom-0 bg-black/60 text-white text-xs py-2 hover:bg-black/80 transition-colors"
+                    className="absolute inset-x-0 bottom-0 bg-black/60 text-white text-xs  cursor-pointer py-2 hover:bg-black/80 transition-colors"
                   >
                     Upload image
                   </button>
@@ -357,7 +357,7 @@ export function EditPlaylistModal({
             type="button"
             onClick={handleSave}
             disabled={saving || loadingEdit}
-            className="px-4 py-2 bg-[#f50] hover:bg-orange-600 text-white text-sm font-bold rounded-md disabled:opacity-50"
+            className="px-4 py-2 bg-white hover:bg-zinc-600 text-black text-sm font-bold rounded-md disabled:opacity-50"
           >
             {saving ? "Saving..." : loadingEdit ? "Loading..." : "Save"}
           </button>

@@ -170,7 +170,7 @@ export function PlaylistCard({
         />
 
         {/* PLAY ICON */}
-        <div className="pointer-events-none absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-20">
+        <div className="pointer-events-none absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity transition-duration-200 flex items-center justify-center z-20">
           <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center">
             <FaPlay className="text-black text-[2rem] ml-1" />
           </div>
@@ -183,7 +183,7 @@ export function PlaylistCard({
             onClick={handleLike}
             disabled={isLiking}
             aria-label={liked ? "Unlike playlist" : "Like playlist"}
-            className="w-7 h-7 rounded-full bg-black/70 hover:bg-black flex items-center justify-center disabled:opacity-50"
+            className="w-7 h-7 rounded-full bg-black/70 hover:bg-black flex items-center justify-center cursor-pointer disabled:opacity-50"
           >
             {liked ? (
               <FaHeart className="text-[#f50] text-[1rem]" />
@@ -195,7 +195,7 @@ export function PlaylistCard({
           <button
             type="button"
             onClick={(e) => { e.preventDefault(); toggleMenu(); }}
-            className="w-7 h-7 rounded-full bg-black/70 hover:bg-black flex items-center justify-center"
+            className="w-7 h-7 rounded-full bg-black/70 hover:bg-black flex items-center justify-center cursor-pointer"
           >
             <FaEllipsisH className="text-white text-[10px]" />
           </button>
@@ -210,7 +210,7 @@ export function PlaylistCard({
               <button
                 type="button"
                 onClick={handleAddToNextUp}
-                className="w-full flex items-center gap-3 px-4 py-2 text-xs text-white hover:bg-zinc-800"
+                className="w-full flex items-center gap-3 px-4 py-2 text-xs cursor-pointer text-white hover:bg-zinc-800"
               >
                 <FaListUl size={11} className="text-zinc-400" />
                 Add to Next Up
@@ -219,7 +219,7 @@ export function PlaylistCard({
               <button
                 type="button"
                 onClick={() => { closeMenu(); setEditOpen(true); }}
-                className="w-full flex items-center gap-3 px-4 py-2 text-xs text-white hover:bg-zinc-800"
+                className="w-full flex items-center gap-3 px-4 py-2 text-xs cursor-pointer text-white hover:bg-zinc-800"
               >
                 <FaEdit size={11} className="text-zinc-400" />
                 Edit
@@ -228,7 +228,7 @@ export function PlaylistCard({
               <button
                 type="button"
                 onClick={() => { closeMenu(); setEmbedOpen(true); }}
-                className="w-full flex items-center gap-3 px-4 py-2 text-xs text-white hover:bg-zinc-800"
+                className="w-full flex items-center gap-3 px-4 py-2 text-xs cursor-pointer text-white hover:bg-zinc-800"
               >
                 <FaCode size={11} className="text-zinc-400" />
                 Embed
@@ -239,7 +239,7 @@ export function PlaylistCard({
               <button
                 type="button"
                 onClick={() => { closeMenu(); setConfirmOpen(true); }}
-                className="w-full flex items-center gap-3 px-4 py-2 text-xs text-white hover:bg-zinc-800"
+                className="w-full flex items-center gap-3 px-4 py-2 text-xs cursor-pointer text-white hover:bg-zinc-800"
               >
                 <FaTrash size={11} className="text-zinc-400" />
                 Delete
@@ -251,7 +251,7 @@ export function PlaylistCard({
 
       {/* TITLE */}
       <Link href={playlistUrl} className="block">
-        <h3 className="truncate text-sm font-bold text-white hover:underline">
+        <h3 className="truncate text-sm font-bold text-white hover:text-zinc-600 transition-colors">
           {playlist.title}
         </h3>
       </Link>
@@ -259,7 +259,7 @@ export function PlaylistCard({
       {playlist.owner?.handle ? (
         <Link
           href={`/profiles/${playlist.owner.handle}`}
-          className="block truncate text-xs text-zinc-500 hover:text-white hover:underline"
+          className="block truncate text-xs text-zinc-500 hover:text-white transition-colors"
         >
           {playlist.owner?.display_name ?? "You"}
         </Link>

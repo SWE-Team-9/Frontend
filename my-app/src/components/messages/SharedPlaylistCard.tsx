@@ -171,14 +171,14 @@ export default function SharedPlaylistCard({
                         <div className="min-w-0">
                             <UserProfileLink
                                 handle={playlist.owner.handle}
-                                className="block truncate text-sm font-bold text-zinc-400 hover:text-white hover:underline"
+                                className="block truncate text-sm font-bold text-zinc-400 hover:text-white transition-colors"
                             >
                                 {playlist.owner.display_name}
                             </UserProfileLink>
 
                             <Link
                                 href={playlistHref}
-                                className="block truncate text-base font-bold text-white hover:underline"
+                                className="block truncate text-base font-bold text-white hover:text-zinc-600 transition-colors"
                                 onClick={(e) => e.stopPropagation()}
                             >
                                 {playlist.title}
@@ -223,7 +223,7 @@ export default function SharedPlaylistCard({
 
                                     <UserProfileLink
                                         handle={track.artist.handle}
-                                        className="truncate text-zinc-400 hover:text-white hover:underline"
+                                        className="truncate text-zinc-400 hover:text-white transition-colors"
                                     >
                                         {track.artist.display_name}
                                     </UserProfileLink>
@@ -232,7 +232,7 @@ export default function SharedPlaylistCard({
                                         trackId={track.id}
                                         artistHandle={track.artist.handle}
                                         slug={track.slug}
-                                        className="truncate font-bold text-white hover:underline"
+                                        className="truncate font-bold text-white hover:text-zinc-600 transition-colors"
                                     >
                                         · {track.title}
                                     </TrackPageLink>

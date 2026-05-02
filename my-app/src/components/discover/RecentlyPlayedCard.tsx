@@ -203,14 +203,14 @@ export default function RecentlyPlayedCard({
       <TrackPageLink
         trackId={track.trackId}
         artistHandle={track.artistHandle}
-        className="mt-2 block line-clamp-1 text-[15px] font-semibold text-white hover:underline"
+        className="mt-2 block line-clamp-1 text-[15px] font-semibold text-white hover:text-zinc-600 transition-colors"
       >
         {track.title}
       </TrackPageLink>
 
       <UserProfileLink
         handle={track.artistHandle}
-        className="block line-clamp-1 text-[14px] font-medium text-zinc-400 hover:text-white hover:underline"
+        className="block line-clamp-1 text-[14px] font-medium text-zinc-400 hover:text-white transition-colors"
       >
         {track.artist}
       </UserProfileLink>

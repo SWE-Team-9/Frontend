@@ -195,7 +195,7 @@ export default function HistoryTrackRow({ track, contextTrackIds }: HistoryTrack
           <div className="min-w-0">
             <UserProfileLink
               handle={track.artistHandle}
-              className="block truncate text-[15px] text-zinc-400 hover:text-white hover:underline"
+              className="block truncate text-[15px] text-zinc-400 hover:text-white transition-colors"
             >
               {track.artist}
             </UserProfileLink>
@@ -204,7 +204,7 @@ export default function HistoryTrackRow({ track, contextTrackIds }: HistoryTrack
               trackId={track.trackId}
               artistHandle={track.artistHandle}
               slug={track.slug}
-              className="block truncate text-[22px] font-bold leading-tight text-white hover:underline"
+              className="block truncate text-[22px] font-bold leading-tight text-white hover:text-zinc-600 transition-colors"
             >
               {track.title}
             </TrackPageLink>
