@@ -23,7 +23,29 @@ import { ReportModal } from "@/src/components/reports/ReportModal";
 const FALLBACK = "/images/profile.png";
 
 function timeLabel(date: string) {
-    return new Date(date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const messageDate = new Date(date);
+    const now = new Date();
+
+    const isToday = messageDate.toDateString() === now.toDateString();
+
+    const yesterday = new Date();
+    yesterday.setDate(now.getDate() - 1);
+    const isYesterday = messageDate.toDateString() === yesterday.toDateString();
+
+    const time = messageDate.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+
+    if (isToday) return time;
+
+    if (isYesterday) return `Yesterday, ${time}`;
+
+    return messageDate.toLocaleDateString([], {
+        month: "short",
+        day: "numeric",
+        year: messageDate.getFullYear() === now.getFullYear() ? undefined : "numeric",
+    }) + `, ${time}`;
 }
 
 export default function ChatWindow() {
