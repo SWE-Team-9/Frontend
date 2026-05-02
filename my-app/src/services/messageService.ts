@@ -21,20 +21,35 @@ type BackendPlaylistTrack = {
     trackId?: string;
     title?: string;
     slug?: string;
+
     artist?: {
         id?: string;
         display_name?: string;
+        displayName?: string;
+        name?: string;
         handle?: string;
         avatar_url?: string | null;
+        avatarUrl?: string | null;
     };
+
     artistId?: string;
     artistName?: string;
     artistHandle?: string;
+
     coverArtUrl?: string | null;
     coverArt?: string | null;
+    coverImageUrl?: string | null;
+
     durationSeconds?: number;
+    durationMs?: number;
+
     waveformData?: number[];
+    waveform_data?: number[];
+
     playCount?: number;
+    playsCount?: number;
+    play_count?: number;
+
     commentsCount?: number;
     likesCount?: number;
     repostsCount?: number;
@@ -558,15 +573,28 @@ export const messageService = {
                         id: track.artist?.id ?? track.artistId ?? "unknown",
                         display_name:
                             track.artist?.display_name ??
+                            track.artist?.displayName ??
+                            track.artist?.name ??
                             track.artistName ??
                             "Unknown Artist",
                         handle: track.artist?.handle ?? track.artistHandle ?? "",
-                        avatar_url: track.artist?.avatar_url ?? null,
+                        avatar_url:
+                            track.artist?.avatar_url ??
+                            track.artist?.avatarUrl ??
+                            null,
                     },
-                    coverArtUrl: track.coverArtUrl ?? track.coverArt ?? null,
-                    durationSeconds: track.durationSeconds ?? 0,
-                    waveformData: track.waveformData ?? [],
-                    playCount: track.playCount ?? 0,
+                    coverArtUrl: track.coverArtUrl ?? track.coverArt ?? track.coverImageUrl ?? null,
+                    durationSeconds:
+                        track.durationSeconds ??
+                        (track.durationMs ? Math.floor(track.durationMs / 1000) : 0),
+
+                    waveformData: track.waveformData ?? track.waveform_data ?? [],
+
+                    playCount:
+                        track.playCount ??
+                        track.playsCount ??
+                        track.play_count ??
+                        0,
                     commentsCount: track.commentsCount ?? 0,
                     likesCount: track.likesCount ?? 0,
                     repostsCount: track.repostsCount ?? 0,

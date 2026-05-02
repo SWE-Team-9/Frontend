@@ -1,22 +1,32 @@
 "use client";
 
 import Image from "next/image";
-import { Play } from "lucide-react";
+import { MoreHorizontal, Play } from "lucide-react";
 import { useState } from "react";
 import { FiShare } from "react-icons/fi";
 import { TbCopy } from "react-icons/tb";
 import { FaHeart } from "react-icons/fa";
+import { BiRepost } from "react-icons/bi";
 import type { SharedPlaylist, SharedTrack } from "@/src/types/messages";
 import { usePlayerStore, type Track as PlayerTrack } from "@/src/store/playerStore";
 import SharePopup from "@/src/components/share/SharePopup";
-import { buildFullShareUrl, buildPlaylistPermalink } from "@/src/lib/permalinks";
+import {
+    buildFullShareUrl,
+    buildPlaylistPermalink,
+    buildTrackPermalink,
+} from "@/src/lib/permalinks";
 import { messageService } from "@/src/services/messageService";
 import MessageWaveform from "@/src/components/messages/MessageWaveform";
 import { TrackPageLink, UserProfileLink } from "@/src/components/navigation/EntityLinks";
 import Link from "next/link";
 import { playlistsApi } from "@/src/services/playlistsService";
+import { useLikeStore } from "@/src/store/likeStore";
+import { useRepostStore } from "@/src/store/repostStore";
+import type { TrackData } from "@/src/types/interactions";
+import TrackCardMenu from "@/src/components/discover/TrackCardMenu";
 
 const FALLBACK = "/images/track-placeholder.png";
+const ACCENT = "#ff5500";
 
 function formatCount(n = 0) {
     if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
@@ -39,45 +49,55 @@ function mapSharedTrackToPlayerTrack(track: SharedTrack): PlayerTrack {
     };
 }
 
+function mapSharedTrackToTrackData(track: SharedTrack): TrackData {
+    return {
+        id: track.id,
+        trackId: track.id,
+        title: track.title,
+        artistName: track.artist.display_name,
+        artistId: track.artist.id,
+        artistHandle: track.artist.handle,
+        artistAvatarUrl: track.artist.avatar_url ?? null,
+        likesCount: track.likesCount ?? 0,
+        repostsCount: track.repostsCount ?? 0,
+        coverArtUrl: track.coverArtUrl ?? null,
+        coverArt: track.coverArtUrl ?? null,
+        imageUrl: track.coverArtUrl ?? null,
+        slug: track.slug,
+        waveformData: track.waveformData ?? null,
+    };
+}
+
 export default function SharedPlaylistCard({
     playlist,
 }: {
     playlist: SharedPlaylist;
 }) {
     const [shareOpen, setShareOpen] = useState(false);
+    const [trackShareOpen, setTrackShareOpen] = useState<SharedTrack | null>(null);
+    const [openMenuTrackId, setOpenMenuTrackId] = useState<string | null>(null);
+
     const [copyStatus, setCopyStatus] = useState<"idle" | "success" | "error">(
         "idle",
     );
-    const [playlistLiked, setPlaylistLiked] = useState(playlist.liked ?? false);
-    const [playlistLikesCount, setPlaylistLikesCount] = useState(playlist.likesCount ?? 0);
+
+    const [playlistLiked, setPlaylistLiked] = useState(() => playlist.liked ?? false);
+    const [playlistLikesCount, setPlaylistLikesCount] = useState(
+        () => playlist.likesCount ?? 0,
+    );
     const [isPlaylistLikeLoading, setIsPlaylistLikeLoading] = useState(false);
-
-    const handlePlaylistLike = async () => {
-        if (isPlaylistLikeLoading) return;
-
-        const wasLiked = playlistLiked;
-
-        setPlaylistLiked(!wasLiked);
-        setPlaylistLikesCount((count) => Math.max(0, count + (wasLiked ? -1 : 1)));
-        setIsPlaylistLikeLoading(true);
-
-        try {
-            if (wasLiked) {
-                await playlistsApi.unlikePlaylist(playlist.id);
-            } else {
-                await playlistsApi.likePlaylist(playlist.id);
-            }
-        } catch {
-            setPlaylistLiked(wasLiked);
-            setPlaylistLikesCount((count) => Math.max(0, count + (wasLiked ? 1 : -1)));
-        } finally {
-            setIsPlaylistLikeLoading(false);
-        }
-    };
 
     const [expandedPlaylist, setExpandedPlaylist] = useState<SharedPlaylist | null>(null);
     const [isLoadingFullPlaylist, setIsLoadingFullPlaylist] = useState(false);
     const [playlistError, setPlaylistError] = useState<string | null>(null);
+
+    const toggleLike = useLikeStore((s) => s.toggleLike);
+    const isLiked = useLikeStore((s) => s.isLiked);
+    const likeLoadingIds = useLikeStore((s) => s.loadingIds);
+
+    const toggleRepost = useRepostStore((s) => s.toggleRepost);
+    const isReposted = useRepostStore((s) => s.isReposted);
+    const repostLoadingIds = useRepostStore((s) => s.loadingIds);
 
     const visiblePlaylist = expandedPlaylist ?? playlist;
     const visibleTracks = visiblePlaylist.tracksPreview ?? [];
@@ -100,6 +120,46 @@ export default function SharedPlaylistCard({
         }
 
         setTimeout(() => setCopyStatus("idle"), 1500);
+    };
+
+    const handleCopyTrack = async (track: SharedTrack) => {
+        const trackHref = buildTrackPermalink({
+            trackId: track.id,
+            artistHandle: track.artist.handle,
+            slug: track.slug,
+        });
+
+        try {
+            await navigator.clipboard.writeText(buildFullShareUrl(trackHref));
+            setCopyStatus("success");
+        } catch {
+            setCopyStatus("error");
+        }
+
+        setTimeout(() => setCopyStatus("idle"), 1500);
+    };
+
+    const handlePlaylistLike = async () => {
+        if (isPlaylistLikeLoading) return;
+
+        const wasLiked = playlistLiked;
+
+        setPlaylistLiked(!wasLiked);
+        setPlaylistLikesCount((count) => Math.max(0, count + (wasLiked ? -1 : 1)));
+        setIsPlaylistLikeLoading(true);
+
+        try {
+            if (wasLiked) {
+                await playlistsApi.unlikePlaylist(playlist.id);
+            } else {
+                await playlistsApi.likePlaylist(playlist.id);
+            }
+        } catch {
+            setPlaylistLiked(wasLiked);
+            setPlaylistLikesCount((count) => Math.max(0, count + (wasLiked ? 1 : -1)));
+        } finally {
+            setIsPlaylistLikeLoading(false);
+        }
     };
 
     const setTracks = usePlayerStore((s) => s.setTracks);
@@ -141,7 +201,6 @@ export default function SharedPlaylistCard({
             return;
         }
 
-        // Playlist queue = playlist tracks.
         setTracks(playerTracks);
         await fetchAndPlay(clickedTrack);
     };
@@ -223,50 +282,150 @@ export default function SharedPlaylistCard({
                         />
                     )}
 
-                    <div className="mt-3 space-y-2">
+                    <div className="mt-3 space-y-1">
                         {visibleTracks.map((track, index) => {
                             const isCurrentTrack = currentTrack?.trackId === track.id;
+                            const trackHref = buildTrackPermalink({
+                                trackId: track.id,
+                                artistHandle: track.artist.handle,
+                                slug: track.slug,
+                            });
+
+                            const trackData = mapSharedTrackToTrackData(track);
+                            const liked = isLiked(track.id);
+                            const reposted = isReposted(track.id);
+                            const likeLoading = likeLoadingIds.includes(String(track.id));
+                            const repostLoading = repostLoadingIds.includes(String(track.id));
 
                             return (
-                                <button
+                                <div
                                     key={track.id}
-                                    onClick={() => playPlaylistFromTrack(track)}
-                                    className="flex w-full items-center gap-2 text-left text-sm text-zinc-300 hover:text-white"
+                                    className="group relative flex w-full items-center gap-2 rounded px-2 py-2 text-sm text-zinc-300 hover:bg-zinc-800"
                                 >
-                                    <span className="w-4 text-right text-zinc-500">
-                                        {index + 1}
-                                    </span>
+                                    <button
+                                        onClick={() => playPlaylistFromTrack(track)}
+                                        className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                                    >
+                                        <span className="w-4 text-right font-bold text-zinc-500">
+                                            {index + 1}
+                                        </span>
 
-                                    <div className="relative h-7 w-7 shrink-0 overflow-hidden bg-zinc-800">
-                                        <Image
-                                            src={track.coverArtUrl || FALLBACK}
-                                            alt={track.title}
-                                            fill
-                                            className="object-cover"
-                                            unoptimized
-                                        />
+                                        <div className="relative h-8 w-8 shrink-0 overflow-hidden bg-zinc-800">
+                                            <Image
+                                                src={track.coverArtUrl || FALLBACK}
+                                                alt={track.title}
+                                                fill
+                                                className="object-cover"
+                                                unoptimized
+                                            />
+
+                                            <div className="absolute inset-0 hidden items-center justify-center bg-black/50 group-hover:flex">
+                                                <Play className="h-4 w-4 fill-white text-white" />
+                                            </div>
+                                        </div>
+
+                                        <UserProfileLink
+                                            handle={track.artist.handle}
+                                            className="truncate text-zinc-400 hover:text-white transition-colors"
+                                        >
+                                            {track.artist.display_name}
+                                        </UserProfileLink>
+
+                                        <TrackPageLink
+                                            trackId={track.id}
+                                            artistHandle={track.artist.handle}
+                                            slug={track.slug}
+                                            className="truncate font-bold text-white hover:text-zinc-600 transition-colors"
+                                        >
+                                            · {track.title}
+                                        </TrackPageLink>
+                                    </button>
+
+                                    <div className="ml-auto flex items-center gap-3">
+                                        <span className="text-xs text-zinc-500 group-hover:hidden">
+                                            {isCurrentTrack && isPlaying
+                                                ? "Playing"
+                                                : `▶ ${formatCount(track.playCount)}`}
+                                        </span>
+
+                                        <div className="hidden items-center gap-3 group-hover:flex">
+                                            <button
+                                                onClick={() => toggleLike(trackData)}
+                                                disabled={likeLoading}
+                                                className="text-zinc-300 hover:text-[#ff5500] disabled:opacity-50"
+                                                title="Like"
+                                            >
+                                                <FaHeart
+                                                    className="h-4 w-4"
+                                                    style={{ color: liked ? ACCENT : "#d4d4d8" }}
+                                                />
+                                            </button>
+
+                                            <button
+                                                onClick={() => toggleRepost(trackData)}
+                                                disabled={repostLoading}
+                                                className="text-zinc-300 hover:text-[#ff5500] disabled:opacity-50"
+                                                title="Repost"
+                                            >
+                                                <BiRepost
+                                                    className="h-5 w-5"
+                                                    style={{ color: reposted ? ACCENT : "#d4d4d8" }}
+                                                />
+                                            </button>
+
+                                            <button
+                                                onClick={() => setTrackShareOpen(track)}
+                                                className="text-zinc-300 hover:text-white"
+                                                title="Share"
+                                            >
+                                                <FiShare className="h-4 w-4" />
+                                            </button>
+
+                                            <button
+                                                onClick={() => handleCopyTrack(track)}
+                                                className="text-zinc-300 hover:text-white"
+                                                title="Copy link"
+                                            >
+                                                <TbCopy className="h-4 w-4" />
+                                            </button>
+
+                                            <div className="relative">
+                                                <button
+                                                    onClick={() =>
+                                                        setOpenMenuTrackId((current) =>
+                                                            current === track.id ? null : track.id,
+                                                        )
+                                                    }
+                                                    className="text-zinc-300 hover:text-white"
+                                                    title="More"
+                                                >
+                                                    <MoreHorizontal className="h-5 w-5" />
+                                                </button>
+
+                                                <TrackCardMenu
+                                                    isOpen={openMenuTrackId === track.id}
+                                                    onAddToNextUp={() => {
+                                                        setOpenMenuTrackId(null);
+                                                    }}
+                                                    onAddToPlaylist={() => {
+                                                        setOpenMenuTrackId(null);
+                                                    }}
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
 
-                                    <UserProfileLink
-                                        handle={track.artist.handle}
-                                        className="truncate text-zinc-400 hover:text-white transition-colors"
-                                    >
-                                        {track.artist.display_name}
-                                    </UserProfileLink>
-
-                                    <TrackPageLink
-                                        trackId={track.id}
-                                        artistHandle={track.artist.handle}
-                                        slug={track.slug}
-                                        className="truncate font-bold text-white hover:text-zinc-600 transition-colors"
-                                    >
-                                        · {track.title}
-                                    </TrackPageLink>
-
-                                    <span className="ml-auto shrink-0 text-xs text-zinc-500">
-                                        {isCurrentTrack && isPlaying ? "Playing" : `▶ ${formatCount(track.playCount)}`}
-                                    </span>
-                                </button>
+                                    {trackShareOpen?.id === track.id && (
+                                        <SharePopup
+                                            permalink={trackHref}
+                                            resourceType="TRACK"
+                                            resourceId={track.id}
+                                            resourceTitle={track.title}
+                                            resourceCoverArtUrl={track.coverArtUrl || null}
+                                            onClose={() => setTrackShareOpen(null)}
+                                        />
+                                    )}
+                                </div>
                             );
                         })}
                     </div>
@@ -275,7 +434,7 @@ export default function SharedPlaylistCard({
                         <button
                             onClick={handleViewTracks}
                             disabled={isLoadingFullPlaylist}
-                            className="text-sm font-bold text-white hover:text-neutral-600 disabled:opacity-50"
+                            className="text-sm font-bold text-white hover:underline disabled:opacity-50"
                         >
                             {isLoadingFullPlaylist
                                 ? "Loading tracks..."
