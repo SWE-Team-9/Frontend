@@ -47,12 +47,12 @@ export default function LikedTracksPreview({ userId }: LikedTracksPreviewProps) 
 
     return (
         <div className="space-y-4">
-            <div className="flex justify-between items-center text-zinc-500 text-[13px] border-b border-zinc-900 pb-2">
+            <div className="flex justify-between items-center text-white text-md font-bold border-b border-zinc-900 pb-2">
                 <p className="font-bold uppercase">Your Likes</p>
 
                 <Link
                     href="/library/likes"
-                    className="hover:text-white transition-colors font-bold uppercase"
+                    className="hover:text-white text-[12px] transition-colors font-bold uppercase"
                 >
                     View all
                 </Link>
@@ -101,12 +101,12 @@ export default function LikedTracksPreview({ userId }: LikedTracksPreviewProps) 
                                     track.artistHandle ? (
                                         <Link
                                             href={`/profiles/${track.artistHandle}`}
-                                            className="block text-[10px] text-zinc-500 uppercase truncate hover:text-white transition-colors"
+                                            className="block text-[10px] text-zinc-500 uppercase font-bold truncate hover:text-white transition-colors"
                                         >
                                             {track.artistName}
                                         </Link>
                                     ) : (
-                                        <p className="text-[10px] text-zinc-500 uppercase truncate">
+                                        <p className="text-[10px] text-zinc-500 font-bold uppercase truncate">
                                             {track.artistName}
                                         </p>
                                     )

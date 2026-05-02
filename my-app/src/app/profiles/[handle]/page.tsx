@@ -542,7 +542,7 @@ export default function ProfilePage({
       return (
         <div className="flex-1 text-center py-20 border-r border-zinc-900/50 pr-12 flex flex-col items-center justify-center">
           <p className="text-zinc-500 text-xl font-bold">
-            <MyPlaylistsSection />
+            <MyPlaylistsSection userId={controller.userId ?? undefined}  />
           </p>
         </div>
       );

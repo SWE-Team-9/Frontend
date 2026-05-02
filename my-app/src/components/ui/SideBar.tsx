@@ -54,7 +54,7 @@ const SideBar: React.FC<SideBarProps> = ({ children, showSidebar = true }) => {
                 type="button"
                 onClick={() => fetchSuggestions()}
                 disabled={suggestionsLoading}
-                className="shrink-0 text-[12px] font-semibold ml-auto text-zinc-400 transition-colors text-sm disabled:opacity-40 hover:underline"
+                className="shrink-0 text-[12px] font-semibold ml-auto cursor-pointer text-zinc-400 transition-colors text-sm disabled:opacity-40 hover:text-white"
                 title="Refresh suggestions"
               >
                 Refresh List
