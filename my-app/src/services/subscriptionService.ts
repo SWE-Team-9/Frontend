@@ -166,6 +166,12 @@ const subscriptionType: "FREE" | "PRO" | "GO+" =
         }
       : null;
 
+  const nestedPendingDowngrade =
+    (raw.paymentMethod as { pendingDowngrade?: PendingDowngrade } | null | undefined)
+      ?.pendingDowngrade ?? null;
+  const pendingDowngrade =
+    (raw.pendingDowngrade as PendingDowngrade | null) ?? nestedPendingDowngrade;
+
   const rawUploadLimit = raw.uploadLimit as number;
   const uploadLimit = rawUploadLimit < 0 ? Infinity : rawUploadLimit;
 
@@ -186,7 +192,7 @@ const subscriptionType: "FREE" | "PRO" | "GO+" =
     trialStart: hasActiveProTrial ? ((raw.trialStart as string) ?? null) : null,
     trialEnd: hasActiveProTrial ? rawTrialEnd : null,
     paymentMethodSummary,
-    pendingDowngrade: (raw.pendingDowngrade as PendingDowngrade) ?? null,
+    pendingDowngrade,
     latestInvoice: (raw.latestInvoice as Invoice) ?? null,
     perks: {
       adFree: !adsEnabled,
