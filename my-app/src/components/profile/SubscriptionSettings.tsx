@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useSubscriptionStore } from "@/src/store/useSubscriptionStore";
 import { usePaymentMethodsStore } from "@/src/store/usePaymentMethodsStore";
@@ -197,6 +197,7 @@ export default function SubscriptionSettings() {
   const [autoCancelExpiresAt, setAutoCancelExpiresAt] = useState<string | null>(
     null,
   );
+  const lastRefetchTimeRef = useRef(0);
 
   const isProOnly = sub?.subscriptionType === "PRO";
   const isGoPlus = sub?.subscriptionType === "GO+";
@@ -225,6 +226,41 @@ export default function SubscriptionSettings() {
     fetchInvoices();
     fetchMethods();
   }, [fetchSubscription, fetchInvoices, fetchMethods]);
+
+  // ── Auto-refetch payment methods when user returns from Stripe portal ──────
+  useEffect(() => {
+    // Debounce refetch to avoid excessive calls (minimum 2 second gap)
+    const DEBOUNCE_MS = 2000;
+
+    // Refetch methods when page visibility changes (user returns to tab)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        // Page became visible — user likely returned from Stripe portal
+        const now = Date.now();
+        if (now - lastRefetchTimeRef.current > DEBOUNCE_MS) {
+          lastRefetchTimeRef.current = now;
+          fetchMethods();
+        }
+      }
+    };
+
+    // Refetch methods when window regains focus (user returns to window)
+    const handleFocus = () => {
+      const now = Date.now();
+      if (now - lastRefetchTimeRef.current > DEBOUNCE_MS) {
+        lastRefetchTimeRef.current = now;
+        fetchMethods();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, [fetchMethods]);
 
   const handleCancelConfirm = async () => {
     await cancel();
