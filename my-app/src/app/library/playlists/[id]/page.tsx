@@ -193,7 +193,7 @@ export default function PlaylistDetailPage({
 
   const sharePermalink = buildPlaylistPermalink({
     playlistId: playlist.playlistId,
-    ownerHandle: playlist.owner?.handle ?? null,
+    ownerHandle: playlist.handle ?? playlist.owner?.handle ?? null,
     slug: playlist.slug ?? null,
   });
 

@@ -52,7 +52,7 @@ export function PlaylistCard({
   const playlistUrl = `/library/playlists/${playlist.playlistId}`;
   const sharePermalink = buildPlaylistPermalink({
     playlistId: playlist.playlistId,
-    ownerHandle: playlist.owner?.handle ?? null,
+    ownerHandle: playlist.handle ?? playlist.owner?.handle ?? null,
     slug: playlist.slug ?? null,
   });
 
@@ -256,9 +256,9 @@ export function PlaylistCard({
         </h3>
       </Link>
 
-      {playlist.owner?.handle ? (
+      {(playlist.handle ?? playlist.owner?.handle) ? (
         <Link
-          href={`/profiles/${playlist.owner.handle}`}
+          href={`/profiles/${playlist.handle ?? playlist.owner?.handle}`}
           className="block truncate text-xs text-zinc-500 hover:text-white transition-colors"
         >
           {playlist.owner?.display_name ?? "You"}

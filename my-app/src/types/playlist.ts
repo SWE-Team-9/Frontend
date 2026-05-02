@@ -31,6 +31,7 @@ export interface Playlist {
   tracksCount?: number;
   cover?: string | null;
   secretToken?: string | null;
+  handle?: string | null; 
   owner?: PlaylistOwner;
   tracks?: PlaylistTrack[];
   slug?: string;
