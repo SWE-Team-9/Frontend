@@ -5,6 +5,7 @@ import SuggestedArtists from "@/src/components/profile/sidebar/SuggestedArtists"
 import { useFollowStore } from "@/src/store/followStore";
 import { useAuthStore } from "@/src/store/useAuthStore";
 import LikedTracksPreview from "@/src/components/profile/sidebar/LikedTracksPreview";
+import ListeningHistoryPreview from "@/src/components/library/ListeningHistoryPreview";
 
 interface SideBarProps {
   children: React.ReactNode;
@@ -74,7 +75,7 @@ const SideBar: React.FC<SideBarProps> = ({ children, showSidebar = true }) => {
         </Box>
         <Box className="flex-1">
           <div className="px-5 py-4">
-            <SideBarItem label="LISTENING HISTORY  " href="/history" />
+            <ListeningHistoryPreview />
           </div>
         </Box>
       </div>
