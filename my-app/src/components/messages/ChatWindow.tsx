@@ -16,6 +16,9 @@ import {
     buildTrackPermalink,
 } from "@/src/lib/permalinks";
 import Link from "next/link";
+import { useBlockStore } from "@/src/store/useblockStore";
+import ConfirmModal from "@/src/components/block-user/ConfirmModal";
+import { ReportModal } from "@/src/components/reports/ReportModal";
 
 const FALLBACK = "/images/profile.png";
 
@@ -38,10 +41,27 @@ export default function ChatWindow() {
     const isLoadingOlder = useMessageStore((s) => s.isLoadingOlder);
     const error = useMessageStore((s) => s.error);
     const currentUser = useAuthStore((s) => s.user);
+    const openConversation = useMessageStore((s) => s.openConversation);
+
+    const {
+        blockUser,
+        unblockUser,
+        blockedUsers,
+        fetchBlockedUsers,
+        loadingUserId,
+    } = useBlockStore();
+
+    const [showBlockConfirm, setShowBlockConfirm] = useState(false);
+    const [showReportModal, setShowReportModal] = useState(false);
+
 
     useEffect(() => {
         scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
     }, [selected?.conversationId]);
+
+    useEffect(() => {
+        fetchBlockedUsers();
+    }, [fetchBlockedUsers]);
 
     if (!selected) {
         return (
@@ -55,6 +75,26 @@ export default function ChatWindow() {
             </section>
         );
     }
+
+
+    const participant = selected.participant;
+    const isBlocked = selected.isBlockedByMe || blockedUsers.some((u) => u.id === participant.id);
+    const isBlockLoading = loadingUserId === participant.id;
+
+    const handleBlockConfirm = async () => {
+        if (isBlocked) {
+            await unblockUser(participant.id);
+        } else {
+            await blockUser(participant.id, {
+                display_name: participant.display_name,
+                handle: participant.handle,
+                avatar_url: participant.avatar_url ?? "",
+            });
+        }
+
+        setShowBlockConfirm(false);
+        await openConversation(selected.conversationId);
+    };
 
     return (
         <section className="flex h-[calc(100vh-64px)] flex-1 flex-col p-8">
@@ -83,8 +123,20 @@ export default function ChatWindow() {
                             </p>
                         )}
                     </div>
-                    <button className="text-sm font-bold text-white">Block</button>
-                    <button className="text-sm font-bold text-white">Report</button>
+                    <button
+                        onClick={() => setShowBlockConfirm(true)}
+                        disabled={isBlockLoading}
+                        className="text-sm font-bold text-white hover:text-red-400 disabled:opacity-50"
+                    >
+                        {isBlockLoading ? "Processing..." : isBlocked ? "Unblock" : "Block"}
+                    </button>
+
+                    <button
+                        onClick={() => setShowReportModal(true)}
+                        className="text-sm font-bold text-white hover:text-orange-400"
+                    >
+                        Report
+                    </button>
                 </div>
 
                 <div className="relative flex items-center gap-2">
@@ -267,6 +319,24 @@ export default function ChatWindow() {
                     />
                 </div>
             </div>
+
+            <ConfirmModal
+                open={showBlockConfirm}
+                onClose={() => setShowBlockConfirm(false)}
+                onConfirm={handleBlockConfirm}
+                displayName={participant.display_name}
+                isBlocked={isBlocked}
+            />
+
+            {showReportModal && (
+                <ReportModal
+                    targetId={participant.id}
+                    targetType="USER"
+                    targetLabel={participant.display_name}
+                    onClose={() => setShowReportModal(false)}
+                />
+            )}
+
         </section>
     );
 }
