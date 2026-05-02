@@ -1,7 +1,8 @@
 "use client";
 
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { usePlaylist } from "@/src/hooks/usePlaylist";
 import { TrackList } from "@/src/components/playlists/TrackList";
 import { AddTrackModal } from "@/src/components/playlists/AddTrackModal";
@@ -9,23 +10,28 @@ import SharePopup from "@/src/components/share/SharePopup";
 import { EmbedModal } from "@/src/components/playlists/EmbedModal";
 import { usePlayerStore } from "@/src/store/playerStore";
 import { buildPlaylistPermalink } from "@/src/lib/permalinks";
+import { playlistsApi } from "@/src/services/playlistsService";
 
 import {
-  FaPlay,
   FaMusic,
   FaLock,
   FaGlobeAmericas,
   FaPlus,
   FaShare,
   FaCode,
+  FaHeart,
+  FaRegHeart,
 } from "react-icons/fa";
 
 interface Track {
   trackId: string;
   title: string;
   artist?: string;
+  artistHandle?: string;
   cover?: string;
   duration?: number;
+  likesCount?: number;
+  repostsCount?: number;
 }
 
 const DEFAULT_GRADIENT_CLASS =
@@ -34,7 +40,7 @@ const DEFAULT_GRADIENT_CLASS =
 async function extractGradientFromImage(src: string): Promise<string | null> {
   try {
     const res = await fetch(
-      `/next/extract-colors?imageUrl=${encodeURIComponent(src)}`
+      `/next/extract-colors?imageUrl=${encodeURIComponent(src)}`,
     );
     if (!res.ok) return null;
     const data = (await res.json()) as { gradient: string | null };
@@ -42,6 +48,18 @@ async function extractGradientFromImage(src: string): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+function formatDate(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  return isNaN(d.getTime())
+    ? null
+    : d.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
 }
 
 export default function PlaylistDetailPage({
@@ -58,6 +76,41 @@ export default function PlaylistDetailPage({
   const [embedOpen, setEmbedOpen] = useState(false);
   const [dynamicGradient, setDynamicGradient] = useState<string | null>(null);
 
+  // Optimistic like override — null means "use server value from playlist"
+  const [likedOverride, setLikedOverride] = useState<{
+    liked: boolean;
+    count: number;
+  } | null>(null);
+  const [isLiking, setIsLiking] = useState(false);
+
+  // Derive liked/likesCount: optimistic override takes priority, falls back to server value
+  const liked = likedOverride?.liked ?? playlist?.liked;
+  const likesCount = likedOverride?.count ?? playlist?.likesCount;
+
+  const toggleLike = useCallback(async () => {
+    if (!playlist || isLiking) return;
+    setIsLiking(true);
+    try {
+      if (liked) {
+        await playlistsApi.unlikePlaylist(playlist.playlistId);
+        setLikedOverride({
+          liked: false,
+          count: Math.max(0, (likesCount ?? 0) - 1),
+        });
+      } else {
+        await playlistsApi.likePlaylist(playlist.playlistId);
+        setLikedOverride({
+          liked: true,
+          count: (likesCount ?? 0) + 1,
+        });
+      }
+    } catch {
+      // State is only set after a successful await — nothing to revert
+    } finally {
+      setIsLiking(false);
+    }
+  }, [playlist, liked, likesCount, isLiking]);
+
   const setPlayerTracks = usePlayerStore((s) => s.setTracks);
 
   const tracks: Track[] = useMemo(() => {
@@ -67,11 +120,15 @@ export default function PlaylistDetailPage({
       trackId: String(t.trackId ?? t.id ?? ""),
       title: String(t.title ?? "Untitled"),
       artist:
-        typeof t.artist === "string"
-          ? t.artist
-          : (t.artistName ?? t.artist?.displayName ?? undefined),
+        t.artist?.name ??
+        (typeof t.artist === "string" ? t.artist : undefined) ??
+        t.artistName ??
+        undefined,
+      artistHandle: t.artist?.handle ?? t.artistHandle ?? undefined,
       cover: t.coverArtUrl ?? t.cover ?? undefined,
       duration: t.durationMs ? Math.floor(t.durationMs / 1000) : undefined,
+      likesCount: t.likesCount,
+      repostsCount: t.repostsCount,
     }));
   }, [playlist?.tracks]);
 
@@ -83,11 +140,12 @@ export default function PlaylistDetailPage({
         trackId: String(t.trackId ?? t.id ?? ""),
         title: String(t.title ?? "Untitled"),
         artist:
-          typeof t.artist === "string"
-            ? t.artist
-            : (t.artistName ?? t.artist?.displayName ?? "Unknown Artist"),
-        artistId: t.artistId ?? "",
-        artistHandle: t.artistHandle ?? undefined,
+          t.artist?.name ??
+          (typeof t.artist === "string" ? t.artist : undefined) ??
+          t.artistName ??
+          "Unknown Artist",
+        artistId: t.artist?.id ?? t.artistId ?? "",
+        artistHandle: t.artist?.handle ?? t.artistHandle ?? undefined,
         artistAvatarUrl: t.artistAvatarUrl ?? null,
         cover: t.coverArtUrl ?? t.cover ?? "/images/track-placeholder.png",
       })),
@@ -96,7 +154,6 @@ export default function PlaylistDetailPage({
 
   useEffect(() => {
     let cancelled = false;
-
     if (!playlist?.cover) {
       void Promise.resolve().then(() => {
         if (!cancelled) setDynamicGradient(null);
@@ -105,11 +162,9 @@ export default function PlaylistDetailPage({
         cancelled = true;
       };
     }
-
     extractGradientFromImage(playlist.cover).then((gradient) => {
       if (!cancelled) setDynamicGradient(gradient);
     });
-
     return () => {
       cancelled = true;
     };
@@ -134,13 +189,26 @@ export default function PlaylistDetailPage({
   }
 
   const VisibilityIcon =
-    playlist.visibility === "PRIVATE" ? FaLock : FaGlobeAmericas;
+    playlist.visibility === "SECRET" ? FaLock : FaGlobeAmericas;
 
   const sharePermalink = buildPlaylistPermalink({
     playlistId: playlist.playlistId,
     ownerHandle: playlist.owner?.handle ?? null,
     slug: playlist.slug ?? null,
   });
+
+  const ownerName =
+    playlist.owner?.displayName ?? playlist.owner?.display_name ?? "You";
+
+  const ownerHref = playlist.owner?.handle
+    ? `/profiles/${playlist.owner.handle}`
+    : null;
+
+  const formattedRelease = formatDate(playlist.releaseDate);
+  const visibilityLabel =
+    playlist.visibility === "SECRET" ? "Private" : "Public";
+
+  const displayTracksCount = playlist.tracksCount ?? tracks.length;
 
   return (
     <div className="min-h-screen bg-[#121212] text-white">
@@ -154,13 +222,20 @@ export default function PlaylistDetailPage({
         style={dynamicGradient ? { background: dynamicGradient } : undefined}
       >
         <div className="flex flex-col md:flex-row gap-6 max-w-5xl">
-
           {/* Info — left on desktop */}
           <div className="flex-1 flex flex-col justify-end order-last md:order-first">
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase text-zinc-400 mb-2 tracking-wider">
-              <VisibilityIcon size={9} />
-              {playlist.visibility} Playlist
-            </span>
+            {/* Visibility + genre badges */}
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase text-zinc-400 tracking-wider">
+                <VisibilityIcon size={9} />
+                {visibilityLabel} Playlist
+              </span>
+              {playlist.genre && (
+                <span className="text-[10px] font-bold uppercase text-zinc-400 bg-zinc-800/60 px-2 py-0.5 rounded tracking-wider">
+                  {playlist.genre}
+                </span>
+              )}
+            </div>
 
             <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
               {playlist.title}
@@ -172,17 +247,51 @@ export default function PlaylistDetailPage({
               </p>
             )}
 
-            <div className="flex items-center gap-3 text-xs text-zinc-400 mb-4">
-              <span>{playlist.owner?.display_name ?? "You"}</span>
+            {/* Meta line: owner · tracks · likes · release date */}
+            <div className="flex items-center gap-3 text-xs text-zinc-400 mb-4 flex-wrap">
+              {ownerHref ? (
+                <Link
+                  href={ownerHref}
+                  className="hover:text-white transition-colors"
+                >
+                  {ownerName}
+                </Link>
+              ) : (
+                <span>{ownerName}</span>
+              )}
               <span>·</span>
-              <span>{tracks.length} tracks</span>
+              <span>{displayTracksCount} tracks</span>
+              {likesCount !== undefined && (
+                <>
+                  <span>·</span>
+                  <span>{likesCount.toLocaleString()} likes</span>
+                </>
+              )}
+              {formattedRelease && (
+                <>
+                  <span>·</span>
+                  <span>{formattedRelease}</span>
+                </>
+              )}
             </div>
 
             {/* Actions */}
             <div className="flex items-center flex-wrap gap-3">
-              <button className="flex items-center gap-2 px-6 py-2.5 bg-white hover:bg-zinc-200 text-black text-md font-bold uppercase tracking-wider rounded transition-colors">
-                <FaPlay size={15} /> Play
-              </button>
+              {liked !== undefined && (
+                <button
+                  onClick={toggleLike}
+                  disabled={isLiking}
+                  className={`flex items-center gap-2 px-4 py-2.5 text-md font-bold uppercase tracking-wider rounded transition-colors disabled:opacity-50
+                    ${
+                      liked
+                        ? "bg-orange-500 hover:bg-orange-600 text-white"
+                        : "bg-zinc-800 hover:bg-zinc-700 text-white"
+                    }`}
+                >
+                  {liked ? <FaHeart size={14} /> : <FaRegHeart size={14} />}
+                  {liked ? "Liked" : "Like"}
+                </button>
+              )}
 
               <button
                 onClick={() => setAddOpen(true)}
@@ -223,7 +332,6 @@ export default function PlaylistDetailPage({
               </div>
             )}
           </div>
-
         </div>
       </div>
 

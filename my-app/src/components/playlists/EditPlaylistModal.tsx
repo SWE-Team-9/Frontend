@@ -16,39 +16,50 @@ interface Props {
 
 type Tab = "basic" | "tracks" | "metadata";
 
-export function EditPlaylistModal({ playlist, isOpen, onClose, onSaved }: Props) {
+export function EditPlaylistModal({
+  playlist,
+  isOpen,
+  onClose,
+  onSaved,
+}: Props) {
   const [tab, setTab] = useState<Tab>("basic");
   const [title, setTitle] = useState(playlist.title);
   const [description, setDescription] = useState(playlist.description ?? "");
   const [visibility, setVisibility] = useState<"PUBLIC" | "PRIVATE">(
-    playlist.visibility === "SECRET" ? "PRIVATE" : (playlist.visibility as "PUBLIC" | "PRIVATE") ?? "PUBLIC"
+    playlist.visibility === "SECRET" ? "PRIVATE" : "PUBLIC",
   );
-  const [releaseDate, setReleaseDate] = useState(playlist.releaseDate?.split("T")[0] ?? "");
+  const [releaseDate, setReleaseDate] = useState(
+    playlist.releaseDate?.split("T")[0] ?? "",
+  );
   const [playlistType, setPlaylistType] = useState(playlist.type ?? "Playlist");
   const [tags, setTags] = useState<string[]>(playlist.tags ?? []);
   const [tagInput, setTagInput] = useState("");
-  const [coverPreview, setCoverPreview] = useState<string | null>(playlist.cover ?? null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(
+    playlist.cover ?? null,
+  );
   const [saving, setSaving] = useState(false);
+  const [loadingEdit, setLoadingEdit] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load full edit data from backend when modal opens
   useEffect(() => {
     if (!isOpen) return;
 
-    playlistsApi.getEditDetails(playlist.playlistId)
+    // All setState calls are inside .then() callbacks — none fire synchronously
+    Promise.resolve()
+      .then(() => setLoadingEdit(true))
+      .then(() => playlistsApi.getEditDetails(playlist.playlistId))
       .then((data) => {
         setTitle(data.title);
         setDescription(data.description ?? "");
-        setVisibility(data.visibility === "SECRET" ? "PRIVATE" : (data.visibility as "PUBLIC" | "PRIVATE"));
+        setVisibility(data.visibility === "SECRET" ? "PRIVATE" : "PUBLIC");
         setReleaseDate(data.releaseDate?.split("T")[0] ?? "");
         setPlaylistType(data.type ?? "Playlist");
         setTags(data.tags ?? []);
         setCoverPreview(data.coverImageUrl ?? null);
+        setLoadingEdit(false);
       })
-      .catch(() => {
-        // Keep prop values as fallback if the request fails
-      });
+      .catch(() => setLoadingEdit(false));
   }, [isOpen, playlist.playlistId]);
 
   if (!isOpen) return null;
@@ -85,7 +96,7 @@ export function EditPlaylistModal({ playlist, isOpen, onClose, onSaved }: Props)
       await playlistsApi.updatePlaylist(playlist.playlistId, {
         title: title.trim(),
         description: description.trim() || undefined,
-        visibility: visibility === "PRIVATE" ? "SECRET" : "PUBLIC",
+        visibility: visibility === "PRIVATE" ? "secret" : "public",
         type: playlistType !== "Playlist" ? playlistType : undefined,
         releaseDate: releaseDate || undefined,
         tags: tags.length > 0 ? tags : undefined,
@@ -101,7 +112,9 @@ export function EditPlaylistModal({ playlist, isOpen, onClose, onSaved }: Props)
       });
       onClose();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not update playlist");
+      toast.error(
+        err instanceof Error ? err.message : "Could not update playlist",
+      );
     } finally {
       setSaving(false);
     }
@@ -117,7 +130,7 @@ export function EditPlaylistModal({ playlist, isOpen, onClose, onSaved }: Props)
       onClick={onClose}
     >
       <div
-className="relative w-205 max-w-[95vw] max-h-[90vh] overflow-hidden bg-[#121212] border border-neutral-700 rounded-lg shadow-2xl flex flex-col"
+        className="relative w-205 max-w-[95vw] max-h-[90vh] overflow-hidden bg-[#121212] border border-neutral-700 rounded-lg shadow-2xl flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -275,7 +288,8 @@ className="relative w-205 max-w-[95vw] max-h-[90vh] overflow-hidden bg-[#121212]
           {/* TRACKS TAB */}
           {tab === "tracks" && (
             <div className="text-zinc-400 text-sm">
-              Reorder or remove tracks here. Wire to your reorder/remove endpoints.
+              Reorder or remove tracks here. Wire to your reorder/remove
+              endpoints.
             </div>
           )}
 
@@ -342,10 +356,10 @@ className="relative w-205 max-w-[95vw] max-h-[90vh] overflow-hidden bg-[#121212]
           <button
             type="button"
             onClick={handleSave}
-            disabled={saving || !title.trim()}
-            className="px-4 py-2 text-sm font-semibold rounded-md cursor-pointer bg-white text-black hover:bg-zinc-600 disabled:opacity-50"
+            disabled={saving || loadingEdit}
+            className="px-4 py-2 bg-[#f50] hover:bg-orange-600 text-white text-sm font-bold rounded-md disabled:opacity-50"
           >
-            {saving ? "Saving…" : "Save changes"}
+            {saving ? "Saving..." : loadingEdit ? "Loading..." : "Save"}
           </button>
         </div>
       </div>

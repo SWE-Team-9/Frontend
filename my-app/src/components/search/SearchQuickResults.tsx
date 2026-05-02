@@ -87,7 +87,7 @@ export default function SearchQuickResults({
 
 function Panel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="absolute z-50 mt-2 w-full rounded-md border border-neutral-700 bg-neutral-900 p-3 shadow-lg text-sm text-neutral-300">
+    <div className="absolute z-50 mt-2 w-full rounded-md border border-neutral-700 bg-[#121212] p-3 shadow-lg text-sm text-neutral-300">
       {children}
     </div>
   );

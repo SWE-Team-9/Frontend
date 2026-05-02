@@ -1,46 +1,55 @@
 "use client";
 
-// Component responsible for rendering a list of tracks inside a playlist
+import { useState } from "react";
 import { TrackItem } from "@/src/components/playlists/TrackItem";
 
-// Track data structure definition
 interface Track {
   trackId: string;
   title: string;
   artist?: string;
+  artistHandle?: string;
   cover?: string;
   duration?: number;
+  likesCount?: number;
+  repostsCount?: number;
 }
 
-// Props for TrackList component
 interface Props {
   tracks: Track[];
   canEdit?: boolean;
-  onRemove?: (trackId: string) => void;
-  onReorder?: (orderedTrackIds: string[]) => void;
+  onRemove?: (trackId: string) => Promise<void>;
+  onReorder?: (orderedTrackIds: string[]) => Promise<void>;
 }
 
-// Main TrackList component
-export function TrackList({ tracks, canEdit = false, onRemove, onReorder }: Props) {
- 
-  const move = (from: number, to: number) => {
-    // Prevent invalid index moves
-    if (to < 0 || to >= tracks.length) return;
+export function TrackList({
+  tracks,
+  canEdit = false,
+  onRemove,
+  onReorder,
+}: Props) {
+  const [removingId, setRemovingId] = useState<string | null>(null);
 
-    // Create a copy of tracks array
-    const next = [...tracks];
-
-    // Remove item from original position
-    const [item] = next.splice(from, 1);
-
-    // Insert item at new position
-    next.splice(to, 0, item);
-
-    // Emit reordered track IDs to parent
-    onReorder?.(next.map((t) => t.trackId));
+  const handleRemove = async (trackId: string) => {
+    if (!onRemove || removingId) return;
+    setRemovingId(trackId);
+    try {
+      await onRemove(trackId);
+    } finally {
+      setRemovingId(null);
+    }
   };
 
-  // Empty state when no tracks exist
+  const move = async (from: number, to: number) => {
+    if (!onReorder) return;
+    if (to < 0 || to >= tracks.length) return;
+
+    const next = [...tracks];
+    const [item] = next.splice(from, 1);
+    next.splice(to, 0, item);
+
+    await onReorder(next.map((t) => t.trackId));
+  };
+
   if (tracks.length === 0) {
     return (
       <p className="text-center text-zinc-500 text-sm py-12">
@@ -58,7 +67,8 @@ export function TrackList({ tracks, canEdit = false, onRemove, onReorder }: Prop
           index={i}
           total={tracks.length}
           canEdit={canEdit}
-          onRemove={onRemove}
+          isRemoving={removingId === track.trackId}
+          onRemove={onRemove ? () => handleRemove(track.trackId) : undefined}
           onMoveUp={(idx) => move(idx, idx - 1)}
           onMoveDown={(idx) => move(idx, idx + 1)}
         />
