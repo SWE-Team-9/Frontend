@@ -431,6 +431,7 @@ export default function ProfilePage({
                     likesCount: track.likesCount,
                     liked: true,
                     repostsCount: track.repostsCount ?? 0,
+                    waveformData: track.waveformData ?? null,
                   }}
                   isOwner={isOwner}
                 />

@@ -255,25 +255,27 @@ export default function ChatWindow() {
                             ? currentUser?.displayName || "Me"
                             : selected.participant.display_name;
 
+                        const sharedTrackPermalink = message.sharedTrack
+                            ? buildTrackPermalink({
+                                trackId: message.sharedTrack.id,
+                                artistHandle: message.sharedTrack.artist?.handle,
+                                slug: message.sharedTrack.slug,
+                            })
+                            : "";
+
+                        const sharedPlaylistPermalink = message.sharedPlaylist
+                            ? buildPlaylistPermalink({
+                                playlistId: message.sharedPlaylist.id,
+                                ownerHandle: message.sharedPlaylist.owner?.handle,
+                                slug: message.sharedPlaylist.slug,
+                            })
+                            : "";
+
                         const hiddenSharedUrls = [
-                            message.sharedTrack
-                                ? buildFullShareUrl(
-                                    buildTrackPermalink({
-                                        trackId: message.sharedTrack.id,
-                                        artistHandle: message.sharedTrack.artist?.handle,
-                                        slug: message.sharedTrack.slug,
-                                    }),
-                                )
-                                : "",
-                            message.sharedPlaylist
-                                ? buildFullShareUrl(
-                                    buildPlaylistPermalink({
-                                        playlistId: message.sharedPlaylist.id,
-                                        ownerHandle: message.sharedPlaylist.owner?.handle,
-                                        slug: message.sharedPlaylist.slug,
-                                    }),
-                                )
-                                : "",
+                            sharedTrackPermalink,
+                            sharedTrackPermalink ? buildFullShareUrl(sharedTrackPermalink) : "",
+                            sharedPlaylistPermalink,
+                            sharedPlaylistPermalink ? buildFullShareUrl(sharedPlaylistPermalink) : "",
                         ];
 
                         return (
