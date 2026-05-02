@@ -63,6 +63,7 @@ export function EditPlaylistModal({
         setPlaylistType(data.type ?? "Playlist");
         setTags(data.tags ?? []);
         setCoverPreview(data.coverImageUrl ?? null);
+        setLocalTracks(data.tracks ?? []);
         setLoadingEdit(false);
       })
       .catch(() => setLoadingEdit(false));
@@ -538,7 +539,7 @@ export function EditPlaylistModal({
             type="button"
             onClick={handleSave}
             disabled={saving || loadingEdit}
-            className="px-4 py-2 text-sm font-bold bg-white hover:bg-neutral-600 disabled:opacity-50 text-white rounded-md transition-colors cursor-pointer"
+            className="px-4 py-2 text-sm font-bold bg-white hover:bg-neutral-600 disabled:opacity-50 text-black rounded-md transition-colors cursor-pointer"
           >
             {saving ? "Saving…" : "Save"}
           </button>

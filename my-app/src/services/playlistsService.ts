@@ -1,6 +1,7 @@
 import api from "@/src/services/api";
 import {
   Playlist,
+  PlaylistTrack,
   CreatePlaylistInput,
   UpdatePlaylistInput,
 } from "@/src/types/playlist";
@@ -39,6 +40,7 @@ export interface PlaylistsService {
     releaseDate: string | null;
     genre: string | null;
     tags: string[];
+    tracks?: PlaylistTrack[];
   }>;
   updatePlaylist: (
     playlistId: string,
@@ -112,14 +114,10 @@ export const playlistsApi: PlaylistsService = {
   },
 
   addTrackToPlaylist: (playlistId: string, trackId: string) =>
-    api
-      .post(`${BASE}/${playlistId}/tracks`, { trackId })
-      .then((r) => r.data),
+    api.post(`${BASE}/${playlistId}/tracks`, { trackId }).then((r) => r.data),
 
   removeTrackFromPlaylist: (playlistId: string, trackId: string) =>
-    api
-      .delete(`${BASE}/${playlistId}/tracks/${trackId}`)
-      .then((r) => r.data),
+    api.delete(`${BASE}/${playlistId}/tracks/${trackId}`).then((r) => r.data),
 
   reorderTracks: (playlistId: string, orderedTrackIds: string[]) =>
     api
@@ -262,9 +260,15 @@ export function normalizePlaylist(raw: unknown): Playlist {
     ? {
         ...rawOwner,
         display_name:
-          rawOwner.display_name ?? rawOwner.displayName ?? rawOwner.name ?? null,
+          rawOwner.display_name ??
+          rawOwner.displayName ??
+          rawOwner.name ??
+          null,
         displayName:
-          rawOwner.displayName ?? rawOwner.display_name ?? rawOwner.name ?? null,
+          rawOwner.displayName ??
+          rawOwner.display_name ??
+          rawOwner.name ??
+          null,
         handle: rawOwner.handle ?? null,
         id: rawOwner.id ?? rawOwner.userId ?? rawOwner.user_id ?? null,
       }
