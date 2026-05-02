@@ -23,37 +23,43 @@ export function usePlaylists(userId?: string) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchPlaylists = useCallback(async (signal?: AbortSignal) => {
-    try {
-      const raw = userId
-        ? await playlistsApi.getUserPlaylists(userId)
-        : await playlistsApi.getMyPlaylists();
-      if (signal?.aborted) return;
-      const likedIds = getLocalLikedIds();
-      setPlaylists(
-        raw.map((p) =>
-          p.liked === undefined && likedIds.has(String(p.playlistId))
-            ? { ...p, liked: true }
-            : p,
-        ),
-      );
-      setError(null);
-    } catch (err) {
-      if (signal?.aborted) return;
-      setError(err instanceof Error ? err.message : "Failed to load playlists");
-      setPlaylists([]);
-    } finally {
-      if (!signal?.aborted) setIsLoading(false);
-    }
-  }, [userId]);
+  const fetchPlaylists = useCallback(
+    async (signal?: AbortSignal) => {
+      setIsLoading(true); 
+      setError(null); 
+      try {
+        const raw = userId
+          ? await playlistsApi.getUserPlaylists(userId)
+          : await playlistsApi.getMyPlaylists();
+        if (signal?.aborted) return;
+        const likedIds = getLocalLikedIds();
+        setPlaylists(
+          raw.map((p) =>
+            p.liked === undefined && likedIds.has(String(p.playlistId))
+              ? { ...p, liked: true }
+              : p,
+          ),
+        );
+        setError(null);
+      } catch (err) {
+        if (signal?.aborted) return;
+        setError(
+          err instanceof Error ? err.message : "Failed to load playlists",
+        );
+        setPlaylists([]);
+      } finally {
+        if (!signal?.aborted) setIsLoading(false);
+      }
+    },
+    [userId],
+  );
 
   useEffect(() => {
-    const controller = new AbortController();
-    setIsLoading(true);
-    setError(null);
-    fetchPlaylists(controller.signal);
-    return () => controller.abort();
-  }, [fetchPlaylists]);
+  const controller = new AbortController();
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  fetchPlaylists(controller.signal);
+  return () => controller.abort();
+}, [fetchPlaylists]);
 
   const refetch = useCallback(
     (signal?: AbortSignal) => {

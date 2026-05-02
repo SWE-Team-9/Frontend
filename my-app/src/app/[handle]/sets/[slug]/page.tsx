@@ -21,7 +21,7 @@ export default function PlaylistPermalinkResolverPage() {
 
     switch (data.resourceType) {
       case "PLAYLIST":
-        router.replace(`/playlists/${data.id}`);
+        router.replace(`/library/playlists/${data.id}`);  // ← was /playlists/
         break;
       case "TRACK":
         router.replace(`/tracks/${data.id}`);

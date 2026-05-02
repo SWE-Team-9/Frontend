@@ -1,78 +1,81 @@
 function isValidPart(value?: string | null) {
-    const cleaned = value?.trim();
+  const cleaned = value?.trim();
 
-    return (
-        !!cleaned &&
-        cleaned.toLowerCase() !== "undefined" &&
-        cleaned.toLowerCase() !== "null"
-    );
+  return (
+    !!cleaned &&
+    cleaned.toLowerCase() !== "undefined" &&
+    cleaned.toLowerCase() !== "null"
+  );
 }
 
 export function buildFullShareUrl(permalink: string) {
-    if (typeof window === "undefined") return permalink;
+  if (typeof window === "undefined") return permalink;
 
-    if (permalink.startsWith("http://") || permalink.startsWith("https://")) {
-        return permalink;
-    }
+  if (permalink.startsWith("http://") || permalink.startsWith("https://")) {
+    return permalink;
+  }
 
-    return `${window.location.origin}${permalink}`;
+  return `${window.location.origin}${permalink}`;
 }
 
 export function buildTrackPermalink(
-    handleOrParams:
-        | string
-        | {
-            trackId: string;
-            artistHandle?: string | null;
-            slug?: string | null;
-        },
-    slug?: string,
+  handleOrParams:
+    | string
+    | {
+        trackId: string;
+        artistHandle?: string | null;
+        slug?: string | null;
+      },
+  slug?: string,
 ) {
-    if (typeof handleOrParams === "string") {
-        return `/${handleOrParams}/${slug}`;
-    }
+  if (typeof handleOrParams === "string") {
+    return `/${handleOrParams}/${slug}`;
+  }
 
-    const { trackId, artistHandle } = handleOrParams;
+  const { trackId, artistHandle } = handleOrParams;
 
-    if (isValidPart(artistHandle) && isValidPart(handleOrParams.slug)) {
-        return `/${artistHandle?.trim()}/${handleOrParams.slug?.trim()}`;
-    }
+  if (isValidPart(artistHandle) && isValidPart(handleOrParams.slug)) {
+    return `/${artistHandle?.trim()}/${handleOrParams.slug?.trim()}`;
+  }
 
-    return `/tracks/${trackId}`;
+  return `/tracks/${trackId}`;
 }
 
 export function buildUserPermalink(handle: string) {
-    return `/${handle}`;
+  return `/${handle}`;
 }
 
 export function buildPlaylistPermalink(
-    handleOrParams:
-        | string
-        | {
-            playlistId: string;
-            ownerHandle?: string | null;
-            slug?: string | null;
-        },
-    slug?: string,
+  handleOrParams:
+    | string
+    | {
+        playlistId: string;
+        ownerHandle?: string | null;
+        slug?: string | null;
+      },
+  slug?: string,
 ) {
-    if (typeof handleOrParams === "string") {
-        return `/${handleOrParams}/sets/${slug}`;
-    }
+  if (typeof handleOrParams === "string") {
+    return `/${handleOrParams}/sets/${slug}`;
+  }
 
-    const { playlistId, ownerHandle } = handleOrParams;
-    const playlistSlug = handleOrParams.slug;
+  const { playlistId, ownerHandle } = handleOrParams;
+  const playlistSlug = handleOrParams.slug;
 
-    if (isValidPart(ownerHandle) && isValidPart(playlistSlug)) {
-        return `/${ownerHandle!.trim()}/sets/${playlistSlug!.trim()}`;
-    }
+  // both handle and slug available
+  if (isValidPart(ownerHandle) && isValidPart(playlistSlug)) {
+    return `/${ownerHandle!.trim()}/sets/${playlistSlug!.trim()}`;
+  }
 
-    if (isValidPart(playlistSlug)) {
-        return `/playlists/${playlistSlug!.trim()}`;
-    }
+  // Slug only 
+  if (isValidPart(playlistSlug)) {
+    return `/library/playlists/${playlistSlug!.trim()}`;
+  }
 
-    if (isValidPart(ownerHandle)) {
-        return `/${ownerHandle!.trim()}/sets/${playlistId}`;
-    }
+  // Handle only 
+  if (isValidPart(ownerHandle)) {
+    return `/${ownerHandle!.trim()}/sets/${playlistId}`;
+  }
 
-    return `/playlists/${playlistId}`;
+  return `/library/playlists/${playlistId}`;
 }
