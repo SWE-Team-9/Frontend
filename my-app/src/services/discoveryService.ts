@@ -73,7 +73,7 @@ export const GENRES = [
   "jazz",
   "r-b-soul",
   "metal",
-  "folk",
+  "folk-singer-songwriter",
   "country",
   "reggaeton",
   "dancehall",
