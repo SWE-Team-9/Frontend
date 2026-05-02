@@ -133,7 +133,8 @@ export function AvatarUpload({
             unoptimized
           />
         ) : (
-          <span className="text-[10px] md:text-xs font-bold">Upload image</span>
+          <div className="w-full h-full flex items-center justify-center bg-linear-to-br from-[#866975] via-[#89747C] to-[#8D8284]">
+          </div>
         )}
 
         {isOwner && (

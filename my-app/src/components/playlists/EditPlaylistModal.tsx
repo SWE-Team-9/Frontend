@@ -538,7 +538,7 @@ export function EditPlaylistModal({
             type="button"
             onClick={handleSave}
             disabled={saving || loadingEdit}
-            className="px-4 py-2 text-sm font-bold bg-[#f50] hover:bg-[#e64a00] disabled:opacity-50 text-white rounded-md transition-colors cursor-pointer"
+            className="px-4 py-2 text-sm font-bold bg-white hover:bg-neutral-600 disabled:opacity-50 text-white rounded-md transition-colors cursor-pointer"
           >
             {saving ? "Saving…" : "Save"}
           </button>

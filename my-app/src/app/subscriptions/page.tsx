@@ -11,7 +11,7 @@ import { FaDiamond } from "react-icons/fa6";
 import { PLAN_CONFIG } from "@/src/config/plans";
 import { useSubscriptionStore } from "@/src/store/useSubscriptionStore";
 
-// ─── Types ─────────────────────────────────────────────────────────────────────
+// Types
 
 type BadgeStyle = "purple" | "gold" | null;
 
@@ -38,7 +38,7 @@ interface Plan {
   subscriptionType: "FREE" | "PRO" | "GO+";
 }
 
-// ─── Feature icon map ─────────────────────────────────────────────────────────
+// Feature icon map
 
 const FeatureIcon = ({ name }: { name: string }) => {
   const cls = "w-4 h-4 shrink-0";
@@ -54,7 +54,7 @@ const FeatureIcon = ({ name }: { name: string }) => {
   return <>{map[name] ?? <LuCheck className={cls} />}</>;
 };
 
-// ─── Plans data ───────────────────────────────────────────────────────────────
+// Plans data 
 
 const PLANS: Plan[] = [
   {
@@ -116,7 +116,7 @@ const PLANS: Plan[] = [
   },
 ];
 
-// ─── Badge ────────────────────────────────────────────────────────────────────
+// Badge 
 
 function Badge({ text, style }: { text: string; style: BadgeStyle }) {
   if (!style) return null;
@@ -131,7 +131,7 @@ function Badge({ text, style }: { text: string; style: BadgeStyle }) {
   );
 }
 
-// ─── Current plan pill ────────────────────────────────────────────────────────
+// Current plan pill
 
 function CurrentPlanBadge() {
   return (
@@ -141,8 +141,7 @@ function CurrentPlanBadge() {
   );
 }
 
-// ─── Single plan card ─────────────────────────────────────────────────────────
-
+// Single plan card 
 function PlanCard({
   plan,
   hovered,
@@ -179,7 +178,7 @@ function PlanCard({
       onMouseEnter={() => onHover(plan.key)}
       onMouseLeave={() => onHover(null)}
     >
-      {/* ── Popular ribbon ──────────────────────────────────────── */}
+      {/* Popular ribbon */}
       {isPopular ? (
         <div
           className="rounded-t-2xl text-white text-[10px] font-black uppercase tracking-[0.2em] text-center py-2.5 px-4"
@@ -188,10 +187,10 @@ function PlanCard({
           Most Popular
         </div>
       ) : (
-        <div className="h-[37px]" />
+        <div className="h-9.25" />
       )}
 
-      {/* ── Card body ───────────────────────────────────────────── */}
+      {/* Card body */}
       <div
         className={`
           flex flex-col flex-1 p-8 bg-white rounded-b-2xl transition-all duration-300
@@ -235,7 +234,7 @@ function PlanCard({
         )}
 
         {/* Tagline */}
-        <p className="text-zinc-500 text-sm leading-snug mb-6 min-h-[36px]">
+        <p className="text-zinc-500 text-sm leading-snug mb-6 min-h-9">
           {plan.tagline}
         </p>
 
@@ -324,7 +323,7 @@ function PlanCard({
   );
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// Page 
 
 export default function SubscriptionPage() {
   const router = useRouter();
@@ -339,7 +338,7 @@ export default function SubscriptionPage() {
 
   return (
     <main className="min-h-screen bg-white">
-      {/* ── Hero header ───────────────────────────────────────── */}
+      {/*  Hero header */}
       <div className="pt-16 pb-12 text-center px-6">
         <p className="text-zinc-400 text-sm tracking-widest uppercase mb-4">
           Select the plan that suits you best
@@ -358,7 +357,7 @@ export default function SubscriptionPage() {
         </h1>
       </div>
 
-      {/* ── Cards grid ────────────────────────────────────────── */}
+      {/* Cards grid */}
       <div className="max-w-5xl mx-auto px-6 pb-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
           {PLANS.map((plan) => (
@@ -373,7 +372,7 @@ export default function SubscriptionPage() {
         </div>
       </div>
 
-      {/* ── Continue without plan ─────────────────────────────── */}
+      {/* Continue without plan */}
       <div className="flex justify-center pb-16 px-6">
         <button
           onClick={() => router.push("/discover")}

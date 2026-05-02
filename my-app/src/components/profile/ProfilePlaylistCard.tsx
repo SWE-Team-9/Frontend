@@ -53,7 +53,7 @@ export function ProfilePlaylistCard({ playlist }: { playlist: Playlist }) {
               unoptimized
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#333] to-[#1a1a1a]">
+            <div className="w-full h-full flex items-center justify-center bg-linear-to-br from-[#333] to-[#1a1a1a]">
               <FaMusic className="text-zinc-600 text-4xl" />
             </div>
           )}
@@ -79,7 +79,7 @@ export function ProfilePlaylistCard({ playlist }: { playlist: Playlist }) {
             {menuOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={close} />
-                <div className="absolute z-50 left-0 bottom-9 min-w-[180px] bg-[#1a1a1a] border border-zinc-800 rounded-md shadow-2xl overflow-hidden py-1">
+                <div className="absolute z-50 left-0 bottom-9 min-w-45 bg-[#1a1a1a] border border-zinc-800 rounded-md shadow-2xl overflow-hidden py-1">
                   <button type="button" onClick={handleAddToNextUp} className={item}>
                     <FaListUl size={11} className="text-white" /> Add to Next Up
                   </button>

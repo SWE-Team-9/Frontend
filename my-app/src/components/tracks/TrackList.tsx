@@ -181,7 +181,7 @@ const data = await getUserTracks(userId, page, limit);
       {actionError && <p className="text-red-400 text-sm">{actionError}</p>}
 
       {tracks.length === 0 ? (
-        <div className="py-20 text-center flex flex-col items-center border border-dashed border-zinc-800 rounded-lg">
+        <div className="w-full py-20 text-center flex flex-col items-center border border-dashed border-zinc-800 rounded-lg">
           <p className="text-zinc-500 italic">No {type} found.</p>
         </div>
       ) : (

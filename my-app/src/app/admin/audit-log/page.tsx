@@ -4,34 +4,21 @@ import React, { useEffect, useState } from "react";
 import { adminServiceReal } from "@/src/services/admin/adminService.real";
 import { FiClipboard } from "react-icons/fi";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
+
 interface AuditLogEntry {
   id: string;
-
   action_type: string;
-
   admin_id: string;
   admin_name?: string;
   admin_handle?: string;
-
   target_user_name?: string;
   target_user_handle?: string;
-
   entity_type?: "USER" | "TRACK" | "COMMENT" | "PLAYLIST";
   entity_id?: string;
-
   notes?: string | null;
   created_at: string;
 }
-
-// ===============================
-// SERVICE SWITCH (REAL / MOCK)
-// ===============================
-// You can toggle via env
-const service =
-  process.env.NEXT_PUBLIC_USE_MOCK === "true"
-    ? adminServiceReal // replace with adminServiceMock if you have it
-    : adminServiceReal;
 
 const ACTION_COLORS: Record<string, string> = {
   WARN_USER: "text-yellow-500 bg-yellow-500/10",
@@ -50,13 +37,16 @@ export default function AuditLogPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    service.getAuditLog(page, 20)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsLoading(true);
+    adminServiceReal
+      .getAuditLog(page, 20)
       .then((data) => {
         const safeLogs = Array.isArray(data?.items)
           ? data.items
           : Array.isArray(data)
-          ? data
-          : [];
+            ? data
+            : [];
         setLogs(safeLogs);
         setTotalPages(data?.pagination?.totalPages ?? 1);
         setError(null);
@@ -117,28 +107,24 @@ export default function AuditLogPage() {
               logs.map((entry) => (
                 <tr key={entry.id} className="hover:bg-zinc-800/20 transition">
                   <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${
-                      ACTION_COLORS[entry.action_type] ?? "text-zinc-400 bg-zinc-800"
-                    }`}>
+                    <span
+                      className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${
+                        ACTION_COLORS[entry.action_type] ?? "text-zinc-400 bg-zinc-800"
+                      }`}
+                    >
                       {entry.action_type.replace(/_/g, " ")}
                     </span>
                   </td>
-
                   <td className="px-6 py-4">
                     <div>
                       <div>{entry.admin_name}</div>
-                      <div>@{entry.admin_handle}</div>
+                      <div className="text-zinc-500 text-xs">@{entry.admin_handle}</div>
                     </div>
                   </td>
-
                   <td className="px-6 py-4">
-                    {entry. entity_id ? entry.target_user_name : "—"}
+                    {entry.entity_id ? (entry.target_user_name ?? "—") : "—"}
                   </td>
-
-                  <td className="px-6 py-4">
-                    {entry.notes || "—"}
-                  </td>
-
+                  <td className="px-6 py-4">{entry.notes || "—"}</td>
                   <td className="px-6 py-4 text-right">
                     {new Date(entry.created_at).toLocaleString()}
                   </td>
@@ -154,15 +140,17 @@ export default function AuditLogPage() {
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
+            className="px-3 py-1.5 text-sm text-zinc-400 hover:text-white border border-zinc-700 rounded disabled:opacity-40"
           >
             Previous
           </button>
-
-          <span>Page {page} of {totalPages}</span>
-
+          <span className="text-sm text-zinc-400 self-center">
+            Page {page} of {totalPages}
+          </span>
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
+            className="px-3 py-1.5 text-sm text-zinc-400 hover:text-white border border-zinc-700 rounded disabled:opacity-40"
           >
             Next
           </button>
