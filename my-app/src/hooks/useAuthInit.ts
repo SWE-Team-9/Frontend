@@ -122,6 +122,7 @@ export const useAuthInit = () => {
           avatarUrl: me.avatar_url ?? null,
           isVerified: me.is_verified ?? false,
           systemRole: (me.system_role as "ADMIN" | "MODERATOR" | "USER") ?? "USER",
+          account_status: me.account_status ?? "ACTIVE",
         });
       })
       .catch(() => {

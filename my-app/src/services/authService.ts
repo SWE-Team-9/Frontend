@@ -1,5 +1,5 @@
 import api from "@/src/services/api";
-import { useAuthStore } from "@/src/store/useAuthStore";
+import { useAuthStore, AccountStatus } from "@/src/store/useAuthStore";
 import { useProfileStore } from "@/src/store/useProfileStore";
 
 // ─────────────────────────────────────────────────────────────
@@ -77,6 +77,7 @@ export const loginUser = async ({
       avatarUrl: user.avatar_url ?? null,
       isVerified: user.is_verified ?? false,
       systemRole: user.system_role ?? "USER",
+      account_status: user.account_status ?? "ACTIVE",
     });
   }
   return response.data;
@@ -179,6 +180,7 @@ export const getCurrentUser = async () => {
       avatar_url: null,
       is_verified: true,
       system_role: "USER" as const,
+      account_status: 'ACTIVE',
     };
 
     useAuthStore.getState().setUser({
@@ -189,6 +191,7 @@ export const getCurrentUser = async () => {
       avatarUrl: mockUser.avatar_url,
       isVerified: mockUser.is_verified,
       systemRole: mockUser.system_role,
+      account_status:'ACTIVE',
     });
 
     return mockUser;
@@ -208,6 +211,7 @@ export const getCurrentUser = async () => {
       avatarUrl: user.avatar_url ?? null,
       isVerified: user.is_verified ?? false,
       systemRole: user.system_role ?? "USER",
+      account_status: user.account_status ?? ("ACTIVE" as const),
     });
   }
   return user;

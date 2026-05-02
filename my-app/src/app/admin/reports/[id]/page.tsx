@@ -1,281 +1,270 @@
 "use client";
 
-import React, { useCallback, useEffect, useState, use } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { adminService } from "@/src/services/admin/adminService";
-import { FiArrowLeft, FiUser, FiMusic, FiAlertCircle } from "react-icons/fi";
+import { useAdminStore } from "@/src/store/useAdminStore";
+import { useAuthStore } from "@/src/store/useAuthStore";
+import {
+  FiArrowLeft,
+  FiMusic,
+  FiEyeOff,
+  FiTrash2,
+  FiShield,
+  FiUser,
+  FiRotateCcw,
+  FiInfo,
+} from "react-icons/fi";
 import Link from "next/link";
 import { ReportActions } from "@/src/components/admin/ReportActions";
 import { OffenderCard } from "@/src/components/admin/OffenderCard";
-import { Report, ModerationAction } from "@/src/types/admin";
-interface RouteParams {
-  id: string;
-}
+import { Report, AdminUser } from "@/src/types/admin";
 
-import { useAuthStore } from "@/src/store/useAuthStore";
+type PageProps = {
+  params: Promise<{ id: string }>;
+};
 
-export default function ReportDetailsPage({
-  params,
-}: {
-  params: Promise<RouteParams>;
-}) {
-  const resolvedParams = use(params);
-  const id = resolvedParams.id;
+export default function ReportDetailsPage({ params }: PageProps) {
+  const { id } = React.use(params);
 
-  const { user } = useAuthStore(); // role-based access
-  const role = user?.systemRole; // "ADMIN" | "MODERATOR"
+  const { user: authUser } = useAuthStore();
+  const { moderateTrack, fetchUserById } = useAdminStore();
 
   const [report, setReport] = useState<Report | null>(null);
+  const [user, setUser] = useState<AdminUser | null>(null);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [moderatorReview, setModeratorReview] = useState("");
-  const [submittingReview, setSubmittingReview] = useState(false);
-
- 
-  const fetchReport = useCallback(async () => {
-    try {
-      const data = await adminService.getReportById(id);
-      if (!data) {
-        setError("Report not found");
-      } else {
-        setReport(data);
-      }
-    } catch (err) {
-      console.error(err);
-      setError("Failed to load report");
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
+  // =========================
+  // LOAD REPORT + USERS
+  // =========================
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchReport();
-  }, [fetchReport]);
+    let cancelled = false;
+
+    const load = async () => {
+      try {
+        setLoading(true);
+
+        const reportData = await adminService.getReportById(id);
+
+        if (cancelled) return;
+
+        // 1. Fix: "reportData is possibly null" and "Type mismatch"
+        if (!reportData) {
+          setError("Report not found.");
+          setLoading(false);
+          return;
+        }
+
+        // Cast it to Report if the service returns a partial or union type
+        const validatedReport = reportData as Report;
+        setReport(validatedReport);
+
+        const userIds: string[] = [];
+
+        // 2. Fix: "Property id does not exist on reporter"
+        if (validatedReport.reporter?.id) userIds.push(validatedReport.reporter.id);
+        if (validatedReport.offender?.id) userIds.push(validatedReport.offender.id);
+
+        if (validatedReport.target?.type === "USER" && validatedReport.target?.id) {
+          userIds.push(validatedReport.target.id);
+        }
+
+        // fetch only valid UUIDs
+        for (const userId of userIds) {
+          await fetchUserById(userId);
+        }
+
+        setUser(null);
+        setError(null);
+      } catch (err) {
+        console.error(err);
+        if (!cancelled) setError("Failed to load report details.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id, fetchUserById]);
 
   // =========================
-  // TRACK ACTIONS (ADMIN ONLY)
+  // MODERATION ACTIONS
   // =========================
-  const handleHideTrack = async () => {
+  const handleTrackModeration = async (
+    action: "HIDDEN" | "REMOVED" | "VISIBLE"
+  ) => {
     if (!report?.target?.id) return;
 
     try {
-      await adminService.hideTrack?.(report.target.id);
-      await fetchReport();
-    } catch (err) {
-      console.error("Hide track failed", err);
-    }
-  };
-
-  const handleRestoreTrack = async () => {
-    if (!report?.target?.id) return;
-
-    try {
-      await adminService.restoreTrack?.(report.target.id);
-      await fetchReport();
-    } catch (err) {
-      console.error("Restore track failed", err);
-    }
-  };
-
-  // =========================
-  // MODERATOR REVIEW SUBMIT
-  // =========================
-  const submitModeratorReview = async () => {
-    if (!moderatorReview.trim()) return;
-
-    try {
-      setSubmittingReview(true);
-      if (!report?.id) return;
-      await adminService.addModeratorReview?.({
-        reportId: report?.id,
-        content: moderatorReview,
+      await moderateTrack(report.target.id, {
+        action,
+        reason: `Admin action: ${action} by ${authUser?.displayName}`,
+        reportId: report.id,
       });
-
-      setModeratorReview("");
-      await fetchReport();
     } catch (err) {
-      console.error("Failed to submit review", err);
-    } finally {
-      setSubmittingReview(false);
+      console.error("Moderation failed:", err);
     }
   };
 
-  if (loading) {
+  // =========================
+  // UI STATES
+  // =========================
+  if (loading)
     return (
-      <div className="p-12 text-center text-zinc-500">
-        Loading report details...
+      <div className="p-12 text-center text-zinc-500 animate-pulse font-mono uppercase tracking-widest">
+        Loading Report...
       </div>
     );
-  }
 
-  if (error || !report) {
+  if (error)
+    return (
+      <div className="p-12 text-center text-red-500 font-bold">{error}</div>
+    );
+
+  if (!report)
     return (
       <div className="p-12 text-center text-zinc-500">
-        <FiAlertCircle className="mx-auto mb-4" size={48} />
-        <p>{error || "Report not found."}</p>
-        <Link
-          href="/admin/reports"
-          className="text-orange-500 hover:underline mt-4 block"
-        >
-          Return to list
-        </Link>
+        Report not found.
       </div>
     );
-  }
 
-  const actions = report.previous_actions_on_target ?? [];
-  const moderatorReviews = report.moderator_reviews ?? [];
-
+  // =========================
+  // UI
+  // =========================
   return (
-    <div className="p-8 max-w-5xl mx-auto space-y-8">
-
+    <div className="p-8 max-w-6xl mx-auto space-y-8 text-white">
       {/* HEADER */}
       <div className="flex items-center justify-between">
         <Link
           href="/admin/reports"
-          className="flex items-center gap-2 text-zinc-500 hover:text-white"
+          className="flex items-center gap-2 text-zinc-500 hover:text-white font-bold text-sm"
         >
-          <FiArrowLeft />
-          Back
+          <FiArrowLeft /> Back
         </Link>
 
-        <span className="px-3 py-1 bg-zinc-800 text-xs text-zinc-400 rounded">
-          ID: {report.id}
+        <span className="px-4 py-1 bg-zinc-800 text-[10px] text-zinc-400 rounded-full font-mono border border-zinc-700">
+          REF: {report.id}
         </span>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-        {/* LEFT */}
+        {/* MAIN */}
         <div className="lg:col-span-2 space-y-6">
+          {/* REPORT CARD */}
+          <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-[2.5rem] relative">
+            <div className="absolute top-4 right-4">
+              <ReportActions reportId={report.id} />
+            </div>
 
-          {/* REPORT */}
-          <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl">
-            <h1 className="text-xl font-bold text-white mb-2">
+            <p className="text-orange-500 text-[10px] font-black uppercase tracking-widest">
               {report.category}
-            </h1>
-
-            <p className="text-zinc-400 italic">
-              {report.description}
             </p>
 
-            <div className="mt-4 flex justify-end">
-              <ReportActions reportId={report.id} />
+            <h1 className="text-3xl font-bold mt-4 mb-6">
+              {report.description}
+            </h1>
+
+            <div className="flex items-center gap-6 border-t border-zinc-800 pt-6">
+              <div className="flex items-center gap-2">
+                <FiUser className="text-orange-500" />
+                <div>
+                  <p className="text-[10px] text-zinc-500 uppercase">
+                    Reporter
+                  </p>
+                  <p className="text-sm font-bold">
+                    {report.reporter?.display_name}
+                  </p>
+                </div>
+              </div>
+
+              <div className="text-xs text-zinc-500">
+                {new Date(report.created_at).toLocaleDateString()}
+              </div>
             </div>
           </div>
 
-          {/* MODERATOR INPUT (ONLY MODERATOR) */}
-          {role === "MODERATOR" && (
-            <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl">
-              <h3 className="text-sm font-bold text-white mb-3">
-                Write Moderator Review
-              </h3>
+          {/* ADMIN ACTIONS */}
+          {authUser?.systemRole === "ADMIN" &&
+            report.target.type === "TRACK" && (
+              <div className="bg-zinc-900 border border-blue-500/20 p-8 rounded-[2.5rem]">
+                <div className="flex items-center gap-3 mb-6">
+                  <FiShield className="text-blue-400" />
+                  <h3 className="font-bold uppercase text-sm">
+                    Admin Actions
+                  </h3>
+                </div>
 
-              <textarea
-                value={moderatorReview}
-                onChange={(e) => setModeratorReview(e.target.value)}
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-sm text-white"
-                placeholder="Write your moderation notes..."
-              />
-
-              <button
-                onClick={submitModeratorReview}
-                disabled={submittingReview}
-                className="mt-3 px-4 py-2 bg-orange-500 text-black font-bold rounded-xl"
-              >
-                Submit Review
-              </button>
-            </div>
-          )}
-
-          {/* ADMIN VIEW MODERATOR REVIEWS */}
-          {role === "ADMIN" && (
-            <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl">
-              <h3 className="text-sm font-bold text-white mb-4">
-                Moderator Reviews
-              </h3>
-
-              {moderatorReviews.length > 0 ? (
-                moderatorReviews.map((r: import('@/src/types/admin').ModeratorReview) => (
-                  <div
-                    key={r.id}
-                    className="p-3 mb-2 bg-zinc-950 border border-zinc-800 rounded-xl"
+                <div className="grid grid-cols-3 gap-4">
+                  <button
+                    onClick={() => handleTrackModeration("VISIBLE")}
+                    className="bg-green-500/10 text-green-500 p-4 rounded-xl"
                   >
-                    <p className="text-sm text-zinc-300">{r.content}</p>
-                  </div>
-                ))
-              ) : (
-                <p className="text-zinc-600 text-sm">No reviews yet.</p>
-              )}
-            </div>
-          )}
+                    <FiRotateCcw /> Restore
+                  </button>
+
+                  <button
+                    onClick={() => handleTrackModeration("HIDDEN")}
+                    className="bg-zinc-800 p-4 rounded-xl"
+                  >
+                    <FiEyeOff /> Hide
+                  </button>
+
+                  <button
+                    onClick={() => handleTrackModeration("REMOVED")}
+                    className="bg-red-500/10 text-red-500 p-4 rounded-xl"
+                  >
+                    <FiTrash2 /> Delete
+                  </button>
+                </div>
+              </div>
+            )}
 
           {/* HISTORY */}
-          <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl">
-            <h3 className="text-sm font-bold text-zinc-500 mb-4">
-              Moderation History
+          <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-[2.5rem]">
+            <h3 className="text-xs uppercase text-zinc-500 mb-4 flex items-center gap-2">
+              <FiInfo /> Decision History
             </h3>
 
-            {actions.length ? (
-              actions.map((action: ModerationAction) => (
+            {report.previous_actions_on_target?.length ? (
+              report.previous_actions_on_target.map((a, i) => (
                 <div
-                  key={action.id}
-                  className="p-3 mb-2 bg-zinc-950 border border-zinc-800 rounded-xl"
+                  key={i}
+                  className="p-4 bg-zinc-950 border border-zinc-800 rounded-xl mb-3"
                 >
                   <p className="text-orange-500 text-xs font-bold">
-                    {action.action_type}
+                    {a.action_type}
                   </p>
-                  <p className="text-zinc-300 text-sm">{action.reason}</p>
+                  <p className="text-sm">{a.reason}</p>
                 </div>
               ))
             ) : (
-              <p className="text-zinc-600 text-sm">No history.</p>
+              <p className="text-zinc-600 text-sm">No history</p>
             )}
           </div>
         </div>
 
-        {/* RIGHT */}
+        {/* SIDEBAR */}
         <div className="space-y-6">
-
           <OffenderCard report={report} />
 
-          {/* TARGET + ADMIN CONTROLS */}
-          <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl">
-            <p className="text-xs text-zinc-500 mb-3">Target</p>
+          <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl">
+            <p className="text-xs text-zinc-500 mb-4">Target</p>
 
-            <div className="flex items-center gap-2">
-              {report.target.type === "TRACK" ? (
-                <FiMusic className="text-orange-500" />
-              ) : (
-                <FiUser className="text-orange-500" />
-              )}
-
-              <span className="text-white font-bold">
-                {report.target.title}
-              </span>
-            </div>
-
-            {/* ADMIN TRACK CONTROL */}
-            {role === "ADMIN" && report.target.type === "TRACK" && (
-              <div className="mt-4 flex gap-2">
-                <button
-                  onClick={handleHideTrack}
-                  className="px-3 py-1 bg-red-500 text-white rounded"
-                >
-                  Hide
-                </button>
-
-                <button
-                  onClick={handleRestoreTrack}
-                  className="px-3 py-1 bg-green-500 text-white rounded"
-                >
-                  Restore
-                </button>
+            <div className="flex items-center gap-3">
+              <FiMusic className="text-orange-500" />
+              <div>
+                <p className="font-bold">{report.target.title}</p>
+                <p className="text-xs text-zinc-500">
+                  {report.target.type} • {report.target.id}
+                </p>
               </div>
-            )}
+            </div>
           </div>
-
         </div>
       </div>
     </div>

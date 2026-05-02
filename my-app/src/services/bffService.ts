@@ -17,9 +17,10 @@ export interface BootstrapMe {
   handle: string;
   avatar_url: string | null;
   account_type: string;
-  system_role: string;
+  system_role: "ADMIN" | "MODERATOR" | "USER";
   is_verified: boolean;
   subscription_tier: string;
+  account_status: 'ACTIVE' | 'SUSPENDED' | 'BANNED';
 }
 
 export interface BootstrapProfile {

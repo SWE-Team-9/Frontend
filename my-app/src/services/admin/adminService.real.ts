@@ -1,8 +1,35 @@
-import api from "@/src/services/api";
-import { AdminStats, ActionPayload } from "@/src/types/admin";
+import { AdminStats, ActionPayload, AdminUser, Report } from "@/src/types/admin";
+import { adminApi } from "@/src/services/admin/adminService";
 
+interface DailyMetric {
+  date: string;
+  total_storage_bytes: number;
+  new_users: number;
+  tracks_uploaded: number;
+}
+interface RawAuditAction {
+  id?: string | number;
+  action_type?: string;
+  admin?: {
+    id: string;
+    display_name: string;
+    handle: string;
+  };
+  target_user?: {
+    id: string;
+    display_name: string;
+    handle: string;
+  };
+  target_track?: { id: string };
+  target_comment?: { id: string };
+  target_playlist?: { id: string };
+  notes?: string;
+  created_at?: string;
+}
 
-
+/**
+ * Helper to format storage bytes into human-readable strings
+ */
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B";
   const k = 1024;
@@ -11,24 +38,28 @@ function formatBytes(bytes: number): string {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
 }
 
-function transformOverviewStats(raw: Record<string, unknown>): AdminStats {
-  const users = (raw.users as Record<string, number>) ?? {};
-  const content = (raw.content as Record<string, number>) ?? {};
-  const engagement = (raw.engagement as Record<string, number>) ?? {};
-  const billing = (raw.billing as Record<string, number>) ?? {};
-  const moderation = (raw.moderation as Record<string, number>) ?? {};
+/**
+ * Transforms raw API overview data into the structured AdminStats type
+ */
+function transformOverviewStats(raw: Record<string, Record<string, number | null>>): AdminStats {
+  const users = raw.users ?? {};
+  const content = raw.content ?? {};
+  const engagement = raw.engagement ?? {};
+  const billing = raw.billing ?? {};
+  const moderation = raw.moderation ?? {};
 
-  const usedBytes = billing.total_storage_bytes ?? 0;
-  const totalBytes = billing.total_storage_limit ?? 107374182400;
+  const usedBytes = (billing.total_storage_bytes as number) ?? 0;
+  const totalBytes = (billing.total_storage_limit as number) ?? 107374182400;
+
   return {
     users: {
-      total: users.total ?? 0,
-      listeners: users.listeners ?? 0,
-      artists: users.artists ?? 0,
-      active: users.active ?? 0,
-      suspended: users.suspended ?? 0,
-      banned: users.banned ?? 0,
-      artist_to_listener_ratio: users.artist_to_listener_ratio ?? null,
+      total: (users.total as number) ?? 0,
+      listeners: (users.listeners as number) ?? 0,
+      artists: (users.artists as number) ?? 0,
+      active: (users.active as number) ?? 0,
+      suspended: (users.suspended as number) ?? 0,
+      banned: (users.banned as number) ?? 0,
+      artist_to_listener_ratio: (users.artist_to_listener_ratio as number) ?? null,
     },
     storage: {
       used_bytes: usedBytes,
@@ -36,128 +67,143 @@ function transformOverviewStats(raw: Record<string, unknown>): AdminStats {
       total_human_readable: formatBytes(usedBytes),
     },
     content: {
-      total_tracks: content.total_tracks ?? 0,
-      tracks_visible: content.tracks_visible ?? 0,
+      total_tracks: (content.total_tracks as number) ?? 0,
+      tracks_visible: (content.tracks_visible as number) ?? 0,
     },
     moderation: {
-      reports_pending: moderation.reports_pending ?? 0,
+      reports_pending: (moderation.reports_pending as number) ?? 0,
     },
     engagement: {
-      total_play_events: engagement.total_play_events ?? 0,
-      completed_play_events: engagement.completed_play_events ?? 0,
-      play_through_rate_pct: engagement.play_through_rate_pct ?? 0,
+      total_play_events: (engagement.total_play_events as number) ?? 0,
+      completed_play_events: (engagement.completed_play_events as number) ?? 0,
+      play_through_rate_pct: (engagement.play_through_rate_pct as number) ?? 0,
     },
   };
 }
 
 export const adminServiceReal = {
   getInitialData: async () => {
-    const [rawStats, usersData, reportsData, auditData, mostReportedData] =
+    const [rawStats, usersData, reportsData, auditData, mostReportedData, dailyData] =
       await Promise.all([
-        api.get('/admin/stats/overview').then(r => r.data),
-        api.get('/admin/users').then(r => r.data),
-        api.get('/admin/reports').then(r => r.data),
-        api.get('/admin/audit-log').then(r => r.data).catch(() => ({ items: [] })),
-        api.get('/admin/stats/most-reported').then(r => r.data).catch(() => null),
+        adminApi.get('/admin/stats/overview').then(r => r.data),
+        adminApi.get('/admin/users').then(r => r.data),
+        adminApi.get('/admin/reports').then(r => r.data),
+        adminApi.get('/admin/audit-log').then(r => r.data).catch(() => ({ items: [] })),
+        adminApi.get('/admin/stats/most-reported').then(r => r.data).catch(() => null),
+        adminApi.get('/admin/stats/daily', { params: { granularity: 'monthly' } }).then(r => r.data),
       ]);
 
     const stats = transformOverviewStats(rawStats);
+    const storageTrend = (dailyData.metrics as DailyMetric[] || []).map((m) => ({
+      date: m.date,
+      value: m.total_storage_bytes,
+      newUsers: m.new_users,
+      tracks: m.tracks_uploaded
+    }));
 
     return {
       stats,
-      users: usersData.users ?? usersData,
-      reports: reportsData.items ?? reportsData.reports ?? reportsData,
-      analytics: { growth: [], plays: [], storageTrend: [] },
-      auditLogs: auditData.actions ?? [],
-      mostReported: mostReportedData
-        ? {
-            tracks: mostReportedData.most_reported_tracks ?? [],
-            users: mostReportedData.most_reported_users ?? [],
-          }
-        : null,
+      users: (usersData.users as AdminUser[]) ?? (usersData as AdminUser[]),
+      reports: (reportsData.items as Report[]) ?? (reportsData.reports as Report[]) ?? (reportsData as Report[]),
+      analytics: {
+        growth: storageTrend,
+        plays: [],
+        storageTrend: storageTrend
+      },
+      auditLogs: (auditData.items as Record<string, unknown>[]) ?? [],
+      mostReported: mostReportedData ? {
+        tracks: (mostReportedData.mostReportedTracks || mostReportedData.tracks || []) as Record<string, unknown>[],
+        users: (mostReportedData.mostReportedUsers || mostReportedData.users || []) as Record<string, unknown>[],
+      } : null,
     };
   },
 
   getUserById: async (id: string) => {
-    const res = await api.get(`/admin/users/${id}`);
-    return res.data.user ?? res.data;
+    const res = await adminApi.get(`/admin/users/${id}`);
+    return (res.data.user as AdminUser) ?? (res.data as AdminUser);
+  },
+
+  getUsersPaginated: async (page: number, limit: number) => {
+    const response = await adminApi.get(`/admin/users`, {
+      params: { page, limit }
+    });
+    return response.data;
+  },
+
+  getReports: async () => {
+    const r = await adminApi.get('/admin/reports');
+    return (r.data.items as Report[]) ?? (r.data.reports as Report[]) ?? (r.data as Report[]);
   },
 
   getReportById: async (reportId: string) => {
-    const r = await api.get(`/admin/reports/${reportId}`);
-    return r.data;
+    const r = await adminApi.get(`/admin/reports/${reportId}`);
+    return r.data as Report;
+  },
+
+  getReportsPaginated: async (page: number, limit: number) => {
+    const response = await adminApi.get(`/admin/reports`, {
+      params: { page, limit }
+    });
+    return response.data;
   },
 
   getAuditLog: async (page = 1, limit = 20) => {
-    const r = await api.get('/admin/audit-log', { params: { page, limit } });
+    const r = await adminApi.get('/admin/audit-log', { params: { page, limit } });
     const data = r.data;
-    const actions: Record<string, unknown>[] = data.actions ?? [];
-    type Nested = Record<string, string> | null;
-    const items = actions.map((action) => ({
-      id: String(action.id ?? ''),
-      action_type: String(action.action_type ?? ''),
-      admin_id: (action.admin as Nested)?.id ?? '',
-      admin_name: (action.admin as Nested)?.display_name,
-      admin_handle: (action.admin as Nested)?.handle,
-      target_user_name: (action.target_user as Nested)?.display_name,
-      target_user_handle: (action.target_user as Nested)?.handle,
-      entity_type: (action.target_track
-        ? 'TRACK'
-        : action.target_user
-        ? 'USER'
-        : action.target_comment
-        ? 'COMMENT'
-        : action.target_playlist
-        ? 'PLAYLIST'
-        : undefined) as 'USER' | 'TRACK' | 'COMMENT' | 'PLAYLIST' | undefined,
-      entity_id:
-        (action.target_track as Nested)?.id ??
-        (action.target_user as Nested)?.id ??
-        (action.target_comment as Nested)?.id ??
-        (action.target_playlist as Nested)?.id,
-      notes: action.notes as string | null | undefined,
-      created_at: String(action.created_at ?? ''),
-    }));
+    const actions = (data.actions as RawAuditAction[]) ?? [];
+
+    const items = actions.map((action) => {
+      let entity_type: "TRACK" | "USER" | "COMMENT" | "PLAYLIST" | undefined = undefined;
+      if (action.target_track) entity_type = "TRACK";
+      else if (action.target_user) entity_type = "USER";
+      else if (action.target_comment) entity_type = "COMMENT";
+      else if (action.target_playlist) entity_type = "PLAYLIST";
+
+      return {
+        id: String(action.id ?? ''),
+        action_type: String(action.action_type ?? ''),
+        admin_id: (action.admin?.id as string) ?? '',
+        admin_name: action.admin?.display_name as string,
+        admin_handle: action.admin?.handle as string,
+        target_user_name: action.target_user?.display_name as string,
+        target_user_handle: action.target_user?.handle as string,
+        entity_type,
+        entity_id: (action.target_track?.id ?? action.target_user?.id ?? action.target_comment?.id ?? action.target_playlist?.id) as string,
+        notes: action.notes as string,
+        created_at: String(action.created_at ?? ''),
+      };
+    });
+
     return {
       items,
-      pagination: { totalPages: data.total_pages ?? 1 },
+      pagination: { totalPages: (data.total_pages as number) ?? 1 },
     };
   },
 
-  getMostReported: async (period = 'last_30_days') => {
-    const r = await api.get('/admin/stats/most-reported', { params: { period } });
-    return r.data;
-  },
-
   getDailyStats: async (dateFrom?: string, dateTo?: string) => {
-    const r = await api.get('/admin/stats/daily', {
+    const r = await adminApi.get('/admin/stats/daily', {
       params: { dateFrom, dateTo },
     });
-    return r.data;
-  },
-  getReports: async () => {
-    const r = await api.get('/admin/reports');
-    return r.data.items ?? r.data.reports ?? r.data;
+    return {
+      metrics: (r.data.metrics as DailyMetric[]) ?? [],
+      date_from: r.data.date_from as string,
+      date_to: r.data.date_to as string,
+    };
   },
 
-  warnUser: async (id: string, payload: ActionPayload) => 
+  warnUser: async (id: string, payload: ActionPayload) =>
     adminServiceReal.submitAction('warn', id, payload),
 
-  suspendUser: async (
-  id: string,
-  payload: ActionPayload & {
-    current_password: string;
-  }
-) => 
-  adminServiceReal.submitAction('suspend', id, payload),
+  suspendUser: async (id: string, payload: ActionPayload) =>
+    adminServiceReal.submitAction('suspend', id, payload),
 
-  banUser: async (id: string, payload: ActionPayload) => 
+  banUser: async (id: string, payload: ActionPayload) =>
     adminServiceReal.submitAction('ban', id, payload),
 
-  restoreUser: async (id: string, payload: ActionPayload) => 
+  restoreUser: async (id: string, payload: ActionPayload) =>
     adminServiceReal.submitAction('restore', id, payload),
 
-  updateReportStatus: async (id: string, payload: ActionPayload) => 
+  updateReportStatus: async (id: string, payload: ActionPayload) =>
     adminServiceReal.submitAction('report-status', id, payload),
 
   moderateTrack: async (id: string, payload: ActionPayload) =>
@@ -169,82 +215,102 @@ export const adminServiceReal = {
   moderatePlaylist: async (id: string, payload: ActionPayload) =>
     adminServiceReal.submitAction('playlist-mod', id, payload),
 
-  // --- Core API Dispatcher ---
-
   submitAction: async (type: string, id: string, payload: ActionPayload) => {
-    const password = payload.currentPassword ?? payload.current_password;
+    // Define an extended type to safely access potential snake_case keys
+    type ExtendedPayload = ActionPayload & { 
+      current_password?: string; 
+      duration_days?: number; 
+      moderation_state?: string; 
+      action?: string;
+      isHidden?: boolean;
+    };
+    
+    const p = payload as ExtendedPayload;
+    const password = p.currentPassword ?? p.current_password;
+
     switch (type) {
       case 'warn':
-        return api.post(`/admin/users/${id}/warn`, {
-          reason: payload.reason,
+        return adminApi.post(`/admin/users/${id}/warn`, {
+          reason: p.reason,
           currentPassword: password,
-          reportId: payload.reportId,
+          reportId: p.reportId,
         });
       case 'suspend':
-        return api.post(`/admin/users/${id}/suspend`, {
-          durationDays: payload.durationDays ?? payload.duration_days ?? 7,
-          reason: payload.reason,
+        return adminApi.post(`/admin/users/${id}/suspend`, {
+          durationDays: p.durationDays ?? p.duration_days ?? 7,
+          reason: p.reason,
           currentPassword: password,
-          reportId: payload.reportId,
+          reportId: p.reportId,
         });
       case 'ban':
-        return api.post(`/admin/users/${id}/ban`, {
-          reason: payload.reason,
+        return adminApi.post(`/admin/users/${id}/ban`, {
+          reason: p.reason,
           currentPassword: password,
-          reportId: payload.reportId,
+          reportId: p.reportId,
         });
       case 'restore':
       case 'activate':
-      case 'restore-user':
-        return api.post(`/admin/users/${id}/restore`, {
-          reason: payload.reason,
-          restoreContent: payload.restoreContent ?? false,
+        return adminApi.post(`/admin/users/${id}/restore`, {
+          reason: p.reason,
+          restoreContent: p.restoreContent ?? false,
         });
-      case 'track-mod':
-        return api.patch(`/admin/tracks/${id}/moderation`, {
-          moderationState: payload.moderationState ?? payload.moderation_state,
-          reason: payload.reason,
-          reportId: payload.reportId,
+      case 'track-mod': {
+        const rawState = p.moderationState || p.moderation_state || p.action;
+
+        let finalState = 'VISIBLE';
+        if (typeof rawState === 'string') {
+          const upper = rawState.toUpperCase();
+          if (upper.includes('HID')) finalState = 'HIDDEN';
+          else if (upper.includes('REM')) finalState = 'REMOVED';
+          else if (upper.includes('VIS')) finalState = 'VISIBLE';
+        }
+
+        return adminApi.patch(`/admin/tracks/${id}/moderation`, {
+          moderationState: finalState,
+          reason: p.reason || 'Action taken by administrator',
+          reportId: p.reportId,
         });
+      }
       case 'comment-mod':
-        return api.patch(`/admin/comments/${id}/moderation`, {
-          isHidden: (payload as unknown as Record<string, unknown>).isHidden,
-          reason: payload.reason,
-          reportId: payload.reportId,
+        return adminApi.patch(`/admin/comments/${id}/moderation`, {
+          isHidden: p.isHidden,
+          reason: p.reason,
+          reportId: p.reportId,
         });
       case 'playlist-mod':
-        return api.patch(`/admin/playlists/${id}/moderation`, {
-          moderationState: payload.moderationState ?? payload.moderation_state,
-          reason: payload.reason,
-          reportId: payload.reportId,
+        return adminApi.patch(`/admin/playlists/${id}/moderation`, {
+          moderationState: p.moderationState ?? p.moderation_state,
+          reason: p.reason,
+          reportId: p.reportId,
         });
       case 'report-status':
-        return api.patch(`/admin/reports/${id}`, payload);
+        return adminApi.patch(`/admin/reports/${id}`, payload);
       case 'report-assign':
-        return api.patch(`/admin/reports/${id}/assign`, payload);
+        return adminApi.patch(`/admin/reports/${id}/assign`, payload);
       default:
         throw new Error(`Unknown action type: ${type}`);
     }
   },
-  hideTrack: async (trackId: string, reason = 'Hidden by admin for policy violation') => {
-    return api.patch(`/admin/tracks/${trackId}/moderation`, {
+
+  hideTrack: async (trackId: string, reason = 'Hidden by admin') => {
+    return adminApi.patch(`/admin/tracks/${trackId}/moderation`, {
       moderationState: 'HIDDEN',
       reason,
     });
   },
 
   restoreTrack: async (trackId: string, reason = 'Restored by admin') => {
-    return api.patch(`/admin/tracks/${trackId}/moderation`, {
+    return adminApi.patch(`/admin/tracks/${trackId}/moderation`, {
       moderationState: 'VISIBLE',
       reason,
     });
   },
 
   addModeratorReview: async ({ reportId, content }: { reportId: string; content: string }) => {
-    return api.patch(`/admin/reports/${reportId}`, { resolutionNotes: content });
+    return adminApi.patch(`/admin/reports/${reportId}`, { resolutionNotes: content });
   },
 
   bulkUpdateReports: async (reportIds: string[], status: string, resolutionNotes?: string) => {
-    return api.patch('/admin/reports/bulk', { reportIds, status, resolutionNotes });
+    return adminApi.patch('/admin/reports/bulk', { reportIds, status, resolutionNotes });
   },
 };

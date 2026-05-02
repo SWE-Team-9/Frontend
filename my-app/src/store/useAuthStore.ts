@@ -11,7 +11,7 @@ import { create } from "zustand";
 //     2. Basic user info returned by the backend (user)
 //     3. The email for the "verify email" flow
 // ─────────────────────────────────────────────────────────────
-
+export type AccountStatus = "ACTIVE" | "SUSPENDED" | "BANNED";
 export interface AuthUser {
   id: string;
   email: string;
@@ -20,6 +20,7 @@ export interface AuthUser {
   avatarUrl?: string | null;
   isVerified?: boolean;
   systemRole?: "ADMIN" | "MODERATOR" | "USER";
+  account_status: AccountStatus;
 }
 
 interface AuthState {

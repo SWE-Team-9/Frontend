@@ -17,6 +17,7 @@ import {
 } from "recharts";
 import { FiTrendingUp, FiActivity, FiHardDrive } from "react-icons/fi";
 
+
 interface DailyMetric {
   date: string;
   new_users: number;
@@ -35,16 +36,21 @@ export default function AnalyticsPage() {
   }, [fetchDashboardData]);
 
   useEffect(() => {
-    const dateTo = new Date().toISOString().split("T")[0];
-    const dateFrom = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .split("T")[0];
-    adminServiceReal
-      .getDailyStats(dateFrom, dateTo)
-      .then((data) => setDailyMetrics(data.metrics ?? []))
-      .catch(() => setDailyMetrics([]))
-      .finally(() => setDailyLoading(false));
-  }, []);
+  const dateTo = new Date().toISOString().split("T")[0];
+  const dateFrom = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .split("T")[0];
+
+  adminServiceReal
+    .getDailyStats(dateFrom, dateTo)
+    .then((data) => {
+      // Use unknown as a bridge to resolve the "Two different types" conflict
+      const metrics = (data.metrics as unknown as DailyMetric[]) ?? [];
+      setDailyMetrics(metrics);
+    })
+    .catch(() => setDailyMetrics([]))
+    .finally(() => setDailyLoading(false));
+}, []);
 
   if (isLoading || !stats) {
     return (
