@@ -34,9 +34,13 @@ export interface PendingDowngrade {
 
 export interface SubscriptionDetails {
   userId: string;
+  /** Normalized display type: "FREE" | "PRO" | "GO+" */
   subscriptionType: "FREE" | "PRO" | "GO+";
+  /** Raw backend planCode: "FREE" | "PRO" | "GO_PLUS" */
+  planCode: string;
   planName: string;
   isPremium: boolean;
+  /** Backend status: FREE | ACTIVE | TRIALING | PAST_DUE | CANCELED | INCOMPLETE */
   subscriptionStatus: string | null;
   uploadLimit: number;
   uploadedTracks: number;
@@ -49,6 +53,7 @@ export interface SubscriptionDetails {
   trialEnd: string | null;
   paymentMethodSummary: PaymentMethodSummary | null;
   pendingDowngrade: PendingDowngrade | null;
+  latestInvoice: Invoice | null;
   perks: {
     adFree: boolean;
     offlineListening: boolean;
@@ -128,6 +133,7 @@ const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 let MOCK_SUBSCRIPTION: SubscriptionDetails = {
   userId: "usr_123",
   subscriptionType: "FREE",
+  planCode: "FREE",
   planName: "Free",
   isPremium: false,
   subscriptionStatus: null,
@@ -142,6 +148,7 @@ let MOCK_SUBSCRIPTION: SubscriptionDetails = {
   trialEnd: null,
   paymentMethodSummary: null,
   pendingDowngrade: null,
+  latestInvoice: null,
   perks: { adFree: false, offlineListening: false },
 };
 
@@ -182,6 +189,7 @@ export function normalizeBackendSubscription(raw: Record<string, unknown>): Subs
   return {
     userId: (raw.userId as string) ?? "",
     subscriptionType,
+    planCode,
     planName: (raw.planName as string) ?? subscriptionType,
     isPremium: (raw.isPremium as boolean) ?? planCode !== "FREE",
     subscriptionStatus: (raw.subscriptionStatus as string) ?? null,
@@ -196,6 +204,7 @@ export function normalizeBackendSubscription(raw: Record<string, unknown>): Subs
     trialEnd: (raw.trialEnd as string) ?? null,
     paymentMethodSummary,
     pendingDowngrade: (raw.pendingDowngrade as PendingDowngrade) ?? null,
+    latestInvoice: (raw.latestInvoice as Invoice) ?? null,
     perks: {
       adFree: !adsEnabled,
       offlineListening: canDownload,
@@ -262,9 +271,11 @@ export const decrementUploadQuota = async (): Promise<SubscriptionDetails> => {
 export const upgradeSubscription = async (type: "PRO" | "GO+"): Promise<CheckoutResult> => {
   if (USE_MOCK) {
     await new Promise((resolve) => setTimeout(resolve, 1500));
+    const mockPlanCode = type === "GO+" ? "GO_PLUS" : "PRO";
     MOCK_SUBSCRIPTION = {
       ...MOCK_SUBSCRIPTION,
       subscriptionType: type,
+      planCode: mockPlanCode,
       planName: type === "GO+" ? "GO+" : "Artist Pro",
       isPremium: true,
       subscriptionStatus: "ACTIVE",
@@ -274,21 +285,22 @@ export const upgradeSubscription = async (type: "PRO" | "GO+"): Promise<Checkout
       currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       renewalDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       expiresAt: null,
+      latestInvoice: null,
       paymentMethodSummary: { brand: "visa", last4: "4242", expiryMonth: 12, expiryYear: 2030, isDefault: true },
       perks: { adFree: true, offlineListening: true },
     };
-    return { subscriptionId: "sub_mock", planCode: type === "GO+" ? "GO_PLUS" : "PRO" };
+    return { subscriptionId: "sub_mock", planCode: mockPlanCode };
   }
 
   const planCode = type === "GO+" ? "GO_PLUS" : "PRO";
   const response = await api.post("/subscriptions/checkout", { planCode });
   const data = response.data as CheckoutResult;
 
-  // Real Stripe: redirect browser to hosted checkout. This function does not return.
-  if (
-    data.checkoutUrl &&
-    data.checkoutUrl.startsWith("https://checkout.stripe.com")
-  ) {
+  // If the backend returns a checkoutUrl, redirect the browser to it.
+  // This covers both real Stripe (https://checkout.stripe.com/...) and the
+  // mock billing provider (https://mock-checkout.example.com/...).
+  // In either case the function does not return — Stripe/mock handles the rest.
+  if (data.checkoutUrl && data.checkoutUrl.startsWith("https://")) {
     window.location.href = data.checkoutUrl;
   }
 
