@@ -24,7 +24,7 @@ const PLANS = {
     monthlyPrice: PLAN_CONFIG["GO+"].monthlyPrice,
     upgradeType: "GO+" as const,
     renewLabel: `$${PLAN_CONFIG["GO+"].monthlyPrice}/month`,
-    trialDays: 30,
+    trialDays: 0,
     description: "1,000 track uploads · Ad-free · Offline listening · Priority support",
     accentColor: "#f0a046",
   },

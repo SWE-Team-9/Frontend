@@ -81,7 +81,8 @@ export interface PlayerSessionResponse {
 }
 
 export interface UpdatePlayerSessionBody {
-    currentTrackId: string | null;
+    /** Omit (undefined) when no track is loaded — never send null to the backend DTO. */
+    currentTrackId?: string;
     positionSeconds: number;
     isPlaying: boolean;
     volume: number;
@@ -127,24 +128,53 @@ export interface AdSlot {
 }
 
 export type NextQueueResponse =
-    | { type: "TRACK"; track: QueueTrackMetadata; currentIndex: number; queueLength: number; tracksUntilAd: number }
-    | { type: "AD"; ad: AdSlot; currentIndex: number; queueLength: number; tracksUntilAd: number }
+    | { type: "TRACK"; track: QueueTrackMetadata; currentIndex: number; queueLength: number; tracksUntilAd: number | null }
+    | { type: "AD"; ad: AdSlot; currentIndex: number; queueLength: number; tracksUntilAd: number | null }
     | { type: "ENDED"; currentIndex: number; queueLength: number };
 
 export interface LoadQueueResponse {
     currentTrack: QueueTrackMetadata | null;
     currentIndex: number;
     queueLength: number;
-    tracksUntilAd: number;
+    /** null for paid-tier users (no ads). */
+    tracksUntilAd: number | null;
 }
 
 export interface QueueStateResponse {
     queue: QueueTrackMetadata[];
     currentIndex: number;
     queueLength: number;
-    tracksUntilAd: number;
+    /** null for paid-tier users (no ads). */
+    tracksUntilAd: number | null;
     shuffle: boolean;
     repeatMode: "OFF" | "ALL" | "ONE";
+}
+
+export interface AddQueueItemBody {
+    trackId: string;
+    mode: "END" | "NEXT" | "TOP";
+}
+
+export interface AddQueueItemResponse {
+    queueLength: number;
+    insertedAt: number;
+}
+
+export interface MoveQueueItemResponse {
+    queueLength: number;
+}
+
+export interface RemoveQueueItemResponse {
+    queueLength: number;
+}
+
+export interface ClearQueueResponse {
+    message: string;
+}
+
+export interface CompleteAdResponse {
+    adCompleted: boolean;
+    message: string;
 }
 
 // ===============================
@@ -374,7 +404,13 @@ export async function updatePlayerSession(
         };
     }
 
-    const { data } = await api.put(`/player/session`, body);
+    // The backend DTO rejects explicit null for currentTrackId (IsUUID validator).
+    // Strip null/undefined values so the backend treats missing fields as "no change".
+    const payload: Record<string, unknown> = { ...body };
+    if (payload.currentTrackId == null) {
+        delete payload.currentTrackId;
+    }
+    const { data } = await api.put(`/player/session`, payload);
     return data;
 }
 
@@ -410,5 +446,53 @@ export async function getQueueState(): Promise<QueueStateResponse> {
 /** Jump the backend queue to a specific track by ID. */
 export async function jumpToQueueTrack(trackId: string): Promise<NextQueueResponse> {
     const { data } = await api.post<NextQueueResponse>(`/player/queue/jump`, { trackId });
+    return data;
+}
+
+/**
+ * Add a track to the current backend queue.
+ * mode: 'END' appends, 'NEXT' inserts after current, 'TOP' inserts at position 0.
+ */
+export async function addQueueItem(body: AddQueueItemBody): Promise<AddQueueItemResponse> {
+    const { data } = await api.post<AddQueueItemResponse>(`/player/queue/items`, body);
+    return data;
+}
+
+/**
+ * Move a queue item from one position to another (0-based indices).
+ * PATCH /player/queue/items/:position/move  { toPosition }
+ */
+export async function moveQueueItem(fromPosition: number, toPosition: number): Promise<MoveQueueItemResponse> {
+    const { data } = await api.patch<MoveQueueItemResponse>(
+        `/player/queue/items/${fromPosition}/move`,
+        { toPosition },
+    );
+    return data;
+}
+
+/**
+ * Remove the queue item at the given 0-based position.
+ * DELETE /player/queue/items/:position
+ */
+export async function removeQueueItem(position: number): Promise<RemoveQueueItemResponse> {
+    const { data } = await api.delete<RemoveQueueItemResponse>(`/player/queue/items/${position}`);
+    return data;
+}
+
+/**
+ * Clear the entire backend queue.
+ * DELETE /player/queue
+ */
+export async function clearQueue(): Promise<ClearQueueResponse> {
+    const { data } = await api.delete<ClearQueueResponse>(`/player/queue`);
+    return data;
+}
+
+/**
+ * Notify the backend that the mandatory ad has finished playing.
+ * Call POST /player/queue/next after this to get the next track.
+ */
+export async function completeAd(): Promise<CompleteAdResponse> {
+    const { data } = await api.post<CompleteAdResponse>(`/player/queue/ad-complete`);
     return data;
 }

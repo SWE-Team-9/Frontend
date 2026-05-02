@@ -29,12 +29,16 @@ function SuccessContent() {
     const poll = async () => {
       await fetchSubscription();
       attempts++;
-      // When the plan param is known, stop once the store reflects it (or after max attempts).
-      // Without a plan param, stop as soon as any paid plan is detected.
-      const currentType = useSubscriptionStore.getState().sub?.subscriptionType;
-      const isReady = planParam
-        ? currentType === planParam || attempts >= maxAttempts
-        : currentType !== "FREE" || attempts >= maxAttempts;
+      const state = useSubscriptionStore.getState().sub;
+      const currentType = state?.subscriptionType;
+      // Consider the subscription ready only when:
+      //   - subscriptionStatus is not INCOMPLETE (webhook has fired), AND
+      //   - either the expected plan type matches or we have exhausted attempts.
+      const statusIsConfirmed = state?.subscriptionStatus !== "INCOMPLETE";
+      const planMatches = planParam
+        ? currentType === planParam
+        : currentType !== "FREE";
+      const isReady = (statusIsConfirmed && planMatches) || attempts >= maxAttempts;
       if (isReady) {
         setStatus("ready");
         return;

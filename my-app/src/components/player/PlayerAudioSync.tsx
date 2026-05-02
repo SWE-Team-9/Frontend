@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { getAudioElement, usePlayerStore } from "@/src/store/playerStore";
 import { useAuthStore } from "@/src/store/useAuthStore";
+import { completeAd } from "@/src/services/playerService";
 
 export default function PlayerAudioSync() {
   const currentTrack = usePlayerStore((s) => s.currentTrack);
@@ -51,10 +52,11 @@ export default function PlayerAudioSync() {
 
     const handleEnded = async () => {
       const state = usePlayerStore.getState();
-      // If an ad with audio just ended, play the queued track or advance queue
+      // If an ad with audio just ended, notify backend then play queued track or advance queue
       if (state.isPlayingAd) {
         const pending = state.pendingTrack;
-        usePlayerStore.setState({ isPlayingAd: false, currentAd: null, pendingTrack: null });
+        usePlayerStore.setState({ isPlayingAd: false, currentAd: null, pendingTrack: null, adElapsedSeconds: 0 });
+        try { await completeAd(); } catch { /* non-fatal */ }
         if (pending) {
           await usePlayerStore.getState().fetchAndPlay(pending, true);
         } else {
@@ -114,6 +116,8 @@ export default function PlayerAudioSync() {
         }
         const pending = usePlayerStore.getState().pendingTrack;
         usePlayerStore.setState({ isPlayingAd: false, currentAd: null, adElapsedSeconds: 0, pendingTrack: null });
+        // Notify backend that ad completed before advancing
+        try { await completeAd(); } catch { /* non-fatal */ }
         if (pending) {
           await usePlayerStore.getState().fetchAndPlay(pending, true);
         } else {
@@ -172,7 +176,8 @@ export default function PlayerAudioSync() {
           shuffle: isShuffleOn,
           repeatMode: loopMode,
         });
-        navigator.sendBeacon("/player/session", new Blob([payload], { type: "application/json" }));
+        const beaconUrl = `${process.env.NEXT_PUBLIC_API_URL ?? ""}/player/session`;
+        navigator.sendBeacon(beaconUrl, new Blob([payload], { type: "application/json" }));
       } else {
         state.persistPlayerSession();
       }

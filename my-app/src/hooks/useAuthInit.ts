@@ -50,6 +50,8 @@ function entitlementsToSubDetails(e: BootstrapEntitlements): SubscriptionDetails
     trialEnd: e.trialEnd ?? null,
     paymentMethodSummary: null,
     pendingDowngrade: null,
+    planCode,
+    latestInvoice: null,
     perks: {
       adFree: !e.adsEnabled,
       offlineListening: e.canDownload,
