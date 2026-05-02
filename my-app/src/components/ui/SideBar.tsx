@@ -4,6 +4,7 @@ import SideBarItem from "@/src/components/ui/SideBarItem";
 import SuggestedArtists from "@/src/components/profile/sidebar/SuggestedArtists";
 import { useFollowStore } from "@/src/store/followStore";
 import { useAuthStore } from "@/src/store/useAuthStore";
+import LikedTracksPreview from "@/src/components/profile/sidebar/LikedTracksPreview";
 
 interface SideBarProps {
   children: React.ReactNode;
@@ -16,6 +17,7 @@ const SideBar: React.FC<SideBarProps> = ({ children, showSidebar = true }) => {
   );
   const fetchSuggestions = useFollowStore((state) => state.fetchSuggestions);
   const systemRole = useAuthStore((s) => s.user?.systemRole);
+  const userId = useAuthStore((s) => s.user?.id);
   const isStaff = systemRole === "ADMIN" || systemRole === "MODERATOR";
 
   return (
@@ -41,12 +43,12 @@ const SideBar: React.FC<SideBarProps> = ({ children, showSidebar = true }) => {
         <Box className="flex-1">
           <div className="px-5 py-4">
             <div className="flex items-center justify-between gap-3 pb-4">
-            
-                <SideBarItem
-                  label="ARTISTS YOU SHOULD FOLLOW"
-                  href="/artists"
-                />
-            
+
+              <SideBarItem
+                label="ARTISTS YOU SHOULD FOLLOW"
+                href="/artists"
+              />
+
               <button
                 type="button"
                 onClick={() => fetchSuggestions()}
@@ -63,7 +65,11 @@ const SideBar: React.FC<SideBarProps> = ({ children, showSidebar = true }) => {
 
         <Box className="flex-1">
           <div className="px-5 py-4">
-            <SideBarItem label="YOUR LIKES" href="/likes" />
+            {userId ? (
+              <LikedTracksPreview userId={userId} />
+            ) : (
+              <SideBarItem label="YOUR LIKES" href="/library/likes" />
+            )}
           </div>
         </Box>
         <Box className="flex-1">
