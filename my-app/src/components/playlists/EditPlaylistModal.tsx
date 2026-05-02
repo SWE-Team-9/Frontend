@@ -32,6 +32,7 @@ export function EditPlaylistModal({
   const [releaseDate, setReleaseDate] = useState(
     playlist.releaseDate?.split("T")[0] ?? "",
   );
+  const [genre, setGenre] = useState(playlist.genre ?? "");
   const [playlistType, setPlaylistType] = useState(playlist.type ?? "Playlist");
   const [tags, setTags] = useState<string[]>(playlist.tags ?? []);
   const [tagInput, setTagInput] = useState("");
@@ -58,6 +59,7 @@ export function EditPlaylistModal({
         setDescription(data.description ?? "");
         setVisibility(data.visibility === "SECRET" ? "PRIVATE" : "PUBLIC");
         setReleaseDate(data.releaseDate?.split("T")[0] ?? "");
+        setGenre(data.genre ?? "");
         setPlaylistType(data.type ?? "Playlist");
         setTags(data.tags ?? []);
         setCoverPreview(data.coverImageUrl ?? null);
@@ -159,6 +161,7 @@ export function EditPlaylistModal({
         visibility: visibility === "PRIVATE" ? "secret" : "public",
         type: playlistType !== "Playlist" ? playlistType : undefined,
         releaseDate: releaseDate || undefined,
+        genre: genre || undefined,
         tags: tags.length > 0 ? tags : undefined,
       });
       toast.success("Playlist updated.");
@@ -287,12 +290,65 @@ export function EditPlaylistModal({
                       <option value="EP">EP</option>
                     </select>
                   </div>
+                  <label className={labelCls}>Release date</label>
                   <div>
                     <DatePickerInput
                       value={releaseDate}
                       onChange={setReleaseDate}
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label className={labelCls}>Genre</label>
+                  <select
+                    value={genre}
+                    onChange={(e) =>
+                      setGenre(e.target.value === "None" ? "" : e.target.value)
+                    }
+                    className={inputCls}
+                  >
+                    {[
+                      "None",
+                      "electronic",
+                      "hip-hop",
+                      "pop",
+                      "rock",
+                      "alternative",
+                      "ambient",
+                      "classical",
+                      "jazz",
+                      "r-b-soul",
+                      "metal",
+                      "folk-singer-songwriter",
+                      "country",
+                      "reggaeton",
+                      "dancehall",
+                      "drum-bass",
+                      "house",
+                      "techno",
+                      "deep-house",
+                      "trance",
+                      "lo-fi",
+                      "indie",
+                      "punk",
+                      "blues",
+                      "latin",
+                      "afrobeat",
+                      "trap",
+                      "experimental",
+                      "world",
+                      "gospel",
+                      "spoken-word",
+                      "quran",
+                      "sha3by",
+                      "islamic",
+                    ].map((g) => (
+                      <option key={g} value={g}>
+                        {g === "None" ? "— None —" : g}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
@@ -408,7 +464,7 @@ export function EditPlaylistModal({
                       type="button"
                       onClick={handleSaveOrder}
                       disabled={reordering}
-                      className="px-4 py-2 text-sm font-bold bg-[#f50] hover:bg-[#e64a00] disabled:opacity-50 text-white rounded transition-colors cursor-pointer"
+                      className="px-4 py-2 text-sm font-bold bg-white hover:bg-neutral-600 disabled:opacity-50 text-white rounded transition-colors cursor-pointer"
                     >
                       {reordering ? "Saving…" : "Save order"}
                     </button>

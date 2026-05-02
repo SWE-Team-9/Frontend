@@ -166,7 +166,7 @@ export const EditTrackModal: React.FC<EditTrackModalProps> = ({
             <div className="flex flex-col gap-2 flex-1 sm:flex-none sm:w-full">
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="text-xs text-zinc-400 hover:text-white border border-zinc-700 rounded px-3 py-1.5 transition-colors w-full text-center"
+                className="text-xs text-zinc-400 hover:text-white border cursor-pointer border-zinc-700 rounded px-3 py-1.5 transition-colors w-full text-center"
               >
                 Replace image
               </button>
@@ -233,12 +233,56 @@ export const EditTrackModal: React.FC<EditTrackModalProps> = ({
                     <label className="block text-xs text-zinc-400 mb-1.5">
                       Genre
                     </label>
-                    <input
-                      value={genre}
-                      onChange={(e) => setGenre(e.target.value)}
-                      placeholder="e.g. Pop, Hip-Hop, Electronic"
-                      className="w-full bg-[#111] border border-zinc-700 rounded-md px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
-                    />
+                    <select
+                      value={genre || "None"}
+                      onChange={(e) =>
+                        setGenre(
+                          e.target.value === "None" ? "" : e.target.value,
+                        )
+                      }
+                      className="w-full bg-[#111] border border-zinc-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-zinc-500 transition-colors"
+                    >
+                      {[
+                        "None",
+                        "electronic",
+                        "hip-hop",
+                        "pop",
+                        "rock",
+                        "alternative",
+                        "ambient",
+                        "classical",
+                        "jazz",
+                        "r-b-soul",
+                        "metal",
+                        "folk-singer-songwriter",
+                        "country",
+                        "reggaeton",
+                        "dancehall",
+                        "drum-bass",
+                        "house",
+                        "techno",
+                        "deep-house",
+                        "trance",
+                        "lo-fi",
+                        "indie",
+                        "punk",
+                        "blues",
+                        "latin",
+                        "afrobeat",
+                        "trap",
+                        "experimental",
+                        "world",
+                        "gospel",
+                        "spoken-word",
+                        "quran",
+                        "sha3by",
+                        "islamic",
+                      ].map((g) => (
+                        <option key={g} value={g}>
+                          {g === "None" ? "— None —" : g}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <div>
@@ -323,7 +367,7 @@ export const EditTrackModal: React.FC<EditTrackModalProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={onClose}
-              className="px-4 py-1.5 text-sm text-zinc-400 hover:text-white border border-zinc-700 rounded-md transition-colors"
+              className="px-4 py-1.5 text-sm text-zinc-400 cursor-pointer hover:text-white border border-zinc-700 rounded-md transition-colors"
             >
               Cancel
             </button>

@@ -33,7 +33,10 @@ type ProfileDraft = {
  *   fetch and treat the profile store as already populated. The caller is
  *   responsible for seeding useProfileStore before calling this hook.
  */
-export const useProfileController = (handle?: string, externalProfileId?: string) => {
+export const useProfileController = (
+  handle?: string,
+  externalProfileId?: string,
+) => {
   const store = useProfileStore();
 
   const [fetchedUserId, setFetchedUserId] = useState<string | null>(null);
@@ -52,14 +55,7 @@ export const useProfileController = (handle?: string, externalProfileId?: string
   const [isCoverUploading, setIsCoverUploading] = useState(false);
   const hasRequestedProfileRef = useRef(false);
 
-  const tabs = [
-    "All",
-    "Popular tracks",
-    "Tracks",
-    "Albums",
-    "Playlists",
-    "Reposts",
-  ];
+  const tabs = ["All", "Popular tracks", "Tracks", "Playlists", "Reposts"];
 
   const genres = [
     "None",
@@ -234,17 +230,19 @@ export const useProfileController = (handle?: string, externalProfileId?: string
   };
 
   const handleAvatarDelete = async () => {
-  await deleteProfileImage("avatar");
-  // Keep the profile store in sync so the avatar disappears everywhere on the page
-  setProfileData({ avatarUrl: null });
-};
+    await deleteProfileImage("avatar");
+    // Keep the profile store in sync so the avatar disappears everywhere on the page
+    setProfileData({ avatarUrl: null });
+  };
 
-const handleCoverDelete = async () => {
-  await deleteProfileImage("cover");
-  setProfileData({ coverUrl: null });
-};
+  const handleCoverDelete = async () => {
+    await deleteProfileImage("cover");
+    setProfileData({ coverUrl: null });
+  };
 
-  const handleAvatarUpload = async (file: File): Promise<string | undefined> => {
+  const handleAvatarUpload = async (
+    file: File,
+  ): Promise<string | undefined> => {
     if (isAvatarUploading) return store.avatarUrl || undefined;
 
     try {
@@ -259,7 +257,9 @@ const handleCoverDelete = async () => {
 
         const authUser = useAuthStore.getState().user;
         if (authUser) {
-          useAuthStore.getState().setUser({ ...authUser, avatarUrl: uploadedUrl });
+          useAuthStore
+            .getState()
+            .setUser({ ...authUser, avatarUrl: uploadedUrl });
         }
       }
 
@@ -290,7 +290,9 @@ const handleCoverDelete = async () => {
       return uploadedUrl;
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } };
-      setError(axiosErr.response?.data?.message || "Failed to upload cover photo.");
+      setError(
+        axiosErr.response?.data?.message || "Failed to upload cover photo.",
+      );
       throw err;
     } finally {
       setIsCoverUploading(false);
