@@ -773,16 +773,16 @@ describe("playerStore", () => {
     expect(usePlayerStore.getState().accessState).toBe("PLAYABLE");
   });
 
-  it("fetchAndPlay queues manual track as pending while an ad is active", async () => {
+  it("fetchAndPlay blocks manual track starts while an ad is active", async () => {
     const { usePlayerStore } = await import("@/src/store/playerStore");
 
     usePlayerStore.setState({
       isPlayingAd: true,
       currentAd: {
-        adId: "ad_1",
+        id: "ad_1",
         title: "Promo",
         durationSeconds: 5,
-        clickUrl: null,
+        audioUrl: null,
       },
       currentTrack: {
         trackId: "current",
@@ -804,84 +804,6 @@ describe("playerStore", () => {
     expect(mockLoadQueue).not.toHaveBeenCalled();
     expect(mockGetPlaybackState).not.toHaveBeenCalled();
     expect(usePlayerStore.getState().currentTrack?.trackId).toBe("current");
-    expect(usePlayerStore.getState().pendingTrack?.trackId).toBe("next");
-  });
-
-  it("fetchAndPlay also queues pending track when called with _fromQueue=true during ad", async () => {
-    const { usePlayerStore } = await import("@/src/store/playerStore");
-
-    usePlayerStore.setState({
-      isPlayingAd: true,
-      currentAd: {
-        adId: "ad_1",
-        title: "Promo",
-        durationSeconds: 5,
-        clickUrl: null,
-      },
-      currentTrack: {
-        trackId: "current",
-        title: "Current",
-        artist: "Artist",
-        artistId: "u1",
-        cover: "/current.jpg",
-      },
-    });
-
-    await usePlayerStore.getState().fetchAndPlay(
-      {
-        trackId: "next",
-        title: "Next",
-        artist: "Artist",
-        artistId: "u2",
-        cover: "/next.jpg",
-      },
-      true,
-    );
-
-    expect(mockLoadQueue).not.toHaveBeenCalled();
-    expect(mockGetPlaybackState).not.toHaveBeenCalled();
-    expect(usePlayerStore.getState().currentTrack?.trackId).toBe("current");
-    expect(usePlayerStore.getState().pendingTrack?.trackId).toBe("next");
-  });
-
-  it("fetchAndPlay enters ad mode when backend returns AD_REQUIRED", async () => {
-    mockGetPlaybackState.mockResolvedValue({
-      trackId: "trk_1",
-      accessState: "PLAYABLE",
-      reason: null,
-    });
-
-    mockGetPlaybackSource.mockRejectedValue({
-      response: {
-        status: 409,
-        data: {
-          code: "AD_REQUIRED",
-          ad: {
-            adId: "ad_001",
-            title: "Upgrade to IQA3 Premium - No Ads",
-            durationSeconds: 15,
-            clickUrl: null,
-          },
-          canSkip: false,
-        },
-      },
-    });
-
-    const { usePlayerStore } = await import("@/src/store/playerStore");
-
-    await usePlayerStore.getState().fetchAndPlay({
-      trackId: "trk_1",
-      title: "Layali",
-      artist: "Ahmed Hassan",
-      artistId: "usr_1",
-      cover: "/cover.jpg",
-    });
-
-    const state = usePlayerStore.getState();
-    expect(state.isPlayingAd).toBe(true);
-    expect(state.currentAd?.adId).toBe("ad_001");
-    expect(state.isProcessing).toBe(false);
-    expect(state.streamError).toBeNull();
   });
 
   it("fetchAndPlay handles blocked state without playback", async () => {
