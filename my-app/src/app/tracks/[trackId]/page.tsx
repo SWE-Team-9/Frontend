@@ -225,7 +225,7 @@ export default function TrackDetailPage() {
         <div className="mx-auto max-w-7xl px-6 py-8">
           <div className="flex flex-col md:flex-row items-start gap-6">
             {/* Left: play + title + waveform */}
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 order-last md:order-first">
               <div className="flex items-start gap-4 mb-6">
                 <button
                   type="button"
@@ -296,7 +296,7 @@ export default function TrackDetailPage() {
             </div>
 
             {/* Right: large cover */}
-            <div className="relative w-48 h-48 md:w-64 md:h-64 shrink-0 rounded overflow-hidden bg-black">
+            <div className="relative w-full md:w-48 h-48 shrink-0 rounded-md overflow-hidden bg-[#222] shadow-2xl order-first md:order-last">
               <Image
                 src={track.coverArtUrl || "/images/track-placeholder.png"}
                 alt={`${track.title} cover art`}

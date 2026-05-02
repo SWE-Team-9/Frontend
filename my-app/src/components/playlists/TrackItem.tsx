@@ -2,7 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePlayerStore, type Track as PlayerTrack } from "@/src/store/playerStore";
+import {
+  usePlayerStore,
+  type Track as PlayerTrack,
+} from "@/src/store/playerStore";
 import {
   FaMusic,
   FaTimes,
@@ -40,7 +43,9 @@ interface Props {
 function formatDuration(seconds?: number): string {
   if (!seconds) return "";
   const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60).toString().padStart(2, "0");
+  const s = Math.floor(seconds % 60)
+    .toString()
+    .padStart(2, "0");
   return `${m}:${s}`;
 }
 
@@ -116,21 +121,24 @@ export function TrackItem({
         </div>
       </button>
 
-      <div className="flex-1 min-w-0">
-        <Link
-          href={trackHref}
-          className="block truncate text-sm text-white transition duration-200 hover:text-neutral-600"
-        >
-          {track.title}
-        </Link>
+      <div className="flex-1 min-w-0 flex items-center gap-1 truncate">
         {track.artist && (
           <UserProfileLink
             handle={track.artistHandle}
-            className="block truncate text-xs text-zinc-500 hover:text-white transition-colors"
+            className="shrink-0 text-md font-bold text-zinc-500 hover:text-white transition-colors"
           >
             {track.artist}
           </UserProfileLink>
         )}
+        {track.artist && (
+          <span className="shrink-0 text-zinc-500 font-bold">.</span>
+        )}
+        <Link
+          href={trackHref}
+          className="truncate text-md font-bold text-white transition duration-200 hover:text-neutral-600"
+        >
+          {track.title}
+        </Link>
       </div>
 
       <span className="text-xs text-zinc-500">
