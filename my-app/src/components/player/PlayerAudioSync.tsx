@@ -52,11 +52,16 @@ export default function PlayerAudioSync() {
 
     const handleEnded = async () => {
       const state = usePlayerStore.getState();
-      // If an ad with audio just ended, notify backend then advance through the backend queue.
+      // If an ad with audio just ended, notify backend then play pending user-selected track (if any).
       if (state.isPlayingAd) {
-        usePlayerStore.setState({ isPlayingAd: false, currentAd: null, adElapsedSeconds: 0 });
+        const pending = state.pendingTrack;
+        usePlayerStore.setState({ isPlayingAd: false, currentAd: null, pendingTrack: null, adElapsedSeconds: 0 });
         try { await completeAd(); } catch { /* non-fatal */ }
-        await usePlayerStore.getState().nextTrack();
+        if (pending) {
+          await usePlayerStore.getState().fetchAndPlay(pending, true);
+        } else {
+          await usePlayerStore.getState().nextTrack();
+        }
         return;
       }
       await state.persistProgress();
@@ -109,10 +114,15 @@ export default function PlayerAudioSync() {
           clearInterval(adIntervalRef.current);
           adIntervalRef.current = null;
         }
-        usePlayerStore.setState({ isPlayingAd: false, currentAd: null, adElapsedSeconds: 0 });
+        const pending = usePlayerStore.getState().pendingTrack;
+        usePlayerStore.setState({ isPlayingAd: false, currentAd: null, adElapsedSeconds: 0, pendingTrack: null });
         // Notify backend that ad completed before advancing
         try { await completeAd(); } catch { /* non-fatal */ }
-        await usePlayerStore.getState().nextTrack();
+        if (pending) {
+          await usePlayerStore.getState().fetchAndPlay(pending, true);
+        } else {
+          await usePlayerStore.getState().nextTrack();
+        }
       }, currentAd.durationSeconds * 1000);
     }
 
