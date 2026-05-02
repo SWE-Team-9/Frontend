@@ -206,6 +206,34 @@ describe("subscriptionService (real API mode)", () => {
       expect(result.expiresAt).toBe("2026-05-28T00:00:00.000Z");
       expect(result.renewalDate).toBeNull();
     });
+
+    it("normalizes pending plan change when backend nests it under paymentMethod", async () => {
+      mockApiGet.mockResolvedValue({
+        data: {
+          ...PRO_CANCEL_PENDING_RESPONSE,
+          pendingDowngrade: null,
+          paymentMethod: {
+            brand: "visa",
+            last4: "4242",
+            expiryMonth: 12,
+            expiryYear: 2030,
+            isDefault: true,
+            pendingDowngrade: {
+              planCode: "GO_PLUS",
+              planId: "plan-go-plus",
+              planName: "GO+",
+              effectiveAt: "2026-05-28T00:00:00.000Z",
+            },
+          },
+        },
+      });
+      const { getMySubscription } = await import("@/src/services/subscriptionService");
+
+      const result = await getMySubscription();
+
+      expect(result.pendingDowngrade?.planCode).toBe("GO_PLUS");
+      expect(result.pendingDowngrade?.planName).toBe("GO+");
+    });
   });
 
   // ── getSubscriptionPlans ──────────────────────────────────────────────────
