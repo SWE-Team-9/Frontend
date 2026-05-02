@@ -11,7 +11,7 @@ import {
   FiEye
 } from 'react-icons/fi';
 import { Music, User, ShieldAlert, ShieldCheck } from 'lucide-react';
-import { adminService } from '@/src/services/admin/adminService';
+import { adminService } from '@/src/services/admin/adminServiceFactory';
 import { TablePagination } from '@/src/components/admin/TablePagination';
 
 export default function ReportsPage() {
@@ -218,7 +218,7 @@ export default function ReportsPage() {
       </div>
 
       {confirmModal.isOpen && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[999] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-999 flex items-center justify-center p-4">
           <div className="bg-zinc-950 border border-zinc-800 p-8 rounded-3xl max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200">
             <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-6 ${
               confirmModal.mode === 'SUSPEND' ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'

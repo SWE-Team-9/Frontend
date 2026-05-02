@@ -5,25 +5,37 @@ import { useRouter } from "next/navigation";
 import { useResolvePermalink } from "@/src/hooks/useResolvePermalink";
 
 interface Props {
-  params: Promise<{ handle: string; slug: string }>;
+  params: Promise<{ handle: string }>;
 }
 
-export default function PlaylistBySlugPage({ params }: Props) {
-  const { handle, slug } = use(params);
+export default function HandlePage({ params }: Props) {
+  const { handle } = use(params);
   const router = useRouter();
 
-  const permalink = `/${handle}/sets/${slug}`;
-  const { data, loading, error } = useResolvePermalink(permalink);
+  const { data, loading, error } = useResolvePermalink(handle);
 
   useEffect(() => {
     if (!data) return;
 
-    if (data.matched && data.resourceType === "PLAYLIST" && data.id) {
-      router.replace(`/playlists/${data.id}`);
+    if (!data.matched) {
+      router.replace("/404");
+      return;
     }
-  }, [data, router]);
 
-  if (loading || (data?.matched && data.resourceType === "PLAYLIST")) {
+    switch (data.resourceType) {
+      case "USER":
+        router.replace(`/profiles/${handle}`);
+        break;
+      case "TRACK":
+        router.replace(`/tracks/${data.id}`);
+        break;
+      case "PLAYLIST":
+        router.replace(`/playlists/${data.id}`);
+        break;
+    }
+  }, [data, router, handle]);
+
+  if (loading) {
     return (
       <div className="min-h-screen bg-[#121212] flex items-center justify-center">
         <p className="text-zinc-500 animate-pulse uppercase tracking-widest text-sm">
@@ -33,9 +45,13 @@ export default function PlaylistBySlugPage({ params }: Props) {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-[#121212] flex items-center justify-center">
-      <p className="text-zinc-500">Playlist not found.</p>
-    </div>
-  );
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#121212] flex items-center justify-center">
+        <p className="text-zinc-500">Profile not found.</p>
+      </div>
+    );
+  }
+
+  return null;
 }

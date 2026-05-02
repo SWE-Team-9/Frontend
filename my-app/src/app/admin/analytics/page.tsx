@@ -137,15 +137,15 @@ export default function AnalyticsPage() {
         </div>
 
         {dailyLoading ? (
-          <div className="h-[300px] flex items-center justify-center text-zinc-600 text-sm">
+          <div className="h-75 flex items-center justify-center text-zinc-600 text-sm">
             Loading daily data...
           </div>
         ) : growthData.length === 0 ? (
-          <div className="h-[300px] flex items-center justify-center text-zinc-600 text-sm italic">
+          <div className="h-75 flex items-center justify-center text-zinc-600 text-sm italic">
             No daily data available for this period.
           </div>
         ) : (
-          <div className="h-[300px]">
+          <div className="h-75">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={growthData}>
                 <defs>
@@ -201,7 +201,7 @@ export default function AnalyticsPage() {
             </h2>
           </div>
 
-          <div className="h-[200px]">
+          <div className="h-75">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={playsData}>
                 <XAxis dataKey="name" stroke="#52525b" fontSize={10} />

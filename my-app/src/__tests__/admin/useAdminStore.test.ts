@@ -1,9 +1,9 @@
 import { useAdminStore } from '@/src/store/useAdminStore'; 
-import { adminService } from '@/src/services/admin/adminService';
+import { adminService } from '@/src/services/admin/adminServiceFactory';
 import { useAuthStore } from '@/src/store/useAuthStore';
 import { AdminStats, AdminUser, Report } from '@/src/types/admin';
 
-jest.mock('@/src/services/admin/adminService');
+jest.mock('@/src/services/admin/adminServiceFactory');
 jest.mock('@/src/store/useAuthStore');
 
 describe('useAdminStore - Unified High-Coverage Suite', () => {

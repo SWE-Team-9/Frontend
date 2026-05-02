@@ -4,10 +4,10 @@ import { useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useResolvePermalink } from "@/src/hooks/useResolvePermalink";
 
-export default function PermalinkResolverPage() {
+export default function PlaylistPermalinkResolverPage() {
   const router = useRouter();
   const params = useParams<{ handle: string; slug: string }>();
-  const permalink = `${params.handle}/${params.slug}`;
+  const permalink = `${params.handle}/sets/${params.slug}`;
 
   const { data, loading, error } = useResolvePermalink(permalink);
 
@@ -20,14 +20,14 @@ export default function PermalinkResolverPage() {
     }
 
     switch (data.resourceType) {
-      case "USER":
-        router.replace(`/profiles/${params.handle}`);
+      case "PLAYLIST":
+        router.replace(`/playlists/${data.id}`);
         break;
       case "TRACK":
         router.replace(`/tracks/${data.id}`);
         break;
-      case "PLAYLIST":
-        router.replace(`/playlists/${data.id}`);
+      case "USER":
+        router.replace(`/profiles/${params.handle}`);
         break;
     }
   }, [data, router, params.handle]);

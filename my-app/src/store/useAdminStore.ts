@@ -2,7 +2,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { adminService } from '@/src/services/admin/adminService';
+import { adminService } from '@/src/services/admin/adminServiceFactory';
 import { useAuthStore } from './useAuthStore';
 import {
   AdminUser,

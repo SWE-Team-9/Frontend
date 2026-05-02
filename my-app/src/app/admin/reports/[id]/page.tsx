@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import { adminService } from "@/src/services/admin/adminService";
+import { adminService } from "@/src/services/admin/adminServiceFactory"
 import { useAdminStore } from "@/src/store/useAdminStore";
 import { useAuthStore } from "@/src/store/useAuthStore";
 import {

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { adminService } from '@/src/services/admin/adminService';
+import { adminService } from '@/src/services/admin/adminServiceFactory';
 import { FiArrowLeft, FiShield, FiClock, FiFlag } from 'react-icons/fi'; // Removed FiBarChart2
 import { Music, Users, Calendar, Crown } from 'lucide-react';
 import { AdminUser, ModerationAction } from '@/src/types/admin'; // Import your types
