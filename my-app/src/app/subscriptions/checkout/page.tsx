@@ -83,6 +83,21 @@ function CheckoutContent() {
     try {
       const result = await upgrade(plan.upgradeType);
       if (result.checkoutUrl) {
+        // In mock billing mode, avoid redirecting to the placeholder domain.
+        // Route to in-app success so users do not hit a dead external URL.
+        if (typeof window !== "undefined") {
+          const checkout = new URL(result.checkoutUrl, window.location.origin);
+          if (checkout.hostname === "mock-checkout.example.com") {
+            const sessionFromUrl = checkout.searchParams.get("session");
+            const sessionId = sessionFromUrl ?? result.checkoutSessionId ?? "";
+            const next = new URL("/subscriptions/success", window.location.origin);
+            next.searchParams.set("plan", plan.upgradeType);
+            if (sessionId) next.searchParams.set("session_id", sessionId);
+            router.push(`${next.pathname}${next.search}`);
+            return;
+          }
+        }
+
         setRedirecting(true);
         window.location.assign(result.checkoutUrl);
         return;
