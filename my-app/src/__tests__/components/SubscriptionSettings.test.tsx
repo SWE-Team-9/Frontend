@@ -32,6 +32,7 @@ function makeDefaultSubState() {
       subscriptionType: "FREE" | "PRO" | "GO+" | "GO_PLUS";
       planName: string;
       isPremium: boolean;
+      subscriptionStatus: string | null;
       uploadLimit: number;
       uploadedTracks: number;
       remainingUploads: number | null;
@@ -83,6 +84,7 @@ const FREE_SUB = {
   subscriptionType: "FREE" as const,
   planName: "Free",
   isPremium: false,
+  subscriptionStatus: null,
   uploadLimit: 3,
   uploadedTracks: 1,
   remainingUploads: 2,
@@ -101,6 +103,7 @@ const PRO_SUB = {
   subscriptionType: "PRO" as const,
   planName: "Artist Pro",
   isPremium: true,
+  subscriptionStatus: "ACTIVE",
   uploadLimit: 100,
   uploadedTracks: 10,
   remainingUploads: 90,
@@ -184,6 +187,35 @@ describe("SubscriptionSettings", () => {
       expect(screen.getByRole("button", { name: /Cancel/i })).toBeInTheDocument();
     });
 
+    it("does not show free trial messaging for GO_PLUS even if stale trial fields exist", () => {
+      setup({
+        sub: {
+          ...PRO_SUB,
+          subscriptionType: "GO_PLUS",
+          planName: "Go+ Monthly",
+          trialStart: "2026-04-28T00:05:31.680Z",
+          trialEnd: "2026-05-28T12:46:38.461Z",
+        },
+      });
+
+      expect(screen.queryByText(/Free trial ends/i)).not.toBeInTheDocument();
+      expect(screen.getByText(/Renews/i)).toBeInTheDocument();
+    });
+
+    it("shows free trial messaging only for active PRO trials", () => {
+      setup({
+        sub: {
+          ...PRO_SUB,
+          subscriptionStatus: "TRIALING",
+          trialStart: "2026-05-01T00:00:00.000Z",
+          trialEnd: "2099-05-08T00:00:00.000Z",
+        },
+      });
+
+      expect(screen.getByText(/Free trial ends/i)).toBeInTheDocument();
+      expect(screen.queryByText(/Renews/i)).not.toBeInTheDocument();
+    });
+
     it("shows upload quota progress bar for paid users", () => {
       setup({ sub: PRO_SUB });
 
@@ -201,6 +233,13 @@ describe("SubscriptionSettings", () => {
       expect(screen.getByText(/Resume/i)).toBeInTheDocument();
       expect(screen.queryByText(/Switch to/i)).not.toBeInTheDocument();
       expect(screen.queryByRole("button", { name: /Cancel/i })).not.toBeInTheDocument();
+    });
+
+    it("does not show Resume when subscription is active and not canceling", () => {
+      setup({ sub: PRO_SUB });
+
+      expect(screen.queryByRole("button", { name: /Resume/i })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Cancel/i })).toBeInTheDocument();
     });
 
     it("shows cancellation date when cancelAtPeriodEnd is true", () => {

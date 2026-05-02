@@ -135,6 +135,13 @@ export function normalizeBackendSubscription(raw: Record<string, unknown>): Subs
   
 const subscriptionType: "FREE" | "PRO" | "GO+" = 
     planCode === "GO+" ? "GO+" : planCode === "PRO" ? "PRO" : "FREE";
+  const subscriptionStatus = (raw.subscriptionStatus as string) ?? null;
+  const rawTrialEnd = (raw.trialEnd as string) ?? null;
+  const hasActiveProTrial =
+    subscriptionType === "PRO" &&
+    subscriptionStatus === "TRIALING" &&
+    rawTrialEnd !== null &&
+    new Date(rawTrialEnd).getTime() > Date.now();
   const adsEnabled = (raw.adsEnabled as boolean) ?? true;
   const canDownload = (raw.canDownload as boolean) ?? false;
 
@@ -168,7 +175,7 @@ const subscriptionType: "FREE" | "PRO" | "GO+" =
     planCode,
     planName: PLAN_CONFIG[subscriptionType]?.label || (raw.planName as string) || subscriptionType,
     isPremium: (raw.isPremium as boolean) ?? planCode !== "FREE",
-    subscriptionStatus: (raw.subscriptionStatus as string) ?? null,
+    subscriptionStatus,
     uploadLimit,
     uploadedTracks: (raw.uploadedTracks as number) ?? 0,
     remainingUploads: raw.remainingUploads === null ? null : ((raw.remainingUploads as number) ?? uploadLimit),
@@ -176,8 +183,8 @@ const subscriptionType: "FREE" | "PRO" | "GO+" =
     currentPeriodEnd: (raw.currentPeriodEnd as string) ?? null,
     renewalDate: (raw.renewalDate as string) ?? null,
     expiresAt: (raw.expiresAt as string) ?? null,
-    trialStart: (raw.trialStart as string) ?? null,
-    trialEnd: (raw.trialEnd as string) ?? null,
+    trialStart: hasActiveProTrial ? ((raw.trialStart as string) ?? null) : null,
+    trialEnd: hasActiveProTrial ? rawTrialEnd : null,
     paymentMethodSummary,
     pendingDowngrade: (raw.pendingDowngrade as PendingDowngrade) ?? null,
     latestInvoice: (raw.latestInvoice as Invoice) ?? null,

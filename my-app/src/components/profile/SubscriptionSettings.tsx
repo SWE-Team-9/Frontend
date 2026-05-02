@@ -208,6 +208,12 @@ export default function SubscriptionSettings() {
   const isPro = isProOnly || isGoPlus;
   const paidPlanKey = isGoPlus ? "GO+" : "PRO";
   const planLabel = isPro ? paidPlanKey : "Basic";
+  const trialEndsAt = sub?.trialEnd ? new Date(sub.trialEnd) : null;
+  const showTrialNotice =
+    isProOnly &&
+    sub?.subscriptionStatus === "TRIALING" &&
+    trialEndsAt !== null &&
+    !isNaN(trialEndsAt.getTime());
   const isCancelPending =
     (sub?.cancelAtPeriodEnd ?? false) && !sub?.pendingDowngrade;
   const canSwitchUp =
@@ -350,10 +356,15 @@ export default function SubscriptionSettings() {
                   </p>
                 )}
                 {/* Trial notice */}
-                {sub?.trialEnd && !isCancelPending && (
+                {showTrialNotice && !isCancelPending && (
                   <p className="text-violet-400 text-xs mt-1 font-semibold">
                     Free trial ends{" "}
-                    {new Date(sub.trialEnd).toLocaleDateString()}
+                    {trialEndsAt.toLocaleDateString()}
+                  </p>
+                )}
+                {isPro && !isCancelPending && !showTrialNotice && sub?.renewalDate && (
+                  <p className="text-green-400 text-xs mt-1 font-semibold">
+                    Renews {new Date(sub.renewalDate).toLocaleDateString()}
                   </p>
                 )}
               </div>
