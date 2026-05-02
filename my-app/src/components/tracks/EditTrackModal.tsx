@@ -29,20 +29,12 @@ interface EditTrackModalProps {
   }) => void;
 }
 
-type Tab = "basic" | "metadata";
-
-const TABS: { id: Tab; label: string }[] = [
-  { id: "basic", label: "Basic info" },
-  { id: "metadata", label: "Metadata" },
-];
-
 export const EditTrackModal: React.FC<EditTrackModalProps> = ({
   trackId,
   initialData,
   onClose,
   onSaved,
 }) => {
-  const [activeTab, setActiveTab] = useState<Tab>("basic");
   const [title, setTitle] = useState(initialData.title);
   const [genre, setGenre] = useState(initialData.genre);
   const [tags, setTags] = useState<string[]>(initialData.tags ?? []);
@@ -144,7 +136,7 @@ export const EditTrackModal: React.FC<EditTrackModalProps> = ({
           </button>
         </div>
 
-        {/* Body — scrollable */}
+        {/* Body */}
         <div className="flex flex-col sm:flex-row flex-1 overflow-hidden">
           {/* Left — cover art */}
           <div className="sm:w-52 shrink-0 flex sm:flex-col items-center gap-3 p-5 border-b sm:border-b-0 sm:border-r border-zinc-800 bg-[#141414]">
@@ -185,26 +177,8 @@ export const EditTrackModal: React.FC<EditTrackModalProps> = ({
             </div>
           </div>
 
-          {/* Right — tabs + fields */}
+          {/* Right — fields */}
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-            {/* Tabs */}
-            <div className="flex border-b border-zinc-800 px-5 shrink-0">
-              {TABS.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-px ${
-                    activeTab === tab.id
-                      ? "border-white text-white"
-                      : "border-transparent text-zinc-500 hover:text-zinc-300"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Fields */}
             <div className="flex-1 overflow-y-auto p-5 space-y-4">
               {error && (
                 <p className="text-xs text-red-400 bg-red-900/20 border border-red-900/40 rounded px-3 py-2">
@@ -212,149 +186,109 @@ export const EditTrackModal: React.FC<EditTrackModalProps> = ({
                 </p>
               )}
 
-              {activeTab === "basic" && (
-                <>
-                  <div>
-                    <label className="block text-xs text-zinc-400 mb-1.5">
-                      Title <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      value={title}
-                      onChange={(e) => {
-                        setTitle(e.target.value);
-                        if (error) setError(null);
-                      }}
-                      placeholder="Track title"
-                      className="w-full bg-[#111] border border-zinc-700 rounded-md px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
-                    />
-                  </div>
+              <div>
+                <label className="block text-xs text-zinc-400 mb-1.5">
+                  Title <span className="text-red-500">*</span>
+                </label>
+                <input
+                  value={title}
+                  onChange={(e) => {
+                    setTitle(e.target.value);
+                    if (error) setError(null);
+                  }}
+                  placeholder="Track title"
+                  className="w-full bg-[#111] border border-zinc-700 rounded-md px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
+                />
+              </div>
 
-                  <div>
-                    <label className="block text-xs text-zinc-400 mb-1.5">
-                      Genre
-                    </label>
-                    <select
-                      value={genre || "None"}
-                      onChange={(e) =>
-                        setGenre(
-                          e.target.value === "None" ? "" : e.target.value,
-                        )
-                      }
-                      className="w-full bg-[#111] border border-zinc-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-zinc-500 transition-colors"
+              <div>
+                <label className="block text-xs text-zinc-400 mb-1.5">
+                  Genre
+                </label>
+                <select
+                  value={genre || "None"}
+                  onChange={(e) =>
+                    setGenre(e.target.value === "None" ? "" : e.target.value)
+                  }
+                  className="w-full bg-[#111] border border-zinc-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-zinc-500 transition-colors"
+                >
+                  {[
+                    "None", "electronic", "hip-hop", "pop", "rock",
+                    "alternative", "ambient", "classical", "jazz", "r-b-soul",
+                    "metal", "folk-singer-songwriter", "country", "reggaeton",
+                    "dancehall", "drum-bass", "house", "techno", "deep-house",
+                    "trance", "lo-fi", "indie", "punk", "blues", "latin",
+                    "afrobeat", "trap", "experimental", "world", "gospel",
+                    "spoken-word", "quran", "sha3by", "islamic",
+                  ].map((g) => (
+                    <option key={g} value={g}>
+                      {g === "None" ? "— None —" : g}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs text-zinc-400 mb-1.5">
+                  Release date
+                </label>
+                <DatePickerInput value={releaseDate} onChange={setReleaseDate} />
+              </div>
+
+              <div>
+                <label className="block text-xs text-zinc-400 mb-1.5">
+                  Additional tags
+                </label>
+                <div className="min-h-10 flex flex-wrap gap-1.5 bg-[#111] border border-zinc-700 rounded-md px-3 py-2 focus-within:border-zinc-500 transition-colors">
+                  {tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="inline-flex items-center gap-1 bg-zinc-800 text-zinc-300 text-xs rounded px-2 py-0.5"
                     >
-                      {[
-                        "None",
-                        "electronic",
-                        "hip-hop",
-                        "pop",
-                        "rock",
-                        "alternative",
-                        "ambient",
-                        "classical",
-                        "jazz",
-                        "r-b-soul",
-                        "metal",
-                        "folk-singer-songwriter",
-                        "country",
-                        "reggaeton",
-                        "dancehall",
-                        "drum-bass",
-                        "house",
-                        "techno",
-                        "deep-house",
-                        "trance",
-                        "lo-fi",
-                        "indie",
-                        "punk",
-                        "blues",
-                        "latin",
-                        "afrobeat",
-                        "trap",
-                        "experimental",
-                        "world",
-                        "gospel",
-                        "spoken-word",
-                        "quran",
-                        "sha3by",
-                        "islamic",
-                      ].map((g) => (
-                        <option key={g} value={g}>
-                          {g === "None" ? "— None —" : g}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs text-zinc-400 mb-1.5">
-                      Additional tags
-                    </label>
-                    <div className="min-h-10 flex flex-wrap gap-1.5 bg-[#111] border border-zinc-700 rounded-md px-3 py-2 focus-within:border-zinc-500 transition-colors">
-                      {tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="inline-flex items-center gap-1 bg-zinc-800 text-zinc-300 text-xs rounded px-2 py-0.5"
-                        >
-                          #{tag}
-                          <button
-                            onClick={() => removeTag(tag)}
-                            className="text-zinc-500 hover:text-white ml-0.5"
-                          >
-                            <X className="w-2.5 h-2.5" />
-                          </button>
-                        </span>
-                      ))}
-                      <input
-                        value={tagInput}
-                        onChange={(e) => setTagInput(e.target.value)}
-                        onKeyDown={handleTagKeyDown}
-                        onBlur={() => {
-                          if (tagInput.trim()) {
-                            addTag(tagInput);
-                            setTagInput("");
-                          }
-                        }}
-                        placeholder={
-                          tags.length === 0 ? "Add tags (press Enter)" : ""
-                        }
-                        className="flex-1 min-w-25 bg-transparent text-sm text-white placeholder-zinc-600 focus:outline-none"
-                      />
-                    </div>
-                    <p className="text-[10px] text-zinc-600 mt-1">
-                      Press Enter or comma to add a tag
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs text-zinc-400 mb-1.5">
-                      Description
-                    </label>
-                    <textarea
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      placeholder="Describe your track"
-                      rows={4}
-                      maxLength={5000}
-                      className="w-full bg-[#111] border border-zinc-700 rounded-md px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors resize-none"
-                    />
-                    <p className="text-[10px] text-zinc-600 text-right mt-0.5">
-                      {description.length} / 5000
-                    </p>
-                  </div>
-                </>
-              )}
-
-              {activeTab === "metadata" && (
-                <div>
-                  <label className="block text-xs text-zinc-400 mb-1.5">
-                    Release date
-                  </label>
-                  <DatePickerInput
-                    value={releaseDate}
-                    onChange={setReleaseDate}
+                      #{tag}
+                      <button
+                        onClick={() => removeTag(tag)}
+                        className="text-zinc-500 hover:text-white ml-0.5"
+                      >
+                        <X className="w-2.5 h-2.5" />
+                      </button>
+                    </span>
+                  ))}
+                  <input
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    onKeyDown={handleTagKeyDown}
+                    onBlur={() => {
+                      if (tagInput.trim()) {
+                        addTag(tagInput);
+                        setTagInput("");
+                      }
+                    }}
+                    placeholder={tags.length === 0 ? "Add tags (press Enter)" : ""}
+                    className="flex-1 min-w-25 bg-transparent text-sm text-white placeholder-zinc-600 focus:outline-none"
                   />
                 </div>
-              )}
+                <p className="text-[10px] text-zinc-600 mt-1">
+                  Press Enter or comma to add a tag
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs text-zinc-400 mb-1.5">
+                  Description
+                </label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Describe your track"
+                  rows={4}
+                  maxLength={5000}
+                  className="w-full bg-[#111] border border-zinc-700 rounded-md px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors resize-none"
+                />
+                <p className="text-[10px] text-zinc-600 text-right mt-0.5">
+                  {description.length} / 5000
+                </p>
+              </div>
             </div>
           </div>
         </div>

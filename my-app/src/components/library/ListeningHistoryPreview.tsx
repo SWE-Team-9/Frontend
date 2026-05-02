@@ -46,7 +46,7 @@ export default function ListeningHistoryPreview() {
 
                 <Link
                     href="/library/history"
-                    className="hover:text-white text-[12px] transition-colors font-bold uppercase"
+                    className="hover:text-white text-zinc-400 text-[12px] transition-colors font-bold uppercase"
                 >
                     View all
                 </Link>

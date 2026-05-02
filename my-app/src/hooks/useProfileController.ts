@@ -55,7 +55,7 @@ export const useProfileController = (
   const [isCoverUploading, setIsCoverUploading] = useState(false);
   const hasRequestedProfileRef = useRef(false);
 
-  const tabs = ["All", "Popular tracks", "Tracks", "Playlists", "Reposts"];
+  const tabs = ["All", "Tracks", "Playlists", "Reposts"];
 
   const genres = [
     "None",

@@ -15,7 +15,7 @@ interface Props {
   onSaved?: (updated: Playlist) => void;
 }
 
-type Tab = "basic" | "tracks" | "tags";
+type Tab = "basic" | "tags";
 
 export function EditPlaylistModal({
   playlist,
@@ -33,7 +33,6 @@ export function EditPlaylistModal({
     playlist.releaseDate?.split("T")[0] ?? "",
   );
   const [genre, setGenre] = useState(playlist.genre ?? "");
-  const [playlistType, setPlaylistType] = useState(playlist.type ?? "Playlist");
   const [tags, setTags] = useState<string[]>(playlist.tags ?? []);
   const [tagInput, setTagInput] = useState("");
   const [coverPreview, setCoverPreview] = useState<string | null>(
@@ -41,16 +40,12 @@ export function EditPlaylistModal({
   );
   const [saving, setSaving] = useState(false);
   const [loadingEdit, setLoadingEdit] = useState(false);
-  const [localTracks, setLocalTracks] = useState(playlist.tracks ?? []);
-  const [reordering, setReordering] = useState(false);
-  const [dragIndex, setDragIndex] = useState<number | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!isOpen) return;
 
-    // All setState calls are inside .then() callbacks — none fire synchronously
     Promise.resolve()
       .then(() => setLoadingEdit(true))
       .then(() => playlistsApi.getEditDetails(playlist.playlistId))
@@ -60,70 +55,12 @@ export function EditPlaylistModal({
         setVisibility(data.visibility === "SECRET" ? "PRIVATE" : "PUBLIC");
         setReleaseDate(data.releaseDate?.split("T")[0] ?? "");
         setGenre(data.genre ?? "");
-        setPlaylistType(data.type ?? "Playlist");
         setTags(data.tags ?? []);
         setCoverPreview(data.coverImageUrl ?? null);
-        setLocalTracks(data.tracks ?? []);
         setLoadingEdit(false);
       })
       .catch(() => setLoadingEdit(false));
   }, [isOpen, playlist.playlistId]);
-
-  // keep localTracks in sync when playlist prop changes
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLocalTracks(playlist.tracks ?? []);
-  }, [playlist.tracks]);
-
-  const handleRemoveTrack = async (trackId: string) => {
-    const previous = localTracks;
-    setLocalTracks((prev) => prev.filter((t) => t.trackId !== trackId));
-    try {
-      await playlistsApi.removeTrackFromPlaylist(playlist.playlistId, trackId);
-      toast.success("Track removed");
-      onSaved?.({
-        ...playlist,
-        tracks: localTracks.filter((t) => t.trackId !== trackId),
-      });
-    } catch (err) {
-      setLocalTracks(previous);
-      toast.error(
-        err instanceof Error ? err.message : "Could not remove track",
-      );
-    }
-  };
-
-  const handleSaveOrder = async () => {
-    setReordering(true);
-    try {
-      await playlistsApi.reorderTracks(
-        playlist.playlistId,
-        localTracks.map((t) => t.trackId),
-      );
-      toast.success("Order saved");
-      onSaved?.({ ...playlist, tracks: localTracks });
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not save order");
-    } finally {
-      setReordering(false);
-    }
-  };
-
-  const handleDragStart = (index: number) => setDragIndex(index);
-
-  const handleDragOver = (e: React.DragEvent, index: number) => {
-    e.preventDefault();
-    if (dragIndex === null || dragIndex === index) return;
-    setLocalTracks((prev) => {
-      const next = [...prev];
-      const [moved] = next.splice(dragIndex, 1);
-      next.splice(index, 0, moved);
-      return next;
-    });
-    setDragIndex(index);
-  };
-
-  const handleDragEnd = () => setDragIndex(null);
 
   if (!isOpen) return null;
 
@@ -160,7 +97,6 @@ export function EditPlaylistModal({
         title: title.trim(),
         description: description.trim() || undefined,
         visibility: visibility === "PRIVATE" ? "secret" : "public",
-        type: playlistType !== "Playlist" ? playlistType : undefined,
         releaseDate: releaseDate || undefined,
         genre: genre || undefined,
         tags: tags.length > 0 ? tags : undefined,
@@ -212,7 +148,6 @@ export function EditPlaylistModal({
           {(
             [
               ["basic", "Basic info"],
-              ["tracks", "Tracks"],
               ["tags", "Tags"],
             ] as const
           ).map(([key, label]) => (
@@ -278,26 +213,12 @@ export function EditPlaylistModal({
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className={labelCls}>Playlist type</label>
-                    <select
-                      value={playlistType}
-                      onChange={(e) => setPlaylistType(e.target.value)}
-                      className={inputCls}
-                    >
-                      <option value="Playlist">Playlist</option>
-                      <option value="Album">Album</option>
-                      <option value="EP">EP</option>
-                    </select>
-                  </div>
+                <div>
                   <label className={labelCls}>Release date</label>
-                  <div>
-                    <DatePickerInput
-                      value={releaseDate}
-                      onChange={setReleaseDate}
-                    />
-                  </div>
+                  <DatePickerInput
+                    value={releaseDate}
+                    onChange={setReleaseDate}
+                  />
                 </div>
 
                 <div>
@@ -397,81 +318,6 @@ export function EditPlaylistModal({
                   </div>
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* TRACKS TAB */}
-          {tab === "tracks" && (
-            <div className="space-y-3">
-              {localTracks.length === 0 ? (
-                <p className="text-zinc-500 text-sm py-6 text-center">
-                  No tracks in this playlist.
-                </p>
-              ) : (
-                <>
-                  <p className="text-xs text-zinc-500 mb-2">
-                    Drag to reorder, then save.
-                  </p>
-                  <div className="space-y-1">
-                    {localTracks.map((track, index) => (
-                      <div
-                        key={track.trackId}
-                        draggable
-                        onDragStart={() => handleDragStart(index)}
-                        onDragOver={(e) => handleDragOver(e, index)}
-                        onDragEnd={handleDragEnd}
-                        className={`flex items-center gap-3 px-3 py-2 rounded bg-[#1a1a1a] border border-transparent hover:border-zinc-700 cursor-grab active:cursor-grabbing transition-colors ${
-                          dragIndex === index ? "opacity-40" : ""
-                        }`}
-                      >
-                        <span className="text-zinc-600 text-xs w-4 text-center select-none">
-                          {index + 1}
-                        </span>
-                        {track.coverArtUrl ? (
-                          <Image
-                            src={track.coverArtUrl}
-                            alt={track.title}
-                            width={36}
-                            height={36}
-                            className="rounded object-cover shrink-0"
-                            unoptimized
-                          />
-                        ) : (
-                          <div className="w-9 h-9 rounded bg-zinc-800 shrink-0" />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-white text-sm font-medium truncate">
-                            {track.title}
-                          </p>
-                          {track.artist && (
-                            <p className="text-zinc-500 text-xs truncate">
-                              {track.artist.name}
-                            </p>
-                          )}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveTrack(track.trackId)}
-                          className="text-zinc-600 hover:text-red-400 transition-colors p-1 cursor-pointer"
-                          aria-label="Remove track"
-                        >
-                          <FaTimes size={12} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex justify-end pt-2">
-                    <button
-                      type="button"
-                      onClick={handleSaveOrder}
-                      disabled={reordering}
-                      className="px-4 py-2 text-sm font-bold bg-white hover:bg-neutral-600 disabled:opacity-50 text-white rounded transition-colors cursor-pointer"
-                    >
-                      {reordering ? "Saving…" : "Save order"}
-                    </button>
-                  </div>
-                </>
-              )}
             </div>
           )}
 

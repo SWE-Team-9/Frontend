@@ -3,8 +3,13 @@
 import { usePlaylists } from "@/src/hooks/usePlaylists";
 import { ProfilePlaylistCard } from "@/src/components/profile/ProfilePlaylistCard";
 
-export function MyPlaylistsSection({ userId }: { userId?: string }) {
-  const { playlists, isLoading, error } = usePlaylists(userId);
+interface MyPlaylistsSectionProps {
+  userId?: string;
+  isOwner?: boolean;
+}
+
+export function MyPlaylistsSection({ userId, isOwner }: MyPlaylistsSectionProps) {
+  const { playlists, isLoading, error } = usePlaylists(userId, isOwner);
 
   if (isLoading) {
     return (

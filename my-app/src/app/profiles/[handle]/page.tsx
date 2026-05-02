@@ -83,10 +83,10 @@ export default function ProfilePage({
   // skip its own GET /profiles/:handle fetch via externalProfileId.
   const { data: bffData } = useProfilePageData(handle);
 
-  const bffProfileId: string | undefined =
-    bffData?.profile
-      ? ((bffData.profile as BffProfile).id ?? (bffData.profile as BffProfile).user_id)
-      : undefined;
+  const bffProfileId: string | undefined = bffData?.profile
+    ? ((bffData.profile as BffProfile).id ??
+      (bffData.profile as BffProfile).user_id)
+    : undefined;
 
   // Seed profile store from BFF data so useProfileController skips its own fetch
   useEffect(() => {
@@ -104,7 +104,9 @@ export default function ProfilePage({
       isPrivate: p.is_private ?? false,
       accountType: p.account_type ?? p.accountType ?? "LISTENER",
       favoriteGenres: Array.isArray(p.favorite_genres)
-        ? p.favorite_genres.map((g: string | { slug?: string }) => (typeof g === "string" ? g : g.slug ?? ""))
+        ? p.favorite_genres.map((g: string | { slug?: string }) =>
+            typeof g === "string" ? g : (g.slug ?? ""),
+          )
         : [],
       followersCount: p.followers_count ?? p.followersCount ?? 0,
       followingCount: p.following_count ?? p.followingCount ?? 0,
@@ -209,8 +211,6 @@ export default function ProfilePage({
   const BUTTON_STYLE =
     "bg-zinc-800/50 border border-zinc-700 px-4 py-1 rounded text-xs font-bold hover:bg-zinc-700 transition-colors uppercase flex items-center gap-2";
 
-
-
   const {
     displayName,
     location,
@@ -246,7 +246,6 @@ export default function ProfilePage({
     [setProfileData],
   );
 
-
   // DETAILS VIEW
   const renderDetailsPage = () => (
     <div className="container mx-auto px-8 py-10 animate-in fade-in duration-500">
@@ -280,10 +279,11 @@ export default function ProfilePage({
                 setDetailTab(t);
                 setSearchQuery("");
               }}
-              className={`pb-2 cursor-pointer border-b-2 transition-all ${detailTab === t
-                ? "text-white border-white"
-                : "border-transparent hover:text-zinc-200"
-                }`}
+              className={`pb-2 cursor-pointer border-b-2 transition-all ${
+                detailTab === t
+                  ? "text-white border-white"
+                  : "border-transparent hover:text-zinc-200"
+              }`}
             >
               {t}
             </li>
@@ -347,10 +347,11 @@ export default function ProfilePage({
                           avatar_url: avatar ?? "",
                         })
                       }
-                      className={`px-4 py-1.5 rounded text-[10px] font-bold uppercase transition-all ${isFollowing
-                        ? "bg-zinc-800 text-zinc-400 border border-zinc-700"
-                        : "bg-white text-black hover:bg-zinc-200"
-                        }`}
+                      className={`px-4 py-1.5 rounded text-[10px] font-bold uppercase transition-all ${
+                        isFollowing
+                          ? "bg-zinc-800 text-zinc-400 border border-zinc-700"
+                          : "bg-white text-black hover:bg-zinc-200"
+                      }`}
                     >
                       {isFollowing ? "Following" : "Follow"}
                     </button>
@@ -405,10 +406,12 @@ export default function ProfilePage({
         ))}
       {/* ── LIKES GRID DISPLAY & PAGINATION ── */}
       {/* This section renders the liked tracks and their specific pagination controls */}
-      {detailTab === "Likes" && (
-        profileLikes.length === 0 ? (
+      {detailTab === "Likes" &&
+        (profileLikes.length === 0 ? (
           <div className="py-20 text-center w-full">
-            <p className="text-xl font-bold text-zinc-600 uppercase">No likes found.</p>
+            <p className="text-xl font-bold text-zinc-600 uppercase">
+              No likes found.
+            </p>
           </div>
         ) : (
           <div className="flex flex-col items-center w-full">
@@ -424,8 +427,16 @@ export default function ProfilePage({
                     artistId: track.artistId,
                     artistHandle: track.artistHandle,
                     artistAvatarUrl: track.artistAvatarUrl ?? null,
-                    coverArtUrl: track.coverArtUrl ?? track.coverArt ?? track.imageUrl ?? undefined,
-                    coverArt: track.coverArt ?? track.coverArtUrl ?? track.imageUrl ?? undefined,
+                    coverArtUrl:
+                      track.coverArtUrl ??
+                      track.coverArt ??
+                      track.imageUrl ??
+                      undefined,
+                    coverArt:
+                      track.coverArt ??
+                      track.coverArtUrl ??
+                      track.imageUrl ??
+                      undefined,
                     likesCount: track.likesCount,
                     liked: true,
                     repostsCount: track.repostsCount ?? 0,
@@ -466,8 +477,7 @@ export default function ProfilePage({
               </button>
             </div>
           </div>
-        )
-      )}
+        ))}
 
       {/* Back to Profile Button - Stays at the bottom of all tabs */}
       <button
@@ -520,7 +530,9 @@ export default function ProfilePage({
 
                   <button
                     // Disable next button if the current page covers all available tracks
-                    disabled={tracksPage * TRACKS_LIMIT >= controller.tracksCount}
+                    disabled={
+                      tracksPage * TRACKS_LIMIT >= controller.tracksCount
+                    }
                     onClick={() => {
                       setTracksPage((prev) => prev + 1);
                       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -542,7 +554,10 @@ export default function ProfilePage({
       return (
         <div className="flex-1 text-center py-20 border-r border-zinc-900/50 pr-12 flex flex-col items-center justify-center">
           <p className="text-zinc-500 text-xl font-bold">
-            <MyPlaylistsSection userId={controller.userId ?? undefined}  />
+            <MyPlaylistsSection
+              userId={controller.userId ?? undefined}
+              isOwner={isOwner}
+            />
           </p>
         </div>
       );
@@ -641,10 +656,11 @@ export default function ProfilePage({
                     <li
                       key={tab}
                       onClick={() => setActiveTab(tab)}
-                      className={`cursor-pointer transition-colors h-full flex items-center border-b-2 ${activeTab === tab
-                        ? "text-white border-white"
-                        : "border-transparent hover:text-white"
-                        }`}
+                      className={`cursor-pointer transition-colors h-full flex items-center border-b-2 ${
+                        activeTab === tab
+                          ? "text-white border-white"
+                          : "border-transparent hover:text-white"
+                      }`}
                     >
                       {tab}
                     </li>
@@ -764,9 +780,16 @@ export default function ProfilePage({
                         }}
                       >
                         <div className="w-10 h-10 bg-zinc-800 rounded relative overflow-hidden shrink-0">
-                          {(track.coverArt || track.coverArtUrl || track.imageUrl) && (
+                          {(track.coverArt ||
+                            track.coverArtUrl ||
+                            track.imageUrl) && (
                             <Image
-                              src={track.coverArt || track.coverArtUrl || track.imageUrl || ""}
+                              src={
+                                track.coverArt ||
+                                track.coverArtUrl ||
+                                track.imageUrl ||
+                                ""
+                              }
                               alt={track.title}
                               fill
                               className="object-cover"

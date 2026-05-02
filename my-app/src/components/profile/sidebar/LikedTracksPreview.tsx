@@ -52,7 +52,7 @@ export default function LikedTracksPreview({ userId }: LikedTracksPreviewProps) 
 
                 <Link
                     href="/library/likes"
-                    className="hover:text-white text-[12px] transition-colors font-bold uppercase"
+                    className="hover:text-white text-[12px] text-zinc-400 transition-colors font-bold uppercase"
                 >
                     View all
                 </Link>

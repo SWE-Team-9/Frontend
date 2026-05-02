@@ -18,7 +18,7 @@ function getLocalLikedIds(): Set<string> {
   }
 }
 
-export function usePlaylists(userId?: string) {
+export function usePlaylists(userId?: string, isOwner?: boolean) {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -28,9 +28,22 @@ export function usePlaylists(userId?: string) {
       setIsLoading(true); 
       setError(null); 
       try {
-        const raw = userId
-          ? await playlistsApi.getUserPlaylists(userId)
-          : await playlistsApi.getMyPlaylists();
+        let raw: Playlist[];
+        
+        if (userId) {
+          // Check if this is the owner viewing their own profile
+          // If isOwner is true, use getMyPlaylists instead of getUserPlaylists
+          if (isOwner) {
+            raw = await playlistsApi.getMyPlaylists();
+          } else {
+            // For other users, use getUserPlaylists
+            raw = await playlistsApi.getUserPlaylists(userId);
+          }
+        } else {
+          // No userId provided, use getMyPlaylists
+          raw = await playlistsApi.getMyPlaylists();
+        }
+        
         if (signal?.aborted) return;
         const likedIds = getLocalLikedIds();
         setPlaylists(
@@ -51,15 +64,15 @@ export function usePlaylists(userId?: string) {
         if (!signal?.aborted) setIsLoading(false);
       }
     },
-    [userId],
+    [userId, isOwner],
   );
 
   useEffect(() => {
-  const controller = new AbortController();
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  fetchPlaylists(controller.signal);
-  return () => controller.abort();
-}, [fetchPlaylists]);
+    const controller = new AbortController();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchPlaylists(controller.signal);
+    return () => controller.abort();
+  }, [fetchPlaylists]);
 
   const refetch = useCallback(
     (signal?: AbortSignal) => {

@@ -161,7 +161,7 @@ export function AvatarUpload({
       </div>
 
       {isOwner && showOptions && (preview || avatarUrl) && (
-        <div className="absolute mt-50 left-[11.5%] -translate-x-1/2 w-40">
+        <div className="absolute mt-40 left-[11.5%] -translate-x-1/2 w-40">
           <div className="mb-2">
             <label
               className="cursor-pointer block w-full"
