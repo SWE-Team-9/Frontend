@@ -173,9 +173,7 @@ export default function ProfilePage({
       }
     };
 
-    if (detailTab === "Likes") {
-      fetchLikes();
-    }
+    fetchLikes();
 
     return () => {
       isMounted = false;

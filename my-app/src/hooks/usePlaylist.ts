@@ -19,9 +19,9 @@ export function usePlaylist(playlistId: string) {
         return;
       }
       try {
-        const raw = await playlistsApi.getPlaylistById(playlistId);
+        const data = await playlistsApi.getPlaylistById(playlistId);
         if (signal?.aborted) return;
-        setPlaylist(normalizePlaylist(raw));
+        setPlaylist(data);
         setError(null);
       } catch (err) {
         if (signal?.aborted) return;

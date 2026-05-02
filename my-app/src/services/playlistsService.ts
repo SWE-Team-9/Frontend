@@ -42,6 +42,11 @@ export interface PlaylistsService {
     tags: string[];
     tracks?: PlaylistTrack[];
   }>;
+  getUserPlaylists: (
+    userId: string,
+    page?: number,
+    limit?: number,
+  ) => Promise<Playlist[]>;
   updatePlaylist: (
     playlistId: string,
     data: UpdatePlaylistInput,
@@ -86,6 +91,11 @@ export const playlistsApi: PlaylistsService = {
     api
       .get(`${BASE}/${playlistId}`, { params: { limit, offset } })
       .then((r) => normalizePlaylist(r.data)),
+
+  getUserPlaylists: (userId: string, page = 1, limit = 20) =>
+    api
+      .get(`${BASE}/user/${userId}`, { params: { page, limit } })
+      .then((r) => normalizePlaylistList(r.data)),
 
   getEditDetails: (playlistId: string) =>
     api.get(`${BASE}/${playlistId}/edit`).then((r) => r.data),

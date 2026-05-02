@@ -18,14 +18,16 @@ function getLocalLikedIds(): Set<string> {
   }
 }
 
-export function usePlaylists() {
+export function usePlaylists(userId?: string) {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchPlaylists = useCallback(async (signal?: AbortSignal) => {
     try {
-      const raw = await playlistsApi.getMyPlaylists();
+      const raw = userId
+        ? await playlistsApi.getUserPlaylists(userId)
+        : await playlistsApi.getMyPlaylists();
       if (signal?.aborted) return;
       const likedIds = getLocalLikedIds();
       setPlaylists(
@@ -43,11 +45,12 @@ export function usePlaylists() {
     } finally {
       if (!signal?.aborted) setIsLoading(false);
     }
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     const controller = new AbortController();
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsLoading(true);
+    setError(null);
     fetchPlaylists(controller.signal);
     return () => controller.abort();
   }, [fetchPlaylists]);

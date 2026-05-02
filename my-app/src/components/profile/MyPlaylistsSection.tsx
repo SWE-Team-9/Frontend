@@ -3,8 +3,8 @@
 import { usePlaylists } from "@/src/hooks/usePlaylists";
 import { ProfilePlaylistCard } from "@/src/components/profile/ProfilePlaylistCard";
 
-export function MyPlaylistsSection() {
-  const { playlists, isLoading, error } = usePlaylists();
+export function MyPlaylistsSection({ userId }: { userId?: string }) {
+  const { playlists, isLoading, error } = usePlaylists(userId);
 
   if (isLoading) {
     return (
@@ -26,9 +26,8 @@ export function MyPlaylistsSection() {
     <section className="px-8 py-8 border-t border-zinc-800">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-lg font-bold text-white uppercase tracking-wider">
-          My Playlists
+          Playlists
         </h2>
-
         <span className="text-xs text-zinc-500">
           {playlists.length} {playlists.length === 1 ? "playlist" : "playlists"}
         </span>
