@@ -3,6 +3,7 @@
 import RecentlyPlayedSection from "@/src/components/discover/RecentlyPlayedSection";
 import TrendingSection from "@/src/components/discover/TrendingSection";
 import TrendingByGenreSection from "@/src/components/discover/TrendingByGenreSection";
+import TopPlaylistsSection from "@/src/components/discover/TopPlaylistsSection";
 
 export default function DiscoverPage() {
   return (
@@ -12,6 +13,7 @@ export default function DiscoverPage() {
       <RecentlyPlayedSection />
       <TrendingSection />
       <TrendingByGenreSection />
+      <TopPlaylistsSection />
     </div>
   );
 }

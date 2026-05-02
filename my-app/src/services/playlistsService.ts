@@ -21,6 +21,32 @@ export interface AddTrackResponse {
   };
 }
 
+export interface TopPlaylistOwner {
+  id: string;
+  displayName: string;
+}
+
+export interface TopPlaylistItem {
+  playlistId: string;
+  title: string;
+  visibility: "PUBLIC" | "SECRET" | "PRIVATE";
+  tracksCount: number;
+  likesCount: number;
+  isLiked: boolean;
+  coverImageUrl: string | null;
+  genre: string;
+  owner: TopPlaylistOwner;
+}
+
+export interface TopPlaylistsGenreGroup {
+  genre: string;
+  playlists: TopPlaylistItem[];
+}
+
+export interface TopPlaylistsResponse {
+  genres: TopPlaylistsGenreGroup[];
+}
+
 export interface PlaylistsService {
   createPlaylist: (data: CreatePlaylistInput) => Promise<unknown>;
   getMyPlaylists: (page?: number, limit?: number) => Promise<Playlist[]>;
@@ -29,6 +55,7 @@ export interface PlaylistsService {
     limit?: number,
     offset?: number,
   ) => Promise<Playlist>;
+  getTopPlaylists: () => Promise<Playlist[]>;
   getEditDetails: (playlistId: string) => Promise<{
     playlistId: string;
     title: string;
@@ -116,6 +143,27 @@ export const playlistsApi: PlaylistsService = {
     api
       .get(`${BASE}/recent`, { params: { limit } })
       .then((r) => normalizePlaylistList(r.data)),
+
+  getTopPlaylists: () =>
+    api.get<TopPlaylistsResponse>(`${BASE}/top`).then((r) => {
+      const playlists = r.data.genres.flatMap((group) =>
+        group.playlists.map((playlist) =>
+          normalizePlaylist({
+            ...playlist,
+            liked: playlist.isLiked,
+            cover: playlist.coverImageUrl,
+            coverImageUrl: playlist.coverImageUrl,
+            owner: {
+              ...playlist.owner,
+              display_name: playlist.owner.displayName,
+            },
+          }),
+        ),
+      );
+
+      return playlists;
+    }),
+
 
   uploadCover: (playlistId: string, file: File) => {
     const form = new FormData();
@@ -268,53 +316,53 @@ export function normalizePlaylist(raw: unknown): Playlist {
   const rawOwner = inner.owner ?? null;
   const owner = rawOwner
     ? {
-        ...rawOwner,
-        display_name:
-          rawOwner.display_name ??
-          rawOwner.displayName ??
-          rawOwner.name ??
-          null,
-        displayName:
-          rawOwner.displayName ??
-          rawOwner.display_name ??
-          rawOwner.name ??
-          null,
-        handle: rawOwner.handle ?? null,
-        id: rawOwner.id ?? rawOwner.userId ?? rawOwner.user_id ?? null,
-      }
+      ...rawOwner,
+      display_name:
+        rawOwner.display_name ??
+        rawOwner.displayName ??
+        rawOwner.name ??
+        null,
+      displayName:
+        rawOwner.displayName ??
+        rawOwner.display_name ??
+        rawOwner.name ??
+        null,
+      handle: rawOwner.handle ?? null,
+      id: rawOwner.id ?? rawOwner.userId ?? rawOwner.user_id ?? null,
+    }
     : null;
 
   // tracks
   const tracks = Array.isArray(inner.tracks)
     ? (inner.tracks as RawTrack[]).map((t) => ({
-        trackId: t.trackId ?? t.id ?? t._id ?? "",
-        title: t.title ?? t.name ?? "Untitled",
-        coverArtUrl: t.coverArtUrl ?? t.coverImageUrl ?? t.cover ?? null,
-        durationMs: t.durationMs ?? t.duration_ms ?? null,
-        likesCount:
-          typeof t.likesCount === "number"
-            ? t.likesCount
-            : typeof t.likes_count === "number"
-              ? t.likes_count
-              : undefined,
-        repostsCount:
-          typeof t.repostsCount === "number"
-            ? t.repostsCount
-            : typeof t.reposts_count === "number"
-              ? t.reposts_count
-              : undefined,
-        artist: t.artist
-          ? {
-              id: t.artist.id ?? t.artist.userId ?? "",
-              name:
-                t.artist.name ??
-                t.artist.displayName ??
-                t.artist.display_name ??
-                "",
-              handle: t.artist.handle ?? null,
-            }
-          : undefined,
-      }))
+      trackId: t.trackId ?? t.id ?? t._id ?? "",
+      title: t.title ?? t.name ?? "Untitled",
+      coverArtUrl: t.coverArtUrl ?? t.coverImageUrl ?? t.cover ?? null,
+      durationMs: t.durationMs ?? t.duration_ms ?? null,
+      likesCount:
+        typeof t.likesCount === "number"
+          ? t.likesCount
+          : typeof t.likes_count === "number"
+            ? t.likes_count
+            : undefined,
+      repostsCount:
+        typeof t.repostsCount === "number"
+          ? t.repostsCount
+          : typeof t.reposts_count === "number"
+            ? t.reposts_count
+            : undefined,
+      artist: t.artist
+        ? {
+          id: t.artist.id ?? t.artist.userId ?? "",
+          name:
+            t.artist.name ??
+            t.artist.displayName ??
+            t.artist.display_name ??
+            "",
+          handle: t.artist.handle ?? null,
+        }
+        : undefined,
+    }))
     : inner.tracks;
 
   return {
