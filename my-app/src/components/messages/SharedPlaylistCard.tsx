@@ -14,6 +14,7 @@ import { messageService } from "@/src/services/messageService";
 import MessageWaveform from "@/src/components/messages/MessageWaveform";
 import { TrackPageLink, UserProfileLink } from "@/src/components/navigation/EntityLinks";
 import Link from "next/link";
+import { playlistsApi } from "@/src/services/playlistsService";
 
 const FALLBACK = "/images/track-placeholder.png";
 
@@ -47,7 +48,32 @@ export default function SharedPlaylistCard({
     const [copyStatus, setCopyStatus] = useState<"idle" | "success" | "error">(
         "idle",
     );
-    const [playlistLiked, setPlaylistLiked] = useState(false);
+    const [playlistLiked, setPlaylistLiked] = useState(playlist.liked ?? false);
+    const [playlistLikesCount, setPlaylistLikesCount] = useState(playlist.likesCount ?? 0);
+    const [isPlaylistLikeLoading, setIsPlaylistLikeLoading] = useState(false);
+
+    const handlePlaylistLike = async () => {
+        if (isPlaylistLikeLoading) return;
+
+        const wasLiked = playlistLiked;
+
+        setPlaylistLiked(!wasLiked);
+        setPlaylistLikesCount((count) => Math.max(0, count + (wasLiked ? -1 : 1)));
+        setIsPlaylistLikeLoading(true);
+
+        try {
+            if (wasLiked) {
+                await playlistsApi.unlikePlaylist(playlist.id);
+            } else {
+                await playlistsApi.likePlaylist(playlist.id);
+            }
+        } catch {
+            setPlaylistLiked(wasLiked);
+            setPlaylistLikesCount((count) => Math.max(0, count + (wasLiked ? 1 : -1)));
+        } finally {
+            setIsPlaylistLikeLoading(false);
+        }
+    };
 
     const [expandedPlaylist, setExpandedPlaylist] = useState<SharedPlaylist | null>(null);
     const [isLoadingFullPlaylist, setIsLoadingFullPlaylist] = useState(false);
@@ -303,8 +329,9 @@ export default function SharedPlaylistCard({
                         </div>
 
                         <button
-                            onClick={() => setPlaylistLiked((v) => !v)}
-                            className="rounded bg-zinc-800 p-2 text-zinc-300 hover:bg-zinc-700"
+                            onClick={handlePlaylistLike}
+                            disabled={isPlaylistLikeLoading}
+                            className="rounded bg-zinc-800 p-2 text-zinc-300 hover:bg-zinc-700 disabled:opacity-50"
                             title="Like playlist"
                         >
                             <FaHeart
@@ -314,7 +341,7 @@ export default function SharedPlaylistCard({
                         </button>
 
                         <span className="ml-auto text-xs text-zinc-400">
-                            {playlistLiked ? "♥ 1" : ""}
+                            ♥ {formatCount(playlistLikesCount)}
                         </span>
                     </div>
 

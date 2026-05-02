@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { Play } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BiRepost } from "react-icons/bi";
 import { FiShare } from "react-icons/fi";
 import { TbCopy } from "react-icons/tb";
@@ -48,6 +48,15 @@ export default function SharedTrackCard({ track }: { track: SharedTrack }) {
     const [copyStatus, setCopyStatus] = useState<"idle" | "success" | "error">(
         "idle",
     );
+
+    const [likesCount, setLikesCount] = useState(track.likesCount ?? 0);
+    const [repostsCount, setRepostsCount] = useState(track.repostsCount ?? 0);
+
+
+    useEffect(() => {
+        setLikesCount(track.likesCount ?? 0);
+        setRepostsCount(track.repostsCount ?? 0);
+    }, [track.likesCount, track.repostsCount]);
 
     const setTracks = usePlayerStore((s) => s.setTracks);
     const fetchAndPlay = usePlayerStore((s) => s.fetchAndPlay);
@@ -95,8 +104,8 @@ export default function SharedTrackCard({ track }: { track: SharedTrack }) {
         id: track.id,
         title: track.title,
         artistName: track.artist.display_name,
-        likesCount: track.likesCount ?? 0,
-        repostsCount: track.repostsCount ?? 0,
+        likesCount,
+        repostsCount,
         coverArtUrl: track.coverArtUrl || null,
         coverArt: track.coverArtUrl || null,
         imageUrl: track.coverArtUrl || null,
@@ -122,6 +131,29 @@ export default function SharedTrackCard({ track }: { track: SharedTrack }) {
         }
 
         setTimeout(() => setCopyStatus("idle"), 1500);
+    };
+
+
+    const handleToggleLike = async () => {
+        const wasLiked = currentlyLiked;
+        setLikesCount((count) => Math.max(0, count + (wasLiked ? -1 : 1)));
+
+        try {
+            await toggleLike(trackData);
+        } catch {
+            setLikesCount((count) => Math.max(0, count + (wasLiked ? 1 : -1)));
+        }
+    };
+
+    const handleToggleRepost = async () => {
+        const wasReposted = currentlyReposted;
+        setRepostsCount((count) => Math.max(0, count + (wasReposted ? -1 : 1)));
+
+        try {
+            await toggleRepost(trackData);
+        } catch {
+            setRepostsCount((count) => Math.max(0, count + (wasReposted ? 1 : -1)));
+        }
     };
 
     return (
@@ -214,7 +246,7 @@ export default function SharedTrackCard({ track }: { track: SharedTrack }) {
                         </div>
 
                         <button
-                            onClick={() => toggleLike(trackData)}
+                            onClick={handleToggleLike}
                             disabled={isLikeLoading}
                             className="rounded bg-zinc-800 p-2 text-zinc-300 hover:bg-zinc-700 disabled:opacity-50"
                             title="Like"
@@ -226,7 +258,7 @@ export default function SharedTrackCard({ track }: { track: SharedTrack }) {
                         </button>
 
                         <button
-                            onClick={() => toggleRepost(trackData)}
+                            onClick={handleToggleRepost}
                             disabled={isRepostLoading}
                             className="rounded bg-zinc-800 p-2 text-zinc-300 hover:bg-zinc-700 disabled:opacity-50"
                             title="Repost"
@@ -239,7 +271,8 @@ export default function SharedTrackCard({ track }: { track: SharedTrack }) {
 
                         <div className="ml-auto flex items-center gap-4 text-xs text-zinc-400">
                             <span>▶ {formatCount(track.playCount)}</span>
-                            <span>♥ {formatCount(track.likesCount)}</span>
+                            <span>♥ {formatCount(likesCount)}</span>
+                            <span>↻ {formatCount(repostsCount)}</span>
                         </div>
                     </div>
                 </div>
