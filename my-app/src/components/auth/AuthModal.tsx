@@ -183,6 +183,12 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
             email,
             password: loginPassword,
           });
+          const user = loginResult?.user;
+          if (user?.account_status && user.account_status !== "ACTIVE") {
+            router.push("/account-restricted");
+            onClose();
+            return;
+          }
           setEmailStore(email);
           onClose();
           const role = loginResult?.user?.system_role ?? "USER";

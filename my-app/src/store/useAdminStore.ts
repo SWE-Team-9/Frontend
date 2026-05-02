@@ -102,7 +102,7 @@ export const useAdminStore = create<AdminState>()(
                 handle: authUser.handle ?? '',
                 email: authUser.email,
                 system_role: authUser.systemRole ?? 'USER',
-                account_status: 'ACTIVE',
+                account_status: authUser.account_status ?? 'ACTIVE',
                 is_verified: authUser.isVerified ?? false,
                 created_at: new Date().toISOString(),
                 avatar_url: authUser.avatarUrl ?? null,

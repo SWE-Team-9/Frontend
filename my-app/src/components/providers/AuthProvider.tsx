@@ -1,6 +1,8 @@
 "use client";
 
 import { ReactNode, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useAuthInit } from "@/src/hooks/useAuthInit";
 import { useAuthStore } from "@/src/store/useAuthStore";
 import { useMessageStore } from "@/src/store/messageStore";
@@ -40,9 +42,23 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   const fetchSubscription = useSubscriptionStore((state) => state.fetchSubscription);
   const sub = useSubscriptionStore((state) => state.sub);
 
+
   // Track whether we have already synced for this auth session so we don't
   // re-fire if components re-render while user object is stable.
   const syncedUserIdRef = useRef<string | null>(null);
+// To prevent susbended or banned users from entering to the discover 
+  const router = useRouter();
+  const pathname = usePathname();
+
+  useEffect(() => {
+    if (!user) return;
+
+    const isRestricted = user.account_status && user.account_status !== "ACTIVE";
+
+    if (isRestricted && pathname !== "/account-restricted") {
+    router.replace("/account-restricted");
+  }
+}, [user, pathname, router]);
 
   // Message socket — connect / disconnect on auth change
   useEffect(() => {

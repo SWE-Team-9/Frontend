@@ -30,9 +30,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">87.5% </span>
+                <span class="strong">78.78% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>14/16</span>
+                <span class='fraction'>26/33</span>
             </div>
         
             
@@ -154,7 +154,14 @@
 <a name='L89'></a><a href='#L89'>89</a>
 <a name='L90'></a><a href='#L90'>90</a>
 <a name='L91'></a><a href='#L91'>91</a>
-<a name='L92'></a><a href='#L92'>92</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L92'></a><a href='#L92'>92</a>
+<a name='L93'></a><a href='#L93'>93</a>
+<a name='L94'></a><a href='#L94'>94</a>
+<a name='L95'></a><a href='#L95'>95</a>
+<a name='L96'></a><a href='#L96'>96</a>
+<a name='L97'></a><a href='#L97'>97</a>
+<a name='L98'></a><a href='#L98'>98</a>
+<a name='L99'></a><a href='#L99'>99</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
@@ -174,10 +181,17 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">11x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">11x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -265,6 +279,7 @@ export function PlayerControls() {
     loopMode,
     toggleShuffle,
     cycleLoopMode,
+    isPlayingAd,
   } = usePlayerStore();
 &nbsp;
   const isPlayDisabled =
@@ -278,10 +293,11 @@ export function PlayerControls() {
       &lt;button
         type="button"
         onClick={toggleShuffle}
-        className={`hidden sm:flex p-1.5 rounded transition-colors ${
-          isShuffleOn ? "text-[#f50]" : "text-[#999] hover:text-white"
+        disabled={isPlayingAd}
+        className={`hidden sm:flex p-1.5 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
+          isShuffleOn &amp;&amp; !isPlayingAd ? "text-[#f50]" : "text-[#999] hover:text-white"
         }`}
-        title={isShuffleOn ? "Turn shuffle off" : "Turn shuffle on"}
+        title={isPlayingAd ? <span class="branch-0 cbranch-no" title="branch not covered" >"Cannot shuffle during an ad" : i</span>sShuffleOn ? "Turn shuffle off" : "Turn shuffle on"}
       &gt;
         &lt;MdShuffle size={18} /&gt;
       &lt;/button&gt;
@@ -289,8 +305,9 @@ export function PlayerControls() {
       &lt;button
         type="button"
         onClick={previousTrack}
-        disabled={!currentTrack}
-        className="p-1.5 text-[#ccc] hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        disabled={!currentTrack || isPlayingAd}
+        className="p-1.5 text-[#ccc] hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+        title={isPlayingAd ? <span class="branch-0 cbranch-no" title="branch not covered" >"Cannot skip during an ad" : u</span>ndefined}
       &gt;
         &lt;FaStepBackward size={16} /&gt;
       &lt;/button&gt;
@@ -307,8 +324,9 @@ export function PlayerControls() {
       &lt;button
         type="button"
         onClick={nextTrack}
-        disabled={!currentTrack}
-        className="p-1.5 text-[#ccc] hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        disabled={!currentTrack || isPlayingAd}
+        className="p-1.5 text-[#ccc] hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+        title={isPlayingAd ? <span class="branch-0 cbranch-no" title="branch not covered" >"Cannot skip during an ad" : u</span>ndefined}
       &gt;
         &lt;FaStepForward size={16} /&gt;
       &lt;/button&gt;
@@ -316,19 +334,22 @@ export function PlayerControls() {
       &lt;button
         type="button"
         onClick={cycleLoopMode}
-        className={`relative hidden sm:flex p-1.5 rounded transition-colors ${
-          loopMode !== "OFF" ? "text-[#f50]" : "text-[#999] hover:text-white"
+        disabled={isPlayingAd}
+        className={`relative hidden sm:flex p-1.5 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
+          loopMode !== "OFF" &amp;&amp; !isPlayingAd ? "text-[#f50]" : "text-[#999] hover:text-white"
         }`}
         title={
-          loopMode === "OFF"
-            ? "Loop off"
-            : loopMode === "ALL"
-              ? "Loop all tracks"
-              : <span class="branch-1 cbranch-no" title="branch not covered" >"Repeat current track"</span>
+          isPlayingAd
+            ? <span class="branch-0 cbranch-no" title="branch not covered" >"Cannot change loop mode during an ad"</span>
+            : loopMode === "OFF"
+              ? "Loop off"
+              : loopMode === "ALL"
+                ? "Loop all tracks"
+                : <span class="branch-1 cbranch-no" title="branch not covered" >"Repeat current track"</span>
         }
       &gt;
         &lt;MdRepeat size={18} /&gt;
-        {loopMode === "ONE" &amp;&amp; (
+        {loopMode === "ONE" &amp;&amp; <span class="branch-1 cbranch-no" title="branch not covered" >!isPlayingAd &amp;&amp; (</span>
           &lt;span className="absolute -top-1 -right-1 text-[9px] font-bold leading-none"&gt;
             1
           &lt;/span&gt;
@@ -343,7 +364,7 @@ export function PlayerControls() {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-04-17T17:43:37.813Z
+                at 2026-05-02T12:08:25.573Z
             </div>
         <script src="../../prettify.js"></script>
         <script>
