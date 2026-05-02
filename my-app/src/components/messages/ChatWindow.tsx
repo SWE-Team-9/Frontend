@@ -15,11 +15,37 @@ import {
     buildPlaylistPermalink,
     buildTrackPermalink,
 } from "@/src/lib/permalinks";
+import Link from "next/link";
+import { useBlockStore } from "@/src/store/useblockStore";
+import ConfirmModal from "@/src/components/block-user/ConfirmModal";
+import { ReportModal } from "@/src/components/reports/ReportModal";
 
 const FALLBACK = "/images/profile.png";
 
 function timeLabel(date: string) {
-    return new Date(date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const messageDate = new Date(date);
+    const now = new Date();
+
+    const isToday = messageDate.toDateString() === now.toDateString();
+
+    const yesterday = new Date();
+    yesterday.setDate(now.getDate() - 1);
+    const isYesterday = messageDate.toDateString() === yesterday.toDateString();
+
+    const time = messageDate.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+
+    if (isToday) return time;
+
+    if (isYesterday) return `Yesterday, ${time}`;
+
+    return messageDate.toLocaleDateString([], {
+        month: "short",
+        day: "numeric",
+        year: messageDate.getFullYear() === now.getFullYear() ? undefined : "numeric",
+    }) + `, ${time}`;
 }
 
 export default function ChatWindow() {
@@ -37,10 +63,27 @@ export default function ChatWindow() {
     const isLoadingOlder = useMessageStore((s) => s.isLoadingOlder);
     const error = useMessageStore((s) => s.error);
     const currentUser = useAuthStore((s) => s.user);
+    const openConversation = useMessageStore((s) => s.openConversation);
+
+    const {
+        blockUser,
+        unblockUser,
+        blockedUsers,
+        fetchBlockedUsers,
+        loadingUserId,
+    } = useBlockStore();
+
+    const [showBlockConfirm, setShowBlockConfirm] = useState(false);
+    const [showReportModal, setShowReportModal] = useState(false);
+
 
     useEffect(() => {
         scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
     }, [selected?.conversationId]);
+
+    useEffect(() => {
+        fetchBlockedUsers();
+    }, [fetchBlockedUsers]);
 
     if (!selected) {
         return (
@@ -55,12 +98,41 @@ export default function ChatWindow() {
         );
     }
 
+
+    const participant = selected.participant;
+    const isBlocked = selected.isBlockedByMe || blockedUsers.some((u) => u.id === participant.id);
+    const isBlockLoading = loadingUserId === participant.id;
+
+    const handleBlockConfirm = async () => {
+        if (isBlocked) {
+            await unblockUser(participant.id);
+        } else {
+            await blockUser(participant.id, {
+                display_name: participant.display_name,
+                handle: participant.handle,
+                avatar_url: participant.avatar_url ?? "",
+            });
+        }
+
+        setShowBlockConfirm(false);
+        await openConversation(selected.conversationId);
+    };
+
     return (
         <section className="flex h-[calc(100vh-64px)] flex-1 flex-col p-8">
             <header className="mb-6 flex shrink-0 items-center justify-between">
                 <div className="flex items-center gap-8">
                     <div>
-                        <h2 className="text-lg font-bold">{selected.participant.display_name}</h2>
+                        {selected.participant.handle ? (
+                            <Link
+                                href={`/profiles/${selected.participant.handle}`}
+                                className="text-lg font-bold hover:text-zinc-600 transition-colors"
+                            >
+                                {selected.participant.display_name}
+                            </Link>
+                        ) : (
+                            <h2 className="text-lg font-bold">{selected.participant.display_name}</h2>
+                        )}
 
                         {!selected.canMessage && (
                             <p className="mt-1 text-xs text-red-400">
@@ -73,8 +145,20 @@ export default function ChatWindow() {
                             </p>
                         )}
                     </div>
-                    <button className="text-sm font-bold text-white">Block</button>
-                    <button className="text-sm font-bold text-white">Report</button>
+                    <button
+                        onClick={() => setShowBlockConfirm(true)}
+                        disabled={isBlockLoading}
+                        className="text-sm font-bold text-white hover:text-red-400 disabled:opacity-50"
+                    >
+                        {isBlockLoading ? "Processing..." : isBlocked ? "Unblock" : "Block"}
+                    </button>
+
+                    <button
+                        onClick={() => setShowReportModal(true)}
+                        className="text-sm font-bold text-white hover:text-orange-400"
+                    >
+                        Report
+                    </button>
                 </div>
 
                 <div className="relative flex items-center gap-2">
@@ -207,9 +291,18 @@ export default function ChatWindow() {
                                 </div>
                                 <div className="min-w-0 flex-1">
                                     <div className="mb-1 flex justify-between">
-                                        <p className="font-bold text-white">
-                                            {isMe ? "Me" : selected.participant.display_name}
-                                        </p>
+                                        {!isMe && selected.participant.handle ? (
+                                            <Link
+                                                href={`/profiles/${selected.participant.handle}`}
+                                                className="font-bold text-white hover:text-zinc-600 transition-colors"
+                                            >
+                                                {selected.participant.display_name}
+                                            </Link>
+                                        ) : (
+                                            <p className="font-bold text-white">
+                                                {isMe ? "Me" : selected.participant.display_name}
+                                            </p>
+                                        )}
                                         <span className="text-xs text-zinc-500">
                                             {timeLabel(message.createdAt)}
                                         </span>
@@ -248,6 +341,24 @@ export default function ChatWindow() {
                     />
                 </div>
             </div>
+
+            <ConfirmModal
+                open={showBlockConfirm}
+                onClose={() => setShowBlockConfirm(false)}
+                onConfirm={handleBlockConfirm}
+                displayName={participant.display_name}
+                isBlocked={isBlocked}
+            />
+
+            {showReportModal && (
+                <ReportModal
+                    targetId={participant.id}
+                    targetType="USER"
+                    targetLabel={participant.display_name}
+                    onClose={() => setShowReportModal(false)}
+                />
+            )}
+
         </section>
     );
 }

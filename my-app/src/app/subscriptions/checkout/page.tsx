@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, Suspense } from "react";
+import React, { useState, Suspense, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { useSubscriptionStore } from "@/src/store/useSubscriptionStore";
@@ -24,7 +24,7 @@ const PLANS = {
     monthlyPrice: PLAN_CONFIG["GO+"].monthlyPrice,
     upgradeType: "GO+" as const,
     renewLabel: `$${PLAN_CONFIG["GO+"].monthlyPrice}/month`,
-    trialDays: 30,
+    trialDays: 0,
     description: "1,000 track uploads · Ad-free · Offline listening · Priority support",
     accentColor: "#f0a046",
   },
@@ -54,15 +54,24 @@ function CheckoutContent() {
   const upgrade = useSubscriptionStore((s) => s.upgrade);
   const isLoading = useSubscriptionStore((s) => s.isLoading);
   const sub = useSubscriptionStore((s) => s.sub);
+  const fetchSubscription = useSubscriptionStore((s) => s.fetchSubscription);
 
-  // Redirect premium users trying to use checkout for a same-or-lower plan.
-  // They should use the plan-switch dialog in Settings instead.
+  useEffect(() => {
+    fetchSubscription();
+  }, [fetchSubscription]);
+
+  // Trial eligibility: only FREE users subscribing to PRO for the first time.
+  const isTrialEligible =
+    plan.upgradeType === "PRO" && (sub === null || sub.subscriptionType === "FREE");
+  const trialDays = isTrialEligible ? 7 : 0;
+
+  // Redirect premium users away from checkout if they already have this plan or higher.
   const PLAN_TIER_RANK: Record<string, number> = { FREE: 0, PRO: 1, "GO+": 2 };
   const currentRank = PLAN_TIER_RANK[sub?.subscriptionType ?? "FREE"] ?? 0;
   const targetRank = PLAN_TIER_RANK[plan.upgradeType] ?? 0;
   const shouldRedirectToSettings = Boolean(sub?.isPremium && targetRank <= currentRank);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (shouldRedirectToSettings) {
       router.replace("/settings?tab=subscription");
     }
@@ -211,18 +220,26 @@ function CheckoutContent() {
             <div className="flex justify-between items-center">
               <span className="font-bold text-zinc-900">{plan.name}</span>
               <span className="font-bold text-zinc-900">
-                ${plan.monthlyPrice}/mo
+                {isTrialEligible
+                  ? `$0 for ${trialDays} days, then $${plan.monthlyPrice}/mo`
+                  : `$${plan.monthlyPrice}/mo`}
               </span>
             </div>
             <div className="flex justify-between items-center text-sm">
               <span className="text-zinc-600">Billing cycle</span>
               <span className="text-zinc-800 font-medium">Monthly</span>
             </div>
-            {plan.trialDays > 0 && (
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-zinc-600">Due today</span>
-                <span className="text-green-600 font-bold">$0.00 (trial)</span>
+            {isTrialEligible && (
+              <div className="flex items-start gap-2 p-3 bg-green-50 rounded-lg border border-green-200">
+                <span className="text-green-700 text-xs font-semibold">
+                  7-day free trial included — cancel anytime before it ends and you won&apos;t be charged.
+                </span>
               </div>
+            )}
+            {!isTrialEligible && plan.upgradeType === "PRO" && (
+              <p className="text-xs text-zinc-400">
+                Note: free trial applies to first-time PRO subscribers only.
+              </p>
             )}
             <div className="border-t border-zinc-200 pt-3">
               <p className="text-xs text-zinc-500 leading-relaxed">
@@ -240,7 +257,6 @@ function CheckoutContent() {
             </p>
           )}
 
-          {/* Subscribe button */}
           <button
             onClick={handleBuy}
             disabled={busy}

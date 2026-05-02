@@ -37,11 +37,11 @@ export function SharePlaylistModal({ playlist, isOpen, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className="relative w-[520px] max-w-[92vw] bg-[#1a1a1a] border border-zinc-800 rounded-lg shadow-2xl"
+        className="relative w-130 max-w-[92vw] bg-[#1a1a1a] border border-zinc-800 rounded-lg shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -73,7 +73,7 @@ export function SharePlaylistModal({ playlist, isOpen, onClose }: Props) {
         {tab === "share" && (
           <div className="p-6">
             <div className="flex items-start gap-4 mb-6">
-              <div className="relative w-24 h-24 rounded overflow-hidden bg-[#222] flex-shrink-0">
+              <div className="relative w-24 h-24 rounded overflow-hidden bg-[#222] shrink-0">
                 {playlist.cover && (
                   <Image src={playlist.cover} alt={playlist.title} fill className="object-cover" unoptimized />
                 )}

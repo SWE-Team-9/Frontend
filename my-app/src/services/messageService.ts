@@ -553,7 +553,7 @@ export const messageService = {
                 .map((track): SharedTrack => ({
                     id: track.id ?? track.trackId ?? "unknown-track",
                     title: track.title ?? "Untitled Track",
-                    slug: track.slug,
+                    slug: track.slug ?? "",
                     artist: {
                         id: track.artist?.id ?? track.artistId ?? "unknown",
                         display_name:

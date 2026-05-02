@@ -1,67 +1,103 @@
 "use client";
 
-// Next.js optimized image component
 import Image from "next/image";
+import Link from "next/link";
+import { usePlayerStore, type Track as PlayerTrack } from "@/src/store/playerStore";
+import {
+  FaMusic,
+  FaTimes,
+  FaArrowUp,
+  FaArrowDown,
+  FaPlay,
+} from "react-icons/fa";
+import { buildTrackPermalink } from "@/src/lib/permalinks";
+import { UserProfileLink } from "@/src/components/navigation/EntityLinks";
 
-// Icons used in track UI (play, controls, remove, etc.)
-import { FaMusic, FaTimes, FaArrowUp, FaArrowDown, FaPlay } from "react-icons/fa";
-
-// Track data structure
 interface Track {
   trackId: string;
   title: string;
   artist?: string;
+  artistHandle?: string;
+  slug?: string;
   cover?: string;
   duration?: number;
+  likesCount?: number;
+  repostsCount?: number;
 }
 
-// Props for TrackItem component
 interface Props {
   track: Track;
   index: number;
   total: number;
   canEdit?: boolean;
-  onRemove?: (trackId: string) => void;
+  isRemoving?: boolean;
+  onRemove?: () => void;
   onMoveUp?: (index: number) => void;
   onMoveDown?: (index: number) => void;
   onPlay?: (track: Track) => void;
 }
 
-// Utility function to format seconds into mm:ss
-function formatDuration(seconds?: number) {
+function formatDuration(seconds?: number): string {
   if (!seconds) return "";
-
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60).toString().padStart(2, "0");
-
   return `${m}:${s}`;
 }
 
-// Main track item component
 export function TrackItem({
   track,
   index,
   total,
   canEdit = false,
+  isRemoving = false,
   onRemove,
   onMoveUp,
   onMoveDown,
   onPlay,
 }: Props) {
+  const playerTracks = usePlayerStore((state) => state.tracks);
+  const currentTrack = usePlayerStore((state) => state.currentTrack);
+  const toggle = usePlayerStore((state) => state.toggle);
+  const fetchAndPlay = usePlayerStore((state) => state.fetchAndPlay);
+
+  const handlePlay = async () => {
+    if (onPlay) {
+      onPlay(track);
+      return;
+    }
+
+    if (currentTrack?.trackId === track.trackId) {
+      await toggle();
+      return;
+    }
+
+    const matched = playerTracks.find((t) => t.trackId === track.trackId);
+    const fallbackTrack: PlayerTrack = {
+      trackId: track.trackId,
+      title: track.title,
+      artist: track.artist ?? "Unknown Artist",
+      artistId: "",
+      cover: track.cover ?? "/images/track-placeholder.png",
+      duration: track.duration,
+    };
+
+    await fetchAndPlay(matched ?? fallbackTrack);
+  };
+
+  const trackHref = buildTrackPermalink({
+    trackId: track.trackId,
+    artistHandle: track.artistHandle,
+    slug: track.slug,
+  });
+
   return (
     <div className="group flex items-center gap-4 px-3 py-2 rounded hover:bg-zinc-800/50 transition-colors">
-      
-      {/* Track index number */}
-      <span className="w-6 text-right text-zinc-500 text-xs">
-        {index + 1}
-      </span>
+      <span className="w-6 text-right text-zinc-500 text-xs">{index + 1}</span>
 
-      {/* Track thumbnail + play button */}
       <button
-        onClick={() => onPlay?.(track)}
-        className="relative w-10 h-10 rounded overflow-hidden bg-[#222] flex-shrink-0"
+        onClick={handlePlay}
+        className="relative w-10 h-10 rounded overflow-hidden bg-[#222] shrink-0"
       >
-        {/* Cover image or fallback icon */}
         {track.cover ? (
           <Image
             src={track.cover}
@@ -75,32 +111,34 @@ export function TrackItem({
             <FaMusic className="text-zinc-600 text-sm" />
           </div>
         )}
-
-        {/* Hover play overlay */}
         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
           <FaPlay className="text-white text-xs" />
         </div>
       </button>
 
-      {/* Track title + artist */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-white truncate">{track.title}</p>
-
+        <Link
+          href={trackHref}
+          className="block truncate text-sm text-white transition duration-200 hover:text-neutral-600"
+        >
+          {track.title}
+        </Link>
         {track.artist && (
-          <p className="text-xs text-zinc-500 truncate">{track.artist}</p>
+          <UserProfileLink
+            handle={track.artistHandle}
+            className="block truncate text-xs text-zinc-500 hover:text-white transition-colors"
+          >
+            {track.artist}
+          </UserProfileLink>
         )}
       </div>
 
-      {/* Track duration */}
       <span className="text-xs text-zinc-500">
         {formatDuration(track.duration)}
       </span>
 
-      {/* Edit controls (only for playlist owner/editor) */}
       {canEdit && (
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          
-          {/* Move track up */}
           <button
             onClick={() => onMoveUp?.(index)}
             disabled={index === 0}
@@ -110,7 +148,6 @@ export function TrackItem({
             <FaArrowUp size={10} />
           </button>
 
-          {/* Move track down */}
           <button
             onClick={() => onMoveDown?.(index)}
             disabled={index === total - 1}
@@ -120,11 +157,11 @@ export function TrackItem({
             <FaArrowDown size={10} />
           </button>
 
-          {/* Remove track from playlist */}
           <button
-            onClick={() => onRemove?.(track.trackId)}
-            className="w-7 h-7 rounded text-red-400 hover:text-red-300 hover:bg-zinc-800 flex items-center justify-center"
-            aria-label="Remove track"
+            onClick={onRemove}
+            disabled={isRemoving}
+            className="w-7 h-7 rounded text-red-400 hover:text-red-300 hover:bg-zinc-800 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed"
+            aria-label={isRemoving ? "Removing..." : "Remove track"}
           >
             <FaTimes size={11} />
           </button>

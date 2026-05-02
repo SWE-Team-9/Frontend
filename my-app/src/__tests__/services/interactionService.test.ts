@@ -128,6 +128,7 @@ describe("interactionService", () => {
           user: {
             id: "usr_1",
             display_name: "Maryam",
+            avatarUrl: null,
           },
         },
       ],
@@ -170,6 +171,7 @@ describe("interactionService", () => {
       user: {
         id: "usr_2",
         display_name: "Ahmed",
+        avatarUrl: null,
       },
     });
   });

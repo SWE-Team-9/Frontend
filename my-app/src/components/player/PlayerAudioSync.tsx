@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { getAudioElement, usePlayerStore } from "@/src/store/playerStore";
 import { useAuthStore } from "@/src/store/useAuthStore";
+import { completeAd } from "@/src/services/playerService";
 
 export default function PlayerAudioSync() {
   const currentTrack = usePlayerStore((s) => s.currentTrack);
@@ -51,10 +52,11 @@ export default function PlayerAudioSync() {
 
     const handleEnded = async () => {
       const state = usePlayerStore.getState();
-      // If an ad with audio just ended, advance to next real track
+      // If an ad with audio just ended, notify backend then advance through the backend queue.
       if (state.isPlayingAd) {
-        usePlayerStore.setState({ isPlayingAd: false, currentAd: null });
-        await state.nextTrack();
+        usePlayerStore.setState({ isPlayingAd: false, currentAd: null, adElapsedSeconds: 0 });
+        try { await completeAd(); } catch { /* non-fatal */ }
+        await usePlayerStore.getState().nextTrack();
         return;
       }
       await state.persistProgress();
@@ -108,6 +110,8 @@ export default function PlayerAudioSync() {
           adIntervalRef.current = null;
         }
         usePlayerStore.setState({ isPlayingAd: false, currentAd: null, adElapsedSeconds: 0 });
+        // Notify backend that ad completed before advancing
+        try { await completeAd(); } catch { /* non-fatal */ }
         await usePlayerStore.getState().nextTrack();
       }, currentAd.durationSeconds * 1000);
     }
@@ -162,7 +166,8 @@ export default function PlayerAudioSync() {
           shuffle: isShuffleOn,
           repeatMode: loopMode,
         });
-        navigator.sendBeacon("/api/v1/player/session", new Blob([payload], { type: "application/json" }));
+        const beaconUrl = `${process.env.NEXT_PUBLIC_API_URL ?? ""}/player/session`;
+        navigator.sendBeacon(beaconUrl, new Blob([payload], { type: "application/json" }));
       } else {
         state.persistPlayerSession();
       }

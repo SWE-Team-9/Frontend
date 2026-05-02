@@ -75,13 +75,19 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     const { selectedType, selectedStatus, page } = get();
 
     set({ isLoading: true, error: null });
+    console.log(
+      "[fetchNotifications] selectedStatus:",
+      selectedStatus,
+      "| params:",
+      params,
+    );
 
     try {
       const response = await getNotifications({
         page,
         limit: 20,
         type: selectedType === "all" ? undefined : selectedType,
-        status: selectedStatus,
+        status: selectedStatus === "all" ? undefined : selectedStatus,
         ...params,
       });
 

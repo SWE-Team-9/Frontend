@@ -22,15 +22,14 @@ import {
   Edit2,
   Eye,
   EyeOff,
-  Check,
 } from "lucide-react";
 
+import { EditTrackModal } from "@/src/components/tracks/EditTrackModal";
 import { TrackActionButtons } from "@/src/components/tracks/TrackActionButtons";
 import { useRepostStore } from "@/src/store/repostStore";
 import {
   changeTrackVisibility,
   getTrackDetails,
-  updateTrackMetadata,
   TrackDetails,
 } from "@/src/services/uploadService";
 import {
@@ -62,15 +61,11 @@ interface TrackCardProps {
   onDelete?: (id: string, title: string) => void;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onEdit?: (track: any) => void;
-  /** All track IDs visible in the current context (list/profile/feed).
-   *  When provided, the backend queue is loaded with the full list so
-   *  next/previous navigation works across the whole context. */
   contextTrackIds?: string[];
 }
 
 function getArtistLabel(value: unknown): string {
   if (typeof value === "string") return value;
-
   if (
     value &&
     typeof value === "object" &&
@@ -79,7 +74,6 @@ function getArtistLabel(value: unknown): string {
   ) {
     return (value as { displayName: string }).displayName;
   }
-
   return "Unknown Artist";
 }
 
@@ -90,47 +84,22 @@ export const TrackCard: React.FC<TrackCardProps> = ({
   onEdit: _onEdit,
   contextTrackIds,
 }) => {
-const trackHref = buildTrackPermalink({
-  trackId: track.trackId,
-  artistHandle: track.artistHandle,
-  slug: track.slug,
-});
-
-const hasCanonicalTrackRoute = !trackHref.startsWith("/tracks/");
-
-  const toEditData = (
-    source: Pick<
-      IntegratedTrack,
-      "title" | "genre" | "releaseDate" | "description"
-    >,
-  ) => ({
-    title: source.title,
-    genre: source.genre ?? "",
-    releaseDate: source.releaseDate?.split("T")[0] ?? "",
-    description: source.description ?? "",
+  const trackHref = buildTrackPermalink({
+    trackId: track.trackId,
+    artistHandle: track.artistHandle,
+    slug: track.slug,
   });
-  const deleteRepostAction = useRepostStore(
-    (state) => state.deleteRepostAction,
-  );
+
+  const hasCanonicalTrackRoute = !trackHref.startsWith("/tracks/");
+
+  const deleteRepostAction = useRepostStore((state) => state.deleteRepostAction);
   const isReposted = useRepostStore((state) => state.isReposted(track.trackId));
-  const _handleDeleteClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.stopPropagation(); // Prevent card click
-    if (!isOwner && isReposted) {
-      if (confirm("Do you want to remove your repost?")) {
-        await deleteRepostAction(track.trackId);
-      }
-      return;
-    }
-    if (onDelete) {
-      onDelete(track.trackId, savedData.title);
-    }
-  };
 
   const [shareOpen, setShareOpen] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isPreparingEdit, setIsPreparingEdit] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
   const currentTrack = usePlayerStore((state) => state.currentTrack);
   const isPlaying = usePlayerStore((state) => state.isPlaying);
   const fetchAndPlay = usePlayerStore((state) => state.fetchAndPlay);
@@ -139,25 +108,23 @@ const hasCanonicalTrackRoute = !trackHref.startsWith("/tracks/");
   const duration = usePlayerStore((state) => state.duration);
   const seekTo = usePlayerStore((state) => state.seekTo);
 
-  // Visibility state
   const [visibility, setVisibility] = useState<"PUBLIC" | "PRIVATE">(
     (track.visibility as "PUBLIC" | "PRIVATE") ?? "PUBLIC",
   );
   const [isTogglingVisibility, setIsTogglingVisibility] = useState(false);
 
-  const [savedData, setSavedData] = useState(() => toEditData(track));
+  // Tracks the locally-saved display data; updated optimistically after modal saves
+  const [savedData, setSavedData] = useState({
+    title: track.title,
+    genre: track.genre ?? "",
+    tags: track.tags ?? [],
+    releaseDate: track.releaseDate?.split("T")[0] ?? "",
+    description: track.description ?? "",
+    coverArtUrl: track.coverArtUrl ?? track.coverArt ?? null,
+  });
 
-  // Single edit data object (replaces individual editTitle, editGenre, etc.)
-  const [editData, setEditData] = useState(() => toEditData(track));
-  const normalizedEditData = {
-    title: editData.title.trim(),
-    genre: editData.genre.trim(),
-    description: editData.description.trim(),
-  };
-  const isEditFormInvalid =
-    normalizedEditData.title.length === 0 ||
-    normalizedEditData.genre.length === 0 ||
-    normalizedEditData.description.length === 0;
+  // Populated fresh from the server each time the modal opens
+  const [editInitialData, setEditInitialData] = useState(savedData);
 
   const playerTrack: PlayerTrack = {
     trackId: track.trackId,
@@ -166,15 +133,10 @@ const hasCanonicalTrackRoute = !trackHref.startsWith("/tracks/");
     artistId: track.artistId ?? "",
     artistHandle: track.artistHandle ?? undefined,
     artistAvatarUrl: track.artistAvatarUrl ?? null,
-    cover:
-      track.coverArtUrl || track.coverArt || "/images/track-placeholder.png",
-    duration: track.durationMs
-      ? Math.floor(track.durationMs / 1000)
-      : undefined,
+    cover: savedData.coverArtUrl || FALLBACK_IMAGE,
+    duration: track.durationMs ? Math.floor(track.durationMs / 1000) : undefined,
     genre: savedData.genre || undefined,
   };
-
-  console.log("[TrackCard playerTrack]", playerTrack);
 
   const isCurrentTrack = currentTrack?.trackId === track.trackId;
   const waveformProgress =
@@ -194,80 +156,40 @@ const hasCanonicalTrackRoute = !trackHref.startsWith("/tracks/");
     }
   };
 
-  const enterEdit = async () => {
+  const openEditModal = async () => {
     setIsPreparingEdit(true);
     setError(null);
-
     try {
       const latest = await getTrackDetails(track.trackId);
-      const hydrated = toEditData({
-        ...track,
-        title: latest.title ?? track.title,
-        genre: latest.genre ?? track.genre,
-        releaseDate: latest.releaseDate ?? track.releaseDate,
-        description: latest.description ?? track.description,
+      setEditInitialData({
+        title: latest.title ?? savedData.title,
+        genre: latest.genre ?? savedData.genre,
+        tags: latest.tags ?? savedData.tags,
+        releaseDate: latest.releaseDate?.split("T")[0] ?? savedData.releaseDate,
+        description: latest.description ?? savedData.description,
+        coverArtUrl: latest.coverArtUrl ?? savedData.coverArtUrl,
       });
-
-      setSavedData(hydrated);
-      setEditData(hydrated);
     } catch {
-      // Keep the last known local values so editing can still proceed offline.
-      setEditData(savedData);
+      // Fall back to last known values so editing can still proceed offline
+      setEditInitialData(savedData);
     } finally {
       setIsPreparingEdit(false);
-      setIsEditing(true);
+      setIsEditModalOpen(true);
     }
   };
 
-  const cancelEdit = () => {
-    setError(null);
-    setIsEditing(false);
-  };
-
-  const handleSave = async () => {
-    if (isEditFormInvalid) {
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      setError(null);
-      await updateTrackMetadata(track.trackId, {
-        title: normalizedEditData.title,
-        genre: normalizedEditData.genre,
-        description: normalizedEditData.description,
-        releaseDate: editData.releaseDate
-          ? new Date(editData.releaseDate).toISOString()
-          : undefined,
-      });
-
-      setSavedData({
-        ...editData,
-        title: normalizedEditData.title,
-        genre: normalizedEditData.genre,
-        description: normalizedEditData.description,
-      });
-      setIsEditing(false);
-    } catch {
-      setError("Could not save track changes. Please try again.");
-    } finally {
-      setIsSaving(false);
-    }
+  const handleModalSaved = (updated: typeof savedData) => {
+    setSavedData(updated);
   };
 
   const handlePlayClick = async () => {
     if (track.status === "PROCESSING") return;
-
     try {
       setError(null);
-
       if (isCurrentTrack) {
         await toggle();
         return;
       }
-
-      // If a full context list is provided, load all IDs into the backend queue
-      // so next/previous work across the whole list.
       if (contextTrackIds && contextTrackIds.length > 1) {
         const resp = await loadQueue({
           contextType: "CONTEXT_IDS",
@@ -293,87 +215,35 @@ const hasCanonicalTrackRoute = !trackHref.startsWith("/tracks/");
 
   const handleWaveformSeek = async (progress: number) => {
     if (!isCurrentTrack || duration <= 0) return;
-
-    const nextTime = progress * duration;
-    await seekTo(nextTime);
+    await seekTo(progress * duration);
   };
 
   return (
-    <div className="bg-[#1e1e1e] p-5 rounded-lg flex gap-6 items-start hover:bg-[#252525] transition-colors relative group">
-      {/* Artwork */}
-      <div className="w-40 h-40 bg-[#333] rounded-md shrink-0 relative overflow-hidden">
-        <Image
-          src={track.coverArtUrl || track.coverArt || FALLBACK_IMAGE}
-          alt={savedData.title}
-          fill
-          className="object-cover"
+    <>
+      {isEditModalOpen && (
+        <EditTrackModal
+          trackId={track.trackId}
+          initialData={editInitialData}
+          onClose={() => setIsEditModalOpen(false)}
+          onSaved={handleModalSaved}
         />
-      </div>
+      )}
 
-      {/* Content */}
-      <div className="grow flex flex-col gap-3 min-w-0">
-        {error && <p className="text-xs text-red-400">{error}</p>}
+      <div className="bg-[#1e1e1e] p-5 rounded-lg flex gap-6 items-start hover:bg-[#252525] transition-colors relative group">
+        {/* Artwork */}
+        <div className="w-40 h-40 bg-[#333] rounded-md shrink-0 relative overflow-hidden">
+          <Image
+            src={savedData.coverArtUrl || FALLBACK_IMAGE}
+            alt={savedData.title}
+            fill
+            className="object-cover"
+          />
+        </div>
 
-        {isEditing ? (
-          /* --- EDIT MODE --- */
-          <div className="flex flex-col gap-3 bg-[#181818] p-4 rounded-md border border-zinc-700">
-            {isEditFormInvalid && (
-              <p className="text-xs text-red-400">
-                Title, genre, and description are required.
-              </p>
-            )}
-            <input
-              value={editData.title}
-              onChange={(e) => {
-                setEditData((prev) => ({ ...prev, title: e.target.value }));
-                if (error) setError(null);
-              }}
-              className="bg-[#121212] border border-zinc-700 rounded p-2 text-white text-sm"
-              placeholder="Track Title"
-              required
-            />
-            <input
-              value={editData.genre}
-              onChange={(e) => {
-                setEditData((prev) => ({ ...prev, genre: e.target.value }));
-                if (error) setError(null);
-              }}
-              className="bg-[#121212] border border-zinc-700 rounded p-2 text-white text-sm"
-              placeholder="Genre"
-              required
-            />
-            <textarea
-              value={editData.description}
-              onChange={(e) => {
-                setEditData((prev) => ({
-                  ...prev,
-                  description: e.target.value,
-                }));
-                if (error) setError(null);
-              }}
-              className="bg-[#121212] border border-zinc-700 rounded p-2 text-white text-sm resize-none"
-              placeholder="Description"
-              rows={3}
-              required
-            />
-            <div className="flex gap-2">
-              <button
-                onClick={handleSave}
-                disabled={isSaving || isEditFormInvalid}
-                className="bg-white text-black px-4 py-1.5 rounded text-xs font-bold flex items-center gap-1 disabled:opacity-50"
-              >
-                <Check className="w-3 h-3" /> {isSaving ? "Saving..." : "Save"}
-              </button>
-              <button
-                onClick={cancelEdit}
-                className="border border-zinc-600 text-zinc-400 px-4 py-1.5 rounded text-xs"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        ) : (
-          /* --- VIEW MODE --- */
+        {/* Content */}
+        <div className="grow flex flex-col gap-3 min-w-0">
+          {error && <p className="text-xs text-red-400">{error}</p>}
+
           <>
             <div className="flex justify-between items-start gap-4">
               <div className="flex items-center gap-3 min-w-0">
@@ -399,12 +269,21 @@ const hasCanonicalTrackRoute = !trackHref.startsWith("/tracks/");
                   )}
                 </button>
                 <div className="truncate">
-                  <p className="text-zinc-400 text-sm">
-                    {getArtistLabel(track.artistName ?? track.artist)}
-                  </p>
+                  {track.artistHandle ? (
+                    <Link
+                      href={`/profiles/${track.artistHandle}`}
+                      className="block truncate text-sm text-zinc-400 hover:text-white transition-colors"
+                    >
+                      {getArtistLabel(track.artistName ?? track.artist)}
+                    </Link>
+                  ) : (
+                    <p className="truncate text-sm text-zinc-400">
+                      {getArtistLabel(track.artistName ?? track.artist)}
+                    </p>
+                  )}
                   <Link
-                    href={`/tracks/${track.trackId}`}
-                    className="text-white text-xl font-bold truncate hover:text-neutral-700 transition duration-200"
+                    href={trackHref}
+                    className="block truncate text-xl font-bold text-white transition duration-200 hover:text-zinc-600"
                   >
                     {savedData.title}
                   </Link>
@@ -413,15 +292,15 @@ const hasCanonicalTrackRoute = !trackHref.startsWith("/tracks/");
 
               <div className="flex items-center gap-2 relative">
                 <span
-                  className={`text-[10px] px-2 py-0.5 rounded font-bold ${visibility === "PUBLIC"
+                  className={`text-[10px] px-2 py-0.5 rounded font-bold ${
+                    visibility === "PUBLIC"
                       ? "bg-green-900/30 text-green-400"
                       : "bg-zinc-800 text-zinc-500"
-                    }`}
+                  }`}
                 >
                   {visibility}
                 </span>
 
-                {/* Share button */}
                 <button
                   onClick={() => setShareOpen((v) => !v)}
                   disabled={!hasCanonicalTrackRoute}
@@ -441,7 +320,7 @@ const hasCanonicalTrackRoute = !trackHref.startsWith("/tracks/");
                     resourceType="TRACK"
                     resourceId={track.trackId}
                     resourceTitle={savedData.title}
-                    resourceCoverArtUrl={track.coverArtUrl || track.coverArt || null}
+                    resourceCoverArtUrl={savedData.coverArtUrl}
                     onClose={() => setShareOpen(false)}
                   />
                 )}
@@ -481,7 +360,7 @@ const hasCanonicalTrackRoute = !trackHref.startsWith("/tracks/");
                 artistId={track.artistId ?? undefined}
                 artistHandle={track.artistHandle ?? undefined}
                 artistAvatarUrl={track.artistAvatarUrl ?? null}
-                coverArt={track.coverArt || track.coverArtUrl || FALLBACK_IMAGE}
+                coverArt={savedData.coverArtUrl || FALLBACK_IMAGE}
                 repostsCount={track.repostsCount ?? 0}
                 reposted={track.reposted ?? false}
                 size="full"
@@ -504,23 +383,20 @@ const hasCanonicalTrackRoute = !trackHref.startsWith("/tracks/");
                   </button>
 
                   <button
-                    onClick={enterEdit}
+                    onClick={openEditModal}
                     disabled={isPreparingEdit}
-                    className="p-2 rounded bg-[#2a2a2a] text-zinc-400 hover:text-white"
-                    title="Edit Metadata"
+                    className="p-2 rounded bg-[#2a2a2a] text-zinc-400 hover:text-white disabled:opacity-50"
+                    title="Edit Track"
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
 
-                  {(isOwner || track.reposted) && (
+                  {(isOwner || isReposted) && (
                     <button
                       onClick={async (e) => {
                         e.stopPropagation();
-
-                        // Case 1: If the user is a reposter (and not the owner), remove the repost
-                        if (!isOwner && track.reposted) {
+                        if (!isOwner && isReposted) {
                           try {
-                            // Use the dedicated delete action from your store
                             await useRepostStore
                               .getState()
                               .deleteRepostAction(track.trackId);
@@ -529,8 +405,6 @@ const hasCanonicalTrackRoute = !trackHref.startsWith("/tracks/");
                           }
                           return;
                         }
-
-                        // Case 2: If the user is the owner, trigger the original onDelete callback
                         if (isOwner && onDelete) {
                           onDelete(track.trackId, savedData.title);
                         }
@@ -547,7 +421,6 @@ const hasCanonicalTrackRoute = !trackHref.startsWith("/tracks/");
                       <MenuButton className="p-2 rounded bg-[#2a2a2a] text-zinc-400 hover:text-white">
                         <MoreHorizontal className="w-4 h-4" />
                       </MenuButton>
-
                       <Transition
                         as={Fragment}
                         enter="transition ease-out duration-100"
@@ -576,8 +449,8 @@ const hasCanonicalTrackRoute = !trackHref.startsWith("/tracks/");
               )}
             </div>
           </>
-        )}
+        </div>
       </div>
-    </div>
+    </>
   );
 };

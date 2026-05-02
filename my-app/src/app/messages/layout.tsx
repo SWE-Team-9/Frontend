@@ -1,7 +1,15 @@
+import NavBar from "@/src/components/ui/NavBar";
+
+
 export default function MessagesLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
-  return children;
+}>) {
+  return (
+    <div className="font-sans text-white min-h-screen max-w-7xl mx-auto px-4">
+      <NavBar className="sticky top-0 z-50" />
+        {children}
+    </div>
+  );
 }

@@ -68,31 +68,16 @@ const NavBar: React.FC<NavBarProps> = ({
 
   profileMenu = [
     { label: "Profile", icon: MdPerson, href: "/profiles" },
-    { label: "Likes", icon: ImHeart },
-    { label: "Playlists", icon: FiList },
-    { label: "Stations", icon: IoRadio },
-    { label: "Following", icon: BsPersonCheckFill },
+    { label: "Likes", icon: ImHeart, href:"/library/likes" },
+    { label: "Playlists", icon: FiList, href:"/library/playlists" },
+    { label: "Following", icon: BsPersonCheckFill, href:"/library/following" },
     { label: "Who to follow", icon: MdPersonAddAlt1 },
-    { label: "ArtistPro", icon: MdStars },
-    { label: "Tracks", icon: PiWaveformBold },
+    { label: "ArtistPro", icon: MdStars, href:"/subscriptions" },
     { label: "Insights", icon: MdBarChart },
-    { label: "Distribute", icon: TbArrowLeftRight },
   ],
 
   moreMenu = [
-    { label: "About us" },
-    { label: "Legal" },
-    { label: "Copyright", dividerAfter: true },
-
     { label: "Mobile apps" },
-    { label: "Artist Membership" },
-    { label: "Jobs" },
-    { label: "Developers" },
-    { label: "SoundCloud Store", dividerAfter: true },
-
-    { label: "Support" },
-    { label: "Keyboard shortcuts", dividerAfter: true },
-
     { label: "Subscription" },
     { label: "Settings", href: "/settings" },
     { label: "Sign out" },
@@ -135,6 +120,7 @@ const NavBar: React.FC<NavBarProps> = ({
   // handled once per auth session by AuthProvider. NavBar only reads the
   // resulting store values; it no longer fires redundant per-page API calls.
   const unreadMessageCount = useMessageStore((state) => state.unreadCount);
+  const showUnreadDotOnly = useMessageStore((state) => state.showUnreadDotOnly);
   const router = useRouter();
 
   // Sign-out handler — clears cookies on the backend, clears store
@@ -209,7 +195,7 @@ const NavBar: React.FC<NavBarProps> = ({
       ref={menuRef}
       className={`fixed inset-x-0 z-50 bg-[#121212] py-2 ${className || "w-full mx-auto"}`}
     >
-      <div className="max-w-7xl mx-auto flex justify-center items-center gap-8">
+      <div className="w-full flex justify-between items-center gap-4 px-6">
         {/* LEFT SECTION */}
         <div className="flex items-center gap-4">
           <div className="flex items-center pt-2">
@@ -230,7 +216,7 @@ const NavBar: React.FC<NavBarProps> = ({
           </button>
 
           {leftRoutes.length > 0 && (
-            <div className="hidden md:flex gap-6">
+            <div className="hidden md:flex gap-8">
               {leftRoutes.map((route) => (
                 <NavBarItem
                   key={route.label}
@@ -244,15 +230,15 @@ const NavBar: React.FC<NavBarProps> = ({
 
         {/* CENTER SECTION */}
         {showSearch && (
-          <div className="w-32 sm:w-48 md:w-72 lg:w-86">
+          <div className="flex-1 mx-6 max-w-2xl">
             <SearchBar />
           </div>
         )}
 
         {/* RIGHT SECTION */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-6">
           {rightRoutes.length > 0 && (
-            <div className="hidden lg:flex gap-6">
+            <div className="hidden lg:flex gap-8">
               {rightRoutes.map((route) => (
                 <NavBarItem
                   key={route.label}
@@ -275,7 +261,7 @@ const NavBar: React.FC<NavBarProps> = ({
                 width={24}
                 height={24}
                 alt={displayLabel || "Profile"}
-                className="w-6 h-6 rounded-full object-cover"
+                className="w-7 h-7 rounded-full object-cover"
                 onError={(e) => {
                   e.currentTarget.onerror = null;
                   e.currentTarget.src = "/images/profile.png";
@@ -284,7 +270,7 @@ const NavBar: React.FC<NavBarProps> = ({
               {/* Show the user's display name and premium badge if applicable */}
               {displayLabel && (
                 <div className="flex items-center gap-2">
-                  <span className="hidden lg:block text-white text-sm font-medium max-w-24 truncate">
+                  <span className="hidden lg:block text-white text-base font-medium max-w-24 truncate">
                     {displayLabel}
                   </span>
 
@@ -330,14 +316,19 @@ const NavBar: React.FC<NavBarProps> = ({
             <button
               className="relative cursor-pointer"
               onClick={() => toggleMenu("messages")}
+              aria-label="Messages"
             >
               <FiMail size={20} className="text-neutral-400 hover:text-white" />
 
-              {unreadMessageCount > 0 && (
+              {unreadMessageCount > 0 ? (
+                // Real unread messages — always show the count, ignore showUnreadDotOnly
                 <span className="absolute -right-1.5 -top-1.5 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-[#ff5500] px-1 text-[10px] font-bold leading-none text-white">
                   {unreadMessageCount > 99 ? "99+" : unreadMessageCount}
                 </span>
-              )}
+              ) : showUnreadDotOnly ? (
+                // No real unread messages, but user marked a chat as unread — show blank dot
+                <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-[#ff5500]" />
+              ) : null}
 
               {openMenu === "messages" && <MessagesDropdown />}
             </button>
@@ -372,7 +363,7 @@ const NavBar: React.FC<NavBarProps> = ({
       {/* MOBILE */}
       {openMenu === "mobile" && (
         <div className="md:hidden bg-neutral-900 border-t border-neutral-700 p-4 hover:text-white">
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-6">
             {[...leftRoutes, ...rightRoutes].length > 0 &&
               [...leftRoutes, ...rightRoutes].map((route) => (
                 <NavBarItem

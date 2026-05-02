@@ -773,6 +773,39 @@ describe("playerStore", () => {
     expect(usePlayerStore.getState().accessState).toBe("PLAYABLE");
   });
 
+  it("fetchAndPlay blocks manual track starts while an ad is active", async () => {
+    const { usePlayerStore } = await import("@/src/store/playerStore");
+
+    usePlayerStore.setState({
+      isPlayingAd: true,
+      currentAd: {
+        id: "ad_1",
+        title: "Promo",
+        durationSeconds: 5,
+        audioUrl: null,
+      },
+      currentTrack: {
+        trackId: "current",
+        title: "Current",
+        artist: "Artist",
+        artistId: "u1",
+        cover: "/current.jpg",
+      },
+    });
+
+    await usePlayerStore.getState().fetchAndPlay({
+      trackId: "next",
+      title: "Next",
+      artist: "Artist",
+      artistId: "u2",
+      cover: "/next.jpg",
+    });
+
+    expect(mockLoadQueue).not.toHaveBeenCalled();
+    expect(mockGetPlaybackState).not.toHaveBeenCalled();
+    expect(usePlayerStore.getState().currentTrack?.trackId).toBe("current");
+  });
+
   it("fetchAndPlay handles blocked state without playback", async () => {
     mockGetPlaybackState.mockResolvedValue({
       trackId: "trk_1",

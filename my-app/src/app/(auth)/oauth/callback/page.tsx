@@ -47,6 +47,8 @@ function entitlementsToSubDetails(e: {
     trialEnd: e.trialEnd ?? null,
     paymentMethodSummary: null,
     pendingDowngrade: null,
+    planCode,
+    latestInvoice: null,
     perks: {
       adFree: !(e.adsEnabled ?? true),
       offlineListening: !!e.canDownload,

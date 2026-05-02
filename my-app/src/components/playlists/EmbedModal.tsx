@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { FaTimes, FaCopy, FaCheck, FaCode } from "react-icons/fa";
 
 // API service for fetching embed code
-import { playlistsApi } from "@/src/services/api/playlists";
+import { playlistsApi } from "@/src/services/playlistsService";
 
 interface Props {
   playlistId: string;
@@ -70,11 +70,11 @@ export function EmbedModal({ playlistId, isOpen, onClose }: Props) {
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg bg-[#1a1a1a] border border-zinc-800 rounded-md shadow-2xl"
+        className="w-full max-w-lg bg-[#121212] border border-neutral-700 rounded-md shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-700">
           <h2 className="text-sm font-bold uppercase tracking-wider text-white flex items-center gap-2">
             <FaCode size={11} /> Embed Code
           </h2>
@@ -113,9 +113,9 @@ export function EmbedModal({ playlistId, isOpen, onClose }: Props) {
               {/* Copy button */}
               <button
                 onClick={handleCopy}
-                className="px-4 py-2 bg-[#f50] hover:bg-[#e64a00] text-white text-xs font-bold uppercase tracking-wider rounded flex items-center gap-2 transition-colors"
+                className="px-4 py-2 bg-white hover:bg-zinc-600 cursor-pointer text-black text-xs font-bold uppercase tracking-wider rounded flex items-center gap-2 transition-colors"
               >
-                {copied ? <FaCheck size={11} /> : <FaCopy size={11} />}
+                {copied ? <FaCheck size={15} /> : <FaCopy size={15} />}
                 {copied ? "Copied to clipboard" : "Copy embed code"}
               </button>
             </>

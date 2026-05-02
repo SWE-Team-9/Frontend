@@ -24,7 +24,7 @@ import { TrackData } from "@/src/types/interactions";
 import { getUserLikes } from "@/src/services/likeService";
 import SharePopup from "@/src/components/share/SharePopup";
 import { buildUserPermalink } from "@/src/lib/permalinks";
-import {MyPlaylistsSection} from "@/src/components/profile/MyPlaylistsSection";
+import { MyPlaylistsSection } from "@/src/components/profile/MyPlaylistsSection";
 import { useProfilePageData } from "@/src/hooks/useProfilePageData";
 
 type FollowUserShape = {
@@ -227,6 +227,8 @@ export default function ProfilePage({
     accountType,
     setIsEditOpen,
     handleAvatarUpload,
+    handleCoverDelete,
+    handleAvatarDelete,
     avatarUrl,
     coverUrl,
     handleCoverUpload,
@@ -245,9 +247,9 @@ export default function ProfilePage({
     },
     [setProfileData],
   );
-  
 
-  // ─── DETAILS VIEW ─────────────────────────────────────────────────────────
+
+  // DETAILS VIEW
   const renderDetailsPage = () => (
     <div className="container mx-auto px-8 py-10 animate-in fade-in duration-500">
       <div className="flex items-center gap-6 mb-12">
@@ -281,8 +283,8 @@ export default function ProfilePage({
                 setSearchQuery("");
               }}
               className={`pb-2 cursor-pointer border-b-2 transition-all ${detailTab === t
-                  ? "text-white border-white"
-                  : "border-transparent hover:text-zinc-200"
+                ? "text-white border-white"
+                : "border-transparent hover:text-zinc-200"
                 }`}
             >
               {t}
@@ -348,8 +350,8 @@ export default function ProfilePage({
                         })
                       }
                       className={`px-4 py-1.5 rounded text-[10px] font-bold uppercase transition-all ${isFollowing
-                          ? "bg-zinc-800 text-zinc-400 border border-zinc-700"
-                          : "bg-white text-black hover:bg-zinc-200"
+                        ? "bg-zinc-800 text-zinc-400 border border-zinc-700"
+                        : "bg-white text-black hover:bg-zinc-200"
                         }`}
                     >
                       {isFollowing ? "Following" : "Follow"}
@@ -403,7 +405,7 @@ export default function ProfilePage({
             </p>
           </div>
         ))}
-{/* ── LIKES GRID DISPLAY & PAGINATION ── */}
+      {/* ── LIKES GRID DISPLAY & PAGINATION ── */}
       {/* This section renders the liked tracks and their specific pagination controls */}
       {detailTab === "Likes" && (
         profileLikes.length === 0 ? (
@@ -413,17 +415,22 @@ export default function ProfilePage({
         ) : (
           <div className="flex flex-col items-center w-full">
             {/* Grid layout for displaying Track Cards */}
-<div className="grid grid-cols-1 gap-6 w-full max-w-5xl">
-                {profileLikes.map((track) => (
+            <div className="grid grid-cols-1 gap-6 w-full max-w-5xl">
+              {profileLikes.map((track) => (
                 <TrackCard
                   key={track.id}
                   track={{
-                    trackId: track.id,
+                    trackId: track.trackId ?? track.id,
                     title: track.title,
-                    // artistName: track.artistName,
-                    // coverArt: track.coverArt,
+                    artistName: track.artistName ?? undefined,
+                    artistId: track.artistId,
+                    artistHandle: track.artistHandle,
+                    artistAvatarUrl: track.artistAvatarUrl ?? null,
+                    coverArtUrl: track.coverArtUrl ?? track.coverArt ?? track.imageUrl ?? undefined,
+                    coverArt: track.coverArt ?? track.coverArtUrl ?? track.imageUrl ?? undefined,
                     likesCount: track.likesCount,
-                    liked: true 
+                    liked: true,
+                    repostsCount: track.repostsCount ?? 0,
                   }}
                   isOwner={isOwner}
                 />
@@ -596,12 +603,14 @@ export default function ProfilePage({
                 <CoverPhoto
                   isOwner={isOwner}
                   coverUrl={coverUrl}
+                  onDelete={handleCoverDelete}
                   onUpload={handleCoverUpload}
                 />
                 <AvatarUpload
                   username={displayName}
                   location={location}
                   onUpload={handleAvatarUpload}
+                  onDelete={handleAvatarDelete}
                   avatarUrl={avatarUrl}
                   isOwner={isOwner}
                 />
@@ -634,8 +643,8 @@ export default function ProfilePage({
                       key={tab}
                       onClick={() => setActiveTab(tab)}
                       className={`cursor-pointer transition-colors h-full flex items-center border-b-2 ${activeTab === tab
-                          ? "text-white border-white"
-                          : "border-transparent hover:text-white"
+                        ? "text-white border-white"
+                        : "border-transparent hover:text-white"
                         }`}
                     >
                       {tab}
@@ -756,9 +765,9 @@ export default function ProfilePage({
                         }}
                       >
                         <div className="w-10 h-10 bg-zinc-800 rounded relative overflow-hidden shrink-0">
-                          {(track.coverArt || track.imageUrl) && (
+                          {(track.coverArt || track.coverArtUrl || track.imageUrl) && (
                             <Image
-                              src={track.coverArt || track.imageUrl || ""}
+                              src={track.coverArt || track.coverArtUrl || track.imageUrl || ""}
                               alt={track.title}
                               fill
                               className="object-cover"

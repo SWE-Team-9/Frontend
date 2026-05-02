@@ -5,6 +5,7 @@ import { FaHeart, FaRegHeart } from "react-icons/fa";
 import { useLikeStore } from "@/src/store/likeStore";
 import { TrackData } from "@/src/types/interactions";
 import Image from "next/image";
+import { TrackPageLink, UserProfileLink } from "@/src/components/navigation/EntityLinks";
 
 export function TrackInfo() {
   const currentTrack = usePlayerStore((s) => s.currentTrack);
@@ -20,7 +21,7 @@ export function TrackInfo() {
     return (
       <div className="flex items-center gap-3 min-w-0 flex-1 max-w-xs">
         {/* Ad artwork placeholder */}
-        <div className="w-12 h-12 rounded shrink-0 bg-gradient-to-br from-zinc-700 to-zinc-600 flex items-center justify-center shadow-lg">
+        <div className="w-12 h-12 rounded shrink-0 bg-linear-to-br from-zinc-700 to-zinc-600 flex items-center justify-center shadow-lg">
           <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">AD</span>
         </div>
         <div className="min-w-0 flex-1">
@@ -74,12 +75,20 @@ export function TrackInfo() {
         unoptimized
       />
       <div className="min-w-0 flex-1">
-        <p className="text-white text-sm font-medium truncate leading-tight">
+        <TrackPageLink
+          trackId={currentTrack.trackId}
+          artistHandle={currentTrack.artistHandle}
+          className="block truncate text-sm font-medium leading-tight text-white hover:text-zinc-600 transition-colors"
+        >
           {currentTrack.title}
-        </p>
-        <p className="text-[#999] text-xs truncate mt-0.5">
+        </TrackPageLink>
+
+        <UserProfileLink
+          handle={currentTrack.artistHandle}
+          className="mt-0.5 block truncate text-xs text-[#999] hover:text-white transition-colors"
+        >
           {artistLabel}
-        </p>
+        </UserProfileLink>
 
         {accessState === "PREVIEW" && (
           <span className="text-[10px] text-[#f50] font-bold uppercase">

@@ -2,13 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { FaTimes, FaPlus, FaMusic, FaSearch } from "react-icons/fa";
-
-interface Track {
-  trackId: string;
-  title: string;
-  artist?: string;
-  cover?: string;
-}
+import { searchService } from "@/src/services/searchService";
+import type { SearchTrack } from "@/src/types/search";
+import Image from "next/image";
 
 interface Props {
   isOpen: boolean;
@@ -16,11 +12,9 @@ interface Props {
   onAdd: (trackId: string) => Promise<void>;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
-
 export function AddTrackModal({ isOpen, onClose, onAdd }: Props) {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<Track[]>([]);
+  const [results, setResults] = useState<SearchTrack[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [addingId, setAddingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -28,39 +22,27 @@ export function AddTrackModal({ isOpen, onClose, onAdd }: Props) {
 
   useEffect(() => {
     const trimmed = query.trim();
-    if (!trimmed) return; // no state changes for empty query
+    const delay = trimmed ? 350 : 0;
 
     const timer = setTimeout(async () => {
+      if (!trimmed) {
+        setResults([]);
+        setIsSearching(false);
+        return;
+      }
+
       setIsSearching(true);
       setError(null);
       try {
-        const res = await fetch(
-          `${API_BASE_URL}/api/v1/tracks/search?q=${encodeURIComponent(trimmed)}`,
-          { credentials: "include" }
-        );
-        if (!res.ok) throw new Error(`Search failed (${res.status})`);
-        const data = await res.json();
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const list: any[] = Array.isArray(data)
-          ? data
-          : data.tracks ?? data.data?.tracks ?? data.results ?? [];
-
-        setResults(
-          list.map((t) => ({
-            trackId: t.trackId ?? t.id ?? t._id,
-            title: t.title ?? "Untitled",
-            artist: t.artist ?? t.user?.display_name,
-            cover: t.cover ?? t.artwork,
-          }))
-        );
+        const res = await searchService.search({ q: trimmed, type: "tracks" });
+        setResults(res.data.tracks);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Search failed");
         setResults([]);
       } finally {
         setIsSearching(false);
       }
-    }, 350);
+    }, delay);
 
     return () => clearTimeout(timer);
   }, [query]);
@@ -70,7 +52,7 @@ export function AddTrackModal({ isOpen, onClose, onAdd }: Props) {
     setError(null);
     try {
       await onAdd(trackId);
-      setResults((prev) => prev.filter((t) => t.trackId !== trackId));
+      setResults((prev) => prev.filter((t) => t.id !== trackId));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not add track");
     } finally {
@@ -88,10 +70,10 @@ export function AddTrackModal({ isOpen, onClose, onAdd }: Props) {
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg bg-[#1a1a1a] border border-zinc-800 rounded-md shadow-2xl flex flex-col max-h-[80vh]"
+        className="w-full max-w-lg bg-[#121212] border border-neutral-700 rounded-md shadow-2xl flex flex-col max-h-[80vh]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-700">
           <h2 className="text-sm font-bold uppercase tracking-wider text-white">
             Add Track
           </h2>
@@ -100,7 +82,7 @@ export function AddTrackModal({ isOpen, onClose, onAdd }: Props) {
           </button>
         </div>
 
-        <div className="px-6 py-4 border-b border-zinc-800">
+        <div className="px-6 py-4 border-b border-neutral-700">
           <div className="relative">
             <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-xs" />
             <input
@@ -136,16 +118,17 @@ export function AddTrackModal({ isOpen, onClose, onAdd }: Props) {
           <div className="divide-y divide-zinc-900">
             {visibleResults.map((track) => (
               <div
-                key={track.trackId}
+                key={track.id}
                 className="flex items-center gap-3 px-6 py-3 hover:bg-zinc-800/50"
               >
-                <div className="w-10 h-10 rounded bg-[#222] flex items-center justify-center flex-shrink-0 overflow-hidden">
-                  {track.cover ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={track.cover}
+                <div className="w-10 h-10 rounded bg-[#222] flex items-center justify-center shrink-0 overflow-hidden">
+                  {track.artwork_url ? (
+                    <Image
+                      src={track.artwork_url}
                       alt={track.title}
+                      fill
                       className="w-full h-full object-cover"
+                      unoptimized
                     />
                   ) : (
                     <FaMusic className="text-zinc-600 text-sm" />
@@ -153,17 +136,19 @@ export function AddTrackModal({ isOpen, onClose, onAdd }: Props) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-white truncate">{track.title}</p>
-                  {track.artist && (
-                    <p className="text-xs text-zinc-500 truncate">{track.artist}</p>
+                  {track.artist_handle && (
+                    <p className="text-xs text-zinc-500 truncate">
+                      {track.artist_handle}
+                    </p>
                   )}
                 </div>
                 <button
-                  onClick={() => handleAdd(track.trackId)}
-                  disabled={addingId === track.trackId}
+                  onClick={() => handleAdd(track.id)}
+                  disabled={addingId === track.id}
                   className="px-3 py-1.5 bg-[#f50] hover:bg-[#e64a00] text-white text-[10px] font-bold uppercase tracking-wider rounded flex items-center gap-1 disabled:opacity-50"
                 >
                   <FaPlus size={9} />
-                  {addingId === track.trackId ? "Adding..." : "Add"}
+                  {addingId === track.id ? "Adding..." : "Add"}
                 </button>
               </div>
             ))}

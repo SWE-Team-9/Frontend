@@ -32,9 +32,8 @@ export default function ConversationPreview({
   return (
     <button
       onClick={onClick}
-      className={`flex w-full cursor-pointer items-center gap-3 rounded px-4 py-3 text-left transition ${
-        active ? "bg-zinc-800" : "hover:bg-zinc-900"
-      }`}
+      className={`flex w-full cursor-pointer items-center gap-3 rounded px-4 py-3 text-left transition ${active ? "bg-zinc-800" : "hover:bg-zinc-900"
+        }`}
     >
       <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-zinc-700">
         <Image
@@ -58,7 +57,7 @@ export default function ConversationPreview({
       </div>
 
       <p className="shrink-0 text-xs text-zinc-500">
-        {timeAgo(conversation.updatedAt)}
+        {timeAgo(conversation.lastMessage?.createdAt ?? conversation.updatedAt)}
       </p>
     </button>
   );

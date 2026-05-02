@@ -15,8 +15,6 @@ const FALLBACK = "/images/profile.png";
 interface Props {
   permalink: string;
   onClose: () => void;
-
-  // Optional: pass these when sharing a track/playlist so it sends as a card
   resourceType?: ShareResourceType;
   resourceId?: string;
   resourceTitle?: string;
@@ -105,10 +103,10 @@ export default function SharePopup({
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 p-4">
+    <div className="fixed inset-0 z-200 flex items-center justify-center bg-black/60 p-4">
       <div
         ref={ref}
-        className={`relative max-h-[90vh] overflow-y-auto rounded-md border border-zinc-700 bg-[#121212] p-4 text-white shadow-xl ${activeTab === "Message" ? "w-full max-w-[560px]" : "w-full max-w-sm"
+        className={`relative max-h-[90vh] overflow-y-auto rounded-md border border-zinc-700 bg-[#121212] p-4 text-white shadow-xl ${activeTab === "Message" ? "w-full max-w-140" : "w-full max-w-sm"
           }`}
       >
         <button

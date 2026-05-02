@@ -1,7 +1,7 @@
-export type ResolveResponse = {
+export interface ResolveResponse {
   matched: boolean;
-  resourceType?: "USER" | "TRACK" | "PLAYLIST";
+  resourceType?: "TRACK" | "PLAYLIST" | "USER";
   id?: string;
-  handle?: string;
   slug?: string;
-};
+  handle?: string;
+}

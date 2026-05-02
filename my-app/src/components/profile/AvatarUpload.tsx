@@ -10,22 +10,22 @@ const dataURLtoFile = (dataurl: string, filename: string) => {
   const bstr = atob(arr[1]);
   let n = bstr.length;
   const u8arr = new Uint8Array(n);
-
   while (n--) {
     u8arr[n] = bstr.charCodeAt(n);
   }
-
   return new File([u8arr], filename, { type: mime });
 };
 
 export function AvatarUpload({
   onUpload,
+  onDelete,
   username,
   location,
   avatarUrl,
   isOwner,
 }: {
   onUpload?: (file: File) => Promise<string | undefined>;
+  onDelete?: () => Promise<void>;
   username: string;
   location: string;
   avatarUrl?: string | null;
@@ -40,6 +40,8 @@ export function AvatarUpload({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isValidImage, setIsValidImage] = useState(true);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -105,9 +107,18 @@ export function AvatarUpload({
     setShowEditor(false);
   };
 
-  const handleDelete = () => {
-    setPreview(null);
-    setShowDeleteConfirm(false);
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      await onDelete?.();
+      setPreview(null);
+      setShowDeleteConfirm(false);
+    } catch {
+      setDeleteError("Could not delete image. Please try again.");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -136,7 +147,6 @@ export function AvatarUpload({
               </button>
             ) : (
               <label className="absolute inset-0 flex items-center justify-center bg-black/40 text-white text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity rounded-full cursor-pointer">
-                Upload image
                 <input
                   type="file"
                   accept="image/*"
@@ -177,6 +187,7 @@ export function AvatarUpload({
             <button
               onClick={() => {
                 setShowOptions(false);
+                setDeleteError(null);
                 setShowDeleteConfirm(true);
               }}
               className="cursor-pointer hover:text-slate-500 px-2 py-1 rounded text-xs block w-full text-left transition-colors"
@@ -196,18 +207,33 @@ export function AvatarUpload({
               <br />
               This action cannot be reversed.
             </p>
+            {deleteError && (
+              <p className="text-xs text-red-400 mb-3">{deleteError}</p>
+            )}
             <div className="flex justify-end gap-3">
               <button
-                onClick={() => setShowDeleteConfirm(false)}
-                className="bg-[#333333] text-white px-3 py-1 rounded hover:bg-gray-600 text-sm"
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setDeleteError(null);
+                }}
+                disabled={isDeleting}
+                className="bg-[#333333] text-white px-3 py-1 rounded hover:bg-gray-600 text-sm disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDelete}
-                className="bg-white text-black px-3 py-1 rounded hover:bg-gray-600 text-sm"
+                disabled={isDeleting}
+                className="bg-white text-black px-3 py-1 rounded hover:bg-gray-300 text-sm disabled:opacity-50 flex items-center gap-1.5"
               >
-                Delete
+                {isDeleting ? (
+                  <>
+                    <span className="w-3 h-3 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  "Delete"
+                )}
               </button>
             </div>
           </div>
@@ -223,9 +249,7 @@ export function AvatarUpload({
             ×
           </button>
           <div className="bg-zinc-900 p-4 md:p-5 rounded-xl flex flex-col items-center gap-4 w-full max-w-lg shadow-2xl max-h-[calc(100vh-4rem)] overflow-y-auto">
-            <h2 className="text-white font-bold text-xl md:text-2xl">
-              {username}
-            </h2>
+            <h2 className="text-white font-bold text-xl md:text-2xl">{username}</h2>
             <p className="text-zinc-400 text-sm">{location}</p>
             <p className="text-zinc-300 text-xs text-center">
               For best results, upload images of at least{" "}

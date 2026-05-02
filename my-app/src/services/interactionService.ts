@@ -75,28 +75,36 @@ export const getTrackEngagements = async (
 interface BackendTrackComment {
   id?: string;
   commentId?: string;
+  comment_id?: string;
+  trackId?: string;
+  track_id?: string;
   text?: string;
   content?: string;
   timestampSeconds?: number;
+  timestamp_seconds?: number;
   timestampAt?: number;
+  timestamp_at?: number;
   createdAt?: string;
+  created_at?: string;
   user: {
     id?: string;
     userId?: string;
+    user_id?: string;
     display_name?: string;
     displayName?: string;
     avatarUrl?: string | null;
+    avatar_url?: string | null;
   };
 }
 
 type BackendGetTrackCommentsResponse =
   | BackendTrackComment[]
   | {
-      page?: number;
-      limit?: number;
-      total?: number;
-      comments?: BackendTrackComment[];
-    };
+    page?: number;
+    limit?: number;
+    total?: number;
+    comments?: BackendTrackComment[];
+  };
 
 /**
  * Fetch timestamped comments for a track.
@@ -119,17 +127,33 @@ export async function getTrackComments(
       ? rawComments.length
       : (data.total ?? rawComments.length),
     comments: rawComments.map((comment) => ({
-      commentId: comment.commentId ?? comment.id ?? "",
-      trackId,
+      commentId: comment.commentId ?? comment.comment_id ?? comment.id ?? "",
+      trackId: comment.trackId ?? comment.track_id ?? trackId,
       text: comment.text ?? comment.content ?? "",
-      timestampSeconds: comment.timestampSeconds ?? comment.timestampAt ?? 0,
-      createdAt: comment.createdAt ?? new Date().toISOString(),
+      timestampSeconds:
+        comment.timestampSeconds ??
+        comment.timestamp_seconds ??
+        comment.timestampAt ??
+        comment.timestamp_at ??
+        0,
+      createdAt:
+        comment.createdAt ??
+        comment.created_at ??
+        "",
       user: {
-        id: comment.user.id ?? comment.user.userId ?? "",
+        id:
+          comment.user.id ??
+          comment.user.userId ??
+          comment.user.user_id ??
+          "",
         display_name:
           comment.user.display_name ??
           comment.user.displayName ??
           "Unknown User",
+        avatarUrl:
+          comment.user.avatarUrl ??
+          comment.user.avatar_url ??
+          null,
       },
     })),
   };

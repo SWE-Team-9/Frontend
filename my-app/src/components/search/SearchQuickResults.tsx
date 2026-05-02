@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { SearchResponse } from "@/src/types/search";
-import UserResultCard from "@/src/components/search/results/UserResultCard";
+import { UserCard } from "@/src/components/user/UserCard";
 
 interface Props {
   query: string;
@@ -44,12 +44,17 @@ export default function SearchQuickResults({
       {users.length > 0 && (
         <Section title="People">
           {users.slice(0, 3).map((u) => (
-            <UserResultCard
-              key={u.id}
-              user={u}
-              compact
-              onNavigate={onClose}
-            />
+            <div key={u.id} onClick={onClose}>
+              <UserCard
+                compact
+                user={{
+                  userId: u.id,
+                  displayName: u.display_name,
+                  handle: u.handle,
+                  avatarUrl: u.avatar_url,
+                }}
+              />
+            </div>
           ))}
         </Section>
       )}
@@ -72,7 +77,7 @@ export default function SearchQuickResults({
       <Link
         href={`/search?q=${encodeURIComponent(query)}`}
         onClick={onClose}
-        className="mt-2 block border-t pt-2 text-sm font-semibold text-[#ff5500]"
+        className="mt-2 block border-t pt-2 text-sm font-semibold text-white"
       >
         See all results →
       </Link>
@@ -80,17 +85,14 @@ export default function SearchQuickResults({
   );
 }
 
-//======================
-//  Helper components
-//======================
-
 function Panel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="absolute z-50 mt-2 w-full rounded-md border border-neutral-700 bg-neutral-900 p-3 shadow-lg text-sm text-neutral-300">
+    <div className="absolute z-50 mt-2 w-full rounded-md border border-neutral-700 bg-[#121212] p-3 shadow-lg text-sm text-neutral-300">
       {children}
     </div>
   );
 }
+
 function Section({
   title,
   children,

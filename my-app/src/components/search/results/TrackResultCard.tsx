@@ -1,31 +1,23 @@
-import Image from "next/image";
-import Link from "next/link";
 import type { SearchTrack } from "@/src/types/search";
+import { TrackCard } from "@/src/components/tracks/TrackCard";
 
 interface Props {
   track: SearchTrack;
+  contextTrackIds?: string[];
 }
 
-export default function TrackResultCard({ track }: Props) {
+export default function TrackResultCard({ track, contextTrackIds }: Props) {
   return (
-    <Link
-      href={`/tracks/${track.id}`}
-      className="flex gap-3 rounded p-2"
-    >
-      <div className="relative h-14 w-14 rounded bg-gray-200">
-        {track.artwork_url && (
-          <Image
-            src={track.artwork_url}
-            alt={track.title}
-            fill
-            className="rounded object-cover"
-          />
-        )}
-      </div>
-      <div>
-        <div className="font-bold">{track.title}</div>
-        <div className="text-md text-gray-500 font-bold">{track.genre}</div>
-      </div>
-    </Link>
+    <TrackCard
+      track={{
+        trackId: track.id,
+        title: track.title,
+        genre: track.genre,
+        coverArtUrl: track.artwork_url,
+        artistName: track.artist_handle,
+        artistHandle: track.artist_handle,
+      }}
+      contextTrackIds={contextTrackIds}
+    />
   );
 }
