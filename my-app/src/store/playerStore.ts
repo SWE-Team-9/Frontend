@@ -151,8 +151,6 @@ interface PlayerState {
   isPlayingAd: boolean;
   /** Elapsed seconds for text-only (no audioUrl) ads, updated every second by PlayerAudioSync */
   adElapsedSeconds: number;
-  /** Track queued by the user while an ad is playing; played immediately after the ad ends */
-  pendingTrack: Track | null;
 
   isProcessing: boolean;
   isResolvingPlayback: boolean;
@@ -222,7 +220,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   currentAd: null,
   isPlayingAd: false,
   adElapsedSeconds: 0,
-  pendingTrack: null,
   isQueuePanelOpen: false,
   queueVersion: 0,
   isProcessing: false,
@@ -554,10 +551,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       return;
     }
 
-    // While an ad is playing, queue the requested track rather than interrupting.
-    // PlayerAudioSync drains pendingTrack as soon as the ad finishes.
+    // While an ad is playing, block manual track starts until the ad completes.
     if (get().isPlayingAd && !_fromQueue) {
-      set({ pendingTrack: track });
       return;
     }
 
