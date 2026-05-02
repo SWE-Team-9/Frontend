@@ -10,6 +10,7 @@ import {
   SubscriptionDetails,
   Invoice,
   BillingPortalResult,
+  CheckoutResult,
 } from "@/src/services/subscriptionService";
 
 interface SubscriptionStore {
@@ -19,7 +20,7 @@ interface SubscriptionStore {
   error: string | null;
 
   fetchSubscription: () => Promise<void>;
-  upgrade: (type: "PRO" | "GO+") => Promise<void>;
+  upgrade: (type: "PRO" | "GO+") => Promise<CheckoutResult>;
   cancel: () => Promise<void>;
   resume: () => Promise<void>;
   changePlan: (type: "PRO" | "GO+") => Promise<void>;
@@ -50,10 +51,12 @@ export const useSubscriptionStore = create<SubscriptionStore>((set) => ({
   upgrade: async (type) => {
     set({ isLoading: true, error: null });
     try {
-      await upgradeSubscription(type);
-      // Re-fetch to get fresh state (in mock mode; real Stripe navigates away)
-      const updated = await getMySubscription();
-      set({ sub: updated });
+      const checkout = await upgradeSubscription(type);
+      if (!checkout.checkoutUrl) {
+        const updated = await getMySubscription();
+        set({ sub: updated });
+      }
+      return checkout;
     } catch {
       set({ error: "Upgrade failed." });
       throw new Error("Upgrade failed");

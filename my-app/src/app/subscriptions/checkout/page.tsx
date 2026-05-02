@@ -81,13 +81,12 @@ function CheckoutContent() {
     setBuyError(null);
     setRedirecting(false);
     try {
-      await upgrade(plan.upgradeType);
-      // If we reach here, either:
-      //   a) Mock billing provider: subscription activated immediately
-      //   b) Downgrade scheduled: no redirect needed
-      // Real Stripe checkout: browser has already navigated away (window.location.href set)
-      // Pass the intended plan so the success page shows the correct heading even
-      // when the backend schedules the change for end-of-period (sub still shows old plan).
+      const result = await upgrade(plan.upgradeType);
+      if (result.checkoutUrl) {
+        setRedirecting(true);
+        window.location.assign(result.checkoutUrl);
+        return;
+      }
       router.push(`/subscriptions/success?plan=${plan.upgradeType}`);
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string; code?: string } } };
