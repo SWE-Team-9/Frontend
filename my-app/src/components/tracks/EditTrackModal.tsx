@@ -206,20 +206,48 @@ export const EditTrackModal: React.FC<EditTrackModalProps> = ({
                   Genre
                 </label>
                 <select
-                  value={genre || "None"}
-                  onChange={(e) =>
-                    setGenre(e.target.value === "None" ? "" : e.target.value)
-                  }
+                  value={genre === "" ? "None" : genre}
+                  onChange={(e) => {
+                    const newValue = e.target.value;
+                    setGenre(newValue === "None" ? "" : newValue);
+                  }}
                   className="w-full bg-[#111] border border-zinc-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-zinc-500 transition-colors"
                 >
                   {[
-                    "None", "electronic", "hip-hop", "pop", "rock",
-                    "alternative", "ambient", "classical", "jazz", "r-b-soul",
-                    "metal", "folk-singer-songwriter", "country", "reggaeton",
-                    "dancehall", "drum-bass", "house", "techno", "deep-house",
-                    "trance", "lo-fi", "indie", "punk", "blues", "latin",
-                    "afrobeat", "trap", "experimental", "world", "gospel",
-                    "spoken-word", "quran", "sha3by", "islamic",
+                    "None",
+                    "electronic",
+                    "hip-hop",
+                    "pop",
+                    "rock",
+                    "alternative",
+                    "ambient",
+                    "classical",
+                    "jazz",
+                    "r-b-soul",
+                    "metal",
+                    "folk-singer-songwriter",
+                    "country",
+                    "reggaeton",
+                    "dancehall",
+                    "drum-bass",
+                    "house",
+                    "techno",
+                    "deep-house",
+                    "trance",
+                    "lo-fi",
+                    "indie",
+                    "punk",
+                    "blues",
+                    "latin",
+                    "afrobeat",
+                    "trap",
+                    "experimental",
+                    "world",
+                    "gospel",
+                    "spoken-word",
+                    "quran",
+                    "sha3by",
+                    "islamic",
                   ].map((g) => (
                     <option key={g} value={g}>
                       {g === "None" ? "— None —" : g}
@@ -232,7 +260,10 @@ export const EditTrackModal: React.FC<EditTrackModalProps> = ({
                 <label className="block text-xs text-zinc-400 mb-1.5">
                   Release date
                 </label>
-                <DatePickerInput value={releaseDate} onChange={setReleaseDate} />
+                <DatePickerInput
+                  value={releaseDate}
+                  onChange={setReleaseDate}
+                />
               </div>
 
               <div>
@@ -264,7 +295,9 @@ export const EditTrackModal: React.FC<EditTrackModalProps> = ({
                         setTagInput("");
                       }
                     }}
-                    placeholder={tags.length === 0 ? "Add tags (press Enter)" : ""}
+                    placeholder={
+                      tags.length === 0 ? "Add tags (press Enter)" : ""
+                    }
                     className="flex-1 min-w-25 bg-transparent text-sm text-white placeholder-zinc-600 focus:outline-none"
                   />
                 </div>

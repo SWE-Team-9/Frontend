@@ -46,7 +46,7 @@ const SideBar: React.FC<SideBarProps> = ({ children, showSidebar = true }) => {
             <div className="flex items-center justify-between gap-3 pb-4">
 
               <SideBarItem
-                label="ARTISTS YOU SHOULD FOLLOW"
+                label="ARTISTS TO FOLLOW"
                 href="/artists"
               />
 

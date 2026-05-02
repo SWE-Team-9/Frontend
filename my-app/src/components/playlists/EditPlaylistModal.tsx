@@ -70,7 +70,6 @@ export function EditPlaylistModal({
     try {
       const res = await playlistsApi.uploadCover(playlist.playlistId, file);
       setCoverPreview(res.coverImageUrl);
-      toast.success("Cover updated");
       onSaved?.({ ...playlist, cover: res.coverImageUrl });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Upload failed");
@@ -101,7 +100,6 @@ export function EditPlaylistModal({
         genre: genre || undefined,
         tags: tags.length > 0 ? tags : undefined,
       });
-      toast.success("Playlist updated.");
       onSaved?.({
         ...playlist,
         title: title.trim(),

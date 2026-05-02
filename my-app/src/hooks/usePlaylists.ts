@@ -31,16 +31,15 @@ export function usePlaylists(userId?: string, isOwner?: boolean) {
         let raw: Playlist[];
         
         if (userId) {
-          // Check if this is the owner viewing their own profile
-          // If isOwner is true, use getMyPlaylists instead of getUserPlaylists
+          // If this is the owner viewing their own profile, use /me endpoint
           if (isOwner) {
             raw = await playlistsApi.getMyPlaylists();
           } else {
-            // For other users, use getUserPlaylists
+            // For other users, use the public endpoint
             raw = await playlistsApi.getUserPlaylists(userId);
           }
         } else {
-          // No userId provided, use getMyPlaylists
+          // No userId = definitely the current user
           raw = await playlistsApi.getMyPlaylists();
         }
         
