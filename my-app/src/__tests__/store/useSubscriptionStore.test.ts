@@ -126,6 +126,20 @@ describe("useSubscriptionStore", () => {
     expect(useSubscriptionStore.getState().sub?.cancelAtPeriodEnd).toBe(true);
   });
 
+  it("sets an error and rejects when cancel fails", async () => {
+    mockedSubscriptionService.cancelSubscription.mockRejectedValue(new Error());
+
+    await expect(
+      act(async () => {
+        await useSubscriptionStore.getState().cancel();
+      }),
+    ).rejects.toThrow("Cancellation failed");
+
+    expect(useSubscriptionStore.getState().error).toBe(
+      "Cancellation failed. Please try again.",
+    );
+  });
+
   it("stores the updated subscription after resume", async () => {
     mockedSubscriptionService.resumeSubscription.mockResolvedValue(
       mockSubscription,
@@ -136,6 +150,20 @@ describe("useSubscriptionStore", () => {
     });
 
     expect(useSubscriptionStore.getState().sub).toEqual(mockSubscription);
+  });
+
+  it("sets an error and rejects when resume fails", async () => {
+    mockedSubscriptionService.resumeSubscription.mockRejectedValue(new Error());
+
+    await expect(
+      act(async () => {
+        await useSubscriptionStore.getState().resume();
+      }),
+    ).rejects.toThrow("Failed to resume subscription");
+
+    expect(useSubscriptionStore.getState().error).toBe(
+      "Failed to resume subscription.",
+    );
   });
 
   it("stores the updated subscription after a plan change", async () => {

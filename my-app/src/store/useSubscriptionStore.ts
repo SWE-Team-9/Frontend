@@ -72,6 +72,7 @@ export const useSubscriptionStore = create<SubscriptionStore>((set) => ({
       set({ sub: updated });
     } catch {
       set({ error: "Cancellation failed. Please try again." });
+      throw new Error("Cancellation failed");
     } finally {
       set({ isLoading: false });
     }
@@ -84,6 +85,7 @@ export const useSubscriptionStore = create<SubscriptionStore>((set) => ({
       set({ sub: updated });
     } catch {
       set({ error: "Failed to resume subscription." });
+      throw new Error("Failed to resume subscription");
     } finally {
       set({ isLoading: false });
     }

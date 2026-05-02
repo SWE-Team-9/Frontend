@@ -29,7 +29,7 @@ function makeSubStore(overrides: Partial<ReturnType<typeof makeDefaultSubState>>
 function makeDefaultSubState() {
   return {
     sub: null as null | {
-      subscriptionType: "FREE" | "PRO" | "GO+";
+      subscriptionType: "FREE" | "PRO" | "GO+" | "GO_PLUS";
       planName: string;
       isPremium: boolean;
       uploadLimit: number;
@@ -177,6 +177,13 @@ describe("SubscriptionSettings", () => {
       expect(screen.getByText("GO+")).toBeInTheDocument();
     });
 
+    it("shows management buttons for backend GO_PLUS users", () => {
+      setup({ sub: { ...PRO_SUB, subscriptionType: "GO_PLUS", planName: "GO+" } });
+
+      expect(screen.getByText("GO+")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Cancel/i })).toBeInTheDocument();
+    });
+
     it("shows upload quota progress bar for paid users", () => {
       setup({ sub: PRO_SUB });
 
@@ -216,11 +223,28 @@ describe("SubscriptionSettings", () => {
       setup({ sub: PRO_SUB, cancel });
 
       fireEvent.click(screen.getByRole("button", { name: /Cancel/i }));
-      fireEvent.click(screen.getByRole("button", { name: /End subscription/i }));
+      fireEvent.click(screen.getByRole("button", { name: /Cancel at period end/i }));
 
       await waitFor(() => {
         expect(cancel).toHaveBeenCalled();
       });
+    });
+
+    it("keeps cancel available when a pending plan change exists", () => {
+      setup({
+        sub: {
+          ...PRO_SUB,
+          pendingDowngrade: {
+            planCode: "GO_PLUS",
+            planId: "plan-go-plus",
+            planName: "GO+",
+            effectiveAt: "2026-05-28T00:00:00.000Z",
+          },
+        },
+      });
+
+      expect(screen.getByRole("button", { name: /Cancel/i })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /Switch to GO\+/i })).not.toBeInTheDocument();
     });
 
     it("calls resume action when Resume is clicked", async () => {
@@ -232,6 +256,14 @@ describe("SubscriptionSettings", () => {
       await waitFor(() => {
         expect(resume).toHaveBeenCalled();
       });
+    });
+
+    it("shows subscription store errors for cancel or resume failures", () => {
+      setup({ sub: PRO_SUB, error: "Cancellation failed. Please try again." });
+
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "Cancellation failed. Please try again.",
+      );
     });
   });
 
