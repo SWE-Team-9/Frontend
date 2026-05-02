@@ -275,7 +275,7 @@ export default function SharedPlaylistCard({
                         <button
                             onClick={handleViewTracks}
                             disabled={isLoadingFullPlaylist}
-                            className="text-sm font-bold text-white hover:underline disabled:opacity-50"
+                            className="text-sm font-bold text-white hover:text-neutral-600 disabled:opacity-50"
                         >
                             {isLoadingFullPlaylist
                                 ? "Loading tracks..."

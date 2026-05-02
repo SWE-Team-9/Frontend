@@ -82,7 +82,7 @@ export default function ListeningHistoryPreview() {
                         <div className="min-w-0 flex-1">
                             <Link
                                 href={`/tracks/${track.trackId}`}
-                                className="block text-sm font-bold truncate text-white hover:underline"
+                                className="block text-sm font-bold truncate text-white hover:text-neutral-600 transition-colors"
                             >
                                 {track.title}
                             </Link>
@@ -90,7 +90,7 @@ export default function ListeningHistoryPreview() {
                             {track.artistHandle ? (
                                 <Link
                                     href={`/profiles/${track.artistHandle}`}
-                                    className="block text-[10px] text-zinc-500 uppercase truncate hover:text-white hover:underline"
+                                    className="block text-[10px] text-zinc-500 uppercase truncate hover:text-white transition-colors"
                                 >
                                     {track.artist}
                                 </Link>

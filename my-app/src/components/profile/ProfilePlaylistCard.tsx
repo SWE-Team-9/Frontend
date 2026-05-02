@@ -100,7 +100,7 @@ export function ProfilePlaylistCard({ playlist }: { playlist: Playlist }) {
         </div>
 
         <Link href={playlistUrl} className="block">
-          <h3 className="text-white text-sm font-bold truncate hover:underline">
+          <h3 className="text-white text-sm font-bold truncate hover:text-neutral-600 transition-colors">
             {playlist.title}
           </h3>
           <p className="text-zinc-500 text-xs">
