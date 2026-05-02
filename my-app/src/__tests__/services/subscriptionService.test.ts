@@ -152,6 +152,41 @@ describe("subscriptionService (real API mode)", () => {
       expect(result.uploadLimit).toBe(1000);
     });
 
+    it("drops stale GO_PLUS trial fields from backend responses", async () => {
+      mockApiGet.mockResolvedValue({
+        data: {
+          ...GO_PLUS_BACKEND_RESPONSE,
+          trialStart: "2026-04-28T00:05:31.680Z",
+          trialEnd: "2026-05-28T12:46:38.461Z",
+        },
+      });
+      const { getMySubscription } = await import("@/src/services/subscriptionService");
+
+      const result = await getMySubscription();
+
+      expect(result.subscriptionType).toBe("GO+");
+      expect(result.trialStart).toBeNull();
+      expect(result.trialEnd).toBeNull();
+      expect(result.renewalDate).toBe("2026-05-28T00:00:00.000Z");
+    });
+
+    it("keeps trial fields only for actual active PRO trials", async () => {
+      mockApiGet.mockResolvedValue({
+        data: {
+          ...PRO_BACKEND_RESPONSE,
+          subscriptionStatus: "TRIALING",
+          trialStart: "2026-05-01T00:00:00.000Z",
+          trialEnd: "2099-05-08T00:00:00.000Z",
+        },
+      });
+      const { getMySubscription } = await import("@/src/services/subscriptionService");
+
+      const result = await getMySubscription();
+
+      expect(result.subscriptionType).toBe("PRO");
+      expect(result.trialEnd).toBe("2099-05-08T00:00:00.000Z");
+    });
+
     it("sets paymentMethodSummary to null when no paymentMethod in response", async () => {
       mockApiGet.mockResolvedValue({ data: GO_PLUS_BACKEND_RESPONSE });
       const { getMySubscription } = await import("@/src/services/subscriptionService");
