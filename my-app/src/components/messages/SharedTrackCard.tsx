@@ -49,14 +49,8 @@ export default function SharedTrackCard({ track }: { track: SharedTrack }) {
         "idle",
     );
 
-    const [likesCount, setLikesCount] = useState(track.likesCount ?? 0);
-    const [repostsCount, setRepostsCount] = useState(track.repostsCount ?? 0);
-
-
-    useEffect(() => {
-        setLikesCount(track.likesCount ?? 0);
-        setRepostsCount(track.repostsCount ?? 0);
-    }, [track.likesCount, track.repostsCount]);
+    const [likesCount, setLikesCount] = useState(() => track.likesCount ?? 0);
+    const [repostsCount, setRepostsCount] = useState(() => track.repostsCount ?? 0);
 
     const setTracks = usePlayerStore((s) => s.setTracks);
     const fetchAndPlay = usePlayerStore((s) => s.fetchAndPlay);
