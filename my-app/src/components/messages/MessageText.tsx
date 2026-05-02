@@ -1,12 +1,58 @@
 "use client";
 
-const URL_REGEX = /(https?:\/\/[^\s]+)|(www\.[^\s]+)/gi;
+const URL_REGEX = /(https?:\/\/[^\s]+|www\.[^\s]+)/gi;
 
 function normalizeUrl(url: string) {
     if (url.startsWith("http")) return url;
     return `https://${url}`;
 }
 
+function escapeRegExp(value: string) {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function getHiddenUrlVariants(url: string) {
+    const clean = url.trim().replace(/\/$/, "");
+    const withoutProtocol = clean.replace(/^https?:\/\//, "");
+
+    const variants = new Set<string>([
+        clean,
+        withoutProtocol,
+        `https://${withoutProtocol}`,
+        `http://${withoutProtocol}`,
+    ]);
+
+    try {
+        const parsed = new URL(clean.startsWith("http") ? clean : `https://${clean}`);
+        variants.add(parsed.pathname.replace(/\/$/, ""));
+    } catch {
+        // ignore invalid URL parsing
+    }
+
+    return [...variants].filter(Boolean);
+}
+
+function removeHiddenUrls(text: string, hiddenUrls: string[]) {
+    let nextText = text;
+
+    hiddenUrls.forEach((url) => {
+        if (!url) return;
+
+        getHiddenUrlVariants(url).forEach((variant) => {
+            const pattern = new RegExp(
+                `(^|\\s)${escapeRegExp(variant)}(?=\\s|[.,!?)]|$)`,
+                "g",
+            );
+
+            nextText = nextText.replace(pattern, "$1");
+        });
+    });
+
+    return nextText
+        .replace(/[ \t]+\n/g, "\n")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
+}
 
 export default function MessageText({
     text,
@@ -15,33 +61,14 @@ export default function MessageText({
     text: string;
     hiddenUrls?: string[];
 }) {
-    let visibleText = text;
-
-    hiddenUrls.forEach((url) => {
-        if (!url) return;
-
-        const normalizedHidden = url.replace(/^https?:\/\//, "").replace(/\/$/, "");
-
-        visibleText = visibleText
-            .split(/\s+/)
-            .filter((word) => {
-                const normalizedWord = word
-                    .replace(/^https?:\/\//, "")
-                    .replace(/\/$/, "")
-                    .replace(/[.,!?)]$/, "");
-
-                return normalizedWord !== normalizedHidden;
-            })
-            .join(" ")
-            .trim();
-    });
-
-    const parts = visibleText.split(URL_REGEX);
+    const visibleText = removeHiddenUrls(text, hiddenUrls);
 
     if (!visibleText) return null;
 
+    const parts = visibleText.split(URL_REGEX);
+
     return (
-        <p className="whitespace-pre-wrap text-sm text-zinc-300">
+        <p className="whitespace-pre-wrap break-words text-sm text-zinc-300">
             {parts.map((part, index) => {
                 if (!part) return null;
 
