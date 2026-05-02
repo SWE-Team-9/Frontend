@@ -202,10 +202,22 @@ export default function SubscriptionSettings() {
   const isGoPlus = sub?.subscriptionType === "GO+";
   const isPro = isProOnly || isGoPlus;
   const planLabel = isPro ? (sub?.subscriptionType ?? "PRO") : "Basic";
+  
+  // Explicitly check if subscription is actually cancelled (pending cancellation)
+  // Only show Resume button when cancelAtPeriodEnd is TRUE from Bootstrap data
   const isCancelPending =
-    (sub?.cancelAtPeriodEnd ?? false) && !sub?.pendingDowngrade;
+    sub !== null && sub !== undefined && 
+    sub.cancelAtPeriodEnd === true && 
+    !sub?.pendingDowngrade;
+  
+  // Only allow switching plan if subscription is active (NOT cancelled)
   const canSwitchUp =
-    isProOnly && !sub?.cancelAtPeriodEnd && !sub?.pendingDowngrade;
+    isProOnly && 
+    sub !== null && 
+    sub !== undefined &&
+    sub.cancelAtPeriodEnd === false && 
+    !sub?.pendingDowngrade;
+  
   const targetPlan: "PRO" | "GO+" = "GO+";
 
   useEffect(() => {
@@ -217,6 +229,14 @@ export default function SubscriptionSettings() {
   const handleCancelConfirm = async () => {
     await cancel();
     setShowCancelConfirm(false);
+    // Ensure subscription state is properly refreshed after cancel
+    await fetchSubscription();
+  };
+
+  const handleResume = async () => {
+    await resume();
+    // Ensure subscription state is properly refreshed after resume
+    await fetchSubscription();
   };
 
   const handleChangePlanConfirm = async () => {
@@ -345,7 +365,7 @@ export default function SubscriptionSettings() {
 
             <div className="flex items-center gap-2 flex-wrap">
               {/* 1. Switch Plan: Visible only if the subscription is active and NOT scheduled for cancellation */}
-              {canSwitchUp && !sub?.cancelAtPeriodEnd && (
+              {canSwitchUp && (
                 <button
                   onClick={() => setShowChangePlanConfirm(true)}
                   disabled={subLoading}
@@ -354,8 +374,12 @@ export default function SubscriptionSettings() {
                   Switch to {targetPlan}
                 </button>
               )}
-              {/* 2. CANCEL Button: Shown only for active Pro users who haven't cancelled yet (cancelAtPeriodEnd is false) */}
-              {isPro && !sub?.cancelAtPeriodEnd && !sub?.pendingDowngrade && (
+              {/* 2. CANCEL Button: Shown only for active Pro users who haven't cancelled yet */}
+              {/* Only show if subscription exists, user is Pro, and cancelAtPeriodEnd is explicitly FALSE */}
+              {isPro && 
+                sub !== null && 
+                sub?.cancelAtPeriodEnd === false && 
+                !sub?.pendingDowngrade && (
                 <button
                   onClick={() => setShowCancelConfirm(true)}
                   disabled={subLoading}
@@ -364,11 +388,14 @@ export default function SubscriptionSettings() {
                   <LuX size={13} /> Cancel
                 </button>
               )}
-              {/* 3. RESUME Button: Visible only if the user has already initiated cancellation (cancelAtPeriodEnd is true) */}
-              {/* Per Backend/Bootstrap logic: This prevents users from resuming an already active subscription */}
-              {isPro && sub?.cancelAtPeriodEnd && (
+              {/* 3. RESUME Button: Shown ONLY when subscription is set to cancel at period end */}
+              {/* Source of Truth: Bootstrap API subscription.cancelAtPeriodEnd field */}
+              {/* Only display when we have confirmed data that subscription is actually cancelled */}
+              {isPro && 
+                sub !== null && 
+                sub?.cancelAtPeriodEnd === true && (
                 <button
-                  onClick={() => resume()}
+                  onClick={() => handleResume()}
                   disabled={subLoading}
                   className="px-4 py-2 border border-green-700 text-green-400 rounded-lg text-xs font-bold uppercase tracking-wide hover:bg-green-900/30 transition-colors flex items-center gap-2 disabled:opacity-50"
                 >
