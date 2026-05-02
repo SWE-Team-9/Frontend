@@ -127,7 +127,7 @@ export default function AuthCallbackPage() {
           account_status: me.account_status ?? "ACTIVE",
         });
         if (me.account_status !== "ACTIVE") {
-            router.replace("/account-restricted");
+            router.replace("/account_restricted");
             return;
         }
 

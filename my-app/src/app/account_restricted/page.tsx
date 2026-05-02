@@ -27,7 +27,7 @@ export default function AccountRestrictedPage() {
         <button
           onClick={() => {
             logout();
-            router.push("/login");
+            router.push("/");
           }}
           className="bg-red-600 px-4 py-2 rounded"
         >

@@ -55,7 +55,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
 
     const isRestricted = user.account_status && user.account_status !== "ACTIVE";
 
-    if (isRestricted && pathname !== "/account-restricted") {
+    if (isRestricted && pathname !== "/account_restricted") {
     router.replace("/account-restricted");
   }
 }, [user, pathname, router]);

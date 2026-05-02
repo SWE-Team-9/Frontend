@@ -185,7 +185,7 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
           });
           const user = loginResult?.user;
           if (user?.account_status && user.account_status !== "ACTIVE") {
-            router.push("/account-restricted");
+            router.push("/account_restricted");
             onClose();
             return;
           }

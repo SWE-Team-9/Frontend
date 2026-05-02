@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { FiAlertTriangle, FiBarChart2, FiClipboard } from 'react-icons/fi';
+import { FaHouseUser } from "react-icons/fa6";
 import { useAuthStore } from '@/src/store/useAuthStore';
 
 import {
@@ -34,6 +35,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     ...(isAdmin ? [{ label: 'User Management', href: '/admin/users', icon: LuUsers }] : []),
     ...(isAdmin ? [{ label: 'Analytics', href: '/admin/analytics', icon: FiBarChart2 }] : []),
     ...(isAdmin ? [{ label: 'Audit Log', href: '/admin/audit-log', icon: FiClipboard }] : []),
+    {label:'Home',href:'/discover', icon: FaHouseUser },
   ];
 
   const utilityNav = [

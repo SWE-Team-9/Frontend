@@ -117,6 +117,11 @@ export default function OAuthCallbackPage() {
           systemRole: (me.system_role as "ADMIN" | "MODERATOR" | "USER") ?? "USER",
           account_status: me.account_status ?? "ACTIVE",
         });
+        if (me.account_status !== "ACTIVE") {
+            router.replace("/account_restricted");
+            return;
+        }
+
 
         const returnTo = sessionStorage.getItem("oauth_return_to") || "/discover";
         sessionStorage.removeItem("oauth_return_to");
