@@ -46,7 +46,7 @@ function getActionText(notification: Notification) {
     case "repost":
       return "reposted your track";
     default:
-      return notification.message?.trim() || "sent you a notification";
+      return notification.message?.trim() || "You have a new notification";
   }
 }
 

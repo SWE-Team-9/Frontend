@@ -5,6 +5,7 @@ export type NotificationType =
   | "repost"
   | "message"
   | "report_resolved"
+  | "system"
   | "subscription"
   | "account_suspended"
   | "account_banned"

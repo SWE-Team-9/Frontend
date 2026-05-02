@@ -161,9 +161,9 @@ describe("normalizeNotification", () => {
     expect(result.id).toContain("track-x");
   });
 
-  it("defaults type to 'report_resolved' for unknown types", () => {
+  it("defaults type to 'system' for unknown types", () => {
     const raw = makeRawNotification({ type: "UNKNOWN_TYPE" });
-    expect(normalizeNotification(raw).type).toBe("report_resolved");
+    expect(normalizeNotification(raw).type).toBe("system");
   });
 
   it("preserves account/admin notification types", () => {
@@ -275,14 +275,14 @@ describe("normalizeNotification", () => {
 
   it("handles null payload gracefully", () => {
     const result = normalizeNotification(null);
-    expect(result.type).toBe("report_resolved");
+    expect(result.type).toBe("system");
     expect(result.actorId).toBe("");
     expect(result.isRead).toBe(false);
   });
 
   it("handles undefined payload gracefully", () => {
     const result = normalizeNotification(undefined);
-    expect(result.type).toBe("report_resolved");
+    expect(result.type).toBe("system");
   });
 
   it("handles empty object payload", () => {
