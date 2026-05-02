@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, use, useState } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 import NavBar from "@/src/components/ui/NavBar";
-import RecentlyPlayedCard, {
-  DiscoverCardTrack,
-} from "@/src/components/discover/RecentlyPlayedCard";
+import {
+  TrackCard,
+  type IntegratedTrack,
+} from "@/src/components/tracks/TrackCard";
 import {
   formatGenreName,
   getTrendingTracksByGenre,
@@ -22,7 +23,7 @@ interface GenrePageProps {
 export default function GenreTrendingPage({ params }: GenrePageProps) {
   const { genreSlug } = use(params);
 
-  const [tracks, setTracks] = useState<DiscoverCardTrack[]>([]);
+  const [tracks, setTracks] = useState<IntegratedTrack[]>([]);
   const [genreName, setGenreName] = useState(formatGenreName(genreSlug));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -39,15 +40,33 @@ export default function GenreTrendingPage({ params }: GenrePageProps) {
 
         setGenreName(data.genre.name);
 
-        const normalizedTracks: DiscoverCardTrack[] = data.tracks.map((item) => ({
+        const normalizedTracks = data.tracks.map<IntegratedTrack>((item) => ({
           trackId: item.trackId,
           title: item.title,
-          artist: item.artist.displayName,
+          slug: item.slug,
+
+          artistName: item.artist.displayName,
           artistId: item.artist.id,
-          artistHandle: item.artist.handle,
+          artistHandle: item.artist.handle ?? undefined,
           artistAvatarUrl: item.artist.avatarUrl ?? null,
-          coverArtUrl: item.coverArtUrl ?? null,
+
+          genre: item.genre.name,
+          coverArtUrl: item.coverArtUrl ?? undefined,
+          coverArt: item.coverArtUrl ?? undefined,
+
+          durationMs: item.durationMs,
+          waveformData: item.waveformData ?? [],
+
           likesCount: item.likesCount ?? 0,
+          repostsCount: item.repostsCount ?? 0,
+          liked: false,
+          reposted: false,
+
+          status: "FINISHED",
+          visibility: "PUBLIC",
+
+          publishedAt: item.publishedAt,
+          createdAt: item.createdAt,
         }));
 
         setTracks(normalizedTracks);
@@ -56,11 +75,16 @@ export default function GenreTrendingPage({ params }: GenrePageProps) {
           normalizedTracks.map((track) => ({
             trackId: track.trackId,
             title: track.title,
-            artist: track.artist,
-            artistId: track.artistId,
-            artistHandle: track.artistHandle,
+            artist: track.artistName ?? "Unknown Artist",
+            artistId: track.artistId ?? "",
+            artistHandle: track.artistHandle ?? undefined,
             artistAvatarUrl: track.artistAvatarUrl ?? null,
             cover: track.coverArtUrl || FALLBACK_IMAGE,
+            duration: track.durationMs
+              ? Math.floor(track.durationMs / 1000)
+              : undefined,
+            genre:
+              typeof track.genre === "string" ? track.genre : undefined,
           })),
         );
       } catch (err) {
@@ -91,12 +115,19 @@ export default function GenreTrendingPage({ params }: GenrePageProps) {
           </p>
 
           {loading ? (
-            <div className="grid grid-cols-2 gap-x-8 gap-y-12 sm:grid-cols-3 lg:grid-cols-5">
+            <div className="space-y-6">
               {[...Array(5)].map((_, index) => (
-                <div key={index} className="w-47.5 animate-pulse">
-                  <div className="h-47.5 w-47.5 rounded-sm bg-zinc-800" />
-                  <div className="mt-3 h-4 w-3/4 rounded bg-zinc-800" />
-                  <div className="mt-2 h-3 w-1/2 rounded bg-zinc-800" />
+                <div
+                  key={index}
+                  className="flex animate-pulse gap-6 rounded-lg bg-[#1e1e1e] p-5"
+                >
+                  <div className="h-40 w-40 shrink-0 rounded-md bg-zinc-800" />
+                  <div className="flex grow flex-col gap-4">
+                    <div className="h-4 w-32 rounded bg-zinc-800" />
+                    <div className="h-6 w-64 rounded bg-zinc-800" />
+                    <div className="h-16 w-full rounded bg-zinc-800" />
+                    <div className="h-8 w-52 rounded bg-zinc-800" />
+                  </div>
                 </div>
               ))}
             </div>
@@ -105,9 +136,9 @@ export default function GenreTrendingPage({ params }: GenrePageProps) {
               {error}
             </div>
           ) : tracks.length ? (
-            <div className="grid grid-cols-2 gap-x-8 gap-y-12 sm:grid-cols-3 lg:grid-cols-5">
+            <div className="space-y-6">
               {tracks.map((track) => (
-                <RecentlyPlayedCard
+                <TrackCard
                   key={track.trackId}
                   track={track}
                   contextTrackIds={contextTrackIds}
