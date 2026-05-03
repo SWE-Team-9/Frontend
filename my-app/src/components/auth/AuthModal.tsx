@@ -71,36 +71,39 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
   const years = Array.from({ length: 101 }, (_, i) => currentYear - i);
   const days = Array.from({ length: 31 }, (_, i) => i + 1);
 
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-      setView(initialView);
-      setStep(1);
-      setError(null);
-      setIsResetSent(false);
-      setSocialError(null);
-      setSocialLoading(null);
-      setSignupCaptchaError(null);
-      setLoginCaptchaError(null);
-      setShowResendVerification(false);
-      setResendLoading(false);
-      setResendSent(false);
-      setLoginPassword("");
-      setSignupPassword("");
-      setSignupPasswordConfirm("");
-      setIsSubmitting(false);
-      signupCaptchaRef.current?.reset();
-      loginCaptchaRef.current?.reset();
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen, initialView]);
-  useEffect(() => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  }, [step, view]);
+useEffect(() => {
+  if (!isOpen) {
+    document.body.style.overflow = "unset";
+    return;
+  }
+
+  document.body.style.overflow = "hidden";
+
+  const timeout = window.setTimeout(() => {
+    setView(initialView);
+    setStep(1);
+    setError(null);
+    setIsResetSent(false);
+    setSocialError(null);
+    setSocialLoading(null);
+    setSignupCaptchaError(null);
+    setLoginCaptchaError(null);
+    setShowResendVerification(false);
+    setResendLoading(false);
+    setResendSent(false);
+    setLoginPassword("");
+    setSignupPassword("");
+    setSignupPasswordConfirm("");
+    setIsSubmitting(false);
+    signupCaptchaRef.current?.reset();
+    loginCaptchaRef.current?.reset();
+  }, 0);
+
+  return () => {
+    window.clearTimeout(timeout);
+    document.body.style.overflow = "unset";
+  };
+}, [isOpen, initialView]);
 
   // Social Login Handler
   const handleUnavailableProvider = (providerName: string) => {
