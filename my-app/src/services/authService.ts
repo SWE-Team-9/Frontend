@@ -1,5 +1,5 @@
 import api from "@/src/services/api";
-import { useAuthStore, AccountStatus } from "@/src/store/useAuthStore";
+import { useAuthStore } from "@/src/store/useAuthStore";
 import { useProfileStore } from "@/src/store/useProfileStore";
 
 // ─────────────────────────────────────────────────────────────
@@ -136,15 +136,20 @@ export const resetPassword = async (
 
 // ================= CHANGE PASSWORD (logged in) =================
 export const changePassword = async (
-  currentPassword: string,
+  currentPassword: string | undefined,
   newPassword: string,
   newPasswordConfirm: string,
 ) => {
-  const response = await api.post("/auth/change-password", {
-    current_password: currentPassword,
+  const payload: Record<string, string> = {
     new_password: newPassword,
     new_password_confirm: newPasswordConfirm,
-  });
+  };
+  if (currentPassword) payload.current_password = currentPassword;
+  const response = await api.post("/auth/change-password", payload);
+  if (response.data?.hasPassword) {
+    const current = useAuthStore.getState().user;
+    if (current) useAuthStore.getState().setUser({ ...current, hasPassword: true });
+  }
   return response.data;
 };
 
@@ -215,6 +220,7 @@ export const getCurrentUser = async () => {
       isVerified: user.is_verified ?? false,
       systemRole: user.system_role ?? "USER",
       account_status: user.account_status ?? ("ACTIVE" as const),
+      hasPassword: Boolean(user.hasPassword ?? user.has_password),
     });
   }
   return user;

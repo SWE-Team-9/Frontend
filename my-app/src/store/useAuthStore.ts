@@ -21,6 +21,7 @@ export interface AuthUser {
   isVerified?: boolean;
   systemRole?: "ADMIN" | "MODERATOR" | "USER";
   account_status: AccountStatus;
+  hasPassword?: boolean;
 }
 
 interface AuthState {

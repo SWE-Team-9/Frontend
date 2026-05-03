@@ -12,6 +12,7 @@ import {
   revokeSession,
   logoutAllSessions,
   logoutUser,
+  getCurrentUser,
 } from "@/src/services/authService";
 import AuthInput from "@/src/components/auth/AuthInput";
 import BlockedUsersList from "@/src/components/block-user/BlockedUsersList";
@@ -73,6 +74,7 @@ function StatusMessage({
 // ─── Change Password Section ──────────────────────────────────────────────────
 
 function ChangePasswordSection() {
+  const hasPassword = useAuthStore((s) => s.user?.hasPassword ?? true);
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -86,7 +88,7 @@ function ChangePasswordSection() {
     e.preventDefault();
     setStatus(null);
 
-    if (!current.trim()) {
+    if (hasPassword && !current.trim()) {
       setStatus({ type: "error", msg: "Current password is required." });
       return;
     }
@@ -101,7 +103,7 @@ function ChangePasswordSection() {
       setStatus({ type: "error", msg: "Passwords do not match." });
       return;
     }
-    if (next === current) {
+    if (hasPassword && next === current) {
       setStatus({
         type: "error",
         msg: "New password must be different from current password.",
@@ -111,10 +113,13 @@ function ChangePasswordSection() {
 
     try {
       setLoading(true);
-      await changePassword(current, next, confirm);
+      await changePassword(hasPassword ? current : undefined, next, confirm);
+      await getCurrentUser();
       setStatus({
         type: "success",
-        msg: "Password changed. All other sessions have been signed out for your security.",
+        msg: hasPassword
+          ? "Password changed. All other sessions have been signed out for your security."
+          : "Password set successfully. You can now use password-protected actions.",
       });
       setCurrent("");
       setNext("");
@@ -131,17 +136,24 @@ function ChangePasswordSection() {
   };
 
   return (
-    <SectionCard title="Change Password">
+    <SectionCard title={hasPassword ? "Change Password" : "Set Password"}>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
-        <AuthInput
-          label="Current Password"
-          type="password"
-          id="current-password"
-          name="current-password"
-          placeholder="Enter your current password"
-          value={current}
-          onChange={(e) => setCurrent(e.target.value)}
-        />
+        {!hasPassword && (
+          <p className="text-sm text-zinc-400">
+            Your account was created with Google. Set a local password to use password-protected actions.
+          </p>
+        )}
+        {hasPassword && (
+          <AuthInput
+            label="Current Password"
+            type="password"
+            id="current-password"
+            name="current-password"
+            placeholder="Enter your current password"
+            value={current}
+            onChange={(e) => setCurrent(e.target.value)}
+          />
+        )}
         <AuthInput
           label="New Password"
           type="password"
@@ -166,7 +178,7 @@ function ChangePasswordSection() {
           disabled={loading}
           className="mt-2 h-10 bg-white hover:bg-[#ff5500] transition duration-300 cursor-pointer text-black font-bold text-lg rounded-sm"
         >
-          {loading ? "Saving…" : "Update Password"}
+          {loading ? "Saving…" : hasPassword ? "Update Password" : "Set Password"}
         </button>
       </form>
     </SectionCard>
@@ -738,3 +750,4 @@ export default function SettingsPage() {
     </Suspense>
   );
 }
+
