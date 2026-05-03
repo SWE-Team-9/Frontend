@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { getUserTracks, TrackDetails } from "@/src/services/uploadService";
 import { getUserReposts } from "@/src/services/repostService";
 import { usePlaylists } from "@/src/hooks/usePlaylists";
@@ -73,7 +73,6 @@ export default function ProfileAllActivity({
     const [reposts, setReposts] = useState<RepostLikeItem[]>([]);
     const [loadingTracks, setLoadingTracks] = useState(true);
     const [loadingReposts, setLoadingReposts] = useState(true);
-
     const {
         playlists,
         isLoading: loadingPlaylists,
@@ -165,11 +164,14 @@ export default function ProfileAllActivity({
             }),
         );
 
-        return [...trackItems, ...repostItems, ...playlistItems].sort((a, b) => {
-            const aTime = a.date ? new Date(a.date).getTime() : 0;
-            const bTime = b.date ? new Date(b.date).getTime() : 0;
-            return bTime - aTime;
-        });
+        return [...trackItems, ...repostItems, ...playlistItems]
+            .map((item, index) => ({
+                ...item,
+                sortTime: item.date
+                    ? new Date(item.date).getTime()
+                    : 0 - index,
+            }))
+            .sort((a, b) => b.sortTime - a.sortTime);
     }, [tracks, reposts, playlists]);
 
     const isLoading = loadingTracks || loadingReposts || loadingPlaylists;
