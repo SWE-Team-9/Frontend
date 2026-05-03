@@ -18,20 +18,56 @@ function getLocalLikedIds(): Set<string> {
   }
 }
 
-export function usePlaylists(userId?: string, isOwner?: boolean, mode?: "all" | "created" | "liked") {
+export function usePlaylists(
+  userId?: string,
+  isOwner?: boolean,
+  mode?: "all" | "created" | "liked",
+) {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchPlaylists = useCallback(
     async (signal?: AbortSignal) => {
-      setIsLoading(true); 
-      setError(null); 
+      setIsLoading(true);
+      setError(null);
       try {
-        let raw: Playlist[];
-        
-        if (mode === "liked") {
+        let raw: Playlist[] = [];
+
+        if (mode === "all") {
+          // Fetch both created and liked playlists, then merge them
+          const [created, liked] = await Promise.all([
+            playlistsApi.getMyPlaylists(),
+            playlistsApi.getLikedPlaylists(),
+          ]);
+
+          // Create a map using playlistId to deduplicate
+          const playlistMap = new Map<string, Playlist>();
+
+          // Add created playlists first
+          created.forEach((p) => {
+            playlistMap.set(p.playlistId, { ...p, liked: false });
+          });
+
+          // Add liked playlists, mark them as liked
+          liked.forEach((p) => {
+            if (playlistMap.has(p.playlistId)) {
+              // If already exists (created by user), update liked status
+              playlistMap.set(p.playlistId, {
+                ...playlistMap.get(p.playlistId)!,
+                liked: true,
+              });
+            } else {
+              // If only liked (not created), add with liked: true
+              playlistMap.set(p.playlistId, { ...p, liked: true });
+            }
+          });
+
+          raw = Array.from(playlistMap.values());
+        } else if (mode === "liked") {
           raw = await playlistsApi.getLikedPlaylists();
+        } else if (mode === "created") {
+          raw = await playlistsApi.getMyPlaylists();
         } else if (userId) {
           if (isOwner) {
             raw = await playlistsApi.getMyPlaylists();
@@ -41,8 +77,9 @@ export function usePlaylists(userId?: string, isOwner?: boolean, mode?: "all" | 
         } else {
           raw = await playlistsApi.getMyPlaylists();
         }
-        
+
         if (signal?.aborted) return;
+
         const likedIds = getLocalLikedIds();
         setPlaylists(
           raw.map((p) =>

@@ -32,9 +32,11 @@ type Variant = "library" | "profile";
 export function PlaylistCard({
   playlist,
   variant = "library",
+  isOwner = false,
 }: {
   playlist: Playlist;
   variant?: Variant;
+  isOwner?: boolean;
 }) {
   const { deletePlaylist } = usePlaylists();
 
@@ -79,7 +81,7 @@ export function PlaylistCard({
 
   const handleLike = async (e?: React.MouseEvent) => {
     e?.preventDefault();
-    if (isLiking) return;
+    if (isLiking || isOwner) return; // Prevent owner from liking their own playlist
 
     const wasLiked = liked;
     const prevCount = likesCount;
@@ -178,31 +180,37 @@ export function PlaylistCard({
 
         {/* ACTION BUTTONS */}
         <div className="absolute bottom-2 left-2 z-30 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button
-            type="button"
-            onClick={handleLike}
-            disabled={isLiking}
-            aria-label={liked ? "Unlike playlist" : "Like playlist"}
-            className="w-7 h-7 rounded-full bg-black/70 hover:bg-black flex items-center justify-center cursor-pointer disabled:opacity-50"
-          >
-            {liked ? (
-              <FaHeart className="text-[#f50] text-[1rem]" />
-            ) : (
-              <FaRegHeart className="text-white text-[1rem]" />
-            )}
-          </button>
+          {/* LIKE BUTTON - Only show for non-owners */}
+          {!isOwner && (
+            <button
+              type="button"
+              onClick={handleLike}
+              disabled={isLiking}
+              aria-label={liked ? "Unlike playlist" : "Like playlist"}
+              className="w-7 h-7 rounded-full bg-black/70 hover:bg-black flex items-center justify-center cursor-pointer disabled:opacity-50"
+            >
+              {liked ? (
+                <FaHeart className="text-[#f50] text-[1rem]" />
+              ) : (
+                <FaRegHeart className="text-white text-[1rem]" />
+              )}
+            </button>
+          )}
 
-          <button
-            type="button"
-            onClick={(e) => { e.preventDefault(); toggleMenu(); }}
-            className="w-7 h-7 rounded-full bg-black/70 hover:bg-black flex items-center justify-center cursor-pointer"
-          >
-            <FaEllipsisH className="text-white text-[10px]" />
-          </button>
+          {/* MORE MENU - Only show for owners */}
+          {isOwner && (
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); toggleMenu(); }}
+              className="w-7 h-7 rounded-full bg-black/70 hover:bg-black flex items-center justify-center cursor-pointer"
+            >
+              <FaEllipsisH className="text-white text-[10px]" />
+            </button>
+          )}
         </div>
 
-        {/* DROPDOWN MENU */}
-        {menuOpen && (
+        {/* DROPDOWN MENU - Only render for owners */}
+        {isOwner && menuOpen && (
           <>
             <div className="fixed inset-0 z-40" onClick={closeMenu} />
             <div className="absolute z-50 left-2 bottom-11 min-w-47.5 bg-[#1a1a1a] border border-zinc-800 rounded-md shadow-2xl overflow-hidden py-1">

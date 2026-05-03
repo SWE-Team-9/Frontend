@@ -22,8 +22,11 @@ export default function LibraryPlaylistsPage() {
   const [searchTracks, setSearchTracks] = useState<SearchTrack[]>([]);
   const [isSearchingTracks, setIsSearchingTracks] = useState(false);
 
-  // Pass mode to usePlaylists - when mode is "liked", it will fetch liked playlists
-  const { playlists, isLoading, createPlaylist } = usePlaylists(undefined, undefined, mode);
+  const { playlists, isLoading, createPlaylist } = usePlaylists(
+    undefined,
+    undefined,
+    mode,
+  );
 
   useEffect(() => {
     const trimmed = trackQuery.trim();
@@ -66,6 +69,28 @@ export default function LibraryPlaylistsPage() {
     return list;
   }, [playlists, filter]);
 
+  const getEmptyMessage = () => {
+    switch (mode) {
+      case "liked":
+        return "You haven't liked any playlists yet";
+      case "created":
+        return "You haven't created any playlists yet";
+      default:
+        return "You have no playlists yet";
+    }
+  };
+
+  const getTitle = () => {
+    switch (mode) {
+      case "liked":
+        return "Liked Playlists";
+      case "created":
+        return "Created Playlists";
+      default:
+        return "All Playlists";
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#121212] px-6 py-8 text-white">
       <LibraryTabs />
@@ -86,9 +111,7 @@ export default function LibraryPlaylistsPage() {
       {!isLoading && playlists.length === 0 && (
         <div className="flex flex-col items-center justify-center py-32">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
-            {mode === "liked" 
-              ? "You haven't liked any playlists yet" 
-              : "You have no playlists yet"}
+            {getEmptyMessage()}
           </h2>
           {mode !== "liked" && (
             <button
@@ -105,9 +128,7 @@ export default function LibraryPlaylistsPage() {
       {!isLoading && playlists.length > 0 && (
         <>
           <div className="flex items-center justify-between mb-6">
-            <h1 className="text-xl font-bold">
-              {mode === "liked" ? "Liked Playlists" : "Your Playlists"}
-            </h1>
+            <h1 className="text-xl font-bold">{getTitle()}</h1>
             {mode !== "liked" && (
               <button
                 onClick={() => setIsCreateOpen(true)}
@@ -123,6 +144,7 @@ export default function LibraryPlaylistsPage() {
               <PlaylistCard
                 key={playlist.playlistId}
                 playlist={playlist}
+                isOwner={mode !== "liked" && mode !== "all"}
               />
             ))}
           </div>
