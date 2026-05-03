@@ -18,7 +18,7 @@ function getLocalLikedIds(): Set<string> {
   }
 }
 
-export function usePlaylists(userId?: string, isOwner?: boolean) {
+export function usePlaylists(userId?: string, isOwner?: boolean, mode?: "all" | "created" | "liked") {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -30,16 +30,15 @@ export function usePlaylists(userId?: string, isOwner?: boolean) {
       try {
         let raw: Playlist[];
         
-        if (userId) {
-          // Owner viewing their own profile
+        if (mode === "liked") {
+          raw = await playlistsApi.getLikedPlaylists();
+        } else if (userId) {
           if (isOwner) {
             raw = await playlistsApi.getMyPlaylists();
           } else {
-            // For other users
             raw = await playlistsApi.getUserPlaylists(userId);
           }
         } else {
-          // No userId = definitely the current user
           raw = await playlistsApi.getMyPlaylists();
         }
         
@@ -63,7 +62,7 @@ export function usePlaylists(userId?: string, isOwner?: boolean) {
         if (!signal?.aborted) setIsLoading(false);
       }
     },
-    [userId, isOwner],
+    [userId, isOwner, mode],
   );
 
   useEffect(() => {

@@ -69,6 +69,7 @@ export interface PlaylistsService {
     tags: string[];
     tracks?: PlaylistTrack[];
   }>;
+  getLikedPlaylists: (page?: number, limit?: number) => Promise<Playlist[]>;
   getUserPlaylists: (
     userId: string,
     page?: number,
@@ -118,6 +119,11 @@ export const playlistsApi: PlaylistsService = {
     api
       .get(`${BASE}/${playlistId}`, { params: { limit, offset } })
       .then((r) => normalizePlaylist(r.data)),
+
+   getLikedPlaylists: (page = 1, limit = 20) =>
+  api
+    .get(`${BASE}/me/liked`, { params: { page, limit } })
+    .then((r) => normalizePlaylistList(r.data)),
 
   getUserPlaylists: (userId: string, page = 1, limit = 20) =>
     api

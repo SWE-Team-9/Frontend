@@ -10,9 +10,6 @@ import { ConfirmModal } from "@/src/components/ui/ConfirmModal";
 import {
   FaMusic,
   FaPlay,
-  FaEllipsisH,
-  FaListUl,
-  FaTrash,
 } from "react-icons/fa";
 
 export function ProfilePlaylistCard({ playlist }: { playlist: Playlist }) {
@@ -64,38 +61,6 @@ export function ProfilePlaylistCard({ playlist }: { playlist: Playlist }) {
             <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center">
               <FaPlay className="text-black text-sm ml-0.5" />
             </div>
-          </div>
-
-          <div className="absolute bottom-2 left-2 z-30 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button
-              type="button"
-              onClick={() => setMenuOpen((v) => !v)}
-              className="w-7 h-7 rounded-full bg-black/70 hover:bg-black flex items-center justify-center"
-              aria-label="More options"
-            >
-              <FaEllipsisH className="text-white text-[10px]" />
-            </button>
-
-            {menuOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={close} />
-                <div className="absolute z-50 left-0 bottom-9 min-w-45 bg-[#1a1a1a] border border-zinc-800 rounded-md shadow-2xl overflow-hidden py-1">
-                  <button type="button" onClick={handleAddToNextUp} className={item}>
-                    <FaListUl size={11} className="text-white" /> Add to Next Up
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      close();
-                      setConfirmOpen(true);
-                    }}
-                    className={`${item} text-red-400`}
-                  >
-                    <FaTrash size={11} /> Delete Playlist
-                  </button>
-                </div>
-              </>
-            )}
           </div>
         </div>
 
