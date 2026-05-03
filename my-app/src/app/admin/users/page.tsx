@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import api from '@/src/services/api';
 import { useAdminStore } from '@/src/store/useAdminStore';
 import { RoleGuard } from '@/src/components/admin/RoleGuard';
 import {
@@ -36,10 +35,6 @@ export default function UserManagementPage() {
   const [reason, setReason] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [requiresPasswordSetup, setRequiresPasswordSetup] = useState(false);
-  const [setupPassword, setSetupPassword] = useState('');
-  const [setupConfirmPassword, setSetupConfirmPassword] = useState('');
-  const [setupStatus, setSetupStatus] = useState('');
 
   useEffect(() => {
     const timer = setTimeout(() => setIsMounted(true), 0);
@@ -65,32 +60,6 @@ export default function UserManagementPage() {
     setReason('');
     setPassword('');
     setError('');
-    setRequiresPasswordSetup(false);
-    setSetupPassword('');
-    setSetupConfirmPassword('');
-    setSetupStatus('');
-  };
-
-  const setupLocalAdminPassword = async () => {
-    if (!setupPassword || !setupConfirmPassword) {
-      setSetupStatus('Please fill both password fields.');
-      return;
-    }
-
-    try {
-      setSetupStatus('');
-      await api.post('/auth/password/setup', {
-        newPassword: setupPassword,
-        confirmPassword: setupConfirmPassword,
-      });
-      setSetupPassword('');
-      setSetupConfirmPassword('');
-      setRequiresPasswordSetup(false);
-      setSetupStatus('Password set successfully. Please enter it above and confirm the action.');
-    } catch (err) {
-      const errorData = (err as { response?: { data?: { message?: string } } })?.response?.data;
-      setSetupStatus(errorData?.message || 'Failed to set admin password.');
-    }
   };
 
   const executeAction = async () => {
@@ -115,17 +84,7 @@ export default function UserManagementPage() {
       await loadUsers();
       closeModal();
     } catch (err) {
-      const errorData = (err as { response?: { data?: { error?: string; message?: string } } })
-        ?.response?.data;
-      if (errorData?.error === 'PASSWORD_SETUP_REQUIRED') {
-        setRequiresPasswordSetup(true);
-        setError(
-          errorData.message ||
-            'Your account was created with Google. Please set a local admin password before performing sensitive admin actions.',
-        );
-        return;
-      }
-      setError(errorData?.message || 'Action failed.');
+      setError("Action failed.");
     }
   };
 
@@ -341,41 +300,6 @@ export default function UserManagementPage() {
                     setError('');
                   }}
                 />
-              )}
-
-              {requiresPasswordSetup && (
-                <div className="space-y-3 rounded-xl border border-orange-500/30 bg-orange-500/5 p-3">
-                  <p className="text-xs text-orange-300">
-                    Set Local Admin Password
-                  </p>
-                  <input
-                    type="password"
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-white text-sm outline-none focus:ring-1 focus:ring-orange-500"
-                    placeholder="New Admin Password"
-                    value={setupPassword}
-                    onChange={(e) => setSetupPassword(e.target.value)}
-                  />
-                  <input
-                    type="password"
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-white text-sm outline-none focus:ring-1 focus:ring-orange-500"
-                    placeholder="Confirm New Admin Password"
-                    value={setupConfirmPassword}
-                    onChange={(e) => setSetupConfirmPassword(e.target.value)}
-                  />
-                  <button
-                    type="button"
-                    onClick={setupLocalAdminPassword}
-                    className="w-full rounded-xl bg-orange-600 py-2 text-sm font-bold text-white hover:bg-orange-500 transition-colors"
-                  >
-                    Set Admin Password
-                  </button>
-                </div>
-              )}
-
-              {setupStatus && (
-                <div className="bg-zinc-800/70 text-zinc-200 text-xs px-3 py-2 rounded-lg border border-zinc-700">
-                  {setupStatus}
-                </div>
               )}
 
               <div className="flex gap-3 pt-2">
