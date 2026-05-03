@@ -22,8 +22,9 @@ interface AdminState {
   reports: Report[];
   auditLogs: AuditLog[];
   mostReported: MostReportedStats | null;
-  dailyStats: DailyStat[]; // Changed to array to match API metrics
+  dailyStats: DailyStat[];
   analytics: AnalyticsData;
+  totalStorage: number | null;
   pagination: {
     currentPage: number;
     totalPages: number;
@@ -53,17 +54,18 @@ interface AdminState {
   restoreUser: (userId: string, reason: string) => Promise<void>;
   moderateContent: (type: 'track' | 'playlist' | 'comment', id: string, payload: ActionPayload) => Promise<void>;
   moderateTrack: (trackId: string, payload: { action: 'HIDDEN' | 'REMOVED' | 'VISIBLE'; reason: string; reportId?: string; }) => Promise<void>;
-  moderateComment: (commentId: string, payload: { isHidden: boolean; reportId?: string; }) => Promise<void>;
+  moderateComment: (commentId: string, payload: { isHidden: boolean; reportId?: string;reason?: string }) => Promise<void>;
   fetchUserById: (id: string) => Promise<void>;
 }
+
 interface RawDailyMetric {
-      date: string;
-      new_users: number;
-      tracks_uploaded: number;
-      total_storage_bytes: number;
-      active_subscribers: number;
-      plays_total?: number; // Optional if not always there
-    }
+  date: string;
+  new_users: number;
+  tracks_uploaded: number;
+  total_storage_bytes: number;
+  active_subscribers: number;
+  plays_total?: number;
+}
 
 export const useAdminStore = create<AdminState>()(
   persist(
@@ -75,6 +77,7 @@ export const useAdminStore = create<AdminState>()(
       auditLogs: [],
       mostReported: null,
       dailyStats: [],
+      totalStorage: null,
       analytics: {
         storageTrend: [],
         growth: [],
@@ -132,30 +135,26 @@ export const useAdminStore = create<AdminState>()(
       },
 
       fetchDailyStats: async (dateFrom, dateTo) => {
-  set({ isDailyLoading: true });
-  try {
-    const res = await adminService.getDailyStats(dateFrom, dateTo);
-    
-    // We map the raw API data to match your DailyStat interface
-    // This resolves the "missing properties" error manually
-    
-    const rawMetrics = (res.metrics as RawDailyMetric[]) ?? [];
-    
-    const mappedStats: DailyStat[] = rawMetrics.map((m) => ({
-      date: m.date,
-      users_total: m.new_users ?? 0,
-      tracks_total: m.tracks_uploaded ?? 0,
-      plays_total: m.plays_total ?? 0, // Fallback if missing
-      storage_used: m.total_storage_bytes ?? 0,
-    }));
+        set({ isDailyLoading: true });
+        try {
+          const res = await adminService.getDailyStats(dateFrom, dateTo);
+          const rawMetrics = (res.metrics as RawDailyMetric[]) ?? [];
 
-    set({ dailyStats: mappedStats });
-  } catch (err) {
-    console.error('Daily stats fetch failed:', err);
-  } finally {
-    set({ isDailyLoading: false });
-  }
-},
+          const mappedStats: DailyStat[] = rawMetrics.map((m) => ({
+            date: m.date,
+            users_total: m.new_users ?? 0,
+            tracks_total: m.tracks_uploaded ?? 0,
+            plays_total: m.plays_total ?? 0,
+            storage_used: m.total_storage_bytes ?? 0,
+          }));
+
+          set({ dailyStats: mappedStats });
+        } catch (err) {
+          console.error('Daily stats fetch failed:', err);
+        } finally {
+          set({ isDailyLoading: false });
+        }
+      },
 
       loadUsers: async (page = 1) => {
         set({ isUsersLoading: true });
@@ -214,7 +213,9 @@ export const useAdminStore = create<AdminState>()(
         }
       },
 
-      warnUser: async (userId, payload) => { await adminService.warnUser(userId, payload); },
+      warnUser: async (userId, payload) => {
+        await adminService.warnUser(userId, payload);
+      },
 
       suspendUser: async (userId, payload) => {
         if (!payload.current_password) throw new Error("Admin password required.");

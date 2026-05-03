@@ -83,7 +83,7 @@ function transformOverviewStats(raw: Record<string, Record<string, number | null
 
 export const adminServiceReal = {
   getInitialData: async () => {
-    const [rawStats, usersData, reportsData, auditData, mostReportedData, dailyData] =
+    const [rawStats, usersData, reportsData, auditData, mostReportedData, dailyData,totalStorage] =
       await Promise.all([
         adminApi.get('/admin/stats/overview').then(r => r.data),
         adminApi.get('/admin/users').then(r => r.data),
@@ -91,6 +91,7 @@ export const adminServiceReal = {
         adminApi.get('/admin/audit-log').then(r => r.data).catch(() => ({ items: [] })),
         adminApi.get('/admin/stats/most-reported').then(r => r.data).catch(() => null),
         adminApi.get('/admin/stats/daily', { params: { granularity: 'monthly' } }).then(r => r.data),
+        adminApi.get(`/admin/storage/total`).then(r=>r.data),
       ]);
 
     const stats = transformOverviewStats(rawStats);
@@ -117,7 +118,7 @@ export const adminServiceReal = {
       } : null,
     };
   },
-
+ 
   getUserById: async (id: string) => {
     const res = await adminApi.get(`/admin/users/${id}`);
     return (res.data.user as AdminUser) ?? (res.data as AdminUser);
@@ -305,6 +306,21 @@ export const adminServiceReal = {
       reason,
     });
   },
+  hideComment: async (commentId: string, reportId?: string) => {
+  return adminApi.patch(`/admin/comments/${commentId}/moderation`, {
+    isHidden: true,
+    reason: "Hidden by admin",
+    reportId,
+  });
+},
+
+restoreComment: async (commentId: string, reportId?: string) => {
+  return adminApi.patch(`/admin/comments/${commentId}/moderation`, {
+    isHidden: false,
+    reason: "Restored by admin",
+    reportId,
+  });
+},
 
   addModeratorReview: async ({ reportId, content }: { reportId: string; content: string }) => {
     return adminApi.patch(`/admin/reports/${reportId}`, { resolutionNotes: content });

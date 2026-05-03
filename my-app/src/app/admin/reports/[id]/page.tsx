@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
-import { adminService } from "@/src/services/admin/adminServiceFactory"
+import React, { useEffect, useState } from "react";
+import { adminService } from "@/src/services/admin/adminServiceFactory";
 import { useAdminStore } from "@/src/store/useAdminStore";
 import { useAuthStore } from "@/src/store/useAuthStore";
 import {
@@ -27,10 +27,11 @@ export default function ReportDetailsPage({ params }: PageProps) {
   const { id } = React.use(params);
 
   const { user: authUser } = useAuthStore();
-  const { moderateTrack, fetchUserById } = useAdminStore();
+  const { moderateTrack, moderateComment, fetchUserById } =
+    useAdminStore();
 
   const [report, setReport] = useState<Report | null>(null);
-  const [user, setUser] = useState<AdminUser | null>(null);
+  const [, setUser] = useState<AdminUser | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -49,28 +50,32 @@ export default function ReportDetailsPage({ params }: PageProps) {
 
         if (cancelled) return;
 
-        // 1. Fix: "reportData is possibly null" and "Type mismatch"
         if (!reportData) {
           setError("Report not found.");
           setLoading(false);
           return;
         }
 
-        // Cast it to Report if the service returns a partial or union type
         const validatedReport = reportData as Report;
         setReport(validatedReport);
 
         const userIds: string[] = [];
 
-        // 2. Fix: "Property id does not exist on reporter"
-        if (validatedReport.reporter?.id) userIds.push(validatedReport.reporter.id);
-        if (validatedReport.offender?.id) userIds.push(validatedReport.offender.id);
+        if (validatedReport.reporter?.id) {
+          userIds.push(validatedReport.reporter.id);
+        }
 
-        if (validatedReport.target?.type === "USER" && validatedReport.target?.id) {
+        if (validatedReport.offender?.id) {
+          userIds.push(validatedReport.offender.id);
+        }
+
+        if (
+          validatedReport.target?.type === "USER" &&
+          validatedReport.target?.id
+        ) {
           userIds.push(validatedReport.target.id);
         }
 
-        // fetch only valid UUIDs
         for (const userId of userIds) {
           await fetchUserById(userId);
         }
@@ -107,31 +112,58 @@ export default function ReportDetailsPage({ params }: PageProps) {
         reportId: report.id,
       });
     } catch (err) {
-      console.error("Moderation failed:", err);
+      console.error("Track moderation failed:", err);
+    }
+  };
+
+  const handleCommentModeration = async (isHidden: boolean) => {
+    if (!report?.target?.id) return;
+
+    try {
+      await moderateComment(report.target.id, {
+        isHidden,
+        reportId: report.id,
+        reason: `Admin action: ${
+          isHidden ? "HIDDEN" : "RESTORED"
+        } by ${authUser?.displayName}`,
+      });
+    } catch (err) {
+      console.error("Comment moderation failed:", err);
     }
   };
 
   // =========================
   // UI STATES
   // =========================
-  if (loading)
+  if (loading) {
     return (
       <div className="p-12 text-center text-zinc-500 animate-pulse font-mono uppercase tracking-widest">
         Loading Report...
       </div>
     );
+  }
 
-  if (error)
+  if (error) {
     return (
-      <div className="p-12 text-center text-red-500 font-bold">{error}</div>
+      <div className="p-12 text-center text-red-500 font-bold">
+        {error}
+      </div>
     );
+  }
 
-  if (!report)
+  if (!report) {
     return (
       <div className="p-12 text-center text-zinc-500">
         Report not found.
       </div>
     );
+  }
+
+  // =========================
+  // HELPERS
+  // =========================
+  const isTrack = report.target?.type === "TRACK";
+  const isComment = report.target?.type === "COMMENT";
 
   // =========================
   // UI
@@ -188,64 +220,68 @@ export default function ReportDetailsPage({ params }: PageProps) {
             </div>
           </div>
 
-          {/* ADMIN ACTIONS */}
-          {authUser?.systemRole === "ADMIN" &&
-            report.target.type === "TRACK" && (
-              <div className="bg-zinc-900 border border-blue-500/20 p-8 rounded-[2.5rem]">
-                <div className="flex items-center gap-3 mb-6">
-                  <FiShield className="text-blue-400" />
-                  <h3 className="font-bold uppercase text-sm">
-                    Admin Actions
-                  </h3>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4">
-                  <button
-                    onClick={() => handleTrackModeration("VISIBLE")}
-                    className="bg-green-500/10 text-green-500 p-4 rounded-xl"
-                  >
-                    <FiRotateCcw /> Restore
-                  </button>
-
-                  <button
-                    onClick={() => handleTrackModeration("HIDDEN")}
-                    className="bg-zinc-800 p-4 rounded-xl"
-                  >
-                    <FiEyeOff /> Hide
-                  </button>
-
-                  <button
-                    onClick={() => handleTrackModeration("REMOVED")}
-                    className="bg-red-500/10 text-red-500 p-4 rounded-xl"
-                  >
-                    <FiTrash2 /> Delete
-                  </button>
-                </div>
+          {/* TRACK ACTIONS */}
+          {authUser?.systemRole === "ADMIN" && isTrack && (
+            <div className="bg-zinc-900 border border-blue-500/20 p-8 rounded-[2.5rem]">
+              <div className="flex items-center gap-3 mb-6">
+                <FiShield className="text-blue-400" />
+                <h3 className="font-bold uppercase text-sm">
+                  Admin Actions
+                </h3>
               </div>
-            )}
 
-          {/* HISTORY */}
-          <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-[2.5rem]">
-            <h3 className="text-xs uppercase text-zinc-500 mb-4 flex items-center gap-2">
-              <FiInfo /> Decision History
-            </h3>
-
-            {report.previous_actions_on_target?.length ? (
-              report.previous_actions_on_target.map((a, i) => (
-                <div
-                  key={i}
-                  className="p-4 bg-zinc-950 border border-zinc-800 rounded-xl mb-3"
+              <div className="grid grid-cols-3 gap-4">
+                <button
+                  onClick={() => handleTrackModeration("VISIBLE")}
+                  className="bg-green-500/10 text-green-500 p-4 rounded-xl"
                 >
-                  <p className="text-orange-500 text-xs font-bold">
-                    {a.action_type}
-                  </p>
-                  <p className="text-sm">{a.reason}</p>
-                </div>
-              ))
-            ) : (
-              <p className="text-zinc-600 text-sm">No history</p>
-            )}
-          </div>
+                  <FiRotateCcw /> Restore
+                </button>
+
+                <button
+                  onClick={() => handleTrackModeration("HIDDEN")}
+                  className="bg-zinc-800 p-4 rounded-xl"
+                >
+                  <FiEyeOff /> Hide
+                </button>
+
+                <button
+                  onClick={() => handleTrackModeration("REMOVED")}
+                  className="bg-red-500/10 text-red-500 p-4 rounded-xl"
+                >
+                  <FiTrash2 /> Delete
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* COMMENT ACTIONS */}
+          {authUser?.systemRole === "ADMIN" && isComment && (
+            <div className="bg-zinc-900 border border-blue-500/20 p-8 rounded-[2.5rem]">
+              <div className="flex items-center gap-3 mb-6">
+                <FiShield className="text-blue-400" />
+                <h3 className="font-bold uppercase text-sm">
+                  Comment Actions
+                </h3>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  onClick={() => handleCommentModeration(false)}
+                  className="bg-green-500/10 text-green-500 p-4 rounded-xl"
+                >
+                  <FiRotateCcw /> Restore
+                </button>
+
+                <button
+                  onClick={() => handleCommentModeration(true)}
+                  className="bg-zinc-800 p-4 rounded-xl"
+                >
+                  <FiEyeOff /> Hide
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* SIDEBAR */}

@@ -11,7 +11,6 @@ import {
   LuLayoutDashboard,
   LuUsers,
   LuSettings,
-  LuLifeBuoy,
   LuLogOut
 } from "react-icons/lu";
 
@@ -39,8 +38,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   ];
 
   const utilityNav = [
-    { label: 'Settings', href: '/admin/settings', icon: LuSettings },
-    { label: 'Support', href: '/admin/support', icon: LuLifeBuoy },
+    { label: 'Settings', href: '/settings', icon: LuSettings },
+    
     { label: 'Log out', href: '/', icon: LuLogOut },
   ];
 
@@ -106,7 +105,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="p-4 bg-zinc-950 border-t border-zinc-800">
           <div className="flex items-center gap-3 px-2">
             <div className="w-2 h-2 bg-green-500 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
-            <span className="text-[10px] text-zinc-500 font-medium uppercase tracking-tight">Server: Stable</span>
+            <span className="text-[10px] text-zinc-500 font-medium uppercase tracking-tight">Admin</span>
           </div>
         </div>
       </aside>

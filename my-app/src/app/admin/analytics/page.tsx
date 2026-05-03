@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useAdminStore } from "@/src/store/useAdminStore";
 import { adminServiceReal } from "@/src/services/admin/adminService.real";
 import {
@@ -27,7 +27,7 @@ interface DailyMetric {
 }
 
 export default function AnalyticsPage() {
-  const { stats, fetchDashboardData, isLoading } = useAdminStore();
+  const { stats, fetchDashboardData, isLoading, totalStorage, analytics } = useAdminStore();
   const [dailyMetrics, setDailyMetrics] = useState<DailyMetric[]>([]);
   const [dailyLoading, setDailyLoading] = useState(true);
 
@@ -36,21 +36,44 @@ export default function AnalyticsPage() {
   }, [fetchDashboardData]);
 
   useEffect(() => {
-  const dateTo = new Date().toISOString().split("T")[0];
-  const dateFrom = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-    .toISOString()
-    .split("T")[0];
+    const dateTo = new Date().toISOString().split("T")[0];
+    const dateFrom = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split("T")[0];
 
-  adminServiceReal
-    .getDailyStats(dateFrom, dateTo)
-    .then((data) => {
-      // Use unknown as a bridge to resolve the "Two different types" conflict
-      const metrics = (data.metrics as unknown as DailyMetric[]) ?? [];
-      setDailyMetrics(metrics);
-    })
-    .catch(() => setDailyMetrics([]))
-    .finally(() => setDailyLoading(false));
-}, []);
+    adminServiceReal
+      .getDailyStats(dateFrom, dateTo)
+      .then((data) => {
+        const metrics = (data.metrics as unknown as DailyMetric[]) ?? [];
+        setDailyMetrics(metrics);
+      })
+      .catch(() => setDailyMetrics([]))
+      .finally(() => setDailyLoading(false));
+  }, []);
+
+  // =============================
+  // NEW STORAGE LOGIC
+  // =============================
+  const formatBytes = (bytes: number) => {
+    if (bytes <= 0) return "0 B";
+    const k = 1024;
+    const sizes = ["B", "KB", "MB", "GB", "TB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+  };
+
+  const storageMetrics = useMemo(() => {
+    const latestTrendUsed = analytics?.storageTrend?.[analytics.storageTrend.length - 1]?.used;
+    const usedBytes = latestTrendUsed ?? stats?.storage?.used_bytes ?? 0;
+    const totalBytes = totalStorage || stats?.storage?.total_bytes || 0;
+    const percent = totalBytes > 0 ? (usedBytes / totalBytes) * 100 : 0;
+
+    return {
+      usedHuman: formatBytes(usedBytes),
+      totalHuman: formatBytes(totalBytes),
+      percent: parseFloat(percent.toFixed(1)),
+    };
+  }, [analytics, stats, totalStorage]);
 
   if (isLoading || !stats) {
     return (
@@ -62,10 +85,6 @@ export default function AnalyticsPage() {
       </div>
     );
   }
-
-  const storagePercent = stats.storage.total_bytes
-    ? ((stats.storage.used_bytes / stats.storage.total_bytes) * 100).toFixed(1)
-    : "0";
 
   const growthData = dailyMetrics.map((d) => ({
     date: d.date.slice(5), // MM-DD
@@ -79,8 +98,8 @@ export default function AnalyticsPage() {
   ];
 
   const storageSegments = [
-    { month: "Used", used: parseFloat(storagePercent) },
-    { month: "Free", used: Math.max(0, 100 - parseFloat(storagePercent)) },
+    { month: "Used", used: storageMetrics.percent },
+    { month: "Free", used: Math.max(0, 100 - storageMetrics.percent) },
   ];
 
   return (
@@ -94,7 +113,7 @@ export default function AnalyticsPage() {
         </p>
       </div>
 
-      {/* KPI CARDS — real engagement data */}
+      {/* KPI CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
         <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl">
@@ -115,13 +134,14 @@ export default function AnalyticsPage() {
           </p>
         </div>
 
+        {/* UPDATED STORAGE KPI CARD */}
         <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl">
           <p className="text-xs text-zinc-500">Storage Used</p>
           <h2 className="text-2xl font-bold text-blue-400 mt-1">
-            {stats.storage.total_human_readable}
+            {storageMetrics.usedHuman}
           </h2>
           <p className="text-[10px] text-zinc-600 mt-1">
-            {storagePercent}% capacity utilization
+            {storageMetrics.percent}% capacity utilization
           </p>
         </div>
 
@@ -226,7 +246,7 @@ export default function AnalyticsPage() {
           </p>
         </div>
 
-        {/* STORAGE */}
+        {/* STORAGE SECTION */}
         <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-2xl">
           <div className="flex items-center gap-2 mb-6">
             <FiHardDrive className="text-blue-500" />
@@ -244,7 +264,7 @@ export default function AnalyticsPage() {
                 </div>
                 <div className="h-2 bg-zinc-800 rounded-full">
                   <div
-                    className="h-full rounded-full"
+                    className="h-full rounded-full transition-all duration-1000"
                     style={{
                       width: `${item.used}%`,
                       backgroundColor: item.month === "Used" ? "#3b82f6" : "#27272a",
@@ -257,11 +277,11 @@ export default function AnalyticsPage() {
             <div className="pt-4 border-t border-zinc-800 space-y-1">
               <div className="flex justify-between text-xs">
                 <span className="text-zinc-500">Used</span>
-                <span className="text-white">{stats.storage.total_human_readable}</span>
+                <span className="text-white">{storageMetrics.usedHuman}</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-zinc-500">Total Artists</span>
-                <span className="text-white">{stats.users.artists.toLocaleString()}</span>
+                <span className="text-zinc-500">Total Capacity</span>
+                <span className="text-white">{storageMetrics.totalHuman}</span>
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-zinc-500">Total Tracks</span>

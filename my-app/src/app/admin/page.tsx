@@ -3,7 +3,6 @@
 import React, { useEffect, useMemo } from 'react';
 import { useAdminStore } from '@/src/store/useAdminStore';
 import { StatCard } from '@/src/components/admin/StatCard';
-import { Report } from '@/src/types/admin';
 import {
   Users,
   HardDrive,
@@ -33,46 +32,50 @@ import {
   Tooltip
 } from 'recharts';
 
+interface BasicReport {
+  id: string;
+  target?: { title: string };
+  reporter?: { handle: string };
+  created_at: string;
+}
+
 export default function AdminDashboard() {
-  // 1. Added 'analytics' to destructuring
-  const { stats, reports, fetchDashboardData, isLoading, mostReported, analytics } = useAdminStore();
+  const { stats, reports, fetchDashboardData, isLoading, mostReported, analytics, totalStorage } = useAdminStore();
 
   useEffect(() => {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
   // =============================
-  // REAL STORAGE CALCULATION
+  // STORAGE CALCULATION
   // =============================
-  // Finds the most recent value in the daily trend to show "current" actual usage
-  const realStorageStats = useMemo(() => {
-  if (!analytics?.storageTrend || analytics.storageTrend.length === 0) {
-    return {
-      used: stats?.storage?.used_bytes || 0,
-      human: stats?.storage?.total_human_readable || "0 B"
-    };
-  }
-
-  // Get the last entry in the trend array
-  const latestEntry = analytics.storageTrend[analytics.storageTrend.length - 1];
-
-  // Helper to format bytes to human-readable string
   const formatBytes = (bytes: number) => {
-    if (bytes === 0) return "0 B";
+    if (bytes <= 0) return "0 B";
     const k = 1024;
     const sizes = ["B", "KB", "MB", "GB", "TB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
   };
 
-  // FIX: Access .used instead of .value to match your Store's data
-  const usedValue = latestEntry.used || 0; 
-  
-  return { 
-    used: usedValue, 
-    human: formatBytes(usedValue) 
-  };
-}, [analytics, stats]);
+  const storageMetrics = useMemo(() => {
+    // 1. GET USED STORAGE (From Overview Stats or Trend)
+    const latestTrendUsed = analytics?.storageTrend?.[analytics.storageTrend.length - 1]?.used;
+    const usedBytes = latestTrendUsed ?? stats?.storage?.used_bytes ?? 0;
+
+    // 2. GET TOTAL STORAGE (From your new dedicated endpoint/store value)
+    const totalBytes = totalStorage || stats?.storage?.total_bytes || 0;
+
+    // 3. CALCULATE PERCENTAGE
+    const percent = totalBytes > 0 ? (usedBytes / totalBytes) * 100 : 0;
+
+    return {
+      usedHuman: formatBytes(usedBytes),
+      totalHuman: formatBytes(totalBytes),
+      percent: Math.min(percent, 100),
+      isCritical: percent > 90,
+      rawPercent: percent
+    };
+  }, [analytics, stats, totalStorage]);
 
   // =============================
   // URGENT REPORTS
@@ -138,19 +141,10 @@ export default function AdminDashboard() {
     },
     {
       name: 'Incomplete',
-      value: stats.engagement.total_play_events - stats.engagement.completed_play_events,
+      value: Math.max(0, stats.engagement.total_play_events - stats.engagement.completed_play_events),
       color: '#f97316'
     }
   ];
-  interface BasicReport {
-  id: string;
-  target?: { title: string };
-  reporter?: { handle: string };
-  created_at: string;
-}
-
-  // Using the new 'realStorageStats' for the percentage calculation
-  const storagePercent = (realStorageStats.used / stats.storage.total_bytes) * 100;
 
   const getStorageColor = (percent: number) => {
     if (percent > 90) return '#ef4444';
@@ -202,25 +196,27 @@ export default function AdminDashboard() {
           </div>
         </StatCard>
 
-        {/* STORAGE - Now uses realStorageStats */}
+        {/* STORAGE - FIXED CALCULATION */}
         <StatCard
           title="Storage Usage"
-          value={realStorageStats.human}
-          icon={<HardDrive size={18} />}
+          value={storageMetrics.usedHuman}
+          icon={<HardDrive size={18} className={storageMetrics.isCritical ? "text-red-500" : "text-zinc-400"} />}
         >
           <div className="w-full mt-4 space-y-3">
             <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
               <div
                 className="h-full transition-all duration-1000"
                 style={{
-                  width: `${storagePercent}%`,
-                  backgroundColor: getStorageColor(storagePercent)
+                  width: `${storageMetrics.percent}%`,
+                  backgroundColor: getStorageColor(storageMetrics.percent)
                 }}
               />
             </div>
             <div className="flex justify-between text-[10px] font-bold text-zinc-500">
-              <span>{storagePercent.toFixed(1)}%</span>
-              <span>{storagePercent > 90 ? 'Critical' : 'Healthy'}</span>
+              <span>{storageMetrics.percent.toFixed(1)}% of {storageMetrics.totalHuman}</span>
+              <span style={{ color: getStorageColor(storageMetrics.percent) }}>
+                {storageMetrics.isCritical ? 'Critical' : 'Healthy'}
+              </span>
             </div>
           </div>
         </StatCard>
@@ -345,7 +341,7 @@ export default function AdminDashboard() {
           </div>
 
           {urgentReports.length === 0 ? (
-            <p className="text-zinc-500 text-md px-70 py-50">No urgent reports</p>
+            <p className="text-zinc-500 text-md py-10 text-center">No urgent reports</p>
           ) : (
             <div className="space-y-3">
               {urgentReports.map((r: BasicReport) => (
@@ -354,15 +350,15 @@ export default function AdminDashboard() {
                   className="p-4 bg-zinc-900 rounded-lg flex justify-between items-center"
                 >
                   <div>
-                    <p className="text-white text-sm">
+                    <p className="text-white text-sm font-medium">
                       {r.target?.title || "Untitled"}
                     </p>
                     <p className="text-xs text-zinc-500">
-                      {r.reporter?.handle || "system"}
+                      Reported by @{r.reporter?.handle || "system"}
                     </p>
                   </div>
                    <button 
-                    className="bg-zinc-800 text-zinc-400 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-orange-500 hover:text-white" 
+                    className="bg-zinc-800 text-zinc-400 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-orange-500 hover:text-white transition-colors" 
                     onClick={() => window.location.href = `/admin/reports/${r.id}`}
                   >
                     Review
@@ -383,8 +379,11 @@ export default function AdminDashboard() {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={userDistributionData} layout="vertical">
                 <XAxis type="number" hide />
-                <YAxis dataKey="name" type="category" stroke="#71717a" fontSize={12} />
-                <Tooltip />
+                <YAxis dataKey="name" type="category" stroke="#71717a" fontSize={12} width={80} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', color: '#fff' }}
+                  itemStyle={{ color: '#f97316' }}
+                />
                 <Bar dataKey="value" radius={[0, 4, 4, 0]}>
                   {userDistributionData.map((e, i) => (
                     <Cell key={i} fill={e.color} />
