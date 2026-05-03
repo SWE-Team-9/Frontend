@@ -12,7 +12,7 @@ export interface AiChatContext {
 
 export interface AiChatResponse {
   reply: string;
-  provider: 'mock' | 'n8n' | 'gemini' | 'openai' | 'ollama';
+  provider: 'mock' | 'n8n' | 'openai' | 'ollama';
   intent: string;
   actionsTaken: string[];
   data?: Record<string, unknown>;
