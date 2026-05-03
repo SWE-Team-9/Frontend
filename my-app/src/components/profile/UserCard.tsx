@@ -24,7 +24,7 @@ interface UserCardProps {
   type: "follow" | "block" | "suggest";
 }
 
-// Helper to get followers count from various possible field names
+// Helper to get followers count - same logic as ProfilePage
 const getFollowersCount = (user: User): string => {
   if (typeof user.followers === "number") return user.followers.toString();
   if (typeof user.followers === "string") return user.followers;
@@ -33,32 +33,27 @@ const getFollowersCount = (user: User): string => {
   return "0";
 };
 
-// Helper to get display name from various possible field names
+// Helper to get display name
 const getDisplayName = (user: User): string => {
   return user.displayName ?? user.display_name ?? user.name ?? "Unknown";
 };
 
-// Helper to get avatar URL from various possible field names
+// Helper to get avatar URL
 const getAvatarUrl = (user: User): string | null => {
   return user.avatarUrl ?? user.avatar_url ?? user.avatar ?? null;
 };
 
-// Main UserCard component used to display user profiles in lists/suggestions
+// Main UserCard component
 export const UserCard = ({ user, onAction, type }: UserCardProps) => {
   const displayName = getDisplayName(user);
   const avatarUrl = getAvatarUrl(user);
   const followersCount = getFollowersCount(user);
-
-  // Generate profile link based on user handle
   const profileHref = user.handle ? `/profiles/${user.handle}` : "#";
 
   return (
     <div className="flex flex-col items-center text-center group">
-      {/* Profile link wrapper */}
       <Link href={profileHref} className="flex flex-col items-center">
-        {/* User avatar container */}
         <div className="relative w-40 h-40 mb-4 rounded-full overflow-hidden border-2 border-zinc-800 group-hover:border-orange-500 transition-all duration-300 shadow-2xl bg-zinc-900">
-          {/* Render avatar image if exists */}
           {avatarUrl ? (
             <Image
               src={avatarUrl}
@@ -76,18 +71,15 @@ export const UserCard = ({ user, onAction, type }: UserCardProps) => {
           )}
         </div>
 
-        {/* Username / display name */}
         <h4 className="font-bold text-white text-sm flex items-center gap-1 mb-1 uppercase tracking-wider">
           {displayName}
         </h4>
 
-        {/* Followers count */}
         <p className="text-zinc-500 text-[11px] mb-4">
           {followersCount} {parseInt(followersCount) === 1 ? "follower" : "followers"}
         </p>
       </Link>
 
-      {/* Action button (Follow / Block / Suggest actions) */}
       <button
         onClick={() => onAction(user.id)}
         className={`px-4 py-1.5 rounded text-[10px] font-bold uppercase transition-all ${

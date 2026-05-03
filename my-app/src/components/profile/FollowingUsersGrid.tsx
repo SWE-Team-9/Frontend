@@ -25,7 +25,7 @@ interface FollowingUsersGridProps {
 
 const FOLLOW_LIMIT = 20;
 
-// Helper to get followers count from various possible field names
+// Helper to get followers count
 const getFollowersCount = (user: FollowUserShape): string => {
   if (typeof user.followers === "number") return user.followers.toString();
   if (typeof user.followers === "string") return user.followers;
@@ -34,12 +34,12 @@ const getFollowersCount = (user: FollowUserShape): string => {
   return "0";
 };
 
-// Helper to get display name from various possible field names
+// Helper to get display name
 const getDisplayName = (user: FollowUserShape): string => {
   return user.displayName ?? user.display_name ?? user.name ?? "Unknown";
 };
 
-// Helper to get avatar URL from various possible field names
+// Helper to get avatar URL
 const getAvatarUrl = (user: FollowUserShape): string | null => {
   return user.avatarUrl ?? user.avatar_url ?? user.avatar ?? null;
 };
