@@ -105,8 +105,8 @@ export default function ProfilePage({
       accountType: p.account_type ?? p.accountType ?? "LISTENER",
       favoriteGenres: Array.isArray(p.favorite_genres)
         ? p.favorite_genres.map((g: string | { slug?: string }) =>
-            typeof g === "string" ? g : (g.slug ?? ""),
-          )
+          typeof g === "string" ? g : (g.slug ?? ""),
+        )
         : [],
       followersCount: p.followers_count ?? p.followersCount ?? 0,
       followingCount: p.following_count ?? p.followingCount ?? 0,
@@ -279,11 +279,10 @@ export default function ProfilePage({
                 setDetailTab(t);
                 setSearchQuery("");
               }}
-              className={`pb-2 cursor-pointer border-b-2 transition-all ${
-                detailTab === t
+              className={`pb-2 cursor-pointer border-b-2 transition-all ${detailTab === t
                   ? "text-white border-white"
                   : "border-transparent hover:text-zinc-200"
-              }`}
+                }`}
             >
               {t}
             </li>
@@ -347,11 +346,10 @@ export default function ProfilePage({
                           avatar_url: avatar ?? "",
                         })
                       }
-                      className={`px-4 py-1.5 rounded text-[10px] font-bold uppercase transition-all ${
-                        isFollowing
+                      className={`px-4 py-1.5 rounded text-[10px] font-bold uppercase transition-all ${isFollowing
                           ? "bg-zinc-800 text-zinc-400 border border-zinc-700"
                           : "bg-white text-black hover:bg-zinc-200"
-                      }`}
+                        }`}
                     >
                       {isFollowing ? "Following" : "Follow"}
                     </button>
@@ -494,7 +492,60 @@ export default function ProfilePage({
 
   // ─── FEED CONTENT ─────────────────────────────────────────────────────────
   const renderFeedContent = () => {
-    if (activeTab === "Tracks" || activeTab === "All") {
+    if (activeTab === "All") {
+      return (
+        <div className="flex-1 border-r border-zinc-900/50 pr-12 space-y-14">
+          {controller.userId ? (
+            <>
+              {/* Uploaded tracks */}
+              <section>
+                <h2 className="mb-6 text-xl font-bold text-white uppercase">
+                  Tracks
+                </h2>
+
+                <TrackList
+                  userId={controller.userId}
+                  page={tracksPage}
+                  limit={TRACKS_LIMIT}
+                  type="tracks"
+                  isOwner={isOwner}
+                  onTracksTotalChange={handleTracksTotalChange}
+                />
+              </section>
+
+              {/* Reposts */}
+              <section>
+                <h2 className="mb-6 text-xl font-bold text-white uppercase">
+                  Reposts
+                </h2>
+
+                <TrackList
+                  userId={controller.userId}
+                  type="reposts"
+                  isOwner={isOwner}
+                />
+              </section>
+
+              {/* Playlists */}
+              <section>
+                <h2 className="mb-6 text-xl font-bold text-white uppercase">
+                  Playlists
+                </h2>
+
+                <MyPlaylistsSection
+                  userId={controller.userId}
+                  isOwner={isOwner}
+                />
+              </section>
+            </>
+          ) : (
+            <p className="text-sm text-zinc-500">Loading profile content...</p>
+          )}
+        </div>
+      );
+    }
+
+    if (activeTab === "Tracks") {
       return (
         <div className="flex-1 border-r border-zinc-900/50 pr-12">
           {controller.userId ? (
@@ -654,11 +705,10 @@ export default function ProfilePage({
                     <li
                       key={tab}
                       onClick={() => setActiveTab(tab)}
-                      className={`cursor-pointer transition-colors h-full flex items-center border-b-2 ${
-                        activeTab === tab
+                      className={`cursor-pointer transition-colors h-full flex items-center border-b-2 ${activeTab === tab
                           ? "text-white border-white"
                           : "border-transparent hover:text-white"
-                      }`}
+                        }`}
                     >
                       {tab}
                     </li>
@@ -781,18 +831,18 @@ export default function ProfilePage({
                           {(track.coverArt ||
                             track.coverArtUrl ||
                             track.imageUrl) && (
-                            <Image
-                              src={
-                                track.coverArt ||
-                                track.coverArtUrl ||
-                                track.imageUrl ||
-                                ""
-                              }
-                              alt={track.title}
-                              fill
-                              className="object-cover"
-                            />
-                          )}
+                              <Image
+                                src={
+                                  track.coverArt ||
+                                  track.coverArtUrl ||
+                                  track.imageUrl ||
+                                  ""
+                                }
+                                alt={track.title}
+                                fill
+                                className="object-cover"
+                              />
+                            )}
                         </div>
                         <div className="overflow-hidden">
                           <p className="text-sm font-bold truncate">

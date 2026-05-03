@@ -100,7 +100,7 @@ export default function TopPlaylistsSection() {
       <div className="relative">
         <div
           ref={rowRef}
-          className="flex gap-8 overflow-x-auto overflow-y-visible scroll-smooth pb-16 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="flex gap-8 overflow-x-auto overflow-y-visible scroll-smooth pb-16 scrollbar-hide"
         >
           {playlists.map((playlist) => (
             <div key={playlist.playlistId} className="w-47.5 shrink-0">
