@@ -28,7 +28,7 @@ interface RegisterData {
   display_name: string;
   date_of_birth: string;       // "YYYY-MM-DD"
   gender: "MALE" | "FEMALE" | "PREFER_NOT_TO_SAY";
-  captcha_token: string;
+  captcha_token?: string;
 }
 
 interface CheckEmailResponse {

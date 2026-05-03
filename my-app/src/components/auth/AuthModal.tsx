@@ -201,12 +201,7 @@ useEffect(() => {
 
         setLoginCaptchaError(null);
 
-        const loginCaptchaToken = loginCaptchaRef.current?.getValue();
-
-        if (!loginCaptchaToken) {
-          setLoginCaptchaError("Please complete the CAPTCHA verification.");
-          return;
-        }
+        const loginCaptchaToken = loginCaptchaRef.current?.getValue() ?? "DISABLED";
 
         // Login with JWT via authService
         try {
@@ -215,7 +210,7 @@ useEffect(() => {
           setResendSent(false);
           setLoginCaptchaError(null);
 
-          const loginResult = await loginUser({ email, password: loginPassword, captcha_token: loginCaptchaToken });
+          const loginResult = await loginUser({ email, password: loginPassword });
 
           const user = loginResult?.user;
           if (user?.account_status && user.account_status !== "ACTIVE") {
@@ -376,13 +371,7 @@ useEffect(() => {
           setSignupCaptchaError(null);
           setLoginCaptchaError(null);
 
-          const recaptchaToken = signupCaptchaRef.current?.getValue();
-
-          if (!recaptchaToken) {
-            setSignupCaptchaError("Please complete the CAPTCHA verification.");
-            setIsSubmitting(false);
-            return;
-          }
+          const recaptchaToken = "DISABLED";
 
           // Map the <select> values to what the backend expects
           const genderMap: Record<string, "MALE" | "FEMALE" | "PREFER_NOT_TO_SAY"> = {
