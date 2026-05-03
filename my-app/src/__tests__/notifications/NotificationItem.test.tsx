@@ -214,6 +214,22 @@ describe("NotificationItem — like/comment/repost notification", () => {
     ).toBeInTheDocument();
     expect(screen.queryByText("liked your track")).not.toBeInTheDocument();
   });
+
+  it("renders report outcome notification without social like wording", () => {
+    render(
+      <NotificationItem
+        notification={makeNotification({
+          type: "report_resolved",
+          actorDisplayName: undefined,
+          message: "Your report was reviewed. Action was taken.",
+          entityType: "user",
+        })}
+      />,
+    );
+
+    expect(screen.getByText("Your report was reviewed. Action was taken.")).toBeInTheDocument();
+    expect(screen.queryByText("liked your track")).not.toBeInTheDocument();
+  });
 });
 
 describe("NotificationItem — follow notification", () => {
