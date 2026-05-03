@@ -42,6 +42,14 @@ export default function UserManagementPage() {
   const [setupConfirmPassword, setSetupConfirmPassword] = useState('');
   const [setupStatus, setSetupStatus] = useState('');
 
+  const openConfirmModal = (userId: string, mode: 'SUSPEND' | 'ACTIVATE' | 'BAN') => {
+    setError('');
+    setRequiresPasswordSetup(false);
+    setSetupStatus('');
+    setCheckingPasswordStatus(mode !== 'ACTIVATE');
+    setConfirmModal({ isOpen: true, userId, mode });
+  };
+
   useEffect(() => {
     const timer = setTimeout(() => setIsMounted(true), 0);
     loadUsers(1);
@@ -65,9 +73,6 @@ export default function UserManagementPage() {
     if (!shouldCheck) return;
 
     let cancelled = false;
-    setCheckingPasswordStatus(true);
-    setRequiresPasswordSetup(false);
-    setSetupStatus('');
 
     api
       .get('/auth/password/status')
@@ -278,14 +283,10 @@ export default function UserManagementPage() {
                     <RoleGuard action="SUSPEND_USER">
                       <button
                         onClick={() =>
-                          setConfirmModal({
-                            isOpen: true,
-                            userId: user.id,
-                            mode:
-                              user.account_status === 'ACTIVE'
-                                ? 'SUSPEND'
-                                : 'ACTIVATE'
-                          })
+                          openConfirmModal(
+                            user.id,
+                            user.account_status === 'ACTIVE' ? 'SUSPEND' : 'ACTIVATE',
+                          )
                         }
                         className={`p-2 rounded-lg transition-colors ${
                           user.account_status === 'ACTIVE'
@@ -298,13 +299,7 @@ export default function UserManagementPage() {
 
                       {user.account_status !== 'BANNED' && (
                         <button
-                          onClick={() =>
-                            setConfirmModal({
-                              isOpen: true,
-                              userId: user.id,
-                              mode: 'BAN'
-                            })
-                          }
+                          onClick={() => openConfirmModal(user.id, 'BAN')}
                           className="p-2 hover:text-red-600 text-zinc-500 rounded-lg transition-colors"
                         >
                           <FiSlash size={16} />
