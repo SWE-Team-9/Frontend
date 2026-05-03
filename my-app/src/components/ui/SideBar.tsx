@@ -6,6 +6,7 @@ import { useFollowStore } from "@/src/store/followStore";
 import { useAuthStore } from "@/src/store/useAuthStore";
 import LikedTracksPreview from "@/src/components/profile/sidebar/LikedTracksPreview";
 import ListeningHistoryPreview from "@/src/components/library/ListeningHistoryPreview";
+import GoMobileBox from "@/src/components/ui/GoMobileBox";
 
 interface SideBarProps {
   children: React.ReactNode;
@@ -78,6 +79,13 @@ const SideBar: React.FC<SideBarProps> = ({ children, showSidebar = true }) => {
             <ListeningHistoryPreview />
           </div>
         </Box>
+
+        <Box>
+          <div className="px-5 py-4">
+            <GoMobileBox />
+          </div>
+        </Box>
+
       </div>
     </div>
   );

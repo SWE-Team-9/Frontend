@@ -1,5 +1,5 @@
 import api from "@/src/services/api";
-import { useAuthStore, AccountStatus } from "@/src/store/useAuthStore";
+import { useAuthStore } from "@/src/store/useAuthStore";
 import { useProfileStore } from "@/src/store/useProfileStore";
 
 // ─────────────────────────────────────────────────────────────
@@ -13,10 +13,12 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 
 export type SocialProvider = "google"; 
-// ─────────────────────────────────────────────────────────────
+
 interface LoginData {
   email: string;
   password: string;
+  remember_me?: boolean;
+  captcha_token?: string;  
 }
 
 interface RegisterData {
@@ -26,6 +28,7 @@ interface RegisterData {
   display_name: string;
   date_of_birth: string;       // "YYYY-MM-DD"
   gender: "MALE" | "FEMALE" | "PREFER_NOT_TO_SAY";
+  captcha_token: string;
 }
 
 interface CheckEmailResponse {
@@ -44,7 +47,7 @@ export function startSocialLogin(provider: SocialProvider) {
 }
 
 // ====== Registration with reCAPTCHA ======
-export async function registerUser(data: RegisterData) {
+export async function registerWithCaptcha(data: RegisterData) {
   // Uses the shared axios instance so cookies are handled automatically
   const response = await api.post("/auth/register", data);
   useAuthStore.getState().setEmail(data.email);
@@ -52,19 +55,19 @@ export async function registerUser(data: RegisterData) {
 }
 
 // ================= LOGIN =================
-
 export const loginUser = async ({
   email,
   password,
-
+  remember_me,
+  captcha_token,
 }: LoginData) => {
   // POST /auth/login  →  sets httpOnly cookies + returns { message, user }
   const response = await api.post("/auth/login", {
     email,
     password,
+    remember_me,
+    captcha_token,
   });
-
-
   const { user } = response.data;
 
   // Backend returns snake_case fields — we map them to camelCase for the store
@@ -133,15 +136,20 @@ export const resetPassword = async (
 
 // ================= CHANGE PASSWORD (logged in) =================
 export const changePassword = async (
-  currentPassword: string,
+  currentPassword: string | undefined,
   newPassword: string,
   newPasswordConfirm: string,
 ) => {
-  const response = await api.post("/auth/change-password", {
-    current_password: currentPassword,
+  const payload: Record<string, string> = {
     new_password: newPassword,
     new_password_confirm: newPasswordConfirm,
-  });
+  };
+  if (currentPassword) payload.current_password = currentPassword;
+  const response = await api.post("/auth/change-password", payload);
+  if (response.data?.hasPassword) {
+    const current = useAuthStore.getState().user;
+    if (current) useAuthStore.getState().setUser({ ...current, hasPassword: true });
+  }
   return response.data;
 };
 
@@ -212,6 +220,7 @@ export const getCurrentUser = async () => {
       isVerified: user.is_verified ?? false,
       systemRole: user.system_role ?? "USER",
       account_status: user.account_status ?? ("ACTIVE" as const),
+      hasPassword: Boolean(user.hasPassword ?? user.has_password),
     });
   }
   return user;

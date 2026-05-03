@@ -71,13 +71,11 @@ const NavBar: React.FC<NavBarProps> = ({
     { label: "Likes", icon: ImHeart, href:"/library/likes" },
     { label: "Playlists", icon: FiList, href:"/library/playlists" },
     { label: "Following", icon: BsPersonCheckFill, href:"/library/following" },
-    { label: "Who to follow", icon: MdPersonAddAlt1 },
     { label: "ArtistPro", icon: MdStars, href:"/subscriptions" },
-    { label: "Insights", icon: MdBarChart },
   ],
 
   moreMenu = [
-    { label: "Mobile apps" },
+    { label: "Mobile apps", href: "/mobile-apps" },
     { label: "Subscription" },
     { label: "Settings", href: "/settings" },
     { label: "Sign out" },

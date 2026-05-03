@@ -14,7 +14,9 @@ type FollowUserShape = {
   avatar_url?: string;
   avatarUrl?: string;
   avatar?: string;
+  followers?: number | string;
   followersCount?: number;
+  followers_count?: number;
 };
 
 interface FollowingUsersGridProps {
@@ -22,6 +24,25 @@ interface FollowingUsersGridProps {
 }
 
 const FOLLOW_LIMIT = 20;
+
+// Helper to get followers count from various possible field names
+const getFollowersCount = (user: FollowUserShape): string => {
+  if (typeof user.followers === "number") return user.followers.toString();
+  if (typeof user.followers === "string") return user.followers;
+  if (typeof user.followersCount === "number") return user.followersCount.toString();
+  if (typeof user.followers_count === "number") return user.followers_count.toString();
+  return "0";
+};
+
+// Helper to get display name from various possible field names
+const getDisplayName = (user: FollowUserShape): string => {
+  return user.displayName ?? user.display_name ?? user.name ?? "Unknown";
+};
+
+// Helper to get avatar URL from various possible field names
+const getAvatarUrl = (user: FollowUserShape): string | null => {
+  return user.avatarUrl ?? user.avatar_url ?? user.avatar ?? null;
+};
 
 export default function FollowingUsersGrid({ userId }: FollowingUsersGridProps) {
   const following = useFollowStore((state) => state.profileFollowing || []);
@@ -58,9 +79,9 @@ export default function FollowingUsersGrid({ userId }: FollowingUsersGridProps) 
     <div className="flex flex-col items-center w-full">
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8">
         {(following as FollowUserShape[]).map((user) => {
-          const name = user.display_name || user.displayName || user.name || "";
-          const avatar = user.avatar_url || user.avatarUrl || user.avatar || null;
-          const followerCount = user.followersCount || 0;
+          const name = getDisplayName(user);
+          const avatar = getAvatarUrl(user);
+          const followerCount = getFollowersCount(user);
           const isFollowing = checkIsFollowing(user.id);
 
           return (
@@ -95,7 +116,7 @@ export default function FollowingUsersGrid({ userId }: FollowingUsersGridProps) 
                 </h4>
 
                 <p className="text-zinc-500 text-[11px] mb-4">
-                  {followerCount} followers
+                  {followerCount} {parseInt(followerCount) === 1 ? "follower" : "followers"}
                 </p>
               </Link>
 

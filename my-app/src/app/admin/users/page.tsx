@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import api from '@/src/services/api';
 import { useAdminStore } from '@/src/store/useAdminStore';
 import { RoleGuard } from '@/src/components/admin/RoleGuard';
 import {
@@ -35,12 +36,63 @@ export default function UserManagementPage() {
   const [reason, setReason] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [requiresPasswordSetup, setRequiresPasswordSetup] = useState(false);
+  const [checkingPasswordStatus, setCheckingPasswordStatus] = useState(false);
+  const [setupPassword, setSetupPassword] = useState('');
+  const [setupConfirmPassword, setSetupConfirmPassword] = useState('');
+  const [setupStatus, setSetupStatus] = useState('');
+
+  const openConfirmModal = (userId: string, mode: 'SUSPEND' | 'ACTIVATE' | 'BAN') => {
+    setError('');
+    setRequiresPasswordSetup(false);
+    setSetupStatus('');
+    setCheckingPasswordStatus(mode !== 'ACTIVATE');
+    setConfirmModal({ isOpen: true, userId, mode });
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => setIsMounted(true), 0);
     loadUsers(1);
     return () => clearTimeout(timer);
   }, [loadUsers]);
+
+  const closeModal = () => {
+    setConfirmModal({ isOpen: false, userId: '', mode: 'SUSPEND' });
+    setReason('');
+    setPassword('');
+    setError('');
+    setRequiresPasswordSetup(false);
+    setSetupPassword('');
+    setSetupConfirmPassword('');
+    setSetupStatus('');
+    setCheckingPasswordStatus(false);
+  };
+
+  useEffect(() => {
+    const shouldCheck = confirmModal.isOpen && confirmModal.mode !== 'ACTIVATE';
+    if (!shouldCheck) return;
+
+    let cancelled = false;
+
+    api
+      .get('/auth/me')
+      .then((res) => {
+        if (cancelled) return;
+        const hasPassword = Boolean(res?.data?.hasPassword ?? res?.data?.has_password);
+        setRequiresPasswordSetup(!hasPassword);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setRequiresPasswordSetup(false);
+      })
+      .finally(() => {
+        if (!cancelled) setCheckingPasswordStatus(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [confirmModal.isOpen, confirmModal.mode]);
 
   if (!isMounted) return null;
 
@@ -55,14 +107,39 @@ export default function UserManagementPage() {
     return matchesSearch && matchesRole;
   });
 
-  const closeModal = () => {
-    setConfirmModal({ isOpen: false, userId: '', mode: 'SUSPEND' });
-    setReason('');
-    setPassword('');
-    setError('');
+  const setupLocalAdminPassword = async () => {
+    if (!setupPassword || !setupConfirmPassword) {
+      setSetupStatus('Please fill both password fields.');
+      return;
+    }
+
+    try {
+      setSetupStatus('');
+      await api.post('/auth/change-password', {
+        new_password: setupPassword,
+        new_password_confirm: setupConfirmPassword,
+      });
+      setSetupPassword('');
+      setSetupConfirmPassword('');
+      setRequiresPasswordSetup(false);
+      setSetupStatus('Password set successfully. Please enter it above and confirm the action.');
+    } catch (err) {
+      const errorData = (err as { response?: { data?: { message?: string } } })?.response?.data;
+      setSetupStatus(errorData?.message || 'Failed to set admin password.');
+    }
   };
 
   const executeAction = async () => {
+    if (checkingPasswordStatus) {
+      setError('Checking password status, please wait.');
+      return;
+    }
+
+    if (requiresPasswordSetup) {
+      setError('Please set a local admin password first.');
+      return;
+    }
+
     if (!reason || (confirmModal.mode !== 'ACTIVATE' && !password)) {
       setError("Missing required fields.");
       return;
@@ -84,7 +161,19 @@ export default function UserManagementPage() {
       await loadUsers();
       closeModal();
     } catch (err) {
-      setError("Action failed.");
+      const errorData = (err as {
+        response?: { data?: { error?: string; code?: string; message?: string } };
+      })
+        ?.response?.data;
+      if (errorData?.error === 'PASSWORD_SETUP_REQUIRED' || errorData?.code === 'PASSWORD_SETUP_REQUIRED') {
+        setRequiresPasswordSetup(true);
+        setError(
+          errorData.message ||
+            'Your account was created with Google. Please set a local admin password before performing sensitive admin actions.',
+        );
+        return;
+      }
+      setError(errorData?.message || 'Action failed.');
     }
   };
 
@@ -194,14 +283,12 @@ export default function UserManagementPage() {
                     <RoleGuard action="SUSPEND_USER">
                       <button
                         onClick={() =>
-                          setConfirmModal({
-                            isOpen: true,
-                            userId: user.id,
-                            mode:
-                              user.account_status === 'ACTIVE'
-                                ? 'SUSPEND'
-                                : 'ACTIVATE'
-                          })
+                          openConfirmModal(
+                            user.id,
+                            user.account_status === 'ACTIVE'
+                              ? 'SUSPEND'
+                              : 'ACTIVATE',
+                          )
                         }
                         className={`p-2 rounded-lg transition-colors ${
                           user.account_status === 'ACTIVE'
@@ -214,13 +301,7 @@ export default function UserManagementPage() {
 
                       {user.account_status !== 'BANNED' && (
                         <button
-                          onClick={() =>
-                            setConfirmModal({
-                              isOpen: true,
-                              userId: user.id,
-                              mode: 'BAN'
-                            })
-                          }
+                          onClick={() => openConfirmModal(user.id, 'BAN')}
                           className="p-2 hover:text-red-600 text-zinc-500 rounded-lg transition-colors"
                         >
                           <FiSlash size={16} />
@@ -289,6 +370,36 @@ export default function UserManagementPage() {
                 }}
               />
 
+              {requiresPasswordSetup && confirmModal.mode !== 'ACTIVATE' && (
+                <div className="rounded-xl border border-orange-500/20 bg-orange-500/10 p-3 space-y-3">
+                  <p className="text-sm text-orange-200">
+                    Your Google account needs a local admin password before sensitive actions.
+                  </p>
+                  <input
+                    type="password"
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white text-sm outline-none focus:ring-1 focus:ring-orange-500"
+                    placeholder="New local password"
+                    value={setupPassword}
+                    onChange={(e) => setSetupPassword(e.target.value)}
+                  />
+                  <input
+                    type="password"
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white text-sm outline-none focus:ring-1 focus:ring-orange-500"
+                    placeholder="Confirm new password"
+                    value={setupConfirmPassword}
+                    onChange={(e) => setSetupConfirmPassword(e.target.value)}
+                  />
+                  {setupStatus && <p className="text-xs text-zinc-300">{setupStatus}</p>}
+                  <button
+                    type="button"
+                    onClick={setupLocalAdminPassword}
+                    className="w-full py-2 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-sm font-bold transition-colors"
+                  >
+                    Set Local Password
+                  </button>
+                </div>
+              )}
+
               {confirmModal.mode !== 'ACTIVATE' && (
                 <input
                   type="password"
@@ -312,13 +423,14 @@ export default function UserManagementPage() {
 
                 <button
                   onClick={executeAction}
+                  disabled={checkingPasswordStatus || requiresPasswordSetup}
                   className={`flex-1 py-3 rounded-xl font-bold text-white transition-colors ${
                     confirmModal.mode === 'ACTIVATE'
                       ? 'bg-green-600 hover:bg-green-500'
                       : 'bg-red-600 hover:bg-red-500'
-                  }`}
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
-                  Confirm
+                  {checkingPasswordStatus ? 'Checking...' : 'Confirm'}
                 </button>
               </div>
             </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { usePlaylists } from "@/src/hooks/usePlaylists";
-import { PlaylistCard } from "@/src/components/playlists/PlaylistCard";
+import { ProfilePlaylistCard } from "@/src/components/profile/ProfilePlaylistCard";
 
 interface MyPlaylistsSectionProps {
   userId?: string;
@@ -58,9 +58,10 @@ export function MyPlaylistsSection({ userId, isOwner }: MyPlaylistsSectionProps)
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
         {playlists.map((playlist) => (
-          <PlaylistCard
+          <ProfilePlaylistCard
             key={playlist.playlistId}
             playlist={playlist}
+             isOwner={isOwner}
           />
         ))}
       </div>

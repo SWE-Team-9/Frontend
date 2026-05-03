@@ -96,11 +96,13 @@ export default function ReportsPage() {
       typeof (err as { response?: unknown }).response === 'object'
     ) {
       const response = (err as {
-        response?: { data?: { message?: string } };
+        response?: { data?: { code?: string; message?: string } };
       }).response;
 
       setError(
-        response?.data?.message ??
+        response?.data?.code === "PASSWORD_SETUP_REQUIRED"
+          ? "Set a local password in Settings before performing sensitive admin actions."
+          : response?.data?.message ??
         "Failed to update status. Check your admin password."
       );
     } else if (err instanceof Error) {

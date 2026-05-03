@@ -5,6 +5,9 @@ export interface AiChatContext {
   playlistId?: string;
   conversationId?: string;
   currentPage?: string;
+  pendingIntent?: string;
+  pendingGenre?: string;
+  pendingLimit?: number;
 }
 
 export interface AiChatResponse {
@@ -15,6 +18,7 @@ export interface AiChatResponse {
   data?: Record<string, unknown>;
   suggestions?: string[];
   needsConfirmation?: boolean;
+  pendingContext?: AiChatContext | null;
 }
 
 export const aiService = {
