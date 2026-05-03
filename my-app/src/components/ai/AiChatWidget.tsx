@@ -38,6 +38,7 @@ export function AiChatWidget({ context }: AiChatWidgetProps) {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingContext, setPendingContext] = useState<AiChatContext | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -46,6 +47,7 @@ export function AiChatWidget({ context }: AiChatWidgetProps) {
 
   const buildContext = (): AiChatContext => ({
     ...(context ?? {}),
+    ...(pendingContext ?? {}),
     currentPage: context?.currentPage ?? pathname ?? undefined,
   });
 
@@ -67,6 +69,12 @@ export function AiChatWidget({ context }: AiChatWidgetProps) {
 
     try {
       const res = await aiService.chat(text, buildContext());
+
+      if (res.pendingContext !== undefined) {
+        setPendingContext(res.pendingContext);
+      } else if (!res.needsConfirmation) {
+        setPendingContext(null);
+      }
 
       setMessages((prev) => [
         ...prev,
