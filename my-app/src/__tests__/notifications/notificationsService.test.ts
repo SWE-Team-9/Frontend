@@ -166,6 +166,19 @@ describe("normalizeNotification", () => {
     expect(normalizeNotification(raw).type).toBe("system");
   });
 
+  it("normalizes report outcome notifications without falling back to like", () => {
+    const raw = makeRawNotification({
+      type: "REPORT_RESOLVED",
+      message: "Your report was reviewed. Action was taken.",
+      actorDisplayName: undefined,
+      entityType: "user",
+    });
+    const result = normalizeNotification(raw);
+    expect(result.type).toBe("report_resolved");
+    expect(result.message).toBe("Your report was reviewed. Action was taken.");
+    expect(result.message).not.toContain("liked your track");
+  });
+
   it("preserves account/admin notification types", () => {
     const raw = makeRawNotification({ type: "ACCOUNT_SUSPENDED" });
     expect(normalizeNotification(raw).type).toBe("account_suspended");

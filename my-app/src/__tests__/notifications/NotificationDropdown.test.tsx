@@ -272,4 +272,21 @@ describe("NotificationDropdown", () => {
     expect(screen.getByText("Your account has been restored")).toBeInTheDocument();
     expect(screen.queryByText("liked your track")).not.toBeInTheDocument();
   });
+
+  it("renders report outcome notification text without like wording", () => {
+    setupStore({
+      notifications: [
+        makeNotification({
+          type: "report_resolved",
+          actorDisplayName: undefined,
+          message: "Your report was reviewed. No violation was found.",
+          entityType: "user",
+        }),
+      ],
+    });
+
+    render(<NotificationDropdown />);
+    expect(screen.getByText("Your report was reviewed. No violation was found.")).toBeInTheDocument();
+    expect(screen.queryByText("liked your track")).not.toBeInTheDocument();
+  });
 });
