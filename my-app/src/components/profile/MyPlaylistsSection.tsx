@@ -14,7 +14,9 @@ export function MyPlaylistsSection({ userId, isOwner }: MyPlaylistsSectionProps)
   if (isLoading) {
     return (
       <section className="px-8 py-8">
-        <p className="text-zinc-500">Loading playlists...</p>
+        <div className="flex items-center justify-center py-12">
+          <p className="text-zinc-500">Loading playlists...</p>
+        </div>
       </section>
     );
   }
@@ -22,13 +24,29 @@ export function MyPlaylistsSection({ userId, isOwner }: MyPlaylistsSectionProps)
   if (error) {
     return (
       <section className="px-8 py-8">
-        <p className="text-red-400">Failed to load playlists.</p>
+        <div className="flex items-center justify-center py-12">
+          <p className="text-red-400">Failed to load playlists.</p>
+        </div>
+      </section>
+    );
+  }
+
+  if (playlists.length === 0) {
+    return (
+      <section className="px-8 py-8">
+        <div className="flex items-center justify-center py-12">
+          <p className="text-zinc-500">
+            {isOwner 
+              ? "You haven't created any playlists yet." 
+              : "No public playlists available."}
+          </p>
+        </div>
       </section>
     );
   }
 
   return (
-    <section className="px-8 py-8 border-t border-zinc-800">
+    <section className="px-8 py-8">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-lg font-bold text-white uppercase tracking-wider">
           Playlists

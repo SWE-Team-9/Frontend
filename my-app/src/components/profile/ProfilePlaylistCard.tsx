@@ -61,8 +61,8 @@ export function ProfilePlaylistCard({ playlist }: { playlist: Playlist }) {
           <Link href={playlistUrl} aria-label={playlist.title} className="absolute inset-0 z-10" />
 
           <div className="pointer-events-none absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-20">
-            <div className="w-12 h-12 rounded-full bg-[#f50] flex items-center justify-center">
-              <FaPlay className="text-white text-sm ml-0.5" />
+            <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center">
+              <FaPlay className="text-black text-sm ml-0.5" />
             </div>
           </div>
 

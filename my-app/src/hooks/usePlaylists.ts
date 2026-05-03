@@ -31,11 +31,11 @@ export function usePlaylists(userId?: string, isOwner?: boolean) {
         let raw: Playlist[];
         
         if (userId) {
-          // If this is the owner viewing their own profile, use /me endpoint
+          // Owner viewing their own profile
           if (isOwner) {
             raw = await playlistsApi.getMyPlaylists();
           } else {
-            // For other users, use the public endpoint
+            // For other users
             raw = await playlistsApi.getUserPlaylists(userId);
           }
         } else {

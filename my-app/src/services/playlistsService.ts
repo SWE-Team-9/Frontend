@@ -121,7 +121,7 @@ export const playlistsApi: PlaylistsService = {
 
   getUserPlaylists: (userId: string, page = 1, limit = 20) =>
     api
-      .get(`${BASE}/user/${userId}`, { params: { page, limit } })
+      .get(`/users/${userId}/playlists`, { params: { page, limit } })
       .then((r) => normalizePlaylistList(r.data)),
 
   getEditDetails: (playlistId: string) =>
