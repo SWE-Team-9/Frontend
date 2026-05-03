@@ -168,7 +168,12 @@ export function mockResolve(permalink: string): ResolveResponse {
       (p) => p.owner_handle === handle && p.slug === slug,
     );
     if (playlist)
-      return { matched: true, resourceType: "PLAYLIST", id: playlist.id };
+      return {
+        matched: true,
+        resourceType: "PLAYLIST",
+        id: playlist.id,
+        slug: playlist.slug ?? "",
+      };
     throw makeNotFound("Playlist not found");
   }
 
@@ -178,7 +183,13 @@ export function mockResolve(permalink: string): ResolveResponse {
     const track = MOCK_TRACKS.find(
       (t) => t.artist_handle === handle && t.slug === slug,
     );
-    if (track) return { matched: true, resourceType: "TRACK", id: track.id };
+    if (track)
+      return {
+        matched: true,
+        resourceType: "TRACK",
+        id: track.id,
+        slug: track.slug,
+      };
     throw makeNotFound("Track not found");
   }
 
@@ -186,7 +197,13 @@ export function mockResolve(permalink: string): ResolveResponse {
   if (parts.length === 1) {
     const [handle] = parts;
     const user = MOCK_USERS.find((u) => u.handle === handle);
-    if (user) return { matched: true, resourceType: "USER", id: user.id };
+    if (user)
+      return {
+        matched: true,
+        resourceType: "USER",
+        id: user.id,
+        handle: user.handle,
+      };
     throw makeNotFound("User not found");
   }
 

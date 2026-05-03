@@ -143,7 +143,8 @@ interface PlayerState {
   // Backend-managed queue state
   currentQueueIndex: number;
   queueLength: number;
-  tracksUntilAd: number;
+  /** null for paid-tier users who never receive ads. */
+  tracksUntilAd: number | null;
 
   // Ad slot state
   currentAd: AdSlot | null;
@@ -215,7 +216,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   hydratedFromSession: false,
   currentQueueIndex: 0,
   queueLength: 0,
-  tracksUntilAd: 3,
+  tracksUntilAd: null,
   currentAd: null,
   isPlayingAd: false,
   adElapsedSeconds: 0,
@@ -316,14 +317,25 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       isShuffleOn,
       loopMode,
     } = get();
-    const payload = {
-      currentTrackId: currentTrack?.trackId ?? null,
+    // Do NOT include currentTrackId when it is null — the backend DTO's
+    // @IsUUID validator rejects explicit null and returns 400.
+    const payload: {
+      currentTrackId?: string;
+      positionSeconds: number;
+      isPlaying: boolean;
+      volume: number;
+      shuffle: boolean;
+      repeatMode: "OFF" | "ALL" | "ONE";
+    } = {
       positionSeconds: Math.floor(currentTime),
       isPlaying,
       volume: volume / 100,
       shuffle: isShuffleOn,
       repeatMode: loopMode,
     };
+    if (currentTrack?.trackId) {
+      payload.currentTrackId = currentTrack.trackId;
+    }
 
     console.log("[playerStore] persistPlayerSession payload", payload);
 
@@ -536,6 +548,11 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     const { currentTrack } = get();
 
     if (currentTrack?.trackId === track.trackId && get().isPlaying) {
+      return;
+    }
+
+    // While an ad is playing, block manual track starts until the ad completes.
+    if (get().isPlayingAd && !_fromQueue) {
       return;
     }
 

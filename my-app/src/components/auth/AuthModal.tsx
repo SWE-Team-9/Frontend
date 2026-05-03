@@ -183,6 +183,13 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
             email,
             password: loginPassword,
           });
+
+          const user = loginResult?.user;
+          if (user?.account_status && user.account_status !== "ACTIVE") {
+            router.push("/account_restricted");
+            onClose();
+            return;
+          }
           setEmailStore(email);
           onClose();
           const role = loginResult?.user?.system_role ?? "USER";
@@ -198,11 +205,28 @@ export default function AuthModal({ isOpen, onClose, initialView }: AuthModalPro
                 error?: string;
                 message?: string;
                 detail?: string;
+                account_status?: string;
               };
               status?: number;
             };
           };
+           const status = axiosErr.response?.status;
+           const data = axiosErr.response?.data;
           const backendMessage = axiosErr.response?.data?.message;
+           if (
+             data?.account_status &&
+             data.account_status !== "ACTIVE"
+             ) {
+                router.push("/account_restricted");
+                onClose();
+                return;
+              }
+            if (status === 403 || status === 423) {
+               router.push("/account_restricted");
+               onClose();
+               return;
+            }
+            
 
 
           if (axiosErr.response?.status === 429) {

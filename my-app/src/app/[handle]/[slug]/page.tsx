@@ -1,4 +1,5 @@
 "use client";
+
 import { useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useResolvePermalink } from "@/src/hooks/useResolvePermalink";
@@ -12,6 +13,12 @@ export default function PermalinkResolverPage() {
 
   useEffect(() => {
     if (!data) return;
+
+    if (!data.matched) {
+      router.replace("/404");
+      return;
+    }
+
     switch (data.resourceType) {
       case "USER":
         router.replace(`/profiles/${params.handle}`);

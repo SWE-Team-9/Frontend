@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { FaTimes, FaPlus, FaMusic, FaSearch } from "react-icons/fa";
 import { searchService } from "@/src/services/searchService";
 import type { SearchTrack } from "@/src/types/search";
+import Image from "next/image";
 
 interface Props {
   isOpen: boolean;
@@ -122,11 +123,12 @@ export function AddTrackModal({ isOpen, onClose, onAdd }: Props) {
               >
                 <div className="w-10 h-10 rounded bg-[#222] flex items-center justify-center shrink-0 overflow-hidden">
                   {track.artwork_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <Image
                       src={track.artwork_url}
                       alt={track.title}
+                      fill
                       className="w-full h-full object-cover"
+                      unoptimized
                     />
                   ) : (
                     <FaMusic className="text-zinc-600 text-sm" />

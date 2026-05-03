@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { playlistsApi, normalizePlaylist } from "@/src/services/playlistsService";
+import {
+  playlistsApi,
+} from "@/src/services/playlistsService";
 import { Playlist, UpdatePlaylistInput } from "@/src/types/playlist";
 
 export function usePlaylist(playlistId: string) {
@@ -9,59 +11,105 @@ export function usePlaylist(playlistId: string) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchPlaylist = useCallback(async () => {
-    if (!playlistId) return;
-    setIsLoading(true);
-    setError(null);
-    try {
-      const raw = await playlistsApi.getPlaylistById(playlistId);
-      setPlaylist(normalizePlaylist(raw));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load playlist");
-      setPlaylist(null);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [playlistId]);
+  const fetchPlaylist = useCallback(
+    async (signal?: AbortSignal) => {
+      if (!playlistId) {
+        setIsLoading(false);
+        return;
+      }
+      try {
+        const data = await playlistsApi.getPlaylistById(playlistId);
+        if (signal?.aborted) return;
+        setPlaylist(data);
+        setError(null);
+      } catch (err) {
+        if (signal?.aborted) return;
+        setError(
+          err instanceof Error ? err.message : "Failed to load playlist",
+        );
+        setPlaylist(null);
+      } finally {
+        if (!signal?.aborted) setIsLoading(false);
+      }
+    },
+    [playlistId],
+  );
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      if (cancelled) return;
-      await fetchPlaylist();
-    })();
-    return () => {
-      cancelled = true;
-    };
+    const controller = new AbortController();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchPlaylist(controller.signal);
+    return () => controller.abort();
   }, [fetchPlaylist]);
+
+  const refetch = useCallback(
+    (signal?: AbortSignal) => {
+      setIsLoading(true);
+      setError(null);
+      return fetchPlaylist(signal);
+    },
+    [fetchPlaylist],
+  );
 
   const updatePlaylist = useCallback(
     async (data: UpdatePlaylistInput) => {
       const previous = playlist;
-      setPlaylist((p) => (p ? { ...p, ...data } : p));
+
+      setPlaylist((p) => {
+        if (!p) return p;
+        const { visibility, ...rest } = data;
+        const patch: Partial<Playlist> = {
+          ...rest,
+          ...(visibility !== undefined
+            ? { visibility: visibility.toUpperCase() as "PUBLIC" | "SECRET" }
+            : {}),
+        };
+        return { ...p, ...patch };
+      });
+
       try {
-        await playlistsApi.updatePlaylist(playlistId, data);
+        const raw = await playlistsApi.updatePlaylist(playlistId, data);
+        setPlaylist(raw.playlist);
       } catch (err) {
         setPlaylist(previous);
         throw err;
       }
     },
-    [playlistId, playlist]
+    [playlistId, playlist],
   );
 
   const addTrack = useCallback(
     async (trackId: string) => {
-      await playlistsApi.addTrackToPlaylist(playlistId, trackId);
-      await fetchPlaylist();
+      const result = await playlistsApi.addTrackToPlaylist(playlistId, trackId);
+      setPlaylist((p) => {
+        if (!p) return p;
+        const newTrack = {
+          trackId: result.trackId,
+          title: result.title ?? "",
+          coverArtUrl: result.coverArtUrl ?? null,
+          artist: result.artist,
+        };
+        return {
+          ...p,
+          tracks: [...(p.tracks ?? []), newTrack],
+          tracksCount: (p.tracksCount ?? 0) + 1,
+        };
+      });
     },
-    [playlistId, fetchPlaylist]
+    [playlistId],
   );
 
   const removeTrack = useCallback(
     async (trackId: string) => {
       const previous = playlist;
       setPlaylist((p) =>
-        p ? { ...p, tracks: p.tracks?.filter((t) => t.trackId !== trackId) } : p
+        p
+          ? {
+              ...p,
+              tracks: p.tracks?.filter((t) => t.trackId !== trackId),
+              tracksCount: Math.max(0, (p.tracksCount ?? 0) - 1),
+            }
+          : p,
       );
       try {
         await playlistsApi.removeTrackFromPlaylist(playlistId, trackId);
@@ -70,7 +118,7 @@ export function usePlaylist(playlistId: string) {
         throw err;
       }
     },
-    [playlistId, playlist]
+    [playlistId, playlist],
   );
 
   const reorderTracks = useCallback(
@@ -90,14 +138,14 @@ export function usePlaylist(playlistId: string) {
         throw err;
       }
     },
-    [playlistId, playlist]
+    [playlistId, playlist],
   );
 
   return {
     playlist,
     isLoading,
     error,
-    refetch: fetchPlaylist,
+    refetch,
     updatePlaylist,
     addTrack,
     removeTrack,

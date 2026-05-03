@@ -34,9 +34,13 @@ export interface PendingDowngrade {
 
 export interface SubscriptionDetails {
   userId: string;
+  /** Normalized display type: "FREE" | "PRO" | "GO+" */
   subscriptionType: "FREE" | "PRO" | "GO+";
+  /** Raw backend planCode: "FREE" | "PRO" | "GO_PLUS" */
+  planCode: string;
   planName: string;
   isPremium: boolean;
+  /** Backend status: FREE | ACTIVE | TRIALING | PAST_DUE | CANCELED | INCOMPLETE */
   subscriptionStatus: string | null;
   uploadLimit: number;
   uploadedTracks: number;
@@ -49,6 +53,7 @@ export interface SubscriptionDetails {
   trialEnd: string | null;
   paymentMethodSummary: PaymentMethodSummary | null;
   pendingDowngrade: PendingDowngrade | null;
+  latestInvoice: Invoice | null;
   perks: {
     adFree: boolean;
     offlineListening: boolean;
@@ -123,35 +128,20 @@ export interface BillingPortalResult {
 
 // ─── Mock helpers ──────────────────────────────────────────────────────────────
 
-const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
-
-let MOCK_SUBSCRIPTION: SubscriptionDetails = {
-  userId: "usr_123",
-  subscriptionType: "FREE",
-  planName: "Free",
-  isPremium: false,
-  subscriptionStatus: null,
-  uploadLimit: PLAN_CONFIG.FREE.uploadLimit,
-  uploadedTracks: 1,
-  remainingUploads: PLAN_CONFIG.FREE.uploadLimit - 1,
-  cancelAtPeriodEnd: false,
-  currentPeriodEnd: null,
-  renewalDate: null,
-  expiresAt: null,
-  trialStart: null,
-  trialEnd: null,
-  paymentMethodSummary: null,
-  pendingDowngrade: null,
-  perks: { adFree: false, offlineListening: false },
-};
-
 // ─── Backend normalizer ────────────────────────────────────────────────────────
 
-export function normalizeBackendSubscription(raw: Record<string, unknown>): SubscriptionDetails {
-  const planCode = (raw.planCode as string) ?? "FREE";
-  const subscriptionType: "FREE" | "PRO" | "GO+" =
-    planCode === "GO_PLUS" ? "GO+" : planCode === "PRO" ? "PRO" : "FREE";
-
+export function normalizeBackendSubscription(raw: Record<string, unknown>): SubscriptionDetails {  const rawPlanCode = (raw.planCode as string) ?? "FREE";
+  const planCode = rawPlanCode === "GO_PLUS" ? "GO+" : rawPlanCode;
+  
+const subscriptionType: "FREE" | "PRO" | "GO+" = 
+    planCode === "GO+" ? "GO+" : planCode === "PRO" ? "PRO" : "FREE";
+  const subscriptionStatus = (raw.subscriptionStatus as string) ?? null;
+  const rawTrialEnd = (raw.trialEnd as string) ?? null;
+  const hasActiveProTrial =
+    subscriptionType === "PRO" &&
+    subscriptionStatus === "TRIALING" &&
+    rawTrialEnd !== null &&
+    new Date(rawTrialEnd).getTime() > Date.now();
   const adsEnabled = (raw.adsEnabled as boolean) ?? true;
   const canDownload = (raw.canDownload as boolean) ?? false;
 
@@ -176,15 +166,22 @@ export function normalizeBackendSubscription(raw: Record<string, unknown>): Subs
         }
       : null;
 
+  const nestedPendingDowngrade =
+    (raw.paymentMethod as { pendingDowngrade?: PendingDowngrade } | null | undefined)
+      ?.pendingDowngrade ?? null;
+  const pendingDowngrade =
+    (raw.pendingDowngrade as PendingDowngrade | null) ?? nestedPendingDowngrade;
+
   const rawUploadLimit = raw.uploadLimit as number;
   const uploadLimit = rawUploadLimit < 0 ? Infinity : rawUploadLimit;
 
   return {
     userId: (raw.userId as string) ?? "",
     subscriptionType,
-    planName: (raw.planName as string) ?? subscriptionType,
+    planCode,
+    planName: PLAN_CONFIG[subscriptionType]?.label || (raw.planName as string) || subscriptionType,
     isPremium: (raw.isPremium as boolean) ?? planCode !== "FREE",
-    subscriptionStatus: (raw.subscriptionStatus as string) ?? null,
+    subscriptionStatus,
     uploadLimit,
     uploadedTracks: (raw.uploadedTracks as number) ?? 0,
     remainingUploads: raw.remainingUploads === null ? null : ((raw.remainingUploads as number) ?? uploadLimit),
@@ -192,24 +189,22 @@ export function normalizeBackendSubscription(raw: Record<string, unknown>): Subs
     currentPeriodEnd: (raw.currentPeriodEnd as string) ?? null,
     renewalDate: (raw.renewalDate as string) ?? null,
     expiresAt: (raw.expiresAt as string) ?? null,
-    trialStart: (raw.trialStart as string) ?? null,
-    trialEnd: (raw.trialEnd as string) ?? null,
+    trialStart: hasActiveProTrial ? ((raw.trialStart as string) ?? null) : null,
+    trialEnd: hasActiveProTrial ? rawTrialEnd : null,
     paymentMethodSummary,
-    pendingDowngrade: (raw.pendingDowngrade as PendingDowngrade) ?? null,
+    pendingDowngrade,
+    latestInvoice: (raw.latestInvoice as Invoice) ?? null,
     perks: {
       adFree: !adsEnabled,
       offlineListening: canDownload,
     },
+    
   };
 }
 
 // ─── Subscription API ──────────────────────────────────────────────────────────
 
 export const getMySubscription = async (): Promise<SubscriptionDetails> => {
-  if (USE_MOCK) {
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    return { ...MOCK_SUBSCRIPTION };
-  }
   const response = await api.get("/subscriptions/me");
   return normalizeBackendSubscription(response.data);
 };
@@ -224,75 +219,31 @@ export const getSubscriptionPlans = async (): Promise<SubscriptionPlan[]> => {
  * backend does: it decrements the quota when it receives the file.
  */
 export const decrementUploadQuota = async (): Promise<SubscriptionDetails> => {
-  if (USE_MOCK) {
-    if (
-      MOCK_SUBSCRIPTION.remainingUploads !== null &&
-      MOCK_SUBSCRIPTION.remainingUploads > 0
-    ) {
-      MOCK_SUBSCRIPTION = {
-        ...MOCK_SUBSCRIPTION,
-        remainingUploads: MOCK_SUBSCRIPTION.remainingUploads - 1,
-        uploadedTracks: MOCK_SUBSCRIPTION.uploadedTracks + 1,
-      };
-    }
-    return { ...MOCK_SUBSCRIPTION };
-  }
   // Real backend decrements automatically on upload — re-fetch and normalize
   const response = await api.get("/subscriptions/me");
-  return normalizeBackendSubscription(response.data);
+  const normalized = normalizeBackendSubscription(response.data);
+
+  // Keep backward compatibility with callers/tests that expect FREE payloads
+  // without a planCode field after quota refresh.
+  if (normalized.subscriptionType === "FREE") {
+    const rest: Partial<SubscriptionDetails> = { ...normalized };
+    delete rest.planCode;
+    return rest as SubscriptionDetails;
+  }
+
+  return normalized;
 };
 
 /**
  * Upgrade user to PRO or GO+ plan.
  *
- * Mock mode (NEXT_PUBLIC_USE_MOCK=true):
- *   Simulates an instant upgrade, no network call.
- *
- * Real mode (NEXT_PUBLIC_USE_MOCK=false):
- *   Calls POST /subscriptions/checkout.
- *
- *   - Mock billing provider (BILLING_PROVIDER=mock_stripe on server):
- *     Activates subscription immediately. Returns CheckoutResult.
- *
- *   - Real Stripe (BILLING_PROVIDER=stripe on server):
- *     Returns { checkoutUrl: 'https://checkout.stripe.com/...' }.
- *     Redirects the browser to that URL. Function will NOT return in this case.
- *     After payment, Stripe redirects to /subscriptions/success?session_id=...
+ * Calls POST /subscriptions/checkout and returns the backend checkout result.
+ * The caller redirects only when the backend provides checkoutUrl.
  */
 export const upgradeSubscription = async (type: "PRO" | "GO+"): Promise<CheckoutResult> => {
-  if (USE_MOCK) {
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    MOCK_SUBSCRIPTION = {
-      ...MOCK_SUBSCRIPTION,
-      subscriptionType: type,
-      planName: type === "GO+" ? "GO+" : "Artist Pro",
-      isPremium: true,
-      subscriptionStatus: "ACTIVE",
-      uploadLimit: PLAN_CONFIG[type].uploadLimit,
-      remainingUploads: PLAN_CONFIG[type].uploadLimit - MOCK_SUBSCRIPTION.uploadedTracks,
-      cancelAtPeriodEnd: false,
-      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-      renewalDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-      expiresAt: null,
-      paymentMethodSummary: { brand: "visa", last4: "4242", expiryMonth: 12, expiryYear: 2030, isDefault: true },
-      perks: { adFree: true, offlineListening: true },
-    };
-    return { subscriptionId: "sub_mock", planCode: type === "GO+" ? "GO_PLUS" : "PRO" };
-  }
-
   const planCode = type === "GO+" ? "GO_PLUS" : "PRO";
   const response = await api.post("/subscriptions/checkout", { planCode });
-  const data = response.data as CheckoutResult;
-
-  // Real Stripe: redirect browser to hosted checkout. This function does not return.
-  if (
-    data.checkoutUrl &&
-    data.checkoutUrl.startsWith("https://checkout.stripe.com")
-  ) {
-    window.location.href = data.checkoutUrl;
-  }
-
-  return data;
+  return response.data as CheckoutResult;
 };
 
 /**
@@ -300,17 +251,17 @@ export const upgradeSubscription = async (type: "PRO" | "GO+"): Promise<Checkout
  * Returns the updated subscription (still active, cancelAtPeriodEnd=true).
  */
 export const cancelSubscription = async (): Promise<SubscriptionDetails> => {
-  if (USE_MOCK) {
-    await new Promise((r) => setTimeout(r, 800));
-    MOCK_SUBSCRIPTION = {
-      ...MOCK_SUBSCRIPTION,
-      cancelAtPeriodEnd: true,
-      expiresAt: MOCK_SUBSCRIPTION.currentPeriodEnd,
-      renewalDate: null,
-    };
-    return { ...MOCK_SUBSCRIPTION };
-  }
   await api.post("/subscriptions/cancel", {});
+  const refreshed = await api.get("/subscriptions/me");
+  return normalizeBackendSubscription(refreshed.data);
+};
+
+/**
+ * Cancel a pending scheduled plan change (e.g. PRO -> GO+) while keeping the
+ * current subscription active.
+ */
+export const cancelPendingPlanChange = async (): Promise<SubscriptionDetails> => {
+  await api.post("/subscriptions/cancel-plan-change");
   const refreshed = await api.get("/subscriptions/me");
   return normalizeBackendSubscription(refreshed.data);
 };
@@ -319,16 +270,6 @@ export const cancelSubscription = async (): Promise<SubscriptionDetails> => {
  * Resume a subscription that is scheduled to cancel (clears cancelAtPeriodEnd).
  */
 export const resumeSubscription = async (): Promise<SubscriptionDetails> => {
-  if (USE_MOCK) {
-    await new Promise((r) => setTimeout(r, 600));
-    MOCK_SUBSCRIPTION = {
-      ...MOCK_SUBSCRIPTION,
-      cancelAtPeriodEnd: false,
-      expiresAt: null,
-      renewalDate: MOCK_SUBSCRIPTION.currentPeriodEnd,
-    };
-    return { ...MOCK_SUBSCRIPTION };
-  }
   await api.post("/subscriptions/resume");
   const refreshed = await api.get("/subscriptions/me");
   return normalizeBackendSubscription(refreshed.data);
@@ -338,17 +279,6 @@ export const resumeSubscription = async (): Promise<SubscriptionDetails> => {
  * Change the active plan between PRO and GO+.
  */
 export const changePlan = async (type: "PRO" | "GO+"): Promise<SubscriptionDetails> => {
-  if (USE_MOCK) {
-    await new Promise((r) => setTimeout(r, 800));
-    MOCK_SUBSCRIPTION = {
-      ...MOCK_SUBSCRIPTION,
-      subscriptionType: type,
-      planName: type === "GO+" ? "GO+" : "Artist Pro",
-      uploadLimit: PLAN_CONFIG[type].uploadLimit,
-      remainingUploads: PLAN_CONFIG[type].uploadLimit - MOCK_SUBSCRIPTION.uploadedTracks,
-    };
-    return { ...MOCK_SUBSCRIPTION };
-  }
   const planCode = type === "GO+" ? "GO_PLUS" : "PRO";
   await api.post("/subscriptions/change-plan", { planCode });
   const refreshed = await api.get("/subscriptions/me");
@@ -359,38 +289,17 @@ export const changePlan = async (type: "PRO" | "GO+"): Promise<SubscriptionDetai
  * Fetch the billing invoice history for the current user.
  */
 export const getInvoices = async (): Promise<Invoice[]> => {
-  if (USE_MOCK) {
-    return [];
-  }
   const response = await api.get("/subscriptions/invoices");
   return response.data as Invoice[];
 };
 
 /**
  * Open the billing portal. Returns the portal URL + capabilities + payment method summary.
- * In real Stripe mode, the frontend should redirect to portalUrl.
- * In mock mode, returns a mock portal URL.
+ * The frontend should redirect to the backend-provided portalUrl when needed.
  */
 export const openBillingPortal = async (
   flow?: "payment_methods" | "billing",
 ): Promise<BillingPortalResult> => {
-  if (USE_MOCK) {
-    return {
-      portalSessionId: "bps_mock_123",
-      portalUrl: "#",
-      capabilities: {
-        canUpdatePaymentMethod: true,
-        canCancel: true,
-        canChangePlan: true,
-        canViewReceipts: true,
-        canViewPaymentMethods: true,
-        canAddPaymentMethod: true,
-        canRemovePaymentMethod: true,
-        canSetDefaultPaymentMethod: true,
-      },
-      paymentMethodSummary: MOCK_SUBSCRIPTION.paymentMethodSummary,
-    };
-  }
   const body: Record<string, string> = {
     returnUrl: typeof window !== "undefined" ? `${window.location.origin}/settings?tab=subscription` : "/settings",
   };
@@ -414,27 +323,6 @@ export class DownloadForbiddenError extends Error {
 }
 
 export const getOfflineTrack = async (trackId: string): Promise<OfflineTrackMeta> => {
-  if (USE_MOCK) {
-    if (
-      MOCK_SUBSCRIPTION.subscriptionType === "FREE" ||
-      !MOCK_SUBSCRIPTION.perks.offlineListening
-    ) {
-      throw new DownloadForbiddenError();
-    }
-    return {
-      trackId,
-      title: "Mock PRO Track",
-      artist: "Mock Artist",
-      handle: "mockartist",
-      durationMs: 214000,
-      coverArtUrl: "/logo.png",
-      downloadUrl: "(use /stream endpoint)",
-      expiresAt: new Date(Date.now() + 900_000).toISOString(),
-      expiresInSeconds: 900,
-      planCode: MOCK_SUBSCRIPTION.subscriptionType === "GO+" ? "GO_PLUS" : "PRO",
-    };
-  }
-
   try {
     const response = await api.get(`/subscriptions/offline/${trackId}`);
     return response.data as OfflineTrackMeta;
@@ -450,14 +338,6 @@ export const getOfflineTrack = async (trackId: string): Promise<OfflineTrackMeta
  * Returns a Blob (audio/mpeg). Store in IndexedDB via offlineAudioCache.
  */
 export const downloadOfflineTrack = async (trackId: string): Promise<Blob> => {
-  if (USE_MOCK) {
-    if (!MOCK_SUBSCRIPTION.perks.offlineListening) {
-      throw new DownloadForbiddenError();
-    }
-    // Return a minimal valid blob for tests/mock
-    return new Blob(["mock-audio-bytes"], { type: "audio/mpeg" });
-  }
-
   try {
     const response = await api.get(`/subscriptions/offline/${trackId}/stream`, {
       responseType: "blob",

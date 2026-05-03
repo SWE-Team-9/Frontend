@@ -297,3 +297,11 @@ export async function deactivateMyAccount(): Promise<{ message: string }> {
   const response = await api.delete("/profiles/me");
   return response.data;
 }
+
+// ====== DELETE Profile Image ======
+export const deleteProfileImage = async (
+  type: "avatar" | "cover",
+): Promise<{ message: string }> => {
+  const response = await api.delete(`/profiles/me/${type}`);
+  return response.data as { message: string };
+};

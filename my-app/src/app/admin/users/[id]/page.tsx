@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { adminService } from '@/src/services/admin/adminService';
+import { adminService } from '@/src/services/admin/adminServiceFactory';
 import { FiArrowLeft, FiShield, FiClock, FiFlag } from 'react-icons/fi'; // Removed FiBarChart2
 import { Music, Users, Calendar, Crown } from 'lucide-react';
 import { AdminUser, ModerationAction } from '@/src/types/admin'; // Import your types
@@ -28,23 +28,71 @@ export default function UserDetailPage() {
   const { id } = useParams();
   const router = useRouter();
   
-  // FIXED: Replaced <any> with <UserDetail | null>
+  
   const [user, setUser] = useState<UserDetail | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const data = await adminService.getUserById(id as string);
-        setUser(data);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchUser();
-  }, [id]);
+  const fetchUser = async () => {
+    try {
+      // 1. Tell TS to let us handle the mapping by using 'any' for the raw response
+      const data = await adminService.getUserById(id as string) as UserDetail;
+      
+      
+      if (!data) throw new Error("No data returned");
+
+      // 2. Construct the object to match the UserDetail interface exactly
+      const mappedUser: UserDetail = {
+        // Spread the raw data
+        ...data,
+        
+        // Ensure mandatory base fields (AdminUser) exist
+        id: data.id || (id as string),
+        display_name: data.display_name || 'Unknown User',
+        handle: data.handle || '',
+        email: data.email || '',
+        system_role: data.system_role || 'USER',
+        account_status: data.account_status || 'ACTIVE',
+        is_verified: !!data.is_verified,
+        created_at: data.created_at || new Date().toISOString(),
+        
+        // Add the missing properties that caused your previous build error
+        avatar_url: data.avatar_url ?? null,
+        account_type: data.account_type ?? 'LISTENER',
+        last_login_at: data.last_login_at ?? data.created_at ?? new Date().toISOString(),
+        track_count: data.track_count ?? 0,
+        report_count: data.report_count ?? 0,
+
+        // Map the Detail-specific optional fields
+        subscription: data.subscription ? {
+          tier: data.subscription.tier || 'FREE',
+          status: data.subscription.status || 'INACTIVE',
+          current_period_end: data.subscription.current_period_end || '',
+        } : undefined,
+
+        stats: data.stats ? {
+          tracks_uploaded: data.stats.tracks_uploaded ?? 0,
+          followers_count: data.stats.followers_count ?? 0,
+        } : undefined,
+
+        reports_against: data.reports_against || { total: 0 },
+        
+        moderation_history: Array.isArray(data.moderation_history) 
+          ? data.moderation_history 
+          : [],
+      };
+
+      setUser(mappedUser);
+    } catch (err) {
+      console.error("Critical error in UserDetail fetch:", err);
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (id) fetchUser();
+}, [id]);
 
   if (loading) return <div className="p-10 text-zinc-500 animate-pulse">Loading profile...</div>;
   if (!user) return <div className="p-10 text-white">User not found.</div>;

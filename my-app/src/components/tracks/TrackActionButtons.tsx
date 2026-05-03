@@ -177,7 +177,7 @@ export function TrackActionButtons({
         {displayLikes > 0 && (
           <span
             onClick={(e) => { e.stopPropagation(); setModalType("likes"); }}
-            className="text-[11px] text-zinc-500 cursor-pointer hover:text-white hover:underline px-1 tabular-nums"
+            className="text-[11px] text-zinc-500 cursor-pointer hover:text-white px-1 tabular-nums"
           >
             {fmtCount(displayLikes)}
           </span>
@@ -195,7 +195,7 @@ export function TrackActionButtons({
         {displayReposts > 0 && (
           <span
             onClick={(e) => { e.stopPropagation(); setModalType("reposts"); }}
-            className="text-[11px] text-zinc-500 cursor-pointer hover:text-white hover:underline px-1 tabular-nums"
+            className="text-[11px] text-zinc-500 cursor-pointer hover:text-white px-1 tabular-nums"
           >
             {fmtCount(displayReposts)}
           </span>

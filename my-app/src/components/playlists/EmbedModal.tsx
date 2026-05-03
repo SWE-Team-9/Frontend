@@ -113,9 +113,9 @@ export function EmbedModal({ playlistId, isOpen, onClose }: Props) {
               {/* Copy button */}
               <button
                 onClick={handleCopy}
-                className="px-4 py-2 bg-white hover:bg-zinc-600 text-black text-xs font-bold uppercase tracking-wider rounded flex items-center gap-2 transition-colors"
+                className="px-4 py-2 bg-white hover:bg-zinc-600 cursor-pointer text-black text-xs font-bold uppercase tracking-wider rounded flex items-center gap-2 transition-colors"
               >
-                {copied ? <FaCheck size={11} /> : <FaCopy size={11} />}
+                {copied ? <FaCheck size={15} /> : <FaCopy size={15} />}
                 {copied ? "Copied to clipboard" : "Copy embed code"}
               </button>
             </>

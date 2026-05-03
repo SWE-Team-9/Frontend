@@ -52,7 +52,7 @@ export function PlaylistCard({
   const playlistUrl = `/library/playlists/${playlist.playlistId}`;
   const sharePermalink = buildPlaylistPermalink({
     playlistId: playlist.playlistId,
-    ownerHandle: playlist.owner?.handle ?? null,
+    ownerHandle: playlist.handle ?? playlist.owner?.handle ?? null,
     slug: playlist.slug ?? null,
   });
 
@@ -78,7 +78,7 @@ export function PlaylistCard({
   };
 
   const handleLike = async (e?: React.MouseEvent) => {
-    e?.preventDefault(); 
+    e?.preventDefault();
     if (isLiking) return;
 
     const wasLiked = liked;
@@ -86,15 +86,15 @@ export function PlaylistCard({
 
     const nextLiked = !wasLiked;
     setLiked(nextLiked);
-    setLikesCount((c:number) => (wasLiked ? Math.max(0, c - 1) : c + 1));
+    setLikesCount((c: number) => (wasLiked ? Math.max(0, c - 1) : c + 1));
     setIsLiking(true);
     updateLocalLiked(nextLiked);
 
     try {
       if (wasLiked) {
-        await playlistsApi.unlikePlaylist(playlist.playlistId); 
+        await playlistsApi.unlikePlaylist(playlist.playlistId);
       } else {
-        await playlistsApi.likePlaylist(playlist.playlistId);  
+        await playlistsApi.likePlaylist(playlist.playlistId);
       }
     } catch (error) {
       const err = error as { response?: { status?: number }; message?: string };
@@ -170,7 +170,7 @@ export function PlaylistCard({
         />
 
         {/* PLAY ICON */}
-        <div className="pointer-events-none absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-20">
+        <div className="pointer-events-none absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity transition-duration-200 flex items-center justify-center z-20">
           <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center">
             <FaPlay className="text-black text-[2rem] ml-1" />
           </div>
@@ -183,7 +183,7 @@ export function PlaylistCard({
             onClick={handleLike}
             disabled={isLiking}
             aria-label={liked ? "Unlike playlist" : "Like playlist"}
-            className="w-7 h-7 rounded-full bg-black/70 hover:bg-black flex items-center justify-center disabled:opacity-50"
+            className="w-7 h-7 rounded-full bg-black/70 hover:bg-black flex items-center justify-center cursor-pointer disabled:opacity-50"
           >
             {liked ? (
               <FaHeart className="text-[#f50] text-[1rem]" />
@@ -195,7 +195,7 @@ export function PlaylistCard({
           <button
             type="button"
             onClick={(e) => { e.preventDefault(); toggleMenu(); }}
-            className="w-7 h-7 rounded-full bg-black/70 hover:bg-black flex items-center justify-center"
+            className="w-7 h-7 rounded-full bg-black/70 hover:bg-black flex items-center justify-center cursor-pointer"
           >
             <FaEllipsisH className="text-white text-[10px]" />
           </button>
@@ -210,7 +210,7 @@ export function PlaylistCard({
               <button
                 type="button"
                 onClick={handleAddToNextUp}
-                className="w-full flex items-center gap-3 px-4 py-2 text-xs text-white hover:bg-zinc-800"
+                className="w-full flex items-center gap-3 px-4 py-2 text-xs cursor-pointer text-white hover:bg-zinc-800"
               >
                 <FaListUl size={11} className="text-zinc-400" />
                 Add to Next Up
@@ -219,7 +219,7 @@ export function PlaylistCard({
               <button
                 type="button"
                 onClick={() => { closeMenu(); setEditOpen(true); }}
-                className="w-full flex items-center gap-3 px-4 py-2 text-xs text-white hover:bg-zinc-800"
+                className="w-full flex items-center gap-3 px-4 py-2 text-xs cursor-pointer text-white hover:bg-zinc-800"
               >
                 <FaEdit size={11} className="text-zinc-400" />
                 Edit
@@ -228,7 +228,7 @@ export function PlaylistCard({
               <button
                 type="button"
                 onClick={() => { closeMenu(); setEmbedOpen(true); }}
-                className="w-full flex items-center gap-3 px-4 py-2 text-xs text-white hover:bg-zinc-800"
+                className="w-full flex items-center gap-3 px-4 py-2 text-xs cursor-pointer text-white hover:bg-zinc-800"
               >
                 <FaCode size={11} className="text-zinc-400" />
                 Embed
@@ -239,7 +239,7 @@ export function PlaylistCard({
               <button
                 type="button"
                 onClick={() => { closeMenu(); setConfirmOpen(true); }}
-                className="w-full flex items-center gap-3 px-4 py-2 text-xs text-white hover:bg-zinc-800"
+                className="w-full flex items-center gap-3 px-4 py-2 text-xs cursor-pointer text-white hover:bg-zinc-800"
               >
                 <FaTrash size={11} className="text-zinc-400" />
                 Delete
@@ -251,13 +251,23 @@ export function PlaylistCard({
 
       {/* TITLE */}
       <Link href={playlistUrl} className="block">
-        <h3 className="text-white text-sm font-bold truncate hover:underline">
+        <h3 className="truncate text-sm font-bold text-white hover:text-zinc-600 transition-colors">
           {playlist.title}
         </h3>
-        <p className="text-zinc-500 text-xs">
+      </Link>
+
+      {(playlist.handle ?? playlist.owner?.handle) ? (
+        <Link
+          href={`/profiles/${playlist.handle ?? playlist.owner?.handle}`}
+          className="block truncate text-xs text-zinc-500 hover:text-white transition-colors"
+        >
+          {playlist.owner?.display_name ?? "You"}
+        </Link>
+      ) : (
+        <p className="truncate text-xs text-zinc-500">
           {playlist.owner?.display_name ?? "You"}
         </p>
-      </Link>
+      )}
 
       {/* MODALS */}
       {shareOpen && (

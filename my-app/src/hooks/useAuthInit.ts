@@ -50,6 +50,8 @@ function entitlementsToSubDetails(e: BootstrapEntitlements): SubscriptionDetails
     trialEnd: e.trialEnd ?? null,
     paymentMethodSummary: null,
     pendingDowngrade: null,
+    planCode,
+    latestInvoice: null,
     perks: {
       adFree: !e.adsEnabled,
       offlineListening: e.canDownload,
@@ -120,6 +122,7 @@ export const useAuthInit = () => {
           avatarUrl: me.avatar_url ?? null,
           isVerified: me.is_verified ?? false,
           systemRole: (me.system_role as "ADMIN" | "MODERATOR" | "USER") ?? "USER",
+          account_status: me.account_status ?? "ACTIVE",
         });
       })
       .catch(() => {

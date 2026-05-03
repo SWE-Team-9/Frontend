@@ -30,7 +30,7 @@ export default function SecretPlaylistPage({
         if (cancelled) return;
 
         setAccessMessage(
-          extractMessage(secret) ?? "Access granted via secret token"
+          extractMessage(secret) ?? "Access granted via secret token",
         );
 
         const playlistId = (secret as { playlistId?: string }).playlistId;
@@ -46,7 +46,7 @@ export default function SecretPlaylistPage({
       } catch (err) {
         if (!cancelled) {
           setError(
-            err instanceof Error ? err.message : "Invalid or expired link"
+            err instanceof Error ? err.message : "Invalid or expired link",
           );
         }
       } finally {
@@ -125,7 +125,13 @@ export default function SecretPlaylistPage({
       </div>
 
       <div className="py-8 max-w-5xl">
-        <TrackList tracks={playlist.tracks ?? []} />
+        <TrackList
+          tracks={(playlist.tracks ?? []).map((t) => ({
+            ...t,
+            artist:
+              typeof t.artist === "string" ? t.artist : (t.artist?.name ?? ""),
+          }))}
+        />
       </div>
     </div>
   );

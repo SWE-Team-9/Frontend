@@ -47,6 +47,8 @@ function entitlementsToSubDetails(e: {
     trialEnd: e.trialEnd ?? null,
     paymentMethodSummary: null,
     pendingDowngrade: null,
+    planCode,
+    latestInvoice: null,
     perks: {
       adFree: !(e.adsEnabled ?? true),
       offlineListening: !!e.canDownload,
@@ -122,7 +124,12 @@ export default function AuthCallbackPage() {
           avatarUrl: me.avatar_url ?? null,
           isVerified: me.is_verified ?? false,
           systemRole: (me.system_role as "ADMIN" | "MODERATOR" | "USER") ?? "USER",
+          account_status: me.account_status ?? "ACTIVE",
         });
+        if (me.account_status !== "ACTIVE") {
+            router.replace("/account_restricted");
+            return;
+        }
 
         // Redirect to wherever the user wanted to go (default: /discover)
         const returnTo = sessionStorage.getItem("oauth_return_to") || "/discover";

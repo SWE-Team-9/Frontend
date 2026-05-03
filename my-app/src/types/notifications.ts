@@ -1,6 +1,22 @@
-export type NotificationType = "like" | "comment" | "follow" | "repost";
+export type NotificationType =
+  | "like"
+  | "comment"
+  | "follow"
+  | "repost"
+  | "message"
+  | "report_resolved"
+  | "system"
+  | "subscription"
+  | "account_suspended"
+  | "account_banned"
+  | "account_restored";
 
-export type NotificationEntityType = "track" | "user" | "comment" | "playlist";
+export type NotificationEntityType =
+  | "track"
+  | "user"
+  | "comment"
+  | "playlist"
+  | "message";
 
 export type NotificationReadStatus = "all" | "read" | "unread";
 

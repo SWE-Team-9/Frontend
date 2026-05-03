@@ -33,6 +33,8 @@ export interface SharedPlaylist {
   coverArtUrl?: string | null;
   tracksCount?: number;
   tracksPreview?: SharedTrack[];
+  liked?: boolean;
+  likesCount?: number;
 }
 
 export interface Message {

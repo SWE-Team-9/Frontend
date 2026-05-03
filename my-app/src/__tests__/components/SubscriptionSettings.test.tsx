@@ -29,9 +29,10 @@ function makeSubStore(overrides: Partial<ReturnType<typeof makeDefaultSubState>>
 function makeDefaultSubState() {
   return {
     sub: null as null | {
-      subscriptionType: "FREE" | "PRO" | "GO+";
+      subscriptionType: "FREE" | "PRO" | "GO+" | "GO_PLUS";
       planName: string;
       isPremium: boolean;
+      subscriptionStatus: string | null;
       uploadLimit: number;
       uploadedTracks: number;
       remainingUploads: number | null;
@@ -49,6 +50,7 @@ function makeDefaultSubState() {
     isLoading: false,
     error: null as string | null,
     cancel: jest.fn().mockResolvedValue(undefined),
+    cancelPendingPlanChange: jest.fn().mockResolvedValue(undefined),
     resume: jest.fn().mockResolvedValue(undefined),
     changePlan: jest.fn().mockResolvedValue(undefined),
     fetchInvoices: jest.fn().mockResolvedValue(undefined),
@@ -83,6 +85,7 @@ const FREE_SUB = {
   subscriptionType: "FREE" as const,
   planName: "Free",
   isPremium: false,
+  subscriptionStatus: null,
   uploadLimit: 3,
   uploadedTracks: 1,
   remainingUploads: 2,
@@ -101,6 +104,7 @@ const PRO_SUB = {
   subscriptionType: "PRO" as const,
   planName: "Artist Pro",
   isPremium: true,
+  subscriptionStatus: "ACTIVE",
   uploadLimit: 100,
   uploadedTracks: 10,
   remainingUploads: 90,
@@ -177,6 +181,42 @@ describe("SubscriptionSettings", () => {
       expect(screen.getByText("GO+")).toBeInTheDocument();
     });
 
+    it("shows management buttons for backend GO_PLUS users", () => {
+      setup({ sub: { ...PRO_SUB, subscriptionType: "GO_PLUS", planName: "GO+" } });
+
+      expect(screen.getByText("GO+")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Cancel/i })).toBeInTheDocument();
+    });
+
+    it("does not show free trial messaging for GO_PLUS even if stale trial fields exist", () => {
+      setup({
+        sub: {
+          ...PRO_SUB,
+          subscriptionType: "GO_PLUS",
+          planName: "Go+ Monthly",
+          trialStart: "2026-04-28T00:05:31.680Z",
+          trialEnd: "2026-05-28T12:46:38.461Z",
+        },
+      });
+
+      expect(screen.queryByText(/Free trial ends/i)).not.toBeInTheDocument();
+      expect(screen.getByText(/Renews/i)).toBeInTheDocument();
+    });
+
+    it("shows free trial messaging only for active PRO trials", () => {
+      setup({
+        sub: {
+          ...PRO_SUB,
+          subscriptionStatus: "TRIALING",
+          trialStart: "2026-05-01T00:00:00.000Z",
+          trialEnd: "2099-05-08T00:00:00.000Z",
+        },
+      });
+
+      expect(screen.getByText(/Free trial ends/i)).toBeInTheDocument();
+      expect(screen.queryByText(/Renews/i)).not.toBeInTheDocument();
+    });
+
     it("shows upload quota progress bar for paid users", () => {
       setup({ sub: PRO_SUB });
 
@@ -194,6 +234,13 @@ describe("SubscriptionSettings", () => {
       expect(screen.getByText(/Resume/i)).toBeInTheDocument();
       expect(screen.queryByText(/Switch to/i)).not.toBeInTheDocument();
       expect(screen.queryByRole("button", { name: /Cancel/i })).not.toBeInTheDocument();
+    });
+
+    it("does not show Resume when subscription is active and not canceling", () => {
+      setup({ sub: PRO_SUB });
+
+      expect(screen.queryByRole("button", { name: /Resume/i })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Cancel/i })).toBeInTheDocument();
     });
 
     it("shows cancellation date when cancelAtPeriodEnd is true", () => {
@@ -216,10 +263,60 @@ describe("SubscriptionSettings", () => {
       setup({ sub: PRO_SUB, cancel });
 
       fireEvent.click(screen.getByRole("button", { name: /Cancel/i }));
-      fireEvent.click(screen.getByRole("button", { name: /End subscription/i }));
+      fireEvent.click(screen.getByRole("button", { name: /Cancel at period end/i }));
 
       await waitFor(() => {
         expect(cancel).toHaveBeenCalled();
+      });
+    });
+
+    it("shows two actions when a pending plan change exists", () => {
+      setup({
+        sub: {
+          ...PRO_SUB,
+          cancelAtPeriodEnd: true,
+          pendingDowngrade: {
+            planCode: "GO_PLUS",
+            planId: "plan-go-plus",
+            planName: "GO+",
+            effectiveAt: "2026-05-28T00:00:00.000Z",
+          },
+        },
+      });
+
+      expect(
+        screen.getByRole("button", { name: /Cancel GO\+ upgrade/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /Cancel subscription/i }),
+      ).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /Switch to GO\+/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /Resume/i })).not.toBeInTheDocument();
+    });
+
+    it("calls cancelPendingPlanChange when confirming pending-plan cancellation", async () => {
+      const cancelPendingPlanChange = jest.fn().mockResolvedValue(undefined);
+      setup(
+        {
+          sub: {
+            ...PRO_SUB,
+            cancelAtPeriodEnd: true,
+            pendingDowngrade: {
+              planCode: "GO_PLUS",
+              planId: "plan-go-plus",
+              planName: "GO+",
+              effectiveAt: "2026-05-28T00:00:00.000Z",
+            },
+          },
+          cancelPendingPlanChange,
+        },
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: /Cancel GO\+ upgrade/i }));
+      fireEvent.click(screen.getByRole("button", { name: /Cancel plan change/i }));
+
+      await waitFor(() => {
+        expect(cancelPendingPlanChange).toHaveBeenCalled();
       });
     });
 
@@ -232,6 +329,14 @@ describe("SubscriptionSettings", () => {
       await waitFor(() => {
         expect(resume).toHaveBeenCalled();
       });
+    });
+
+    it("shows subscription store errors for cancel or resume failures", () => {
+      setup({ sub: PRO_SUB, error: "Cancellation failed. Please try again." });
+
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "Cancellation failed. Please try again.",
+      );
     });
   });
 

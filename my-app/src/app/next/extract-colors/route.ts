@@ -3,42 +3,18 @@ import sharp from "sharp";
 
 export const runtime = "nodejs";
 
-function rgbToHsl(r: number, g: number, b: number) {
+function getLightness(r: number, g: number, b: number): number {
   const rn = r / 255, gn = g / 255, bn = b / 255;
-  const max = Math.max(rn, gn, bn), min = Math.min(rn, gn, bn);
-  const l = (max + min) / 2;
-  if (max === min) return [0, 0, l];
-  const d = max - min;
-  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-  let h = 0;
-  if (max === rn) h = (gn - bn) / d + (gn < bn ? 6 : 0);
-  else if (max === gn) h = (bn - rn) / d + 2;
-  else h = (rn - gn) / d + 4;
-  return [h / 6, s, l];
+  return (Math.max(rn, gn, bn) + Math.min(rn, gn, bn)) / 2;
 }
 
-function hslToHex(h: number, s: number, l: number) {
-  const hue2rgb = (p: number, q: number, t: number) => {
-    if (t < 0) t += 1;
-    if (t > 1) t -= 1;
-    if (t < 1 / 6) return p + (q - p) * 6 * t;
-    if (t < 1 / 2) return q;
-    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
-    return p;
+function avgColor(pixels: Array<{ r: number; g: number; b: number }>) {
+  const len = pixels.length;
+  return {
+    r: Math.round(pixels.reduce((s, p) => s + p.r, 0) / len),
+    g: Math.round(pixels.reduce((s, p) => s + p.g, 0) / len),
+    b: Math.round(pixels.reduce((s, p) => s + p.b, 0) / len),
   };
-  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-  const p = 2 * l - q;
-  const r = Math.round(hue2rgb(p, q, h + 1 / 3) * 255);
-  const g = Math.round(hue2rgb(p, q, h) * 255);
-  const b = Math.round(hue2rgb(p, q, h - 1 / 3) * 255);
-  return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
-}
-
-function boostColor(r: number, g: number, b: number, darken = false): string {
-  const [h, s, l] = rgbToHsl(r, g, b);
-  const boostedS = Math.min(s + 0.35, 1);
-  const adjustedL = darken ? Math.max(l - 0.15, 0.1) : Math.min(l, 0.6);
-  return hslToHex(h, boostedS, adjustedL);
 }
 
 export async function GET(req: NextRequest) {
@@ -52,44 +28,34 @@ export async function GET(req: NextRequest) {
 
     if (!imageRes.ok) return NextResponse.json({ gradient: null });
 
-    const arrayBuffer = await imageRes.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    const buffer = Buffer.from(await imageRes.arrayBuffer());
 
     const { data, info } = await sharp(buffer)
-      .resize(60, 60, { fit: "fill" })
+      .resize(80, 80, { fit: "fill" })
       .removeAlpha()
       .raw()
       .toBuffer({ resolveWithObject: true });
 
-    const { width, height } = info;
-    const channels = 3;
+    const total = info.width * info.height;
+    const ch = 3;
 
-    function sampleBand(xStart: number, xEnd: number) {
-      let r = 0, g = 0, b = 0, count = 0;
-      for (let y = 0; y < height; y++) {
-        for (let x = xStart; x < xEnd; x++) {
-          const i = (y * width + x) * channels;
-          r += data[i]!;
-          g += data[i + 1]!;
-          b += data[i + 2]!;
-          count++;
-        }
-      }
-      return { r: Math.round(r / count), g: Math.round(g / count), b: Math.round(b / count) };
-    }
+    const pixels = Array.from({ length: total }, (_, i) => ({
+      r: data[i * ch]!,
+      g: data[i * ch + 1]!,
+      b: data[i * ch + 2]!,
+      l: getLightness(data[i * ch]!, data[i * ch + 1]!, data[i * ch + 2]!),
+    })).sort((a, b) => a.l - b.l);
 
-    const third = Math.floor(width / 3);
-    const c1 = sampleBand(0, third);
-    const c2 = sampleBand(third, third * 2);
-    const c3 = sampleBand(third * 2, width);
+    const dark  = avgColor(pixels.slice(0, Math.floor(total * 0.25)));
+    const light = avgColor(pixels.slice(Math.floor(total * 0.75)));
 
-    const hex1 = boostColor(c1.r, c1.g, c1.b, true);
-    const hex2 = boostColor(c2.r, c2.g, c2.b);
-    const hex3 = boostColor(c3.r, c3.g, c3.b, true);
+    const alpha = 0.72;
+    const dc = `rgba(${dark.r}, ${dark.g}, ${dark.b}, ${alpha})`;
+    const lc = `rgba(${light.r}, ${light.g}, ${light.b}, ${alpha})`;
 
-    return NextResponse.json({
-      gradient: `linear-gradient(to right, ${hex1}, ${hex2}, ${hex3})`,
-    });
+    const gradient = `linear-gradient(to right, ${dc}, ${lc}, ${dc})`;
+
+    return NextResponse.json({ gradient });
   } catch (err) {
     console.error("[extract-colors] failed:", err);
     return NextResponse.json({ gradient: null });

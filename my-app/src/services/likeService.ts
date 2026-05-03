@@ -10,7 +10,7 @@ const MOCK_LIKES: TrackData[] = Array.from({ length: 24 }).map((_, i) => ({
   id: `track_${i + 1}`,
   title: `Liked Track ${i + 1}`,
   artistName: `Artist ${i + 1}`,
-  coverArt: "", 
+  coverArt: "",
   coverArtUrl: "", // Added to satisfy TrackData type
   likesCount: Math.floor(Math.random() * 100),
   repostsCount: 0, // Added to satisfy TrackData type
@@ -53,12 +53,12 @@ export const getUserLikes = async (userId: string, page = 1, limit = 10): Promis
   const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
   if (USE_MOCK) {
     // Simulate network latency for a realistic UI experience
-    await new Promise((r) => setTimeout(r, 800)); 
-    
+    await new Promise((r) => setTimeout(r, 800));
+
     // Calculate start and end indices based on the requested page and limit
     const startIndex = (page - 1) * limit;
     const endIndex = startIndex + limit;
-    
+
     // Return a sliced portion of the mock array to simulate server-side pagination
     return MOCK_LIKES.slice(startIndex, endIndex);
   }
@@ -66,28 +66,70 @@ export const getUserLikes = async (userId: string, page = 1, limit = 10): Promis
 
   // Pass the page and limit to the API params for server-side pagination
   const response = await api.get<UserInteractionResponse>(`/interactions/users/${userId}/likes`, {
-    params: { page, limit } 
+    params: { page, limit }
   });
 
   if (response.data && response.data.items) {
     return response.data.items.map((item) => {
       const t = item.track;
-      
+
+      const artist = (
+        t as TrackData & {
+          artist?: {
+            id?: string;
+            display_name?: string;
+            displayName?: string;
+            handle?: string;
+            avatar_url?: string | null;
+            avatarUrl?: string | null;
+          };
+          artist_name?: string | null;
+          artist_name_display?: string | null;
+          cover_art_url?: string | null;
+          coverUrl?: string | null;
+        }
+      ).artist;
+
+      const cover =
+        t.coverArtUrl ||
+        t.coverArt ||
+        t.imageUrl ||
+        (t as { cover_art_url?: string | null }).cover_art_url ||
+        (t as { coverUrl?: string | null }).coverUrl ||
+        null;
+
       return {
         ...t,
-        // 1. Force convert nulls to undefined to satisfy TS strict mode
         id: t.id,
+        trackId: t.trackId ?? t.id,
         title: t.title || "Untitled Track",
-        artistName: t.artistName ?? undefined,
-        artistHandle: (t as { artistHandle?: string | null }).artistHandle ?? undefined,
-        
-        // 2. Normalize image URLs (handling multiple possible field names)
-        coverArt: t.coverArt || t.coverArtUrl || t.imageUrl || undefined,
-        imageUrl: t.imageUrl || t.coverArtUrl || t.coverArt || undefined,
-        
-        // 3. Metadata
+
+        artistName:
+          t.artistName ??
+          (t as { artist_name?: string | null }).artist_name ??
+          (t as { artist_name_display?: string | null }).artist_name_display ??
+          artist?.display_name ??
+          artist?.displayName ??
+          undefined,
+
+        artistId: t.artistId ?? artist?.id,
+        artistHandle: t.artistHandle ?? artist?.handle ?? undefined,
+        artistAvatarUrl:
+          t.artistAvatarUrl ??
+          artist?.avatar_url ??
+          artist?.avatarUrl ??
+          null,
+
+        coverArtUrl: cover,
+        coverArt: cover,
+        imageUrl: cover,
+
+        waveformData: t.waveformData ?? null,
+
         interactedAt: item.interactedAt,
         likesCount: t.likesCount ?? 0,
+        repostsCount: t.repostsCount ?? 0,
+        liked: true,
       } as TrackData;
     });
   }

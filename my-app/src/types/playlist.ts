@@ -1,46 +1,59 @@
+export interface PlaylistOwner {
+  id?: string;
+  display_name?: string;
+  displayName?: string;
+  handle?: string | null;
+}
+
+export interface PlaylistTrackArtist {
+  id: string;
+  name: string;
+  handle: string | null;
+}
+
 export interface PlaylistTrack {
   trackId: string;
   title: string;
-}
-
-export interface PlaylistOwner {
-  id?: string;
-  display_name: string;
-  handle?: string;
+  coverArtUrl?: string | null;
+  durationMs?: number | null;
+  likesCount?: number;
+  repostsCount?: number;
+  artist?: PlaylistTrackArtist;
 }
 
 export interface Playlist {
-  liked?: boolean; 
+  liked?: boolean;
   likesCount?: number;
   playlistId: string;
   title: string;
   description?: string | null;
-  visibility: "PUBLIC" | "SECRET" | "PRIVATE";
+  visibility: "PUBLIC" | "SECRET";
   tracksCount?: number;
   cover?: string | null;
   secretToken?: string | null;
+  handle?: string | null; 
   owner?: PlaylistOwner;
   tracks?: PlaylistTrack[];
   slug?: string;
   type?: string | null;
   releaseDate?: string | null;
-  genreId?: number | null;
+  genre?: string | null;
   tags?: string[];
 }
 
 export interface CreatePlaylistInput {
   title: string;
   description?: string;
-  visibility: "PUBLIC" | "SECRET" | "PRIVATE";
-  trackIds: string[];
+  visibility: "PUBLIC" | "SECRET";
+  trackIds?: string[];
 }
 
 export interface UpdatePlaylistInput {
   title?: string;
   description?: string;
-  visibility?: "PUBLIC" | "SECRET" | "PRIVATE";
+  visibility?: "public" | "secret";
   type?: string;
   releaseDate?: string;
-  genreId?: number | null;
+  genre?: string | null;
   tags?: string[];
 }

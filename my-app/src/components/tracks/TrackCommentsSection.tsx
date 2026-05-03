@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { getTrackComments } from "@/src/services/interactionService";
 import type { TrackComment } from "@/src/types/interactions";
+import { ReportButton } from "@/src/components/reports/ReportButton";
+import { ReportTargetType } from "@/src/services/reportService";
 
 type SortOption = "newest" | "oldest" | "trackTime";
 
@@ -61,14 +63,6 @@ export default function TrackCommentsSection({
 
                 if (cancelled) return;
 
-                console.table(
-                    data.comments.map((comment) => ({
-                        text: comment.text,
-                        timestampSeconds: comment.timestampSeconds,
-                        createdAt: comment.createdAt,
-                    }))
-                );
-
                 setComments(data.comments);
                 setTotal(data.total ?? data.comments.length);
             } catch (error) {
@@ -97,8 +91,6 @@ export default function TrackCommentsSection({
             return copy.sort((a, b) => {
                 const createdDiff = getCreatedTime(b) - getCreatedTime(a);
                 if (createdDiff !== 0) return createdDiff;
-
-                // fallback if createdAt is identical
                 return b.timestampSeconds - a.timestampSeconds;
             });
         }
@@ -107,8 +99,6 @@ export default function TrackCommentsSection({
             return copy.sort((a, b) => {
                 const createdDiff = getCreatedTime(a) - getCreatedTime(b);
                 if (createdDiff !== 0) return createdDiff;
-
-                // fallback if createdAt is identical
                 return a.timestampSeconds - b.timestampSeconds;
             });
         }
@@ -116,8 +106,6 @@ export default function TrackCommentsSection({
         return copy.sort((a, b) => {
             const timestampDiff = a.timestampSeconds - b.timestampSeconds;
             if (timestampDiff !== 0) return timestampDiff;
-
-            // fallback if two comments are at the same track timestamp
             return getCreatedTime(a) - getCreatedTime(b);
         });
     }, [comments, sortBy]);
@@ -151,38 +139,21 @@ export default function TrackCommentsSection({
 
                     {isDropdownOpen && (
                         <div className="absolute right-0 top-11 z-20 w-48 rounded border border-[#333] bg-[#151515] py-2 shadow-xl">
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setSortBy("newest");
-                                    setIsDropdownOpen(false);
-                                }}
-                                className="block w-full px-4 py-2 text-left text-sm font-bold hover:bg-[#2a2a2a]"
-                            >
-                                Newest
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setSortBy("oldest");
-                                    setIsDropdownOpen(false);
-                                }}
-                                className="block w-full px-4 py-2 text-left text-sm font-bold text-zinc-400 hover:bg-[#2a2a2a] hover:text-white"
-                            >
-                                Oldest
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setSortBy("trackTime");
-                                    setIsDropdownOpen(false);
-                                }}
-                                className="block w-full px-4 py-2 text-left text-sm font-bold text-zinc-400 hover:bg-[#2a2a2a] hover:text-white"
-                            >
-                                Track Time
-                            </button>
+                            {(["newest", "oldest", "trackTime"] as const).map((option) => (
+                                <button
+                                    key={option}
+                                    type="button"
+                                    onClick={() => {
+                                        setSortBy(option);
+                                        setIsDropdownOpen(false);
+                                    }}
+                                    className={`block w-full px-4 py-2 text-left text-sm font-bold hover:bg-[#2a2a2a] ${
+                                        sortBy === option ? "text-white" : "text-zinc-400"
+                                    }`}
+                                >
+                                    {option === "trackTime" ? "Track Time" : option.charAt(0).toUpperCase() + option.slice(1)}
+                                </button>
+                            ))}
                         </div>
                     )}
                 </div>
@@ -198,7 +169,7 @@ export default function TrackCommentsSection({
 
             <div className="space-y-8">
                 {sortedComments.map((comment) => (
-                    <article key={comment.commentId} className="flex gap-3">
+                    <article key={comment.commentId} className="flex gap-3 group">
                         {comment.user.avatarUrl ? (
                             <img
                                 src={comment.user.avatarUrl}
@@ -210,23 +181,30 @@ export default function TrackCommentsSection({
                         )}
 
                         <div className="min-w-0 flex-1">
-                            <div className="mb-1 flex flex-wrap items-center gap-1 text-sm">
-                                <span className="font-bold text-white">
-                                    {comment.user.display_name}
-                                </span>
+                            <div className="flex items-start justify-between gap-2">
+                                <div className="mb-1 flex flex-wrap items-center gap-1 text-sm">
+                                    <span className="font-bold text-white">
+                                        {comment.user.display_name}
+                                    </span>
+                                    <span className="font-bold text-zinc-400">
+                                        at {formatTimestamp(comment.timestampSeconds)}
+                                    </span>
+                                    <span className="text-zinc-400">·</span>
+                                    <span className="font-bold text-zinc-400">
+                                        {formatCreatedAt(comment.createdAt)}
+                                    </span>
+                                </div>
 
-                                <span className="font-bold text-zinc-400">
-                                    at {formatTimestamp(comment.timestampSeconds)}
-                                </span>
-
-                                <span className="text-zinc-400">·</span>
-
-                                <span className="font-bold text-zinc-400">
-                                    {formatCreatedAt(comment.createdAt)}
-                                </span>
+                                <ReportButton
+                                    targetId={comment.commentId}
+                                    targetType={"COMMENT" as ReportTargetType}
+                                    targetLabel={comment.text.slice(0, 50)}
+                                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                                />
                             </div>
-
-                            <p className="break-words text-sm text-white">{comment.text}</p>
+                            <p className="break-words text-sm text-white mt-1">
+                                {comment.text}
+                            </p>
                         </div>
                     </article>
                 ))}

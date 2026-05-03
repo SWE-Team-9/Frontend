@@ -4,13 +4,13 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { FiAlertTriangle, FiBarChart2, FiClipboard } from 'react-icons/fi';
+import { FaHouseUser } from "react-icons/fa6";
 import { useAuthStore } from '@/src/store/useAuthStore';
 
 import {
   LuLayoutDashboard,
   LuUsers,
   LuSettings,
-  LuLifeBuoy,
   LuLogOut
 } from "react-icons/lu";
 
@@ -34,11 +34,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     ...(isAdmin ? [{ label: 'User Management', href: '/admin/users', icon: LuUsers }] : []),
     ...(isAdmin ? [{ label: 'Analytics', href: '/admin/analytics', icon: FiBarChart2 }] : []),
     ...(isAdmin ? [{ label: 'Audit Log', href: '/admin/audit-log', icon: FiClipboard }] : []),
+    {label:'Home',href:'/discover', icon: FaHouseUser },
   ];
 
   const utilityNav = [
-    { label: 'Settings', href: '/admin/settings', icon: LuSettings },
-    { label: 'Support', href: '/admin/support', icon: LuLifeBuoy },
+    { label: 'Settings', href: '/settings', icon: LuSettings },
+    
     { label: 'Log out', href: '/', icon: LuLogOut },
   ];
 
@@ -104,7 +105,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="p-4 bg-zinc-950 border-t border-zinc-800">
           <div className="flex items-center gap-3 px-2">
             <div className="w-2 h-2 bg-green-500 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
-            <span className="text-[10px] text-zinc-500 font-medium uppercase tracking-tight">Server: Stable</span>
+            <span className="text-[10px] text-zinc-500 font-medium uppercase tracking-tight">Admin</span>
           </div>
         </div>
       </aside>

@@ -84,12 +84,20 @@ const NOTIFICATION_TYPES: NotificationType[] = [
   "comment",
   "follow",
   "repost",
+  "message",
+  "report_resolved",
+  "system",
+  "subscription",
+  "account_suspended",
+  "account_banned",
+  "account_restored",
 ];
 const NOTIFICATION_ENTITY_TYPES: NotificationEntityType[] = [
   "track",
   "user",
   "comment",
   "playlist",
+  "message",
 ];
 
 function mapNotificationTypeToBackend(
@@ -148,7 +156,7 @@ function normalizeType(value: unknown): NotificationType {
     return normalized as NotificationType;
   }
 
-  return "like";
+  return "system";
 }
 
 function normalizeEntityType(
@@ -164,6 +172,7 @@ function normalizeEntityType(
     return normalized as NotificationEntityType;
   }
 
+  if (fallbackType === "message") return "message";
   return fallbackType === "follow" ? "user" : "track";
 }
 

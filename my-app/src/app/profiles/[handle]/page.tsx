@@ -24,8 +24,9 @@ import { TrackData } from "@/src/types/interactions";
 import { getUserLikes } from "@/src/services/likeService";
 import SharePopup from "@/src/components/share/SharePopup";
 import { buildUserPermalink } from "@/src/lib/permalinks";
-import {MyPlaylistsSection} from "@/src/components/profile/MyPlaylistsSection";
+import { MyPlaylistsSection } from "@/src/components/profile/MyPlaylistsSection";
 import { useProfilePageData } from "@/src/hooks/useProfilePageData";
+import ProfileAllActivity from "@/src/components/profile/ProfileAllActivity";
 
 type FollowUserShape = {
   id: string;
@@ -83,10 +84,10 @@ export default function ProfilePage({
   // skip its own GET /profiles/:handle fetch via externalProfileId.
   const { data: bffData } = useProfilePageData(handle);
 
-  const bffProfileId: string | undefined =
-    bffData?.profile
-      ? ((bffData.profile as BffProfile).id ?? (bffData.profile as BffProfile).user_id)
-      : undefined;
+  const bffProfileId: string | undefined = bffData?.profile
+    ? ((bffData.profile as BffProfile).id ??
+      (bffData.profile as BffProfile).user_id)
+    : undefined;
 
   // Seed profile store from BFF data so useProfileController skips its own fetch
   useEffect(() => {
@@ -104,7 +105,9 @@ export default function ProfilePage({
       isPrivate: p.is_private ?? false,
       accountType: p.account_type ?? p.accountType ?? "LISTENER",
       favoriteGenres: Array.isArray(p.favorite_genres)
-        ? p.favorite_genres.map((g: string | { slug?: string }) => (typeof g === "string" ? g : g.slug ?? ""))
+        ? p.favorite_genres.map((g: string | { slug?: string }) =>
+          typeof g === "string" ? g : (g.slug ?? ""),
+        )
         : [],
       followersCount: p.followers_count ?? p.followersCount ?? 0,
       followingCount: p.following_count ?? p.followingCount ?? 0,
@@ -173,9 +176,7 @@ export default function ProfilePage({
       }
     };
 
-    if (detailTab === "Likes") {
-      fetchLikes();
-    }
+    fetchLikes();
 
     return () => {
       isMounted = false;
@@ -211,8 +212,6 @@ export default function ProfilePage({
   const BUTTON_STYLE =
     "bg-zinc-800/50 border border-zinc-700 px-4 py-1 rounded text-xs font-bold hover:bg-zinc-700 transition-colors uppercase flex items-center gap-2";
 
-
-
   const {
     displayName,
     location,
@@ -227,6 +226,8 @@ export default function ProfilePage({
     accountType,
     setIsEditOpen,
     handleAvatarUpload,
+    handleCoverDelete,
+    handleAvatarDelete,
     avatarUrl,
     coverUrl,
     handleCoverUpload,
@@ -245,7 +246,6 @@ export default function ProfilePage({
     },
     [setProfileData],
   );
-  
 
   // DETAILS VIEW
   const renderDetailsPage = () => (
@@ -281,8 +281,8 @@ export default function ProfilePage({
                 setSearchQuery("");
               }}
               className={`pb-2 cursor-pointer border-b-2 transition-all ${detailTab === t
-                  ? "text-white border-white"
-                  : "border-transparent hover:text-zinc-200"
+                ? "text-white border-white"
+                : "border-transparent hover:text-zinc-200"
                 }`}
             >
               {t}
@@ -348,8 +348,8 @@ export default function ProfilePage({
                         })
                       }
                       className={`px-4 py-1.5 rounded text-[10px] font-bold uppercase transition-all ${isFollowing
-                          ? "bg-zinc-800 text-zinc-400 border border-zinc-700"
-                          : "bg-white text-black hover:bg-zinc-200"
+                        ? "bg-zinc-800 text-zinc-400 border border-zinc-700"
+                        : "bg-white text-black hover:bg-zinc-200"
                         }`}
                     >
                       {isFollowing ? "Following" : "Follow"}
@@ -403,27 +403,43 @@ export default function ProfilePage({
             </p>
           </div>
         ))}
-{/* ── LIKES GRID DISPLAY & PAGINATION ── */}
+      {/* ── LIKES GRID DISPLAY & PAGINATION ── */}
       {/* This section renders the liked tracks and their specific pagination controls */}
-      {detailTab === "Likes" && (
-        profileLikes.length === 0 ? (
+      {detailTab === "Likes" &&
+        (profileLikes.length === 0 ? (
           <div className="py-20 text-center w-full">
-            <p className="text-xl font-bold text-zinc-600 uppercase">No likes found.</p>
+            <p className="text-xl font-bold text-zinc-600 uppercase">
+              No likes found.
+            </p>
           </div>
         ) : (
           <div className="flex flex-col items-center w-full">
             {/* Grid layout for displaying Track Cards */}
-<div className="grid grid-cols-1 gap-6 w-full max-w-5xl">
-                {profileLikes.map((track) => (
+            <div className="grid grid-cols-1 gap-6 w-full max-w-5xl">
+              {profileLikes.map((track) => (
                 <TrackCard
                   key={track.id}
                   track={{
-                    trackId: track.id,
+                    trackId: track.trackId ?? track.id,
                     title: track.title,
-                    // artistName: track.artistName,
-                    // coverArt: track.coverArt,
+                    artistName: track.artistName ?? undefined,
+                    artistId: track.artistId,
+                    artistHandle: track.artistHandle,
+                    artistAvatarUrl: track.artistAvatarUrl ?? null,
+                    coverArtUrl:
+                      track.coverArtUrl ??
+                      track.coverArt ??
+                      track.imageUrl ??
+                      undefined,
+                    coverArt:
+                      track.coverArt ??
+                      track.coverArtUrl ??
+                      track.imageUrl ??
+                      undefined,
                     likesCount: track.likesCount,
-                    liked: true 
+                    liked: true,
+                    repostsCount: track.repostsCount ?? 0,
+                    waveformData: track.waveformData ?? null,
                   }}
                   isOwner={isOwner}
                 />
@@ -460,8 +476,7 @@ export default function ProfilePage({
               </button>
             </div>
           </div>
-        )
-      )}
+        ))}
 
       {/* Back to Profile Button - Stays at the bottom of all tabs */}
       <button
@@ -478,7 +493,23 @@ export default function ProfilePage({
 
   // ─── FEED CONTENT ─────────────────────────────────────────────────────────
   const renderFeedContent = () => {
-    if (activeTab === "Tracks" || activeTab === "All") {
+    if (activeTab === "All") {
+      return (
+        <div className="flex-1 border-r border-zinc-900/50 pr-12">
+          {controller.userId ? (
+            <ProfileAllActivity
+              userId={controller.userId}
+              isOwner={isOwner}
+              onTracksTotalChange={handleTracksTotalChange}
+            />
+          ) : (
+            <p className="text-sm text-zinc-500">Loading profile content...</p>
+          )}
+        </div>
+      );
+    }
+
+    if (activeTab === "Tracks") {
       return (
         <div className="flex-1 border-r border-zinc-900/50 pr-12">
           {controller.userId ? (
@@ -514,7 +545,9 @@ export default function ProfilePage({
 
                   <button
                     // Disable next button if the current page covers all available tracks
-                    disabled={tracksPage * TRACKS_LIMIT >= controller.tracksCount}
+                    disabled={
+                      tracksPage * TRACKS_LIMIT >= controller.tracksCount
+                    }
                     onClick={() => {
                       setTracksPage((prev) => prev + 1);
                       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -534,10 +567,11 @@ export default function ProfilePage({
     }
     if (activeTab === "Playlists") {
       return (
-        <div className="flex-1 text-center py-20 border-r border-zinc-900/50 pr-12 flex flex-col items-center justify-center">
-          <p className="text-zinc-500 text-xl font-bold">
-            <MyPlaylistsSection />
-          </p>
+        <div className="flex-1 border-r border-zinc-900/50 pr-12">
+          <MyPlaylistsSection
+            userId={controller.userId ?? undefined}
+            isOwner={isOwner}
+          />
         </div>
       );
     }
@@ -596,12 +630,14 @@ export default function ProfilePage({
                 <CoverPhoto
                   isOwner={isOwner}
                   coverUrl={coverUrl}
+                  onDelete={handleCoverDelete}
                   onUpload={handleCoverUpload}
                 />
                 <AvatarUpload
                   username={displayName}
                   location={location}
                   onUpload={handleAvatarUpload}
+                  onDelete={handleAvatarDelete}
                   avatarUrl={avatarUrl}
                   isOwner={isOwner}
                 />
@@ -634,8 +670,8 @@ export default function ProfilePage({
                       key={tab}
                       onClick={() => setActiveTab(tab)}
                       className={`cursor-pointer transition-colors h-full flex items-center border-b-2 ${activeTab === tab
-                          ? "text-white border-white"
-                          : "border-transparent hover:text-white"
+                        ? "text-white border-white"
+                        : "border-transparent hover:text-white"
                         }`}
                     >
                       {tab}
@@ -756,14 +792,21 @@ export default function ProfilePage({
                         }}
                       >
                         <div className="w-10 h-10 bg-zinc-800 rounded relative overflow-hidden shrink-0">
-                          {(track.coverArt || track.imageUrl) && (
-                            <Image
-                              src={track.coverArt || track.imageUrl || ""}
-                              alt={track.title}
-                              fill
-                              className="object-cover"
-                            />
-                          )}
+                          {(track.coverArt ||
+                            track.coverArtUrl ||
+                            track.imageUrl) && (
+                              <Image
+                                src={
+                                  track.coverArt ||
+                                  track.coverArtUrl ||
+                                  track.imageUrl ||
+                                  ""
+                                }
+                                alt={track.title}
+                                fill
+                                className="object-cover"
+                              />
+                            )}
                         </div>
                         <div className="overflow-hidden">
                           <p className="text-sm font-bold truncate">

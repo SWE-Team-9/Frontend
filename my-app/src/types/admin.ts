@@ -38,6 +38,7 @@ export interface ModeratorReview {
   content: string;
   created_at?: string;
   admin_name?: string;
+  
 }
 
 
@@ -51,6 +52,10 @@ export interface Report {
     title: string;
     owner_handle?: string;
   };
+  offender: {
+    id: string;
+    account_status: 'ACTIVE' | 'SUSPENDED' | 'BANNED';
+  };
   category: 'COPYRIGHT' | 'INAPPROPRIATE' | 'SPAM' | 'HARASSMENT' | 'OTHER';
   status: 'PENDING' | 'RESOLVED' | 'REJECTED' | 'UNDER_REVIEW';
   created_at: string;
@@ -58,6 +63,15 @@ export interface Report {
   assigned_admin?: { id: string; handle: string; display_name: string } | null; // Populated when fetching reports with admin details
   moderator_reviews?: ModeratorReview[]; // Reviews left by moderators during the review process
   previous_actions_on_target?: ModerationAction[]; // This can be populated with the history of actions taken on the reported content/user for better context during review
+}
+
+
+export interface PaginatedAuditLogs {
+  page: number;
+  limit: number;
+  total: number;
+  total_pages: number;
+  actions: AuditLog[]; // Matches the "actions" key in your JSON
 }
 
 export interface AdminUser {
@@ -70,7 +84,7 @@ export interface AdminUser {
   is_verified: boolean;
   created_at: string;
   avatar_url: string | null;
-  account_type: 'ARTIST' | 'LISTENER';
+  account_type: 'ARTIST' | 'LISTENER'|'PRO';
   track_count: number;
   report_count: number;
   last_login_at: string;
@@ -83,7 +97,13 @@ export interface PaginatedUsers {
   total_pages: number;
   users: AdminUser[];
 }
-
+export interface DailyStat {
+  date: string;
+  users_total: number;
+  tracks_total: number;
+  plays_total: number;
+  storage_used: number;
+}
 export interface AnalyticsData {
   growth: { date: string; users: number; artists: number }[];
   plays: { name: string; value: number }[];

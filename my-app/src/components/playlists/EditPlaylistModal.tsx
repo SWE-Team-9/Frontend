@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { FaTimes } from "react-icons/fa";
 import { Playlist } from "@/src/types/playlist";
 import { playlistsApi } from "@/src/services/playlistsService";
+import DatePickerInput from "@/src/components/ui/DatePickerInput";
 
 interface Props {
   playlist: Playlist;
@@ -14,41 +15,51 @@ interface Props {
   onSaved?: (updated: Playlist) => void;
 }
 
-type Tab = "basic" | "tracks" | "metadata";
+type Tab = "basic" | "tags";
 
-export function EditPlaylistModal({ playlist, isOpen, onClose, onSaved }: Props) {
+export function EditPlaylistModal({
+  playlist,
+  isOpen,
+  onClose,
+  onSaved,
+}: Props) {
   const [tab, setTab] = useState<Tab>("basic");
   const [title, setTitle] = useState(playlist.title);
   const [description, setDescription] = useState(playlist.description ?? "");
   const [visibility, setVisibility] = useState<"PUBLIC" | "PRIVATE">(
-    playlist.visibility === "SECRET" ? "PRIVATE" : (playlist.visibility as "PUBLIC" | "PRIVATE") ?? "PUBLIC"
+    playlist.visibility === "SECRET" ? "PRIVATE" : "PUBLIC",
   );
-  const [releaseDate, setReleaseDate] = useState(playlist.releaseDate?.split("T")[0] ?? "");
-  const [playlistType, setPlaylistType] = useState(playlist.type ?? "Playlist");
+  const [releaseDate, setReleaseDate] = useState(
+    playlist.releaseDate?.split("T")[0] ?? "",
+  );
+  const [genre, setGenre] = useState(playlist.genre ?? "");
   const [tags, setTags] = useState<string[]>(playlist.tags ?? []);
   const [tagInput, setTagInput] = useState("");
-  const [coverPreview, setCoverPreview] = useState<string | null>(playlist.cover ?? null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(
+    playlist.cover ?? null,
+  );
   const [saving, setSaving] = useState(false);
+  const [loadingEdit, setLoadingEdit] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load full edit data from backend when modal opens
   useEffect(() => {
     if (!isOpen) return;
 
-    playlistsApi.getEditDetails(playlist.playlistId)
+    Promise.resolve()
+      .then(() => setLoadingEdit(true))
+      .then(() => playlistsApi.getEditDetails(playlist.playlistId))
       .then((data) => {
         setTitle(data.title);
         setDescription(data.description ?? "");
-        setVisibility(data.visibility === "SECRET" ? "PRIVATE" : (data.visibility as "PUBLIC" | "PRIVATE"));
+        setVisibility(data.visibility === "SECRET" ? "PRIVATE" : "PUBLIC");
         setReleaseDate(data.releaseDate?.split("T")[0] ?? "");
-        setPlaylistType(data.type ?? "Playlist");
+        setGenre(data.genre ?? "");
         setTags(data.tags ?? []);
         setCoverPreview(data.coverImageUrl ?? null);
+        setLoadingEdit(false);
       })
-      .catch(() => {
-        // Keep prop values as fallback if the request fails
-      });
+      .catch(() => setLoadingEdit(false));
   }, [isOpen, playlist.playlistId]);
 
   if (!isOpen) return null;
@@ -59,7 +70,6 @@ export function EditPlaylistModal({ playlist, isOpen, onClose, onSaved }: Props)
     try {
       const res = await playlistsApi.uploadCover(playlist.playlistId, file);
       setCoverPreview(res.coverImageUrl);
-      toast.success("Cover updated");
       onSaved?.({ ...playlist, cover: res.coverImageUrl });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Upload failed");
@@ -85,23 +95,25 @@ export function EditPlaylistModal({ playlist, isOpen, onClose, onSaved }: Props)
       await playlistsApi.updatePlaylist(playlist.playlistId, {
         title: title.trim(),
         description: description.trim() || undefined,
-        visibility: visibility === "PRIVATE" ? "SECRET" : "PUBLIC",
-        type: playlistType !== "Playlist" ? playlistType : undefined,
+        visibility: visibility === "PRIVATE" ? "secret" : "public",
         releaseDate: releaseDate || undefined,
+        genre: genre || undefined,
         tags: tags.length > 0 ? tags : undefined,
       });
-      toast.success("Playlist updated.");
       onSaved?.({
         ...playlist,
         title: title.trim(),
         description: description.trim() || null,
         visibility: visibility === "PRIVATE" ? "SECRET" : "PUBLIC",
         cover: coverPreview,
+        releaseDate: releaseDate || null,
         tags,
       });
       onClose();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not update playlist");
+      toast.error(
+        err instanceof Error ? err.message : "Could not update playlist",
+      );
     } finally {
       setSaving(false);
     }
@@ -117,7 +129,7 @@ export function EditPlaylistModal({ playlist, isOpen, onClose, onSaved }: Props)
       onClick={onClose}
     >
       <div
-className="relative w-205 max-w-[95vw] max-h-[90vh] overflow-hidden bg-[#121212] border border-neutral-700 rounded-lg shadow-2xl flex flex-col"
+        className="relative w-205 max-w-[95vw] max-h-[90vh] overflow-hidden bg-[#121212] border border-neutral-700 rounded-lg shadow-2xl flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -134,8 +146,7 @@ className="relative w-205 max-w-[95vw] max-h-[90vh] overflow-hidden bg-[#121212]
           {(
             [
               ["basic", "Basic info"],
-              ["tracks", "Tracks"],
-              ["metadata", "Metadata"],
+              ["tags", "Tags"],
             ] as const
           ).map(([key, label]) => (
             <button
@@ -180,7 +191,7 @@ className="relative w-205 max-w-[95vw] max-h-[90vh] overflow-hidden bg-[#121212]
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="absolute inset-x-0 bottom-0 bg-black/60 text-white text-xs py-2 hover:bg-black/80 transition-colors"
+                    className="absolute inset-x-0 bottom-0 bg-black/60 text-white text-xs cursor-pointer py-2 hover:bg-black/80 transition-colors"
                   >
                     Upload image
                   </button>
@@ -200,28 +211,64 @@ className="relative w-205 max-w-[95vw] max-h-[90vh] overflow-hidden bg-[#121212]
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className={labelCls}>Playlist type</label>
-                    <select
-                      value={playlistType}
-                      onChange={(e) => setPlaylistType(e.target.value)}
-                      className={inputCls}
-                    >
-                      <option value="Playlist">Playlist</option>
-                      <option value="Album">Album</option>
-                      <option value="EP">EP</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className={labelCls}>Release date</label>
-                    <input
-                      type="date"
-                      value={releaseDate}
-                      onChange={(e) => setReleaseDate(e.target.value)}
-                      className={inputCls}
-                    />
-                  </div>
+                <div>
+                  <label className={labelCls}>Release date</label>
+                  <DatePickerInput
+                    value={releaseDate}
+                    onChange={setReleaseDate}
+                  />
+                </div>
+
+                <div>
+                  <label className={labelCls}>Genre</label>
+                  <select
+                    value={genre}
+                    onChange={(e) =>
+                      setGenre(e.target.value === "None" ? "" : e.target.value)
+                    }
+                    className={inputCls}
+                  >
+                    {[
+                      "None",
+                      "electronic",
+                      "hip-hop",
+                      "pop",
+                      "rock",
+                      "alternative",
+                      "ambient",
+                      "classical",
+                      "jazz",
+                      "r-b-soul",
+                      "metal",
+                      "folk-singer-songwriter",
+                      "country",
+                      "reggaeton",
+                      "dancehall",
+                      "drum-bass",
+                      "house",
+                      "techno",
+                      "deep-house",
+                      "trance",
+                      "lo-fi",
+                      "indie",
+                      "punk",
+                      "blues",
+                      "latin",
+                      "afrobeat",
+                      "trap",
+                      "experimental",
+                      "world",
+                      "gospel",
+                      "spoken-word",
+                      "quran",
+                      "sha3by",
+                      "islamic",
+                    ].map((g) => (
+                      <option key={g} value={g}>
+                        {g === "None" ? "— None —" : g}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
@@ -272,15 +319,8 @@ className="relative w-205 max-w-[95vw] max-h-[90vh] overflow-hidden bg-[#121212]
             </div>
           )}
 
-          {/* TRACKS TAB */}
-          {tab === "tracks" && (
-            <div className="text-zinc-400 text-sm">
-              Reorder or remove tracks here. Wire to your reorder/remove endpoints.
-            </div>
-          )}
-
-          {/* METADATA TAB */}
-          {tab === "metadata" && (
+          {/* TAGS TAB */}
+          {tab === "tags" && (
             <div className="space-y-4">
               <div>
                 <label className={labelCls}>Tags</label>
@@ -301,7 +341,7 @@ className="relative w-205 max-w-[95vw] max-h-[90vh] overflow-hidden bg-[#121212]
                   <button
                     type="button"
                     onClick={handleAddTag}
-                    className="px-3 py-2 bg-zinc-700 hover:bg-zinc-600 text-white text-xs rounded"
+                    className="px-3 py-2 bg-zinc-700 hover:bg-zinc-600 cursor-pointer text-white text-xs rounded"
                   >
                     Add
                   </button>
@@ -317,7 +357,7 @@ className="relative w-205 max-w-[95vw] max-h-[90vh] overflow-hidden bg-[#121212]
                         <button
                           type="button"
                           onClick={() => handleRemoveTag(tag)}
-                          className="text-zinc-400 hover:text-white ml-1"
+                          className="text-zinc-400 hover:text-white ml-1 cursor-pointer"
                         >
                           ×
                         </button>
@@ -335,17 +375,17 @@ className="relative w-205 max-w-[95vw] max-h-[90vh] overflow-hidden bg-[#121212]
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-sm text-white hover:bg-zinc-800 rounded-md"
+            className="px-4 py-2 text-sm text-white cursor-pointer hover:bg-zinc-800 rounded-md"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={handleSave}
-            disabled={saving || !title.trim()}
-            className="px-4 py-2 text-sm font-semibold rounded-md bg-[#f50] text-white hover:bg-[#e64a00] disabled:opacity-50"
+            disabled={saving || loadingEdit}
+            className="px-4 py-2 text-sm font-bold bg-white hover:bg-neutral-600 disabled:opacity-50 text-black rounded-md transition-colors cursor-pointer"
           >
-            {saving ? "Saving…" : "Save changes"}
+            {saving ? "Saving…" : "Save"}
           </button>
         </div>
       </div>

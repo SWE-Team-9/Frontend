@@ -8,6 +8,7 @@ import {
     type FeedItem,
     type FeedPagination,
 } from "@/src/services/feedService";
+import Link from "next/link";
 
 const FALLBACK_AVATAR = "/images/profile.png";
 
@@ -200,20 +201,45 @@ export default function FeedPage() {
                                 className="space-y-3"
                             >
                                 <div className="flex items-center gap-3">
-                                    <Image
-                                        src={profile?.avatarUrl || FALLBACK_AVATAR}
-                                        alt={displayName}
-                                        width={36}
-                                        height={36}
-                                        className="h-9 w-9 rounded-full object-cover"
-                                        onError={(e) => {
-                                            e.currentTarget.onerror = null;
-                                            e.currentTarget.src = FALLBACK_AVATAR;
-                                        }}
-                                    />
+                                    {profile?.handle ? (
+                                        <Link href={`/profiles/${profile.handle}`} className="shrink-0">
+                                            <Image
+                                                src={profile?.avatarUrl || FALLBACK_AVATAR}
+                                                alt={displayName}
+                                                width={36}
+                                                height={36}
+                                                className="h-9 w-9 rounded-full object-cover"
+                                                onError={(e) => {
+                                                    e.currentTarget.onerror = null;
+                                                    e.currentTarget.src = FALLBACK_AVATAR;
+                                                }}
+                                            />
+                                        </Link>
+                                    ) : (
+                                        <Image
+                                            src={profile?.avatarUrl || FALLBACK_AVATAR}
+                                            alt={displayName}
+                                            width={36}
+                                            height={36}
+                                            className="h-9 w-9 rounded-full object-cover"
+                                            onError={(e) => {
+                                                e.currentTarget.onerror = null;
+                                                e.currentTarget.src = FALLBACK_AVATAR;
+                                            }}
+                                        />
+                                    )}
 
                                     <p className="text-sm text-zinc-400">
-                                        <span className="font-bold text-white">{displayName}</span>{" "}
+                                        {profile?.handle ? (
+                                            <Link
+                                                href={`/profiles/${profile.handle}`}
+                                                className="font-bold text-white hover:text-zinc-600 transition-colors"
+                                            >
+                                                {displayName}
+                                            </Link>
+                                        ) : (
+                                            <span className="font-bold text-white">{displayName}</span>
+                                        )}{" "}
                                         posted a track{" "}
                                         <span>{timeAgo(item.publishedAt || item.createdAt)}</span>
                                     </p>

@@ -5,12 +5,14 @@ import { useState, useRef, useEffect } from "react";
 interface CoverPhotoProps {
   isOwner?: boolean;
   onUpload?: (file: File) => Promise<string | undefined>;
+  onDelete?: () => Promise<void>;
   coverUrl?: string | null;
 }
 
 export function CoverPhoto({
   isOwner,
   onUpload,
+  onDelete,
   coverUrl,
 }: CoverPhotoProps = {}) {
   const [tempImage, setTempImage] = useState<string | null>(null);
@@ -24,6 +26,8 @@ export function CoverPhoto({
   const [scaledSize, setScaledSize] = useState({ width: 0, height: 0 });
   const [zoom, setZoom] = useState(1);
   const [isValidImage, setIsValidImage] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -49,11 +53,21 @@ export function CoverPhoto({
   const handleDeleteImage = () => {
     setShowDeleteConfirm(true);
     setShowDropdown(false);
+    setDeleteError(null);
   };
 
-  const handleDelete = () => {
-    setFinalImage(null);
-    setShowDeleteConfirm(false);
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      await onDelete?.();
+      setFinalImage(null);
+      setShowDeleteConfirm(false);
+    } catch {
+      setDeleteError("Could not delete image. Please try again.");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -145,7 +159,6 @@ export function CoverPhoto({
     setFinalImage(croppedData);
     setShowPopup(false);
     setTempImage(null);
-    // Upload to backend so it persists
     if (onUpload) {
       const blob = await fetch(croppedData).then((r) => r.blob());
       const file = new File([blob], "cover.png", { type: "image/png" });
@@ -214,10 +227,7 @@ export function CoverPhoto({
               <h2 className="text-xl font-bold text-white">
                 Position and resize your profile header
               </h2>
-              <button
-                onClick={handleCancel}
-                className="text-gray-400 hover:text-white"
-              >
+              <button onClick={handleCancel} className="text-gray-400 hover:text-white">
                 ✕
               </button>
             </div>
@@ -304,25 +314,40 @@ export function CoverPhoto({
 
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-white/25 flex justify-center items-start z-50">
-          <div className="bg-black p-3 rounded-lg shadow-xl w-87.5 text-left animate-slideDown mt-[10vh] h-40">
+          <div className="bg-black p-3 rounded-lg shadow-xl w-87.5 text-left animate-slideDown mt-[10vh] h-auto min-h-40">
             <h2 className="text-xl font-bold mb-2 text-white">Are you sure?</h2>
             <p className="text-sm text-zinc-100 mb-4">
               Please confirm that you want to delete this image.
               <br />
               This action cannot be reversed.
             </p>
+            {deleteError && (
+              <p className="text-xs text-red-400 mb-3">{deleteError}</p>
+            )}
             <div className="flex justify-end gap-3">
               <button
-                onClick={() => setShowDeleteConfirm(false)}
-                className="bg-[#333333] text-white px-3 py-1 rounded hover:bg-gray-600 text-sm"
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setDeleteError(null);
+                }}
+                disabled={isDeleting}
+                className="bg-[#333333] text-white px-3 py-1 rounded hover:bg-gray-600 text-sm disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDelete}
-                className="bg-white text-black px-3 py-1 rounded hover:bg-gray-600 text-sm"
+                disabled={isDeleting}
+                className="bg-white text-black px-3 py-1 rounded hover:bg-gray-300 text-sm disabled:opacity-50 flex items-center gap-1.5"
               >
-                Delete
+                {isDeleting ? (
+                  <>
+                    <span className="w-3 h-3 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  "Delete"
+                )}
               </button>
             </div>
           </div>

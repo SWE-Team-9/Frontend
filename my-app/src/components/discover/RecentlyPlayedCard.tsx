@@ -9,10 +9,12 @@ import { useEffect, useRef, useState } from "react";
 import { useLikeStore } from "@/src/store/likeStore";
 import { TrackData } from "@/src/types/interactions";
 import { loadQueue } from "@/src/services/playerService";
+import { TrackPageLink, UserProfileLink } from "@/src/components/navigation/EntityLinks";
 
 export interface DiscoverCardTrack {
   trackId: string;
   title: string;
+  slug?: string;
   artist: string;
   artistId: string;
   artistHandle?: string;
@@ -20,6 +22,11 @@ export interface DiscoverCardTrack {
   coverArtUrl?: string | null;
   liked?: boolean;
   likesCount?: number;
+  reposted?: boolean;
+  repostsCount?: number;
+  durationMs?: number;
+  durationSeconds?: number;
+  waveformData?: number[] | null;
 }
 
 interface RecentlyPlayedCardProps {
@@ -193,12 +200,20 @@ export default function RecentlyPlayedCard({
         </div>
       </div>
 
-      <p className="mt-2 line-clamp-1 text-[15px] font-semibold text-white">
+      <TrackPageLink
+        trackId={track.trackId}
+        artistHandle={track.artistHandle}
+        className="mt-2 block line-clamp-1 text-[15px] font-semibold text-white hover:text-zinc-600 transition-colors"
+      >
         {track.title}
-      </p>
-      <p className="line-clamp-1 text-[14px] font-medium text-zinc-400">
+      </TrackPageLink>
+
+      <UserProfileLink
+        handle={track.artistHandle}
+        className="block line-clamp-1 text-[14px] font-medium text-zinc-400 hover:text-white transition-colors"
+      >
         {track.artist}
-      </p>
+      </UserProfileLink>
     </div>
   );
 }

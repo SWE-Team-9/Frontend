@@ -10,20 +10,25 @@ import {
   FiAlertCircle,
   FiEye
 } from 'react-icons/fi';
-import { Music, User, ShieldAlert, ShieldCheck } from 'lucide-react';
-import { adminService } from '@/src/services/admin/adminService';
+import { Music, User, ShieldAlert, ShieldCheck, Loader2 } from 'lucide-react';
+import { adminService } from '@/src/services/admin/adminServiceFactory';
+import { TablePagination } from '@/src/components/admin/TablePagination';
 
 export default function ReportsPage() {
   const { 
     reports = [], 
     updateReportStatus, 
-    suspendUser, 
     users = [], 
+    reportPagination,
+    loadReports,
     fetchDashboardData 
   } = useAdminStore();
   
   const [filter, setFilter] = useState<'ALL' | 'PENDING' | 'RESOLVED'>('ALL');
   const [isMounted, setIsMounted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean; 
     userId: string; 
@@ -46,6 +51,7 @@ export default function ReportsPage() {
   if (!isMounted) return null;
 
   const handleAction = (userId: string, status: string) => {
+    setError(null);
     setConfirmModal({ 
       isOpen: true, 
       userId, 
@@ -53,25 +59,59 @@ export default function ReportsPage() {
     });
   };
 
-  const executeAction = async () => {
-    if (!reason || !password) return alert("Required fields missing");
-    
-    try {
-      const duration = confirmModal.mode === 'SUSPEND' ? 7 : 0;
-      
-      await adminService.suspendUser(confirmModal.userId, {
-       reason,
-       current_password: password,
-       duration_days: duration,
-      });
-
-      setConfirmModal({ isOpen: false, userId: '', mode: 'SUSPEND' });
-      setReason('');
-      setPassword('');
-    } catch (_error) {
-      alert("Failed to update status. Check your admin password.");
-    }
+  const closeModal = () => {
+    setConfirmModal({ ...confirmModal, isOpen: false });
+    setReason('');
+    setPassword('');
+    setError(null);
+    setIsLoading(false);
   };
+
+  const executeAction = async () => {
+  setError(null);
+  
+  if (!reason || !password) {
+    setError("Please provide a reason and your admin password.");
+    return;
+  }
+  
+  setIsLoading(true);
+
+  try {
+    const duration = confirmModal.mode === 'SUSPEND' ? 7 : 0;
+
+    await adminService.suspendUser(confirmModal.userId, {
+      reason,
+      current_password: password,
+      duration_days: duration,
+    });
+
+    closeModal();
+    fetchDashboardData();
+  } catch (err: unknown) {
+    if (
+      typeof err === 'object' &&
+      err !== null &&
+      'response' in err &&
+      typeof (err as { response?: unknown }).response === 'object'
+    ) {
+      const response = (err as {
+        response?: { data?: { message?: string } };
+      }).response;
+
+      setError(
+        response?.data?.message ??
+        "Failed to update status. Check your admin password."
+      );
+    } else if (err instanceof Error) {
+      setError(err.message);
+    } else {
+      setError("Failed to update status. Check your admin password.");
+    }
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const filteredReports = reports.filter(r => 
     filter === 'ALL' ? true : r.status === filter
@@ -114,15 +154,13 @@ export default function ReportsPage() {
             {filteredReports.map((report) => {
               if (!report?.target) return null;
 
-              const offender = users.find(u => {
-                const isUserReport = report.target.type === 'USER';
-                if (isUserReport) {
-                  return String(u.id) === String(report.target.id);
-                }
-                const targetHandle = report.target.owner_handle?.toLowerCase().replace('@', '');
-                const userHandle = u.handle?.toLowerCase().replace('@', '');
-                return targetHandle && userHandle === targetHandle;
-              });
+              const offender = report.offender
+              ? users.find(u => u.id === report.offender.id) || {
+              id: report.offender.id,
+              account_status: report.offender.account_status,
+              }
+              : null;
+
 
               return (
                 <tr key={report.id} className="hover:bg-zinc-800/30 transition-colors group">
@@ -210,6 +248,11 @@ export default function ReportsPage() {
             })}
           </tbody>
         </table>
+        <TablePagination 
+          currentPage={reportPagination.currentPage} 
+          totalPages={reportPagination.totalPages} 
+          onPageChange={(page) => loadReports(page)} 
+        />
       </div>
 
       {confirmModal.isOpen && (
@@ -234,9 +277,10 @@ export default function ReportsPage() {
               <div>
                 <label className="text-[10px] uppercase font-black text-zinc-500 mb-2 block tracking-widest">Reason</label>
                 <textarea 
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-white text-sm focus:ring-1 focus:ring-orange-500 outline-none transition-all"
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-white text-sm focus:ring-1 focus:ring-orange-500 outline-none transition-all disabled:opacity-50"
                   placeholder="Justify this action..."
                   rows={3}
+                  disabled={isLoading}
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                 />
@@ -246,29 +290,40 @@ export default function ReportsPage() {
                 <label className="text-[10px] uppercase font-black text-zinc-500 mb-2 block tracking-widest">Admin Password</label>
                 <input 
                   type="password"
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-white text-sm focus:ring-1 focus:ring-orange-500 outline-none transition-all"
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-white text-sm focus:ring-1 focus:ring-orange-500 outline-none transition-all disabled:opacity-50"
                   placeholder="••••••••"
+                  disabled={isLoading}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
 
+              {error && (
+                <div className="flex items-center gap-2 text-red-500 bg-red-500/10 p-3 rounded-xl border border-red-500/20 animate-in slide-in-from-top-1">
+                  <FiAlertCircle size={14} className="shrink-0" />
+                  <span className="text-[11px] font-bold uppercase tracking-tight">{error}</span>
+                </div>
+              )}
+
               <div className="flex gap-4 pt-4">
                 <button 
-                  onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })} 
-                  className="flex-1 px-4 py-3 bg-zinc-800 text-zinc-300 rounded-xl text-sm font-bold hover:bg-zinc-700 transition-all"
+                  disabled={isLoading}
+                  onClick={closeModal} 
+                  className="flex-1 px-4 py-3 bg-zinc-800 text-zinc-300 rounded-xl text-sm font-bold hover:bg-zinc-700 transition-all disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button 
+                  disabled={isLoading}
                   onClick={executeAction} 
-                  className={`flex-1 px-4 py-3 rounded-xl text-sm font-bold text-white transition-all shadow-lg ${
+                  className={`flex-1 px-4 py-3 rounded-xl text-sm font-bold text-white transition-all shadow-lg flex items-center justify-center gap-2 ${
                     confirmModal.mode === 'SUSPEND' 
                       ? 'bg-red-600 hover:bg-red-500 shadow-red-900/20' 
                       : 'bg-green-600 hover:bg-green-500 shadow-green-900/20'
-                  }`}
+                  } disabled:opacity-50`}
                 >
-                  Confirm
+                  {isLoading && <Loader2 size={16} className="animate-spin" />}
+                  {isLoading ? 'Processing...' : 'Confirm'}
                 </button>
               </div>
             </div>

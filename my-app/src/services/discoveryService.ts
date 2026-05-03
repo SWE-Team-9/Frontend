@@ -61,3 +61,97 @@ export async function getTrendingTracks(
 
   return data;
 }
+
+export const GENRES = [
+  "electronic",
+  "hip-hop",
+  "pop",
+  "rock",
+  "alternative",
+  "ambient",
+  "classical",
+  "jazz",
+  "r-b-soul",
+  "metal",
+  "folk-singer-songwriter",
+  "country",
+  "reggaeton",
+  "dancehall",
+  "drum-bass",
+  "house",
+  "techno",
+  "deep-house",
+  "trance",
+  "lo-fi",
+  "indie",
+  "punk",
+  "blues",
+  "latin",
+  "afrobeat",
+  "trap",
+  "experimental",
+  "world",
+  "gospel",
+  "spoken-word",
+  "quran",
+  "sha3by",
+  "islamic",
+];
+
+export function formatGenreName(slug: string) {
+  return slug
+    .split("-")
+    .map((word) => {
+      if (word === "r") return "R";
+      if (word === "b") return "B";
+      return word.charAt(0).toUpperCase() + word.slice(1);
+    })
+    .join(" ");
+}
+
+export interface GenreTrendingTrack {
+  trackId: string;
+  title: string;
+  slug?: string;
+  artist: {
+    id: string;
+    displayName: string;
+    handle?: string;
+    avatarUrl?: string | null;
+  };
+  genre: {
+    slug: string;
+    name: string;
+  };
+  coverArtUrl?: string | null;
+  durationMs?: number;
+  waveformData?: number[];
+  likesCount?: number;
+  repostsCount?: number;
+  createdAt?: string;
+  publishedAt?: string;
+}
+
+export interface GenreTrendingResponse {
+  genre: {
+    slug: string;
+    name: string;
+  };
+  limit: number;
+  total: number;
+  tracks: GenreTrendingTrack[];
+}
+
+export async function getTrendingTracksByGenre(
+  genreSlug: string,
+  limit = 5,
+): Promise<GenreTrendingResponse> {
+  const { data } = await api.get<GenreTrendingResponse>(
+    `/discovery/trending/genres/${genreSlug}/tracks`,
+    {
+      params: { limit },
+    },
+  );
+
+  return data;
+}

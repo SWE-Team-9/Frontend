@@ -14,8 +14,6 @@ import {
 import LibraryTabs from "@/src/components/library/LibraryTabs";
 
 export default function LibraryPlaylistsPage() {
-  const { playlists, isLoading, createPlaylist } = usePlaylists();
-
   const [filter, setFilter] = useState("");
   const [mode, setMode] = useState<PlaylistFilterMode>("all");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -23,6 +21,9 @@ export default function LibraryPlaylistsPage() {
   const [trackQuery, setTrackQuery] = useState("");
   const [searchTracks, setSearchTracks] = useState<SearchTrack[]>([]);
   const [isSearchingTracks, setIsSearchingTracks] = useState(false);
+
+  // Pass mode to usePlaylists - when mode is "liked", it will fetch liked playlists
+  const { playlists, isLoading, createPlaylist } = usePlaylists(undefined, undefined, mode);
 
   useEffect(() => {
     const trimmed = trackQuery.trim();
@@ -57,16 +58,13 @@ export default function LibraryPlaylistsPage() {
   const visible = useMemo(() => {
     let list = playlists ?? [];
 
-    if (mode === "created") list = list.filter((p) => !p.liked);
-    if (mode === "liked") list = list.filter((p) => p.liked);
-
     if (filter.trim()) {
       const q = filter.toLowerCase();
       list = list.filter((p) => p.title.toLowerCase().includes(q));
     }
 
     return list;
-  }, [playlists, mode, filter]);
+  }, [playlists, filter]);
 
   return (
     <div className="min-h-screen bg-[#121212] px-6 py-8 text-white">
@@ -88,14 +86,18 @@ export default function LibraryPlaylistsPage() {
       {!isLoading && playlists.length === 0 && (
         <div className="flex flex-col items-center justify-center py-32">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
-            You have no playlists yet
+            {mode === "liked" 
+              ? "You haven't liked any playlists yet" 
+              : "You have no playlists yet"}
           </h2>
-          <button
-            onClick={() => setIsCreateOpen(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-zinc-100 text-black text-xs font-bold uppercase tracking-wider rounded transition-colors"
-          >
-            <FaPlus size={11} /> Create Playlist
-          </button>
+          {mode !== "liked" && (
+            <button
+              onClick={() => setIsCreateOpen(true)}
+              className="flex items-center gap-2 px-5 py-2.5 bg-white cursor-pointer hover:bg-zinc-100 text-black text-md font-bold uppercase tracking-wider rounded transition-colors"
+            >
+              <FaPlus size={11} /> Create Playlist
+            </button>
+          )}
         </div>
       )}
 
@@ -103,13 +105,17 @@ export default function LibraryPlaylistsPage() {
       {!isLoading && playlists.length > 0 && (
         <>
           <div className="flex items-center justify-between mb-6">
-            <h1 className="text-xl font-bold">Your Playlists</h1>
-            <button
-              onClick={() => setIsCreateOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-zinc-400 text-black text-xs font-bold uppercase tracking-wider rounded transition-colors"
-            >
-              <FaPlus size={11} /> Create Playlist
-            </button>
+            <h1 className="text-xl font-bold">
+              {mode === "liked" ? "Liked Playlists" : "Your Playlists"}
+            </h1>
+            {mode !== "liked" && (
+              <button
+                onClick={() => setIsCreateOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-white cursor-pointer hover:bg-zinc-400 text-black text-md font-bold uppercase tracking-wider rounded transition-colors"
+              >
+                <FaPlus size={11} /> Create Playlist
+              </button>
+            )}
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
@@ -123,16 +129,18 @@ export default function LibraryPlaylistsPage() {
         </>
       )}
 
-      {/* MODAL  */}
-      <CreatePlaylistModal
-        isOpen={isCreateOpen}
-        onClose={handleClose}
-        onSubmit={createPlaylist}
-        availableTracks={searchTracks}
-        isSearchingTracks={isSearchingTracks}
-        trackQuery={trackQuery}
-        onTrackQueryChange={setTrackQuery}
-      />
+      {/* MODAL - Only show in non-liked modes */}
+      {mode !== "liked" && (
+        <CreatePlaylistModal
+          isOpen={isCreateOpen}
+          onClose={handleClose}
+          onSubmit={createPlaylist}
+          availableTracks={searchTracks}
+          isSearchingTracks={isSearchingTracks}
+          trackQuery={trackQuery}
+          onTrackQueryChange={setTrackQuery}
+        />
+      )}
     </div>
   );
 }
