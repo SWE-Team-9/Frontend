@@ -37,6 +37,7 @@ export default function UserManagementPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [requiresPasswordSetup, setRequiresPasswordSetup] = useState(false);
+  const [checkingPasswordStatus, setCheckingPasswordStatus] = useState(false);
   const [setupPassword, setSetupPassword] = useState('');
   const [setupConfirmPassword, setSetupConfirmPassword] = useState('');
   const [setupStatus, setSetupStatus] = useState('');
@@ -46,6 +47,47 @@ export default function UserManagementPage() {
     loadUsers(1);
     return () => clearTimeout(timer);
   }, [loadUsers]);
+
+  const closeModal = () => {
+    setConfirmModal({ isOpen: false, userId: '', mode: 'SUSPEND' });
+    setReason('');
+    setPassword('');
+    setError('');
+    setRequiresPasswordSetup(false);
+    setSetupPassword('');
+    setSetupConfirmPassword('');
+    setSetupStatus('');
+    setCheckingPasswordStatus(false);
+  };
+
+  useEffect(() => {
+    const shouldCheck = confirmModal.isOpen && confirmModal.mode !== 'ACTIVATE';
+    if (!shouldCheck) return;
+
+    let cancelled = false;
+    setCheckingPasswordStatus(true);
+    setRequiresPasswordSetup(false);
+    setSetupStatus('');
+
+    api
+      .get('/auth/password/status')
+      .then((res) => {
+        if (cancelled) return;
+        const hasPassword = Boolean(res?.data?.hasPassword);
+        setRequiresPasswordSetup(!hasPassword);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setRequiresPasswordSetup(false);
+      })
+      .finally(() => {
+        if (!cancelled) setCheckingPasswordStatus(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [confirmModal.isOpen, confirmModal.mode]);
 
   if (!isMounted) return null;
 
@@ -59,17 +101,6 @@ export default function UserManagementPage() {
 
     return matchesSearch && matchesRole;
   });
-
-  const closeModal = () => {
-    setConfirmModal({ isOpen: false, userId: '', mode: 'SUSPEND' });
-    setReason('');
-    setPassword('');
-    setError('');
-    setRequiresPasswordSetup(false);
-    setSetupPassword('');
-    setSetupConfirmPassword('');
-    setSetupStatus('');
-  };
 
   const setupLocalAdminPassword = async () => {
     if (!setupPassword || !setupConfirmPassword) {
@@ -94,6 +125,16 @@ export default function UserManagementPage() {
   };
 
   const executeAction = async () => {
+    if (checkingPasswordStatus) {
+      setError('Checking password status, please wait.');
+      return;
+    }
+
+    if (requiresPasswordSetup) {
+      setError('Please set a local admin password first.');
+      return;
+    }
+
     if (!reason || (confirmModal.mode !== 'ACTIVATE' && !password)) {
       setError("Missing required fields.");
       return;
@@ -115,9 +156,11 @@ export default function UserManagementPage() {
       await loadUsers();
       closeModal();
     } catch (err) {
-      const errorData = (err as { response?: { data?: { error?: string; message?: string } } })
+      const errorData = (err as {
+        response?: { data?: { error?: string; code?: string; message?: string } };
+      })
         ?.response?.data;
-      if (errorData?.error === 'PASSWORD_SETUP_REQUIRED') {
+      if (errorData?.error === 'PASSWORD_SETUP_REQUIRED' || errorData?.code === 'PASSWORD_SETUP_REQUIRED') {
         setRequiresPasswordSetup(true);
         setError(
           errorData.message ||
@@ -341,6 +384,12 @@ export default function UserManagementPage() {
                     setError('');
                   }}
                 />
+              )}
+
+              {checkingPasswordStatus && confirmModal.mode !== 'ACTIVATE' && (
+                <div className="bg-zinc-800/70 text-zinc-200 text-xs px-3 py-2 rounded-lg border border-zinc-700">
+                  Checking admin password status...
+                </div>
               )}
 
               {requiresPasswordSetup && (

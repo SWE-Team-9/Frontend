@@ -7,11 +7,13 @@ const mockSuspendUser = jest.fn();
 const mockBanUser = jest.fn().mockResolvedValue(undefined);
 const mockRestoreUser = jest.fn().mockResolvedValue(undefined);
 const mockApiPost = jest.fn();
+const mockApiGet = jest.fn();
 
 jest.mock('@/src/services/api', () => ({
   __esModule: true,
   default: {
     post: (...args: unknown[]) => mockApiPost(...args),
+    get: (...args: unknown[]) => mockApiGet(...args),
   },
 }));
 
@@ -48,19 +50,10 @@ jest.mock('@/src/store/useAdminStore', () => ({
 describe('Admin Users Page - password setup flow', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockApiGet.mockResolvedValue({ data: { hasPassword: false } });
   });
 
-  it('shows setup password UI when backend returns PASSWORD_SETUP_REQUIRED', async () => {
-    mockSuspendUser.mockRejectedValueOnce({
-      response: {
-        data: {
-          error: 'PASSWORD_SETUP_REQUIRED',
-          message:
-            'Your account was created with Google. Please set a local admin password before performing sensitive admin actions.',
-        },
-      },
-    });
-
+  it('shows setup password UI proactively for admins without password', async () => {
     render(<UserManagementPage />);
 
     await waitFor(() => {
@@ -77,14 +70,6 @@ describe('Admin Users Page - password setup flow', () => {
       expect(screen.getByText('Suspend Account?')).toBeInTheDocument();
     });
 
-    fireEvent.change(screen.getByPlaceholderText('Reason...'), {
-      target: { value: 'Repeated policy violations for testing only.' },
-    });
-    fireEvent.change(screen.getByPlaceholderText('Admin Password'), {
-      target: { value: 'wrong-password' },
-    });
-    fireEvent.click(screen.getByText('Confirm'));
-
     await waitFor(() => {
       expect(screen.getByText('Set Local Admin Password')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Set Admin Password' })).toBeInTheDocument();
@@ -92,15 +77,6 @@ describe('Admin Users Page - password setup flow', () => {
   });
 
   it('calls setup endpoint and asks admin to retry confirmation', async () => {
-    mockSuspendUser.mockRejectedValueOnce({
-      response: {
-        data: {
-          error: 'PASSWORD_SETUP_REQUIRED',
-          message:
-            'Your account was created with Google. Please set a local admin password before performing sensitive admin actions.',
-        },
-      },
-    });
     mockApiPost.mockResolvedValueOnce({ data: { hasPassword: true } });
 
     render(<UserManagementPage />);
@@ -116,14 +92,6 @@ describe('Admin Users Page - password setup flow', () => {
     await waitFor(() => {
       expect(screen.getByText('Suspend Account?')).toBeInTheDocument();
     });
-
-    fireEvent.change(screen.getByPlaceholderText('Reason...'), {
-      target: { value: 'Repeated policy violations for testing only.' },
-    });
-    fireEvent.change(screen.getByPlaceholderText('Admin Password'), {
-      target: { value: 'wrong-password' },
-    });
-    fireEvent.click(screen.getByText('Confirm'));
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Set Admin Password' })).toBeInTheDocument();
@@ -146,5 +114,25 @@ describe('Admin Users Page - password setup flow', () => {
         screen.getByText('Password set successfully. Please enter it above and confirm the action.'),
       ).toBeInTheDocument();
     });
+  });
+
+  it('does not show setup password UI for admins who already have password', async () => {
+    mockApiGet.mockResolvedValueOnce({ data: { hasPassword: true } });
+
+    render(<UserManagementPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('User Management')).toBeInTheDocument();
+    });
+
+    const row = screen.getByText('Target User').closest('tr');
+    const buttons = within(row as HTMLElement).getAllByRole('button');
+    fireEvent.click(buttons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText('Suspend Account?')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText('Set Local Admin Password')).not.toBeInTheDocument();
   });
 });
