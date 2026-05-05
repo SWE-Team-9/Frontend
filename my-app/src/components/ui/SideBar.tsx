@@ -23,15 +23,15 @@ const SideBar: React.FC<SideBarProps> = ({ children, showSidebar = true }) => {
   const isStaff = systemRole === "ADMIN" || systemRole === "MODERATOR";
 
   return (
-    <div className="flex items-start">
+    <div className="flex h-screen">
       {/* Main Content Area */}
-      <main className="min-w-0 flex-1 p-2 bg-[#121212]">
+      <main className="h-full flex-1 overflow-y-auto p-2 bg-[#121212]">
         {children}
       </main>
 
       {/* Sidebar */}
       <div
-        className={`hidden md:flex flex-col gap-y-2 bg-[#121212] w-96 shrink-0 p-2 
+        className={`hidden md:flex flex-col gap-y-2 bg-[#121212] h-full w-96 p-2 
         ${showSidebar ? "visible" : "invisible"}`}
       >
         {isStaff && (
