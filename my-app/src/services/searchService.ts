@@ -23,6 +23,7 @@ interface BackendTrack {
   description: string | null;
   coverArtUrl: string | null;
   uploaderId: string;
+  artistHandle?: string | null;
 }
 
 interface BackendPlaylist {
@@ -61,7 +62,7 @@ function mapToSearchResponse(raw: BackendSearchResponse): SearchResponse {
         title: t.title,
         artwork_url: t.coverArtUrl ?? undefined,
         genre: undefined,
-        artist_handle: undefined,
+        artist_handle: t.artistHandle ?? undefined,
       })),
       playlists: raw.data.playlists.map((p) => ({
         id: p.id,
