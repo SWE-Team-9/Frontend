@@ -121,13 +121,13 @@ export function AddTrackModal({ isOpen, onClose, onAdd }: Props) {
                 key={track.id}
                 className="flex items-center gap-3 px-6 py-3 hover:bg-zinc-800/50"
               >
-                <div className="w-10 h-10 rounded bg-[#222] flex items-center justify-center shrink-0 overflow-hidden">
+                <div className="relative w-10 h-10 rounded bg-[#222] flex items-center justify-center shrink-0 overflow-hidden">
                   {track.artwork_url ? (
                     <Image
                       src={track.artwork_url}
                       alt={track.title}
                       fill
-                      className="w-full h-full object-cover"
+                      className="object-cover"
                       unoptimized
                     />
                   ) : (
