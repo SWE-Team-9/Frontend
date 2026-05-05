@@ -301,8 +301,6 @@ export default function ProfilePage({
                   user.display_name || user.displayName || user.name || "";
                 const avatar =
                   user.avatar_url || user.avatarUrl || user.avatar || null;
-                const followerCount =
-                  (user as FollowUserShape).followersCount || 0;
                 const isFollowing = checkIsFollowing(user.id);
 
                 return (
@@ -334,9 +332,6 @@ export default function ProfilePage({
                       <h4 className="font-bold text-white text-sm uppercase mb-1">
                         {name}
                       </h4>
-                      <p className="text-zinc-500 text-[11px] mb-4">
-                        {followerCount} followers
-                      </p>
                     </Link>
                     <button
                       onClick={() =>
