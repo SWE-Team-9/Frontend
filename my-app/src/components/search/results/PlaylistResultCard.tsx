@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { SearchPlaylist } from "@/src/types/search";
+import { buildPlaylistPermalink } from "@/src/lib/permalinks";
 
 interface Props {
   playlist: SearchPlaylist;
@@ -9,7 +10,7 @@ interface Props {
 export default function PlaylistResultCard({ playlist }: Props) {
   return (
     <Link
-      href={`/playlists/${playlist.id}`}
+      href={buildPlaylistPermalink({ playlistId: playlist.id })}
       className="flex gap-4 rounded-lg p-3 hover:bg-neutral-800 transition-colors"
     >
       <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-md bg-neutral-700">

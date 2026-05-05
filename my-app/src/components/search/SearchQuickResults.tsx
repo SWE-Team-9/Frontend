@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { SearchResponse } from "@/src/types/search";
 import { UserCard } from "@/src/components/user/UserCard";
+import { buildPlaylistPermalink } from "@/src/lib/permalinks";
 
 interface Props {
   query: string;
@@ -64,7 +65,7 @@ export default function SearchQuickResults({
           {playlists.slice(0, 3).map((p) => (
             <Link
               key={p.id}
-              href={`/playlists/${p.id}`}
+              href={buildPlaylistPermalink({ playlistId: p.id })}
               onClick={onClose}
               className="block py-1 hover:text-[#ff5500]"
             >
