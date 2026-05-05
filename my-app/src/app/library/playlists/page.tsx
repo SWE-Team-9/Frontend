@@ -12,11 +12,13 @@ import {
   PlaylistFilterMode,
 } from "@/src/components/library/LibraryPlaylistsHeader";
 import LibraryTabs from "@/src/components/library/LibraryTabs";
+import { useAuthStore } from "@/src/store/useAuthStore";
 
 export default function LibraryPlaylistsPage() {
   const [filter, setFilter] = useState("");
   const [mode, setMode] = useState<PlaylistFilterMode>("all");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const viewer = useAuthStore((state) => state.user);
 
   const [trackQuery, setTrackQuery] = useState("");
   const [searchTracks, setSearchTracks] = useState<SearchTrack[]>([]);
@@ -91,6 +93,16 @@ export default function LibraryPlaylistsPage() {
     }
   };
 
+  const isOwnerPlaylist = (playlist: (typeof playlists)[number]) => {
+    if (mode === "created") return true;
+    if (!viewer) return false;
+    const ownerId = playlist.owner?.id;
+    const ownerHandle = playlist.owner?.handle ?? playlist.handle ?? null;
+    if (ownerId && viewer.id) return String(ownerId) === String(viewer.id);
+    if (ownerHandle && viewer.handle) return ownerHandle === viewer.handle;
+    return false;
+  };
+
   return (
     <div className="min-h-screen bg-[#121212] px-6 py-8 text-white">
       <LibraryTabs />
@@ -144,7 +156,7 @@ export default function LibraryPlaylistsPage() {
               <PlaylistCard
                 key={playlist.playlistId}
                 playlist={playlist}
-                isOwner={mode !== "liked" && mode !== "all"}
+                isOwner={isOwnerPlaylist(playlist)}
               />
             ))}
           </div>
