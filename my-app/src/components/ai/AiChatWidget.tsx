@@ -102,10 +102,10 @@ export function AiChatWidget({ context }: AiChatWidgetProps) {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
+    <div className="fixed bottom-24 right-6 z-50 flex flex-col items-end gap-3">
       {isOpen && (
-        <div className="w-80 sm:w-96 h-[520px] bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white">
+        <div className="w-80 sm:w-96 h-130 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 bg-linear-to-r from-purple-600 to-blue-600 text-white">
             <div className="flex items-center gap-2">
               <span aria-hidden="true" className="text-lg">
                 ♫
@@ -196,7 +196,7 @@ export function AiChatWidget({ context }: AiChatWidgetProps) {
 
       <button
         onClick={() => setIsOpen((prev) => !prev)}
-        className="w-14 h-14 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-full shadow-lg flex items-center justify-center text-2xl transition-all hover:scale-110"
+        className="w-14 h-14 bg-linear-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-full shadow-lg flex items-center justify-center text-2xl transition-all hover:scale-110"
         title="IQA3 Assistant"
         aria-label={isOpen ? 'Close IQA3 Assistant' : 'Open IQA3 Assistant'}
       >
