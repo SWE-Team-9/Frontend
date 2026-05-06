@@ -188,16 +188,11 @@ export const playlistsApi: PlaylistsService = {
       .patch(`${BASE}/${playlistId}/reorder`, { orderedTrackIds })
       .then((r) => r.data),
 
-  getSecretPlaylist: async (secretToken: string): Promise<Playlist> => {
-    const res = await api
+  getSecretPlaylist: (secretToken: string): Promise<Playlist> =>
+    api
       .get(`${BASE}/secret/${secretToken}`)
-      .then((r) => r.data);
-    const playlistId =
-      (res as { playlistId?: string; playlist?: { id?: string } }).playlistId ??
-      (res as { playlist?: { id?: string } }).playlist?.id;
-    if (!playlistId) throw new Error("Secret playlist not found");
-    return playlistsApi.getPlaylistById(playlistId);
-  },
+      .then((r) => normalizePlaylist(r.data)),
+
 
   getEmbedCode: (playlistId: string, options?: Record<string, unknown>) =>
     api

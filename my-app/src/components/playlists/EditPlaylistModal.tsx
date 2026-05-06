@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { toast } from "sonner";
-import { FaTimes } from "react-icons/fa";
+import { FaTimes, FaCopy } from "react-icons/fa";
 import { Playlist } from "@/src/types/playlist";
 import { playlistsApi } from "@/src/services/playlistsService";
 import DatePickerInput from "@/src/components/ui/DatePickerInput";
@@ -40,6 +40,9 @@ export function EditPlaylistModal({
   );
   const [saving, setSaving] = useState(false);
   const [loadingEdit, setLoadingEdit] = useState(false);
+  const [secretToken, setSecretToken] = useState<string | null>(
+    playlist.secretToken ?? null,
+  );
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -63,6 +66,18 @@ export function EditPlaylistModal({
   }, [isOpen, playlist.playlistId]);
 
   if (!isOpen) return null;
+
+  const shareLink =
+    typeof window !== "undefined" && secretToken
+      ? `${window.location.origin}/playlists/secret/${secretToken}`
+      : null;
+
+  const handleCopyLink = () => {
+    if (!shareLink) return;
+    navigator.clipboard.writeText(shareLink).then(() => {
+      toast.success("Link copied!");
+    });
+  };
 
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -92,7 +107,7 @@ export function EditPlaylistModal({
     if (!title.trim()) return;
     setSaving(true);
     try {
-      await playlistsApi.updatePlaylist(playlist.playlistId, {
+      const result = await playlistsApi.updatePlaylist(playlist.playlistId, {
         title: title.trim(),
         description: description.trim() || undefined,
         visibility: visibility === "PRIVATE" ? "secret" : "public",
@@ -100,6 +115,12 @@ export function EditPlaylistModal({
         genre: genre || undefined,
         tags: tags.length > 0 ? tags : undefined,
       });
+
+      // Pick up a freshly generated secretToken if the backend returns one
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const updatedToken = (result as any)?.playlist?.secretToken ?? (result as any)?.secretToken ?? secretToken;
+      setSecretToken(updatedToken ?? null);
+
       onSaved?.({
         ...playlist,
         title: title.trim(),
@@ -108,6 +129,7 @@ export function EditPlaylistModal({
         cover: coverPreview,
         releaseDate: releaseDate || null,
         tags,
+        secretToken: updatedToken ?? null,
       });
       onClose();
     } catch (err) {
@@ -314,6 +336,36 @@ export function EditPlaylistModal({
                       </span>
                     </label>
                   </div>
+
+                  {/* Secret share link — shown only when private and token exists */}
+                  {visibility === "PRIVATE" && (
+                    <div className="mt-3 p-3 bg-[#0e0e0e] border border-zinc-800 rounded">
+                      <p className="text-xs font-bold text-zinc-400 mb-2">
+                        Share link
+                      </p>
+                      {shareLink ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            readOnly
+                            value={shareLink}
+                            className="flex-1 bg-transparent text-xs text-zinc-300 outline-none truncate"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleCopyLink}
+                            className="flex items-center gap-1.5 text-xs text-orange-500 hover:text-orange-400 whitespace-nowrap transition-colors"
+                          >
+                            <FaCopy size={11} />
+                            Copy
+                          </button>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-zinc-600">
+                          Save to generate a private share link.
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
