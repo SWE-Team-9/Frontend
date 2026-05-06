@@ -24,6 +24,7 @@ export interface TrackActionButtonsProps {
   reposted: boolean;
   downloadable?: boolean;
   size?: "compact" | "full";
+  hideEngagement?: boolean;
 }
 
 function fmtCount(n: number): string {
@@ -138,7 +139,20 @@ export function LikeButton({
 }
 
 export function TrackActionButtons({
-  trackId, title, artistName, artistId, artistHandle, artistAvatarUrl, coverArt, likesCount: initialLikes, repostsCount, liked, reposted, downloadable = false, size = "full",
+  trackId,
+  title,
+  artistName,
+  artistId,
+  artistHandle,
+  artistAvatarUrl,
+  coverArt,
+  likesCount: initialLikes,
+  repostsCount,
+  liked,
+  reposted,
+  downloadable = false,
+  size = "full",
+  hideEngagement = false,
 }: TrackActionButtonsProps) {
   const [modalType, setModalType] = useState<"likes" | "reposts" | null>(null);
 
@@ -166,51 +180,56 @@ export function TrackActionButtons({
 
   return (
     <div className="flex items-center gap-1.5">
-      <div className="flex items-center gap-1">
-        <LikeButton
-          trackId={trackId} title={title} artistName={artistName} coverArt={coverArt}
-          artistId={artistId}
-          artistHandle={artistHandle}
-          artistAvatarUrl={artistAvatarUrl}
-          likesCount={initialLikes}
-        />
-        {displayLikes > 0 && (
-          <span
-            onClick={(e) => { e.stopPropagation(); setModalType("likes"); }}
-            className="text-[11px] text-zinc-500 cursor-pointer hover:text-white px-1 tabular-nums"
-          >
-            {fmtCount(displayLikes)}
-          </span>
-        )}
-      </div>
+      {!hideEngagement && (
+        <>
+          <div className="flex items-center gap-1">
+            <LikeButton
+              trackId={trackId} title={title} artistName={artistName} coverArt={coverArt}
+              artistId={artistId}
+              artistHandle={artistHandle}
+              artistAvatarUrl={artistAvatarUrl}
+              likesCount={initialLikes}
+            />
+            {displayLikes > 0 && (
+              <span
+                onClick={(e) => { e.stopPropagation(); setModalType("likes"); }}
+                className="text-[11px] text-zinc-500 cursor-pointer hover:text-white px-1 tabular-nums"
+              >
+                {fmtCount(displayLikes)}
+              </span>
+            )}
+          </div>
 
-      <div className="flex items-center gap-1">
-        <RepostButton
-          trackId={trackId} title={title} artistName={artistName} coverArt={coverArt}
-          artistId={artistId}
-          artistHandle={artistHandle}
-          artistAvatarUrl={artistAvatarUrl}
-          repostsCount={displayReposts}
-        />
-        {displayReposts > 0 && (
-          <span
-            onClick={(e) => { e.stopPropagation(); setModalType("reposts"); }}
-            className="text-[11px] text-zinc-500 cursor-pointer hover:text-white px-1 tabular-nums"
-          >
-            {fmtCount(displayReposts)}
-          </span>
-        )}
-      </div>
+          <div className="flex items-center gap-1">
+            <RepostButton
+              trackId={trackId} title={title} artistName={artistName} coverArt={coverArt}
+              artistId={artistId}
+              artistHandle={artistHandle}
+              artistAvatarUrl={artistAvatarUrl}
+              repostsCount={displayReposts}
+            />
+            {displayReposts > 0 && (
+              <span
+                onClick={(e) => { e.stopPropagation(); setModalType("reposts"); }}
+                className="text-[11px] text-zinc-500 cursor-pointer hover:text-white px-1 tabular-nums"
+              >
+                {fmtCount(displayReposts)}
+              </span>
+            )}
+          </div>
 
-      {modalType && (
-        <EngagementModal
-          key={`${modalType}-${trackId}`}
-          isOpen={true}
-          onClose={() => setModalType(null)}
-          trackId={trackId}
-          type={modalType}
-        />
+          {modalType && (
+            <EngagementModal
+              key={`${modalType}-${trackId}`}
+              isOpen={true}
+              onClose={() => setModalType(null)}
+              trackId={trackId}
+              type={modalType}
+            />
+          )}
+        </>
       )}
+
       <DownloadButton
         trackId={trackId}
         trackTitle={title}

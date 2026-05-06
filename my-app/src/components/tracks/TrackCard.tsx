@@ -364,6 +364,7 @@ export const TrackCard: React.FC<TrackCardProps> = ({
                 repostsCount={track.repostsCount ?? 0}
                 reposted={track.reposted ?? false}
                 size="full"
+                hideEngagement={!!isOwner}
               />
 
               {/* Owner Actions */}
