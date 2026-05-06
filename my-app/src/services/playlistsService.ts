@@ -226,6 +226,7 @@ export function normalizePlaylistList(raw: unknown): Playlist[] {
 
 interface RawTrack {
   trackId?: string;
+  track_id?: string;
   id?: string;
   _id?: string;
   title?: string;
@@ -341,7 +342,7 @@ export function normalizePlaylist(raw: unknown): Playlist {
   // tracks
   const tracks = Array.isArray(inner.tracks)
     ? (inner.tracks as RawTrack[]).map((t) => ({
-      trackId: t.trackId ?? t.id ?? t._id ?? "",
+      trackId: t.trackId ?? t.track_id ?? t.id ?? t._id ?? "",
       title: t.title ?? t.name ?? "Untitled",
       coverArtUrl: t.coverArtUrl ?? t.coverImageUrl ?? t.cover ?? null,
       durationMs: t.durationMs ?? t.duration_ms ?? null,
