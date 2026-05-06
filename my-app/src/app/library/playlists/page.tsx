@@ -104,7 +104,7 @@ export default function LibraryPlaylistsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#121212] px-6 py-8 text-white">
+    <div className="min-h-screen bg-[#121212] px-6 py-8 text-white pb-32">
       <LibraryTabs />
       {/* HEADER FILTER */}
       <LibraryPlaylistsHeader
