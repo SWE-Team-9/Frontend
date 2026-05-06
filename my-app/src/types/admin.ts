@@ -125,7 +125,7 @@ export interface AdminStats {
     total_bytes: number;
     total_human_readable: string;
   };
-
+  
   content: {
     total_tracks: number;
     tracks_visible: number;
@@ -164,3 +164,9 @@ export type ActionPayload = {
   reportId?: string;
   assigned_to?: string;
 };
+export type TotalStorage = {
+  "totalBytes": number,
+  "totalMB": number,
+  "totalGB": number,
+  "source": ""
+}

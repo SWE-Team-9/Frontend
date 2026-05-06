@@ -145,6 +145,10 @@ export interface RawArtistTrack {
     handle?: string | null;
     avatarUrl?: string | null;
   } | null;
+   likesCount?: number;    // ← added for likes count on the artist page
+  repostsCount?: number;  // ← add for likes count on the artist page
+  liked?: boolean;        // ← add for likes count on the artist page
+  reposted?: boolean;    // ← add for likes count on the artist page
 }
 
 export interface RawArtistTracksResponse {

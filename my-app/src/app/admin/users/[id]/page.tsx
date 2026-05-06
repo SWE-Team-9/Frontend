@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import Image from 'next/image';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { adminService } from '@/src/services/admin/adminServiceFactory';
+import { useAdminStore } from '@/src/store/useAdminStore';
 import { FiArrowLeft, FiShield, FiClock, FiFlag } from 'react-icons/fi'; // Removed FiBarChart2
 import { Music, Users, Calendar, Crown } from 'lucide-react';
 import { AdminUser, ModerationAction } from '@/src/types/admin'; // Import your types
@@ -27,26 +29,28 @@ interface UserDetail extends AdminUser {
 export default function UserDetailPage() {
   const { id } = useParams();
   const router = useRouter();
-  
-  
+  const storeUsers = useAdminStore((state) => state.users);
+  const searchParams = useSearchParams();
   const [user, setUser] = useState<UserDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [avatarError, setAvatarError] = useState(false);
+  const showAvatar = !!user?.avatar_url && !avatarError;
 
   useEffect(() => {
   const fetchUser = async () => {
     try {
-      // 1. Tell TS to let us handle the mapping by using 'any' for the raw response
+     
       const data = await adminService.getUserById(id as string) as UserDetail;
       
       
       if (!data) throw new Error("No data returned");
 
-      // 2. Construct the object to match the UserDetail interface exactly
+      
       const mappedUser: UserDetail = {
-        // Spread the raw data
+       
         ...data,
         
-        // Ensure mandatory base fields (AdminUser) exist
+       
         id: data.id || (id as string),
         display_name: data.display_name || 'Unknown User',
         handle: data.handle || '',
@@ -56,12 +60,14 @@ export default function UserDetailPage() {
         is_verified: !!data.is_verified,
         created_at: data.created_at || new Date().toISOString(),
         
-        // Add the missing properties that caused your previous build error
+        
         avatar_url: data.avatar_url ?? null,
         account_type: data.account_type ?? 'LISTENER',
         last_login_at: data.last_login_at ?? data.created_at ?? new Date().toISOString(),
         track_count: data.track_count ?? 0,
-        report_count: data.report_count ?? 0,
+        report_count:  storeUsers.find(u => u.id === data.id)?.report_count 
+                  ?? data.report_count 
+                  ?? 0,
 
         // Map the Detail-specific optional fields
         subscription: data.subscription ? {
@@ -99,16 +105,28 @@ export default function UserDetailPage() {
 
   return (
     <div className="space-y-8 max-w-6xl animate-in fade-in duration-500">
-      <button onClick={() => router.back()} className="flex items-center gap-2 text-zinc-500 hover:text-white transition-colors">
+      <button onClick={() => router.push(`/admin/users?page=${searchParams.get('page') || 1}`)} className="flex items-center gap-2 text-zinc-500 hover:text-white transition-colors">
         <FiArrowLeft /> <span>Back to Management</span>
       </button>
 
       {/* Header Info */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-zinc-900/50 p-8 rounded-3xl border border-zinc-800">
         <div className="flex items-center gap-6">
-          <div className="w-24 h-24 rounded-3xl bg-zinc-800 flex items-center justify-center text-4xl font-bold text-zinc-600 border border-zinc-700 uppercase">
-            {user.display_name?.[0] || '?'}
-          </div>
+          {showAvatar ? (
+            <Image
+              src={user.avatar_url!}
+              alt={user.display_name}
+              width={96}
+              height={96}
+              className="object-cover w-full h-full"
+              onError={() => setAvatarError(true)}
+            />
+          ) : (
+            <span className="text-4xl font-bold text-zinc-600 uppercase">
+              {user.display_name?.[0] || '?'}
+            </span>
+          )}
+          
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-3xl font-bold text-white">{user.display_name}</h1>
@@ -136,7 +154,7 @@ export default function UserDetailPage() {
         {[
           { label: 'Tracks', val: user.stats?.tracks_uploaded || 0, icon: Music },
           { label: 'Followers', val: user.stats?.followers_count || 0, icon: Users },
-          { label: 'Reports Against', val: user.reports_against?.total || 0, icon: FiFlag, color: 'text-red-500' },
+          { label: 'Reports Against', val: user.report_count || 0, icon: FiFlag, color: 'text-red-500' },
           { label: 'Member Since', val: user.created_at ? new Date(user.created_at).getFullYear() : 'N/A', icon: Calendar },
         ].map((s, i) => (
           <div key={i} className="bg-zinc-900/30 border border-zinc-800 p-6 rounded-2xl">
@@ -153,8 +171,9 @@ export default function UserDetailPage() {
           <h3 className="text-lg font-bold text-white flex items-center gap-2">
             <FiClock className="text-orange-500" /> Moderation Log
           </h3>
-          <div className="bg-zinc-900/30 border border-zinc-800 rounded-2xl overflow-hidden">
+          <div className="bg-zinc-900/30 border border-zinc-800 rounded-2xl overflow-hidden h-[300px] flex flex-col">
             {user.moderation_history && user.moderation_history.length > 0 ? (
+             <div className="divide-y divide-zinc-800- overflow-y-auto flex-1"> 
               <div className="divide-y divide-zinc-800">
                 {user.moderation_history.map((log) => (
                   <div key={log.id} className="p-4 flex justify-between items-center">
@@ -169,6 +188,7 @@ export default function UserDetailPage() {
                   </div>
                 ))}
               </div>
+             </div> 
             ) : (
               <div className="p-10 text-center text-zinc-600 text-sm italic">No history found.</div>
             )}
@@ -180,7 +200,7 @@ export default function UserDetailPage() {
           <h3 className="text-lg font-bold text-white flex items-center gap-2">
             <FiShield className="text-blue-500" /> Subscription
           </h3>
-          <div className="bg-zinc-900/30 border border-zinc-800 p-6 rounded-2xl space-y-6">
+          <div className="bg-zinc-900/30 border border-zinc-800 p-6 rounded-2xl space-y-6 h-[300px]">
             <div>
               <p className="text-[10px] uppercase font-bold text-zinc-600 mb-1">Current Tier</p>
               <p className="text-xl font-bold text-white">{user.subscription?.tier || 'FREE'}</p>

@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { useAdminStore } from '@/src/store/useAdminStore';
 import { StatCard } from '@/src/components/admin/StatCard';
+
 import {
   Users,
   HardDrive,
@@ -37,6 +38,7 @@ interface BasicReport {
   target?: { title: string };
   reporter?: { handle: string };
   created_at: string;
+  status?: string;
 }
 
 export default function AdminDashboard() {
@@ -58,15 +60,16 @@ export default function AdminDashboard() {
   };
 
   const storageMetrics = useMemo(() => {
-    // 1. GET USED STORAGE (From Overview Stats or Trend)
-    const latestTrendUsed = analytics?.storageTrend?.[analytics.storageTrend.length - 1]?.used;
-    const usedBytes = latestTrendUsed ?? stats?.storage?.used_bytes ?? 0;
+    //Used Storage from stats overview.
+    const usedBytes = stats?.storage?.used_bytes ?? 0;
 
-    // 2. GET TOTAL STORAGE (From your new dedicated endpoint/store value)
-    const totalBytes = totalStorage || stats?.storage?.total_bytes || 0;
+    
+    // Fallback to 10GB (10 * 1024^3) if totalStorage is 0 or null
+    const DEFAULT_TOTAL = 10 * 1024 * 1024 * 1024; 
+    const totalBytes = totalStorage?.totalBytes ?? DEFAULT_TOTAL;
 
-    // 3. CALCULATE PERCENTAGE
-    const percent = totalBytes > 0 ? (usedBytes / totalBytes) * 100 : 0;
+    
+    const percent = (usedBytes / totalBytes) * 100;
 
     return {
       usedHuman: formatBytes(usedBytes),
@@ -154,7 +157,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="max-w-[1600px] mx-auto space-y-8 animate-in fade-in duration-500 pb-12">
-
+      
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-end gap-4">
         <div>
@@ -196,7 +199,7 @@ export default function AdminDashboard() {
           </div>
         </StatCard>
 
-        {/* STORAGE - FIXED CALCULATION */}
+        {/* STORAGE */}
         <StatCard
           title="Storage Usage"
           value={storageMetrics.usedHuman}
@@ -324,8 +327,6 @@ export default function AdminDashboard() {
 
       {/* Analytics & Moderation Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* URGENT MODERATION */}
         <div className="lg:col-span-2 bg-[#1a1a1a] border border-zinc-800 rounded-2xl p-6">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-bold flex items-center gap-2">

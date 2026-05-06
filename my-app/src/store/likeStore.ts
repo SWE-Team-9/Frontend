@@ -10,6 +10,7 @@ type LikeStore = {
   toggleLike: (track: TrackData) => Promise<void>;
   syncWithServer: (userId: string) => Promise<void>;
   clearError: () => void;
+  syncFromTracks: (tracks: TrackData[]) => void;
 };
 
 export const useLikeStore = create<LikeStore>((set, get) => ({
@@ -31,6 +32,25 @@ export const useLikeStore = create<LikeStore>((set, get) => ({
       console.error("Sync failed", err);
     }
   },
+  syncFromTracks: (tracks) => {
+  const existingIds = new Set(
+    get().likedTracks.map((t) => String(t.id))
+  );
+
+  const newLiked = tracks
+    .filter((t) => t.liked === true)  
+    .map((t) => ({
+      ...t,
+      id: String(t.id ?? t.trackId),
+    }))
+    .filter((t) => !existingIds.has(t.id));   // skip already-known tracks
+
+  if (newLiked.length === 0) return;
+
+  set((state) => ({
+    likedTracks: [...state.likedTracks, ...newLiked],
+  }));
+},
 
   toggleLike: async (track) => {
     const { likedTracks, loadingIds, isLiked } = get();

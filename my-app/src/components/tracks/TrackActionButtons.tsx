@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { AiOutlineHeart, AiFillHeart } from "react-icons/ai";
 import { BiRepost } from "react-icons/bi";
 import { EngagementModal } from "@/src/components/profile/modals/EngagementModal";
@@ -138,7 +138,8 @@ export function LikeButton({
 }
 
 export function TrackActionButtons({
-  trackId, title, artistName, artistId, artistHandle, artistAvatarUrl, coverArt, likesCount: initialLikes, repostsCount, liked, reposted, downloadable = false, size = "full",
+  trackId, title, artistName, artistId, artistHandle, artistAvatarUrl, coverArt,
+  likesCount: initialLikes, repostsCount, reposted, downloadable = false, size = "full",
 }: TrackActionButtonsProps) {
   const [modalType, setModalType] = useState<"likes" | "reposts" | null>(null);
 
@@ -151,10 +152,12 @@ export function TrackActionButtons({
   );
   const isCurrentlyReposted = !!repostedTrack;
 
-  let likeDelta = 0;
-  if (isCurrentlyLiked && !liked) likeDelta = 1;
-  else if (!isCurrentlyLiked && liked) likeDelta = -1;
-
+  // Capture store's liked state at first render only.
+  // Delta only fires when the user actually toggles in this session.
+  const [initialIsLiked] = useState(isCurrentlyLiked);
+  const likeDelta = isCurrentlyLiked !== initialIsLiked
+    ? (isCurrentlyLiked ? 1 : -1)
+    : 0;
 
   const displayLikes = Math.max(0, initialLikes + likeDelta);
 
@@ -162,8 +165,7 @@ export function TrackActionButtons({
     ? (repostedTrack?.repostsCount ?? repostsCount)
     : (reposted ? Math.max(0, repostsCount - 1) : repostsCount);
 
-
-
+ 
   return (
     <div className="flex items-center gap-1.5">
       <div className="flex items-center gap-1">

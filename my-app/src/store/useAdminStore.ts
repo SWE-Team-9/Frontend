@@ -12,7 +12,8 @@ import {
   AnalyticsData,
   AdminStats,
   DailyStat,
-  ActionPayload
+  ActionPayload,
+  TotalStorage
 } from '@/src/types/admin';
 
 interface AdminState {
@@ -24,7 +25,7 @@ interface AdminState {
   mostReported: MostReportedStats | null;
   dailyStats: DailyStat[];
   analytics: AnalyticsData;
-  totalStorage: number | null;
+  totalStorage: TotalStorage;
   pagination: {
     currentPage: number;
     totalPages: number;
@@ -77,7 +78,10 @@ export const useAdminStore = create<AdminState>()(
       auditLogs: [],
       mostReported: null,
       dailyStats: [],
-      totalStorage: null,
+      totalStorage:{  "totalBytes": 536870912000,
+                      "totalMB": 512000,
+                      "totalGB": 500,
+                      "source": ''},
       analytics: {
         storageTrend: [],
         growth: [],
@@ -126,6 +130,8 @@ export const useAdminStore = create<AdminState>()(
             auditLogs: (data.auditLogs as AuditLog[]) ?? [],
             mostReported: data.mostReported as MostReportedStats,
             analytics: data.analytics as AnalyticsData,
+            totalStorage: data.totalStorage as TotalStorage ,
+            
           });
         } catch (err) {
           console.error('Dashboard fetch failed:', err);

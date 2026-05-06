@@ -38,6 +38,7 @@ function formatBytes(bytes: number): string {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
 }
 
+
 /**
  * Transforms raw API overview data into the structured AdminStats type
  */
@@ -63,7 +64,7 @@ function transformOverviewStats(raw: Record<string, Record<string, number | null
     },
     storage: {
       used_bytes: usedBytes,
-      total_bytes: totalBytes,
+      total_bytes:totalBytes,
       total_human_readable: formatBytes(usedBytes),
     },
     content: {
@@ -105,6 +106,7 @@ export const adminServiceReal = {
     return {
       stats,
       users: (usersData.users as AdminUser[]) ?? (usersData as AdminUser[]),
+      totalStorage: totalStorage,
       reports: (reportsData.items as Report[]) ?? (reportsData.reports as Report[]) ?? (reportsData as Report[]),
       analytics: {
         growth: storageTrend,

@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
+import { Suspense } from 'react';
 import Link from 'next/link';
 import api from '@/src/services/api';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useAdminStore } from '@/src/store/useAdminStore';
 import { RoleGuard } from '@/src/components/admin/RoleGuard';
 import {
@@ -16,13 +18,24 @@ import {
 import { ShieldAlert, ShieldCheck, Gavel } from 'lucide-react';
 import { TablePagination } from '@/src/components/admin/TablePagination';
 
-export default function UserManagementPage() {
+function UserManagementContent() {
   const { users = [], loadUsers, suspendUser, restoreUser, banUser, pagination } = useAdminStore();
 
   const [isMounted, setIsMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('All');
+  // related to the pagination pages to stay at the current page
+  const searchParams = useSearchParams();
+  const router = useRouter();
 
+  const currentPage = Number(searchParams.get('page')) || 1;
+
+  const handlePageChange = (page: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('page', page.toString());
+
+    router.push(`?${params.toString()}`);
+  };
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
     userId: string;
@@ -276,7 +289,7 @@ export default function UserManagementPage() {
 
                 <td className="px-6 py-4 text-right">
                   <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Link href={`/admin/users/${user.id}`} className="p-2 hover:bg-zinc-800 text-zinc-500 rounded-lg transition-colors">
+                    <Link href={`/admin/users/${user.id}?page=${currentPage}`} className="p-2 hover:bg-zinc-800 text-zinc-500 rounded-lg transition-colors">
                       <FiEye size={16} />
                     </Link>
 
@@ -439,5 +452,12 @@ export default function UserManagementPage() {
         </div>
       )}
     </div>
+  );
+}
+export default function UserManagementPage() {
+  return (
+    <Suspense fallback={<div className="p-10 text-zinc-500 animate-pulse">Loading...</div>}>
+      <UserManagementContent />
+    </Suspense>
   );
 }

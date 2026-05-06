@@ -14,6 +14,7 @@ export interface TrackData {
   slug?: string;
   publishedAt?: string;
   waveformData?: number[] | null;
+  liked?: boolean;
 }
 
 export interface UserInteractionResponse {

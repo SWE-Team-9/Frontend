@@ -65,7 +65,7 @@ export default function AnalyticsPage() {
   const storageMetrics = useMemo(() => {
     const latestTrendUsed = analytics?.storageTrend?.[analytics.storageTrend.length - 1]?.used;
     const usedBytes = latestTrendUsed ?? stats?.storage?.used_bytes ?? 0;
-    const totalBytes = totalStorage || stats?.storage?.total_bytes || 0;
+    const totalBytes = totalStorage?.totalBytes || stats?.storage?.total_bytes || 0;
     const percent = totalBytes > 0 ? (usedBytes / totalBytes) * 100 : 0;
 
     return {

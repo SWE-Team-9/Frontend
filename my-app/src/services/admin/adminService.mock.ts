@@ -81,6 +81,7 @@ export const adminServiceMock = {
       },
       users: mockUsersState,
       reports: mockReportsState,
+      totalStorage:203,
       analytics: { growth: [], plays: [], storageTrend: [] },
       auditLogs: [],
       mostReported: null

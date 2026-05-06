@@ -95,6 +95,10 @@ function normalizeArtistTrack(
     artistHandle: artistObj.handle,
     artistAvatarUrl: artistObj.avatarUrl,
     artistObj,
+    likesCount: raw.likesCount ?? 0,    // ← add
+    repostsCount: raw.repostsCount ?? 0, // ← add
+    liked: raw.liked ?? false,           // ← add
+    reposted: raw.reposted ?? false, 
   };
 }
 
