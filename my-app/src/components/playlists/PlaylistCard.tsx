@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { usePlayerStore } from "@/src/store/playerStore";
 import Link from "next/link";
 import Image from "next/image";
 import { Playlist } from "@/src/types/playlist";
@@ -79,6 +80,37 @@ export function PlaylistCard({
     }
   };
 
+  const playTrackFromContext = usePlayerStore((s) => s.playTrackFromContext);
+  const addTrackToNextUp = usePlayerStore((s) => s.addTrackToNextUp);
+
+  const handlePlayPlaylist = async (e: React.MouseEvent) => {
+    e.preventDefault();
+
+    const firstTrack = playlist.tracks?.[0];
+
+    if (!firstTrack) {
+      toast.error("This playlist has no tracks.");
+      return;
+    }
+
+    await playTrackFromContext({
+      contextType: "PLAYLIST",
+      contextId: playlist.playlistId,
+      track: {
+        trackId: firstTrack.trackId,
+        title: firstTrack.title,
+        artist: firstTrack.artist?.name ?? playlist.owner?.display_name ?? "Unknown Artist",
+        artistId: firstTrack.artist?.id ?? playlist.owner?.id ?? "",
+        artistHandle: firstTrack.artist?.handle ?? playlist.owner?.handle ?? undefined,
+        artistAvatarUrl: null,
+        cover: firstTrack.coverArtUrl ?? playlist.cover ?? "/images/track-placeholder.png",
+        duration: firstTrack.durationMs
+          ? Math.floor(firstTrack.durationMs / 1000)
+          : undefined,
+      },
+    });
+  };
+
   const handleLike = async (e?: React.MouseEvent) => {
     e?.preventDefault();
     if (isLiking || isOwner) return; // Prevent owner from liking their own playlist
@@ -128,9 +160,23 @@ export function PlaylistCard({
     closeMenu();
   };
 
-  const handleAddToNextUp = () => {
-    closeMenu();
-    toast.success(`${playlist.title} was added to Next up.`);
+  const handleAddToNextUp = async () => {
+    const firstTrack = playlist.tracks?.[0];
+
+    if (!firstTrack) {
+      toast.error("This playlist has no tracks.");
+      closeMenu();
+      return;
+    }
+
+    try {
+      await addTrackToNextUp(firstTrack.trackId);
+      toast.success(`"${firstTrack.title}" was added to Next Up.`);
+    } catch {
+      toast.error("Could not add track to Next Up.");
+    } finally {
+      closeMenu();
+    }
   };
 
   const handleDelete = async () => {
@@ -172,8 +218,11 @@ export function PlaylistCard({
         />
 
         {/* PLAY ICON */}
-        <div className="pointer-events-none absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity transition-duration-200 flex items-center justify-center z-20">
-          <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center">
+        <div
+          onClick={handlePlayPlaylist}
+          className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity transition-duration-200 flex items-center justify-center z-20 cursor-pointer"
+        >
+          <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center pointer-events-none">
             <FaPlay className="text-black text-[2rem] ml-1" />
           </div>
         </div>

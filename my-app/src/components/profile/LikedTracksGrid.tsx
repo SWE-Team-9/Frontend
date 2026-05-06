@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getUserLikes } from "@/src/services/likeService";
 import { TrackData } from "@/src/types/interactions";
 import { TrackCard } from "@/src/components/tracks/TrackCard";
@@ -15,6 +15,11 @@ export default function LikedTracksGrid({ userId }: LikedTracksGridProps) {
     const [likes, setLikes] = useState<TrackData[]>([]);
     const [page, setPage] = useState(1);
     const [loading, setLoading] = useState(false);
+
+    const contextTrackIds = useMemo(
+        () => likes.map((track) => String(track.trackId ?? track.id)),
+        [likes],
+    );
 
     useEffect(() => {
         if (!userId) return;
@@ -76,7 +81,7 @@ export default function LikedTracksGrid({ userId }: LikedTracksGridProps) {
                     <TrackCard
                         key={track.id}
                         track={{
-                            trackId: track.trackId ?? track.id,
+                            trackId: String(track.trackId ?? track.id),
                             title: track.title,
                             artistName: track.artistName ?? undefined,
                             artistId: track.artistId,
@@ -88,8 +93,12 @@ export default function LikedTracksGrid({ userId }: LikedTracksGridProps) {
                             likesCount: track.likesCount,
                             liked: true,
                             waveformData: track.waveformData ?? null,
+
+                            status: "FINISHED",
+                            visibility: "PUBLIC",
                         }}
                         isOwner={false}
+                        contextTrackIds={contextTrackIds}
                     />
                 ))}
             </div>

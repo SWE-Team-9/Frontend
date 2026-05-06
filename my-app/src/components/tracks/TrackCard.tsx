@@ -2,6 +2,7 @@
 
 import TimestampedCommentsSection from "@/src/components/tracks/TimestampedCommentsSection";
 import React, { useState, Fragment } from "react";
+import { MdQueueMusic } from "react-icons/md";
 import { Share2 } from "lucide-react";
 import SharePopup from "@/src/components/share/SharePopup";
 import Link from "next/link";
@@ -36,7 +37,6 @@ import {
   usePlayerStore,
   type Track as PlayerTrack,
 } from "@/src/store/playerStore";
-import { loadQueue } from "@/src/services/playerService";
 import { buildTrackPermalink } from "@/src/lib/permalinks";
 
 const FALLBACK_IMAGE = "/images/track-placeholder.png";
@@ -102,8 +102,8 @@ export const TrackCard: React.FC<TrackCardProps> = ({
 
   const currentTrack = usePlayerStore((state) => state.currentTrack);
   const isPlaying = usePlayerStore((state) => state.isPlaying);
-  const fetchAndPlay = usePlayerStore((state) => state.fetchAndPlay);
-  const toggle = usePlayerStore((state) => state.toggle);
+  const playTrackFromContext = usePlayerStore((state) => state.playTrackFromContext);
+  const addTrackToNextUp = usePlayerStore((state) => state.addTrackToNextUp);
   const currentTime = usePlayerStore((state) => state.currentTime);
   const duration = usePlayerStore((state) => state.duration);
   const seekTo = usePlayerStore((state) => state.seekTo);
@@ -184,30 +184,14 @@ export const TrackCard: React.FC<TrackCardProps> = ({
 
   const handlePlayClick = async () => {
     if (track.status === "PROCESSING") return;
+
     try {
       setError(null);
-      if (isCurrentTrack) {
-        await toggle();
-        return;
-      }
-      if (contextTrackIds && contextTrackIds.length > 1) {
-        const resp = await loadQueue({
-          contextType: "CONTEXT_IDS",
-          trackIds: contextTrackIds,
-          startTrackId: playerTrack.trackId,
-        });
-        usePlayerStore.setState({
-          currentQueueIndex: resp.currentIndex,
-          queueLength: resp.queueLength,
-          tracksUntilAd: resp.tracksUntilAd,
-          currentAd: null,
-          isPlayingAd: false,
-          queueVersion: usePlayerStore.getState().queueVersion + 1,
-        });
-        await fetchAndPlay(playerTrack, true);
-      } else {
-        await fetchAndPlay(playerTrack);
-      }
+
+      await playTrackFromContext({
+        track: playerTrack,
+        contextTrackIds,
+      });
     } catch {
       setError("Could not start playback. Please try again.");
     }
@@ -292,11 +276,10 @@ export const TrackCard: React.FC<TrackCardProps> = ({
 
               <div className="flex items-center gap-2 relative">
                 <span
-                  className={`text-[10px] px-2 py-0.5 rounded font-bold ${
-                    visibility === "PUBLIC"
-                      ? "bg-green-900/30 text-green-400"
-                      : "bg-zinc-800 text-zinc-500"
-                  }`}
+                  className={`text-[10px] px-2 py-0.5 rounded font-bold ${visibility === "PUBLIC"
+                    ? "bg-green-900/30 text-green-400"
+                    : "bg-zinc-800 text-zinc-500"
+                    }`}
                 >
                   {visibility}
                 </span>
@@ -367,6 +350,39 @@ export const TrackCard: React.FC<TrackCardProps> = ({
                 hideEngagement={!!isOwner}
               />
 
+              <div className="relative">
+                <Menu>
+                  <MenuButton className="p-2 rounded bg-[#2a2a2a] text-zinc-400 hover:text-white">
+                    <MoreHorizontal className="w-4 h-4" />
+                  </MenuButton>
+                  <Transition
+                    as={Fragment}
+                    enter="transition ease-out duration-100"
+                    enterFrom="transform opacity-0 scale-95"
+                    enterTo="transform opacity-100 scale-100"
+                    leave="transition ease-in duration-75"
+                    leaveFrom="transform opacity-100 scale-100"
+                    leaveTo="transform opacity-0 scale-95"
+                  >
+                    <MenuItems className="absolute right-0 bottom-full mb-2 w-48 rounded-md bg-[#181818] border border-zinc-800 z-50">
+                      <MenuItem>
+                        {({ active }: { active: boolean }) => (
+                          <button
+                            onClick={async () => {
+                              await addTrackToNextUp(track.trackId);
+                            }}
+                            className={`${active ? "bg-zinc-800" : ""} text-zinc-300 group flex w-full items-center px-4 py-2 text-sm`}
+                          >
+                            <MdQueueMusic className="mr-2 h-4 w-4" />
+                            Add to Next Up
+                          </button>
+                        )}
+                      </MenuItem>
+                    </MenuItems>
+                  </Transition>
+                </Menu>
+              </div>
+
               {/* Owner Actions */}
               {isOwner && (
                 <div className="flex items-center gap-2">
@@ -417,35 +433,6 @@ export const TrackCard: React.FC<TrackCardProps> = ({
                     </button>
                   )}
 
-                  <div className="relative">
-                    <Menu>
-                      <MenuButton className="p-2 rounded bg-[#2a2a2a] text-zinc-400 hover:text-white">
-                        <MoreHorizontal className="w-4 h-4" />
-                      </MenuButton>
-                      <Transition
-                        as={Fragment}
-                        enter="transition ease-out duration-100"
-                        enterFrom="transform opacity-0 scale-95"
-                        enterTo="transform opacity-100 scale-100"
-                        leave="transition ease-in duration-75"
-                        leaveFrom="transform opacity-100 scale-100"
-                        leaveTo="transform opacity-0 scale-95"
-                      >
-                        <MenuItems className="absolute right-0 bottom-full mb-2 w-48 rounded-md bg-[#181818] border border-zinc-800 z-50">
-                          <MenuItem>
-                            {({ active }: { active: boolean }) => (
-                              <button
-                                className={`${active ? "bg-zinc-800" : ""} text-zinc-300 group flex w-full items-center px-4 py-2 text-sm`}
-                              >
-                                <BarChart2 className="mr-2 h-4 w-4" />
-                                Insights
-                              </button>
-                            )}
-                          </MenuItem>
-                        </MenuItems>
-                      </Transition>
-                    </Menu>
-                  </div>
                 </div>
               )}
             </div>

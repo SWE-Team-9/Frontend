@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { TrackCard } from "@/src/components/tracks/TrackCard";
 import {
     getFeed,
@@ -82,6 +82,11 @@ export default function FeedPage() {
     const [error, setError] = useState<string | null>(null);
 
     const observerRef = useRef<IntersectionObserver | null>(null);
+
+    const contextTrackIds = useMemo(
+        () => items.map((item) => item.id),
+        [items],
+    );
 
     const loadFeed = useCallback(async (nextPage = 1, append = false) => {
         try {
@@ -273,6 +278,7 @@ export default function FeedPage() {
                                         artistAvatarUrl: profile?.avatarUrl ?? null,
                                     }}
                                     isOwner={false}
+                                    contextTrackIds={contextTrackIds}
                                 />
                             </article>
                         );

@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { FaPlay, FaPause, FaHeart } from "react-icons/fa";
+import { MdQueueMusic } from "react-icons/md";
 import { HiDotsHorizontal } from "react-icons/hi";
 import { BiRepost } from "react-icons/bi";
 import { FiShare } from "react-icons/fi";
@@ -15,7 +16,6 @@ import { TrackData } from "@/src/types/interactions";
 import TimestampedCommentsSection from "@/src/components/tracks/TimestampedCommentsSection";
 import SharePopup from "@/src/components/share/SharePopup";
 import { buildFullShareUrl, buildTrackPermalink } from "@/src/lib/permalinks";
-import { loadQueue } from "@/src/services/playerService";
 import { TrackPageLink, UserProfileLink } from "@/src/components/navigation/EntityLinks";
 
 const FALLBACK_IMAGE = "/images/track-placeholder.png";
@@ -61,11 +61,10 @@ export default function HistoryTrackRow({ track, contextTrackIds }: HistoryTrack
   const {
     currentTrack,
     isPlaying,
-    toggle,
-    fetchAndPlay,
     currentTime,
     duration,
     seekTo,
+    playTrackFromContext,
   } = usePlayerStore();
 
   const { toggleLike, isLiked, loadingIds } = useLikeStore();
@@ -119,11 +118,6 @@ export default function HistoryTrackRow({ track, contextTrackIds }: HistoryTrack
     isCurrent && duration > 0 ? currentTime / duration : 0;
 
   const handlePlay = async () => {
-    if (isCurrent) {
-      toggle();
-      return;
-    }
-
     const playerTrack = {
       trackId: track.trackId,
       title: track.title,
@@ -132,32 +126,16 @@ export default function HistoryTrackRow({ track, contextTrackIds }: HistoryTrack
       artistHandle: track.artistHandle,
       artistAvatarUrl: track.artistAvatarUrl ?? null,
       cover: track.coverArtUrl || FALLBACK_IMAGE,
+      duration: track.durationSeconds,
     };
 
-    if (contextTrackIds && contextTrackIds.length > 1) {
-      try {
-        const resp = await loadQueue({
-          contextType: "CONTEXT_IDS",
-          trackIds: contextTrackIds,
-          startTrackId: track.trackId,
-        });
-        usePlayerStore.setState({
-          currentQueueIndex: resp.currentIndex,
-          queueLength: resp.queueLength,
-          tracksUntilAd: resp.tracksUntilAd,
-          currentAd: null,
-          isPlayingAd: false,
-          queueVersion: usePlayerStore.getState().queueVersion + 1,
-        });
-        await fetchAndPlay(playerTrack, true);
-      } catch {
-        // Queue load failed — fall back to single-track play
-        await fetchAndPlay(playerTrack);
-      }
-    } else {
-      await fetchAndPlay(playerTrack);
-    }
+    await playTrackFromContext({
+      track: playerTrack,
+      contextTrackIds,
+    });
   };
+
+  const addTrackToNextUp = usePlayerStore((s) => s.addTrackToNextUp);
 
   const handleWaveformSeek = async (progress: number) => {
     if (!isCurrent || duration <= 0) return;
@@ -345,12 +323,16 @@ export default function HistoryTrackRow({ track, contextTrackIds }: HistoryTrack
             </span>
           </button>
 
-          {/* More options */}
+          {/* Add to next up */}
           <button
-            title="More options"
-            className="ml-auto flex cursor-pointer items-center justify-center rounded-full border border-zinc-700 bg-zinc-800/60 p-1.5 text-zinc-400 transition hover:border-zinc-500 hover:bg-zinc-700 hover:text-white"
+            onClick={async () => {
+              await addTrackToNextUp(track.trackId);
+            }}
+            title="Add to Next Up"
+            className="flex cursor-pointer items-center gap-1.5 rounded-full border border-zinc-700 bg-zinc-800/60 px-3 py-1.5 text-sm text-zinc-300 transition hover:border-zinc-500 hover:bg-zinc-700"
           >
-            <HiDotsHorizontal className="text-base" />
+            <MdQueueMusic className="text-base" />
+            <span>Next Up</span>
           </button>
         </div>
       </div>

@@ -32,6 +32,7 @@ interface Props {
   track: Track;
   index: number;
   total: number;
+  playlistId?: string;
   canEdit?: boolean;
   isRemoving?: boolean;
   onRemove?: () => void;
@@ -53,6 +54,7 @@ export function TrackItem({
   track,
   index,
   total,
+  playlistId,
   canEdit = false,
   isRemoving = false,
   onRemove,
@@ -63,7 +65,12 @@ export function TrackItem({
   const playerTracks = usePlayerStore((state) => state.tracks);
   const currentTrack = usePlayerStore((state) => state.currentTrack);
   const toggle = usePlayerStore((state) => state.toggle);
-  const fetchAndPlay = usePlayerStore((state) => state.fetchAndPlay);
+  const playTrackFromContext = usePlayerStore(
+    (state) => state.playTrackFromContext,
+  );
+  const addTrackToNextUp = usePlayerStore(
+    (state) => state.addTrackToNextUp,
+  );
 
   const handlePlay = async () => {
     if (onPlay) {
@@ -82,11 +89,17 @@ export function TrackItem({
       title: track.title,
       artist: track.artist ?? "Unknown Artist",
       artistId: "",
+      artistHandle: track.artistHandle,
       cover: track.cover ?? "/images/track-placeholder.png",
       duration: track.duration,
     };
 
-    await fetchAndPlay(matched ?? fallbackTrack);
+    await playTrackFromContext({
+      track: matched ?? fallbackTrack,
+      contextType: playlistId ? "PLAYLIST" : undefined,
+      contextId: playlistId,
+      contextTrackIds: playerTracks.map((t) => t.trackId),
+    });
   };
 
   const trackHref = buildTrackPermalink({
@@ -144,6 +157,19 @@ export function TrackItem({
       <span className="text-xs text-zinc-500">
         {formatDuration(track.duration)}
       </span>
+
+      {/* Next Up button */}
+      <button
+        type="button"
+        onClick={async (e) => {
+          e.stopPropagation();
+          await addTrackToNextUp(track.trackId);
+        }}
+        className="rounded px-2 py-1 text-xs text-zinc-400 opacity-0 transition hover:bg-zinc-800 hover:text-white group-hover:opacity-100"
+        title="Add to Next Up"
+      >
+        Next Up
+      </button>
 
       {canEdit && (
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

@@ -16,6 +16,7 @@ interface Track {
 
 interface Props {
   tracks: Track[];
+  playlistId?: string;
   canEdit?: boolean;
   onRemove?: (trackId: string) => Promise<void>;
   onReorder?: (orderedTrackIds: string[]) => Promise<void>;
@@ -23,6 +24,7 @@ interface Props {
 
 export function TrackList({
   tracks,
+  playlistId,
   canEdit = false,
   onRemove,
   onReorder,
@@ -66,6 +68,7 @@ export function TrackList({
           track={track}
           index={i}
           total={tracks.length}
+          playlistId={playlistId}
           canEdit={canEdit}
           isRemoving={removingId === track.trackId}
           onRemove={onRemove ? () => handleRemove(track.trackId) : undefined}

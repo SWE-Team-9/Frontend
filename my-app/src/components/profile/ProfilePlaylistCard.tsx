@@ -12,6 +12,7 @@ import {
   FaHeart,
   FaRegHeart,
 } from "react-icons/fa";
+import { usePlayerStore } from "@/src/store/playerStore";
 
 interface ProfilePlaylistCardProps {
   playlist: Playlist;
@@ -24,7 +25,38 @@ export function ProfilePlaylistCard({ playlist, isOwner = false }: ProfilePlayli
   const [likesCount, setLikesCount] = useState(playlist.likesCount ?? 0);
   const [isLiking, setIsLiking] = useState(false);
 
+  const playTrackFromContext = usePlayerStore((s) => s.playTrackFromContext);
+
   const playlistUrl = `/library/playlists/${playlist.playlistId}`;
+
+  const handlePlayPlaylist = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const firstTrack = playlist.tracks?.[0];
+
+    if (!firstTrack) {
+      toast.error("This playlist has no tracks.");
+      return;
+    }
+
+    await playTrackFromContext({
+      contextType: "PLAYLIST",
+      contextId: playlist.playlistId,
+      track: {
+        trackId: firstTrack.trackId,
+        title: firstTrack.title,
+        artist: firstTrack.artist?.name ?? playlist.owner?.display_name ?? "Unknown Artist",
+        artistId: firstTrack.artist?.id ?? playlist.owner?.id ?? "",
+        artistHandle: firstTrack.artist?.handle ?? playlist.owner?.handle ?? undefined,
+        artistAvatarUrl: null,
+        cover: firstTrack.coverArtUrl ?? playlist.cover ?? "/images/track-placeholder.png",
+        duration: firstTrack.durationMs
+          ? Math.floor(firstTrack.durationMs / 1000)
+          : undefined,
+      },
+    });
+  };
 
   const updateLocalLiked = (nextLiked: boolean) => {
     if (typeof window === "undefined") return;
@@ -100,10 +132,15 @@ export function ProfilePlaylistCard({ playlist, isOwner = false }: ProfilePlayli
 
         <Link href={playlistUrl} aria-label={playlist.title} className="absolute inset-0 z-10" />
 
-        <div className="pointer-events-none absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-20">
-          <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center">
-            <FaPlay className="text-black text-sm ml-0.5" />
-          </div>
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/30 opacity-0 transition-opacity group-hover:opacity-100">
+          <button
+            type="button"
+            onClick={handlePlayPlaylist}
+            className="flex h-12 w-12 items-center justify-center rounded-full bg-white transition hover:scale-105 hover:opacity-90"
+            aria-label={`Play ${playlist.title}`}
+          >
+            <FaPlay className="ml-0.5 text-sm text-black" />
+          </button>
         </div>
 
         {/* LIKE BUTTON - Only show for non-owners */}

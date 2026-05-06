@@ -163,7 +163,8 @@ export default function SharedPlaylistCard({
     };
 
     const setTracks = usePlayerStore((s) => s.setTracks);
-    const fetchAndPlay = usePlayerStore((s) => s.fetchAndPlay);
+    const playTrackFromContext = usePlayerStore((s) => s.playTrackFromContext);
+    const addTrackToNextUp = usePlayerStore((s) => s.addTrackToNextUp);
     const currentTrack = usePlayerStore((s) => s.currentTrack);
     const isPlaying = usePlayerStore((s) => s.isPlaying);
     const toggle = usePlayerStore((s) => s.toggle);
@@ -196,13 +197,13 @@ export default function SharedPlaylistCard({
         const playerTracks = visibleTracks.map(mapSharedTrackToPlayerTrack);
         const clickedTrack = mapSharedTrackToPlayerTrack(track);
 
-        if (currentTrack?.trackId === clickedTrack.trackId) {
-            await toggle();
-            return;
-        }
-
         setTracks(playerTracks);
-        await fetchAndPlay(clickedTrack);
+
+        await playTrackFromContext({
+            track: clickedTrack,
+            contextType: "PLAYLIST",
+            contextId: playlist.id,
+        });
     };
 
     const handlePlayPlaylist = async () => {
@@ -404,7 +405,8 @@ export default function SharedPlaylistCard({
 
                                                 <TrackCardMenu
                                                     isOpen={openMenuTrackId === track.id}
-                                                    onAddToNextUp={() => {
+                                                    onAddToNextUp={async () => {
+                                                        await addTrackToNextUp(track.id);
                                                         setOpenMenuTrackId(null);
                                                     }}
                                                     onAddToPlaylist={() => {

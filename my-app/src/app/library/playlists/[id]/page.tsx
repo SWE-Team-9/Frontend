@@ -350,6 +350,7 @@ export default function PlaylistDetailPage({
       <div className="max-w-5xl px-6 py-8">
         <TrackList
           tracks={tracks}
+          playlistId={playlist.playlistId}
           canEdit={true}
           onRemove={removeTrack}
           onReorder={reorderTracks}

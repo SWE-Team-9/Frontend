@@ -136,7 +136,7 @@ export default function PlayerAudioSync() {
     }, 15000);
 
     return () => clearInterval(interval);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPlaying, currentTrack?.trackId]);
 
   useEffect(() => {
@@ -158,14 +158,26 @@ export default function PlayerAudioSync() {
 
       if (typeof navigator !== "undefined" && navigator.sendBeacon) {
         const { currentTrack, currentTime, isPlaying, volume, isShuffleOn, loopMode } = state;
-        const payload = JSON.stringify({
-          currentTrackId: currentTrack?.trackId ?? null,
+        const body: {
+          currentTrackId?: string;
+          positionSeconds: number;
+          isPlaying: boolean;
+          volume: number;
+          shuffle: boolean;
+          repeatMode: "OFF" | "ALL" | "ONE";
+        } = {
           positionSeconds: Math.floor(currentTime),
           isPlaying,
           volume: volume / 100,
           shuffle: isShuffleOn,
           repeatMode: loopMode,
-        });
+        };
+
+        if (currentTrack?.trackId) {
+          body.currentTrackId = currentTrack.trackId;
+        }
+
+        const payload = JSON.stringify(body);
         const beaconUrl = `${process.env.NEXT_PUBLIC_API_URL ?? ""}/player/session`;
         navigator.sendBeacon(beaconUrl, new Blob([payload], { type: "application/json" }));
       } else {

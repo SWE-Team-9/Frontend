@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useSearch } from "@/src/hooks/useSearch";
 import type { SearchType } from "@/src/types/search";
@@ -66,6 +66,10 @@ function SearchPageContent() {
     data && (type === "all" || type === "playlists")
       ? data.data.playlists
       : [];
+  const contextTrackIds = useMemo(
+    () => tracksToRender.map((track) => track.id),
+    [tracksToRender],
+  );
   const hasVisibleResults =
     tracksToRender.length > 0 ||
     usersToRender.length > 0 ||
@@ -80,9 +84,8 @@ function SearchPageContent() {
         </h1>
         <p className="mb-8 text-sm text-neutral-500">
           {data
-            ? `${data.meta.total_results} result${
-                data.meta.total_results === 1 ? "" : "s"
-              } found`
+            ? `${data.meta.total_results} result${data.meta.total_results === 1 ? "" : "s"
+            } found`
             : "\u00A0"}
         </p>
         {/* Two-column layout: sidebar + results */}
@@ -96,11 +99,10 @@ function SearchPageContent() {
                   <button
                     key={t.key}
                     onClick={() => setParam("type", t.key)}
-                    className={`rounded-md px-4 py-2 text-left text-sm font-semibold transition-colors ${
-                      active
+                    className={`rounded-md px-4 py-2 text-left text-sm font-semibold transition-colors ${active
                         ? "bg-white text-black"
                         : "text-neutral-300 hover:bg-neutral-800 hover:text-white"
-                    }`}
+                      }`}
                   >
                     {t.label}
                   </button>
@@ -121,18 +123,22 @@ function SearchPageContent() {
                 {/* No results at all */}
                 {!hasVisibleResults && (
                   <div className="py-16 text-center text-neutral-500">
-                      <p className="text-lg font-medium text-neutral-400">
-                        No results found
-                      </p>
-                      <p className="mt-1 text-sm">
-                        Try a different keyword or remove filters.
-                      </p>
+                    <p className="text-lg font-medium text-neutral-400">
+                      No results found
+                    </p>
+                    <p className="mt-1 text-sm">
+                      Try a different keyword or remove filters.
+                    </p>
                   </div>
                 )}
                 {hasVisibleResults && (
                   <div className="space-y-1 pl-6">
                     {tracksToRender.map((t) => (
-                      <TrackResultCard key={t.id} track={t} />
+                      <TrackResultCard
+                        key={t.id}
+                        track={t}
+                        contextTrackIds={contextTrackIds}
+                      />
                     ))}
                     {usersToRender.map((u) => (
                       <UserResultCard key={u.id} user={u} />

@@ -13,10 +13,15 @@ export default function TrackResultCard({ track, contextTrackIds }: Props) {
         trackId: track.id,
         title: track.title,
         genre: track.genre,
-        coverArtUrl: track.artwork_url,
-        artistName: track.artist_handle,
+        coverArtUrl: track.artwork_url ?? undefined,
+
+        artistName: track.artist_handle || "Unknown Artist",
         artistHandle: track.artist_handle,
+
+        status: "FINISHED",
+        visibility: "PUBLIC",
       }}
+      isOwner={false}
       contextTrackIds={contextTrackIds}
     />
   );

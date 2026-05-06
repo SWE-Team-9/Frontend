@@ -26,6 +26,7 @@ export function Player() {
     streamError,
     isQueuePanelOpen,
     toggleQueuePanel,
+    isPlayingAd,
   } = usePlayerStore();
 
   const authUser = useAuthStore((state) => state.user);
@@ -68,26 +69,16 @@ export function Player() {
       });
     };
 
-    const onEnded = async () => {
-      usePlayerStore.setState({
-        isPlaying: false,
-      });
-
-      await usePlayerStore.getState().nextTrack();
-    };
-
     audio.addEventListener("error", onError);
     audio.addEventListener("waiting", onWaiting);
     audio.addEventListener("playing", onPlaying);
     audio.addEventListener("canplay", onCanPlay);
-    audio.addEventListener("ended", onEnded);
 
     return () => {
       audio.removeEventListener("error", onError);
       audio.removeEventListener("waiting", onWaiting);
       audio.removeEventListener("playing", onPlaying);
       audio.removeEventListener("canplay", onCanPlay);
-      audio.removeEventListener("ended", onEnded);
     };
   }, []);
 
@@ -102,16 +93,23 @@ export function Player() {
     fetchFollowing(authUser.id, { syncProfileList: false });
   }, [authUser?.id, fetchFollowing]);
 
-  if (!isPlayerVisible || !currentTrack) {
+  if (!isPlayerVisible || (!currentTrack && !isPlayingAd)) {
     return <PlaybackToast />;
   }
 
-  const artistUser = {
-    id: currentTrack.artistId,
-    display_name: currentTrack.artist,
-    handle: currentTrack.artistHandle ?? "",
-    avatar_url: currentTrack.artistAvatarUrl ?? "",
-  };
+  const artistUser = currentTrack
+    ? {
+        id: currentTrack.artistId,
+        display_name: currentTrack.artist,
+        handle: currentTrack.artistHandle ?? "",
+        avatar_url: currentTrack.artistAvatarUrl ?? "",
+      }
+    : {
+        id: "",
+        display_name: "",
+        handle: "",
+        avatar_url: "",
+      };
 
   const hasArtistId = !!artistUser.id;
   const isOwnTrack = hasArtistId && authUser?.id === artistUser.id;

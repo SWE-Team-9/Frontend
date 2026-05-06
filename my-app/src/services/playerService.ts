@@ -2,7 +2,11 @@ import api from "@/src/services/api";
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 
-export type PlaybackAccessState = "PLAYABLE" | "BLOCKED" | "PREVIEW";
+export type PlaybackAccessState =
+    | "PLAYABLE"
+    | "BLOCKED"
+    | "PREVIEW"
+    | "PROCESSING";
 
 export interface PlaybackStateResponse {
     trackId: string;
@@ -86,6 +90,7 @@ export interface UpdatePlayerSessionBody {
     positionSeconds: number;
     isPlaying: boolean;
     volume: number;
+    queueTrackIds?: string[];
     shuffle?: boolean;
     repeatMode?: "OFF" | "ALL" | "ONE";
 }

@@ -41,6 +41,8 @@ export default function RecentlyPlayedRow({
     return () => window.removeEventListener("resize", updateScrollButtons);
   }, [tracks]);
 
+  const contextTrackIds = tracks.map((track) => track.trackId);
+
   return (
     <section className="mb-14">
       <h2 className="mb-6 text-[18px] font-bold text-white">{title}</h2>
@@ -52,7 +54,11 @@ export default function RecentlyPlayedRow({
           className="flex gap-6 overflow-x-auto overflow-y-visible scroll-smooth pb-16 scrollbar-hide"
         >
           {tracks.map((track) => (
-            <RecentlyPlayedCard key={track.trackId} track={track} />
+            <RecentlyPlayedCard
+              key={track.trackId}
+              track={track}
+              contextTrackIds={contextTrackIds}
+            />
           ))}
         </div>
 

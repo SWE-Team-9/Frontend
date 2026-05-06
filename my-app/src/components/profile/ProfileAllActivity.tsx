@@ -174,6 +174,22 @@ export default function ProfileAllActivity({
             .sort((a, b) => b.sortTime - a.sortTime);
     }, [tracks, reposts, playlists]);
 
+    const contextTrackIds = useMemo(
+        () =>
+            activityItems
+                .filter(
+                    (item): item is Extract<ActivityItem, { kind: "track" | "repost" }> =>
+                        item.kind === "track" || item.kind === "repost",
+                )
+                .map((item) =>
+                    String(
+                        (item.track as { id?: string | number }).id ??
+                        item.track.trackId,
+                    ),
+                ),
+        [activityItems],
+    );
+
     const isLoading = loadingTracks || loadingReposts || loadingPlaylists;
 
     if (isLoading) {
@@ -236,8 +252,11 @@ export default function ProfileAllActivity({
                                 artistAvatarUrl: item.track.artistAvatarUrl ?? null,
                                 coverArtUrl: item.track.coverArtUrl ?? undefined,
                                 genre: item.track.genre ?? undefined,
+                                status: item.track.status ?? "FINISHED",
+                                visibility: item.track.visibility ?? "PUBLIC",
                             }}
                             isOwner={isOwner && item.kind === "track"}
+                            contextTrackIds={contextTrackIds}
                         />
                     </div>
                 );

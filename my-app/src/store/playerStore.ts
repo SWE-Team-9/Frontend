@@ -12,6 +12,11 @@ import {
   requestNextTrack,
   requestPreviousTrack,
   getQueueState,
+  jumpToQueueTrack,
+  addQueueItem,
+  removeQueueItem,
+  moveQueueItem,
+  clearQueue,
   type LoadQueueBody,
   type QueueTrackMetadata,
   type AdSlot,
@@ -32,7 +37,7 @@ export interface Track {
   duration?: number;
   genre?: string;
   plays?: number;
-  accessState?: "PLAYABLE" | "BLOCKED" | "PREVIEW";
+  accessState?: "PLAYABLE" | "BLOCKED" | "PREVIEW" | "PROCESSING";
   streamUrl?: string;
   previewUrl?: string;
 }
@@ -124,6 +129,26 @@ export const mockTracks: Track[] = [
   },
 ];
 
+const FALLBACK_COVER = "/images/track-placeholder.png";
+
+function mapQueueMetaToTrack(meta: QueueTrackMetadata): Track {
+  return {
+    trackId: meta.trackId,
+    title: meta.title,
+    artist: meta.artist,
+    artistId: meta.artistId,
+    artistHandle: meta.artistHandle ?? undefined,
+    artistAvatarUrl: meta.artistAvatarUrl,
+    cover: meta.cover ?? FALLBACK_COVER,
+    duration: meta.duration ?? undefined,
+    genre: meta.genre ?? undefined,
+  };
+}
+
+function uniqueTrackIds(trackIds: string[]): string[] {
+  return Array.from(new Set(trackIds.filter(Boolean)));
+}
+
 interface PlayerState {
   currentTrack: Track | null;
   isPlaying: boolean;
@@ -154,7 +179,7 @@ interface PlayerState {
 
   isProcessing: boolean;
   isResolvingPlayback: boolean;
-  accessState: "PLAYABLE" | "BLOCKED" | "PREVIEW" | null;
+  accessState: "PLAYABLE" | "BLOCKED" | "PREVIEW" | "PROCESSING" | null;
   accessReason: string | null;
   streamError: string | null;
   isPlayerVisible: boolean;
@@ -174,6 +199,33 @@ interface PlayerState {
    * This is the preferred entry-point for playlist/artist/feed playback.
    */
   loadQueueContext: (body: LoadQueueBody) => Promise<void>;
+
+  /**
+   * Preferred action for any component that plays one track from a visible list.
+   * Examples: trending row, history list, profile tracks, feed, search results.
+   */
+  playTrackFromContext: (args: {
+    track: Track;
+    contextTrackIds?: string[];
+    contextType?: "TRACK" | "CONTEXT_IDS" | "PLAYLIST" | "ARTIST";
+    contextId?: string;
+    shuffle?: boolean;
+  }) => Promise<void>;
+
+  /**
+   * Add a track immediately after the current queue item.
+   * Used by "Add to Next Up" buttons.
+   */
+  addTrackToNextUp: (trackId: string) => Promise<void>;
+
+  /**
+   * Queue panel actions.
+   */
+  jumpToTrackInQueue: (trackId: string) => Promise<void>;
+  removeTrackFromQueue: (position: number) => Promise<void>;
+  moveTrackInQueue: (fromPosition: number, toPosition: number) => Promise<void>;
+  clearBackendQueue: () => Promise<void>;
+  refreshBackendQueueState: () => Promise<void>;
 
   /**
    * Play a single track.  If called from next/prev navigation `_fromQueue`
@@ -526,6 +578,256 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     }
   },
 
+  playTrackFromContext: async ({
+    track,
+    contextTrackIds,
+    contextType,
+    contextId,
+    shuffle,
+  }) => {
+    const state = get();
+
+    if (state.currentTrack?.trackId === track.trackId) {
+      await state.toggle();
+      return;
+    }
+
+    try {
+      const ids = uniqueTrackIds(contextTrackIds ?? []);
+
+      if (contextType === "PLAYLIST" && contextId) {
+        await state.loadQueueContext({
+          contextType: "PLAYLIST",
+          contextId,
+          startTrackId: track.trackId,
+          shuffle: shuffle ?? state.isShuffleOn,
+        });
+        return;
+      }
+
+      if (contextType === "ARTIST" && contextId) {
+        await state.loadQueueContext({
+          contextType: "ARTIST",
+          contextId,
+          startTrackId: track.trackId,
+          shuffle: shuffle ?? state.isShuffleOn,
+        });
+        return;
+      }
+
+      if (ids.length > 1) {
+        await state.loadQueueContext({
+          contextType: "CONTEXT_IDS",
+          trackIds: ids,
+          startTrackId: track.trackId,
+          shuffle: shuffle ?? state.isShuffleOn,
+        });
+        return;
+      }
+
+      await state.loadQueueContext({
+        contextType: "TRACK",
+        startTrackId: track.trackId,
+        shuffle: shuffle ?? state.isShuffleOn,
+      });
+    } catch (error) {
+      console.error("[playerStore] playTrackFromContext failed:", error);
+
+      // Last fallback: play the clicked track directly.
+      await get().fetchAndPlay(track);
+    }
+  },
+
+  addTrackToNextUp: async (trackId: string) => {
+    try {
+      const current = get();
+
+      // If no queue exists yet but a track is currently playing, create a queue first.
+      if (current.queueLength === 0 && current.currentTrack) {
+        const resp = await loadQueue({
+          contextType: "TRACK",
+          startTrackId: current.currentTrack.trackId,
+        });
+
+        set({
+          currentQueueIndex: resp.currentIndex,
+          queueLength: resp.queueLength,
+          tracksUntilAd: resp.tracksUntilAd,
+          queueVersion: get().queueVersion + 1,
+        });
+      }
+
+      const resp = await addQueueItem({
+        trackId,
+        mode: "NEXT",
+      });
+
+      set({
+        queueLength: resp.queueLength,
+        queueVersion: get().queueVersion + 1,
+      });
+    } catch (error) {
+      console.error("[playerStore] addTrackToNextUp failed:", error);
+      throw error;
+    }
+  },
+
+  jumpToTrackInQueue: async (trackId: string) => {
+    try {
+      const resp = await jumpToQueueTrack(trackId);
+      if (resp.type !== "TRACK") return;
+
+      set({
+        currentQueueIndex: resp.currentIndex,
+        queueLength: resp.queueLength,
+        tracksUntilAd: resp.tracksUntilAd,
+        currentAd: null,
+        isPlayingAd: false,
+        queueVersion: get().queueVersion + 1,
+      });
+
+      await get().fetchAndPlay(mapQueueMetaToTrack(resp.track), true);
+    } catch (error) {
+      console.error("[playerStore] jumpToTrackInQueue failed:", error);
+      throw error;
+    }
+  },
+
+  removeTrackFromQueue: async (position: number) => {
+    try {
+      const wasCurrent = position === get().currentQueueIndex;
+      const resp = await removeQueueItem(position);
+
+      set((s) => ({
+        queueLength: resp.queueLength,
+        currentQueueIndex:
+          position < s.currentQueueIndex
+            ? Math.max(0, s.currentQueueIndex - 1)
+            : Math.min(s.currentQueueIndex, Math.max(0, resp.queueLength - 1)),
+        queueVersion: s.queueVersion + 1,
+      }));
+
+      if (resp.queueLength === 0) {
+        const audio = getAudioElement();
+        if (audio) {
+          audio.pause();
+          audio.removeAttribute("src");
+          audio.load();
+        }
+
+        set({
+          currentTrack: null,
+          isPlaying: false,
+          isPlayerVisible: false,
+          currentTime: 0,
+          duration: 0,
+          currentQueueIndex: 0,
+          queueLength: 0,
+          tracksUntilAd: null,
+          currentAd: null,
+          isPlayingAd: false,
+        });
+
+        await get().persistPlayerSession();
+        return;
+      }
+
+      // Backend says if current item is removed, playback continues at same index.
+      // So ask backend for the full queue and jump/play the track now at current index.
+      if (wasCurrent) {
+        const queueState = await getQueueState();
+        const nextMeta = queueState.queue[queueState.currentIndex];
+
+        set({
+          currentQueueIndex: queueState.currentIndex,
+          queueLength: queueState.queueLength,
+          tracksUntilAd: queueState.tracksUntilAd,
+          isShuffleOn: queueState.shuffle,
+          loopMode: queueState.repeatMode,
+          queueVersion: get().queueVersion + 1,
+        });
+
+        if (nextMeta) {
+          await get().fetchAndPlay(mapQueueMetaToTrack(nextMeta), true);
+        }
+      }
+    } catch (error) {
+      console.error("[playerStore] removeTrackFromQueue failed:", error);
+      throw error;
+    }
+  },
+
+  moveTrackInQueue: async (fromPosition: number, toPosition: number) => {
+    if (fromPosition === toPosition) return;
+
+    try {
+      const resp = await moveQueueItem(fromPosition, toPosition);
+
+      const queueState = await getQueueState();
+
+      set({
+        queueLength: resp.queueLength,
+        currentQueueIndex: queueState.currentIndex,
+        tracksUntilAd: queueState.tracksUntilAd,
+        isShuffleOn: queueState.shuffle,
+        loopMode: queueState.repeatMode,
+        queueVersion: get().queueVersion + 1,
+      });
+    } catch (error) {
+      console.error("[playerStore] moveTrackInQueue failed:", error);
+      throw error;
+    }
+  },
+
+  clearBackendQueue: async () => {
+    try {
+      await clearQueue();
+
+      const audio = getAudioElement();
+      if (audio) {
+        audio.pause();
+        audio.removeAttribute("src");
+        audio.load();
+      }
+
+      set({
+        currentTrack: null,
+        isPlaying: false,
+        isPlayerVisible: false,
+        currentTime: 0,
+        duration: 0,
+        currentQueueIndex: 0,
+        queueLength: 0,
+        tracksUntilAd: null,
+        currentAd: null,
+        isPlayingAd: false,
+        queueVersion: get().queueVersion + 1,
+      });
+
+      await get().persistPlayerSession();
+    } catch (error) {
+      console.error("[playerStore] clearBackendQueue failed:", error);
+      throw error;
+    }
+  },
+
+  refreshBackendQueueState: async () => {
+    try {
+      const queueData = await getQueueState();
+
+      set({
+        currentQueueIndex: queueData.currentIndex,
+        queueLength: queueData.queueLength,
+        tracksUntilAd: queueData.tracksUntilAd,
+        isShuffleOn: queueData.shuffle,
+        loopMode: queueData.repeatMode,
+        queueVersion: get().queueVersion + 1,
+      });
+    } catch (error) {
+      console.error("[playerStore] refreshBackendQueueState failed:", error);
+    }
+  },
+
   toggleQueuePanel: () => set((s) => ({ isQueuePanelOpen: !s.isQueuePanelOpen })),
 
   toggleShuffle: () => {
@@ -541,7 +843,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
     set({ loopMode: next });
     void get().persistPlayerSession();
-  },  
+  },
 
   //  fetch streamUrl, handle 409 and accessState
   fetchAndPlay: async (track: Track, _fromQueue = false) => {
@@ -641,7 +943,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         } catch (playErr: unknown) {
           const errName = playErr instanceof DOMException ? playErr.name : undefined;
           if ((errName === "AbortError" || errName === "NotAllowedError") &&
-              (!audio.paused || audio.currentTime > 0)) {
+            (!audio.paused || audio.currentTime > 0)) {
             set({ isPlaying: true, streamError: null });
             return;
           }
@@ -655,7 +957,11 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
     try {
       const stateData = await getPlaybackState(track.trackId);
-      const accessState = stateData.accessState as "PLAYABLE" | "BLOCKED" | "PREVIEW";
+      const accessState = stateData.accessState as
+        | "PLAYABLE"
+        | "BLOCKED"
+        | "PREVIEW"
+        | "PROCESSING";
       const accessReason =
         typeof stateData.reason === "string" ? stateData.reason : null;
 
@@ -669,6 +975,25 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         set({
           accessState: "BLOCKED",
           accessReason,
+          isResolvingPlayback: false,
+          isPlaying: false,
+        });
+
+        await get().persistPlayerSession();
+        return;
+      }
+
+      if (accessState === "PROCESSING") {
+        if (audio) {
+          audio.pause();
+          audio.removeAttribute("src");
+          audio.load();
+        }
+
+        set({
+          accessState: "PROCESSING",
+          accessReason: accessReason || "Track is still processing.",
+          isProcessing: true,
           isResolvingPlayback: false,
           isPlaying: false,
         });

@@ -8,7 +8,6 @@ import { usePlayerStore } from "@/src/store/playerStore";
 import { useEffect, useRef, useState } from "react";
 import { useLikeStore } from "@/src/store/likeStore";
 import { TrackData } from "@/src/types/interactions";
-import { loadQueue } from "@/src/services/playerService";
 import { TrackPageLink, UserProfileLink } from "@/src/components/navigation/EntityLinks";
 
 export interface DiscoverCardTrack {
@@ -43,7 +42,12 @@ export default function RecentlyPlayedCard({
 }: RecentlyPlayedCardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const { currentTrack, isPlaying, toggle, fetchAndPlay } = usePlayerStore();
+  const {
+    currentTrack,
+    isPlaying,
+    playTrackFromContext,
+    addTrackToNextUp,
+  } = usePlayerStore();
   const { toggleLike, isLiked, loadingIds } = useLikeStore();
 
   const liked = isLiked(track.trackId) || track.liked === true;
@@ -73,11 +77,6 @@ export default function RecentlyPlayedCard({
   }, [menuOpen]);
 
   const handlePlayPause = async () => {
-    if (isCurrent) {
-      toggle();
-      return;
-    }
-
     const playerTrack = {
       trackId: track.trackId,
       title: track.title,
@@ -86,32 +85,13 @@ export default function RecentlyPlayedCard({
       artistId: track.artistId,
       artistHandle: track.artistHandle,
       artistAvatarUrl: track.artistAvatarUrl ?? null,
+      duration: track.durationSeconds,
     };
 
-    if (contextTrackIds && contextTrackIds.length > 1) {
-      try {
-        const resp = await loadQueue({
-          contextType: "CONTEXT_IDS",
-          trackIds: contextTrackIds,
-          startTrackId: track.trackId,
-        });
-
-        usePlayerStore.setState({
-          currentQueueIndex: resp.currentIndex,
-          queueLength: resp.queueLength,
-          tracksUntilAd: resp.tracksUntilAd,
-          currentAd: null,
-          isPlayingAd: false,
-          queueVersion: usePlayerStore.getState().queueVersion + 1,
-        });
-
-        await fetchAndPlay(playerTrack, true);
-      } catch {
-        await fetchAndPlay(playerTrack);
-      }
-    } else {
-      await fetchAndPlay(playerTrack);
-    }
+    await playTrackFromContext({
+      track: playerTrack,
+      contextTrackIds,
+    });
   };
 
   return (
@@ -187,9 +167,12 @@ export default function RecentlyPlayedCard({
 
             <TrackCardMenu
               isOpen={menuOpen}
-              onAddToNextUp={() => {
-                console.log("Add to Next Up", track);
-                setMenuOpen(false);
+              onAddToNextUp={async () => {
+                try {
+                  await addTrackToNextUp(track.trackId);
+                } finally {
+                  setMenuOpen(false);
+                }
               }}
               onAddToPlaylist={() => {
                 console.log("Add to playlist", track);
