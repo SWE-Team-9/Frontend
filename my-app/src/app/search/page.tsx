@@ -46,6 +46,41 @@ function SearchPageContent() {
     router.push(`/search?${next.toString()}`);
   };
 
+
+  const tracksToRender = useMemo(
+    () =>
+      data && (type === "all" || type === "tracks")
+        ? data.data.tracks
+        : [],
+    [data, type],
+  );
+
+  const usersToRender = useMemo(
+    () =>
+      data && (type === "all" || type === "users")
+        ? data.data.users
+        : [],
+    [data, type],
+  );
+
+  const playlistsToRender = useMemo(
+    () =>
+      data && (type === "all" || type === "playlists")
+        ? data.data.playlists
+        : [],
+    [data, type],
+  );
+
+  const contextTrackIds = useMemo(
+    () => tracksToRender.map((track) => track.id),
+    [tracksToRender],
+  );
+
+  const hasVisibleResults =
+    tracksToRender.length > 0 ||
+    usersToRender.length > 0 ||
+    playlistsToRender.length > 0;
+
   //======================
   //  Empty query state
   //======================
@@ -57,23 +92,6 @@ function SearchPageContent() {
       </div>
     );
   }
-
-  const tracksToRender =
-    data && (type === "all" || type === "tracks") ? data.data.tracks : [];
-  const usersToRender =
-    data && (type === "all" || type === "users") ? data.data.users : [];
-  const playlistsToRender =
-    data && (type === "all" || type === "playlists")
-      ? data.data.playlists
-      : [];
-  const contextTrackIds = useMemo(
-    () => tracksToRender.map((track) => track.id),
-    [tracksToRender],
-  );
-  const hasVisibleResults =
-    tracksToRender.length > 0 ||
-    usersToRender.length > 0 ||
-    playlistsToRender.length > 0;
 
   return (
     <div className="min-h-screen bg-[#121212] text-white">
@@ -100,8 +118,8 @@ function SearchPageContent() {
                     key={t.key}
                     onClick={() => setParam("type", t.key)}
                     className={`rounded-md px-4 py-2 text-left text-sm font-semibold transition-colors ${active
-                        ? "bg-white text-black"
-                        : "text-neutral-300 hover:bg-neutral-800 hover:text-white"
+                      ? "bg-white text-black"
+                      : "text-neutral-300 hover:bg-neutral-800 hover:text-white"
                       }`}
                   >
                     {t.label}

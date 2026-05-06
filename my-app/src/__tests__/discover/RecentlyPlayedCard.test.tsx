@@ -3,8 +3,8 @@ import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import RecentlyPlayedCard from "@/src/components/discover/RecentlyPlayedCard";
 
-const mockToggle = jest.fn();
-const mockFetchAndPlay = jest.fn();
+const mockPlayTrackFromContext = jest.fn();
+const mockAddTrackToNextUp = jest.fn();
 const mockToggleLike = jest.fn();
 const mockIsLiked = jest.fn();
 const mockUsePlayerStore = jest.fn();
@@ -63,10 +63,10 @@ describe("RecentlyPlayedCard", () => {
     jest.clearAllMocks();
 
     mockUsePlayerStore.mockReturnValue({
-    currentTrack: null,
-    isPlaying: false,
-    toggle: mockToggle,
-    fetchAndPlay: mockFetchAndPlay,
+      currentTrack: null,
+      isPlaying: false,
+      playTrackFromContext: mockPlayTrackFromContext,
+      addTrackToNextUp: mockAddTrackToNextUp,
     });
 
     mockIsLiked.mockReturnValue(false);
@@ -84,39 +84,39 @@ describe("RecentlyPlayedCard", () => {
     expect(screen.getByText("Layali")).toBeInTheDocument();
   });
 
-  it("calls fetchAndPlay when clicking play for a non-current track", () => {
+  it("calls playTrackFromContext when clicking play", () => {
     render(<RecentlyPlayedCard track={track} />);
 
-    const playButton = screen.getAllByRole("button")[0];
+    const playButton = screen.getByLabelText(/play track/i);
     fireEvent.click(playButton);
 
-    expect(mockFetchAndPlay).toHaveBeenCalledWith({
-      trackId: "trk_1",
-      title: "Layali",
-      cover: "https://example.com/cover.jpg",
-      artist: "Ahmed Hassan",
-      artistId: "usr_1",
-      artistHandle: "ahmed",
-      artistAvatarUrl: null,
-    });
-    expect(mockToggle).not.toHaveBeenCalled();
+    expect(mockPlayTrackFromContext).toHaveBeenCalledWith(
+      expect.objectContaining({
+        track: expect.objectContaining({
+          trackId: "trk_1",
+          title: "Layali",
+          cover: "https://example.com/cover.jpg",
+          artist: "Ahmed Hassan",
+          artistId: "usr_1",
+          artistHandle: "ahmed",
+          artistAvatarUrl: null,
+        }),
+        contextTrackIds: undefined,
+      })
+    );
   });
 
-  it("calls toggle when clicking play for the current track", () => {
+  it("shows pause label for the current playing track", () => {
     mockUsePlayerStore.mockReturnValue({
-    currentTrack: { trackId: "trk_1" },
-    isPlaying: true,
-    toggle: mockToggle,
-    fetchAndPlay: mockFetchAndPlay,
+      currentTrack: { trackId: "trk_1" },
+      isPlaying: true,
+      playTrackFromContext: mockPlayTrackFromContext,
+      addTrackToNextUp: mockAddTrackToNextUp,
     });
 
     render(<RecentlyPlayedCard track={track} />);
 
-    const playButton = screen.getAllByRole("button")[0];
-    fireEvent.click(playButton);
-
-    expect(mockToggle).toHaveBeenCalled();
-    expect(mockFetchAndPlay).not.toHaveBeenCalled();
+    expect(screen.getByLabelText(/pause track/i)).toBeInTheDocument();
   });
 
   it("calls toggleLike when like button is clicked", async () => {

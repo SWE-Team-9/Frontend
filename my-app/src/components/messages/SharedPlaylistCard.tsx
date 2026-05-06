@@ -167,7 +167,6 @@ export default function SharedPlaylistCard({
     const addTrackToNextUp = usePlayerStore((s) => s.addTrackToNextUp);
     const currentTrack = usePlayerStore((s) => s.currentTrack);
     const isPlaying = usePlayerStore((s) => s.isPlaying);
-    const toggle = usePlayerStore((s) => s.toggle);
 
     const currentTime = usePlayerStore((s) => s.currentTime);
     const duration = usePlayerStore((s) => s.duration);

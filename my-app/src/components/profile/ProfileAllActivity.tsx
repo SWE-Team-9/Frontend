@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getUserTracks, TrackDetails } from "@/src/services/uploadService";
 import { getUserReposts } from "@/src/services/repostService";
 import { usePlaylists } from "@/src/hooks/usePlaylists";

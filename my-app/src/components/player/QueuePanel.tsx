@@ -26,7 +26,11 @@ export function QueuePanel() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
 
-  const refreshQueue = async () => {
+  const refreshQueue = async (showLoading = false) => {
+    if (showLoading) {
+      setLoading(true);
+    }
+
     try {
       const resp = await getQueueState();
       setTracks(resp.queue);
@@ -39,11 +43,13 @@ export function QueuePanel() {
 
   useEffect(() => {
     if (!isQueuePanelOpen) return;
-    setLoading(true);
-    void refreshQueue();
-  }, [isQueuePanelOpen, queueVersion]);
 
-  if (!isQueuePanelOpen) return null;
+    const timer = window.setTimeout(() => {
+      void refreshQueue(true);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [isQueuePanelOpen, queueVersion]);
 
   const handleJump = async (trackId: string) => {
     if (actionLoading) return;

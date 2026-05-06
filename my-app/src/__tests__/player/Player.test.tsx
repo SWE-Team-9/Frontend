@@ -12,7 +12,7 @@ const mockFetchFollowing = jest.fn();
 const mockIsFollowing = jest.fn();
 const mockPlayerSetState = jest.fn();
 const mockPlayerGetState = jest.fn();
-const mockStoreNextTrack = jest.fn();
+const mockToggleQueuePanel = jest.fn();
 
 const mockAudio: {
   volume: number;
@@ -65,14 +65,24 @@ jest.mock("@/src/components/player/PlaybackToast", () => ({
   PlaybackToast: () => <div data-testid="playback-toast">PlaybackToast</div>,
 }));
 
+jest.mock("@/src/components/ui/AdBanner", () => ({
+  AdBanner: () => <div data-testid="ad-banner">AdBanner</div>,
+}));
+
+jest.mock("@/src/components/player/QueuePanel", () => ({
+  QueuePanel: () => <div data-testid="queue-panel">QueuePanel</div>,
+}));
+
 describe("Player", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockPlayerSetState.mockClear();
+    mockAudio.error = null;
+    mockAudio.volume = 1;
 
     mockGetAudioElement.mockReturnValue(mockAudio);
     mockPlayerGetState.mockReturnValue({
-      nextTrack: mockStoreNextTrack,
+      nextTrack: jest.fn(),
     });
 
     mockUsePlayerStore.mockReturnValue({
@@ -91,6 +101,9 @@ describe("Player", () => {
       accessState: null,
       accessReason: null,
       streamError: null,
+      isQueuePanelOpen: false,
+      toggleQueuePanel: mockToggleQueuePanel,
+      isPlayingAd: false,
     });
 
     mockUseAuthStore.mockImplementation((selector: (state: unknown) => unknown) =>
@@ -119,6 +132,9 @@ describe("Player", () => {
       accessState: null,
       accessReason: null,
       streamError: null,
+      isQueuePanelOpen: false,
+      toggleQueuePanel: mockToggleQueuePanel,
+      isPlayingAd: false,
     });
 
     render(<Player />);
@@ -132,6 +148,25 @@ describe("Player", () => {
     expect(screen.getByTestId("progress-bar")).toBeInTheDocument();
     expect(screen.getByTestId("volume-control")).toBeInTheDocument();
     expect(screen.getByTestId("track-info")).toBeInTheDocument();
+  });
+
+  it("renders player when ad is playing without current track", () => {
+    mockUsePlayerStore.mockReturnValue({
+      currentTrack: null,
+      isPlayerVisible: true,
+      volume: 75,
+      isProcessing: false,
+      isResolvingPlayback: false,
+      accessState: null,
+      accessReason: null,
+      streamError: null,
+      isQueuePanelOpen: false,
+      toggleQueuePanel: mockToggleQueuePanel,
+      isPlayingAd: true,
+    });
+
+    render(<Player />);
+    expect(screen.getByTestId("player-controls")).toBeInTheDocument();
   });
 
   it("sets audio volume from store volume", () => {
@@ -211,21 +246,26 @@ describe("Player", () => {
     });
   });
 
-  it("calls nextTrack when audio fires ended", async () => {
-    render(<Player />);
+  it("removes audio listeners on unmount", () => {
+    const { unmount } = render(<Player />);
+    unmount();
 
-    const endedHandler = mockAudio.addEventListener.mock.calls.find(
-      ([event]) => event === "ended"
-    )?.[1] as (() => Promise<void>) | undefined;
-
-    expect(endedHandler).toBeTruthy();
-
-    await endedHandler?.();
-
-    expect(mockPlayerSetState).toHaveBeenCalledWith({
-      isPlaying: false,
-    });
-    expect(mockStoreNextTrack).toHaveBeenCalledTimes(1);
+    expect(mockAudio.removeEventListener).toHaveBeenCalledWith(
+      "error",
+      expect.any(Function)
+    );
+    expect(mockAudio.removeEventListener).toHaveBeenCalledWith(
+      "waiting",
+      expect.any(Function)
+    );
+    expect(mockAudio.removeEventListener).toHaveBeenCalledWith(
+      "playing",
+      expect.any(Function)
+    );
+    expect(mockAudio.removeEventListener).toHaveBeenCalledWith(
+      "canplay",
+      expect.any(Function)
+    );
   });
 
   it("fetches following for authenticated user", () => {
@@ -233,6 +273,15 @@ describe("Player", () => {
     expect(mockFetchFollowing).toHaveBeenCalledWith("usr_1", {
       syncProfileList: false,
     });
+  });
+
+  it("does not fetch following when user is missing", () => {
+    mockUseAuthStore.mockImplementation((selector: (state: unknown) => unknown) =>
+      selector({ user: null })
+    );
+
+    render(<Player />);
+    expect(mockFetchFollowing).not.toHaveBeenCalled();
   });
 
   it("calls toggleFollow when follow button is clicked", async () => {
@@ -254,6 +303,29 @@ describe("Player", () => {
     });
   });
 
+  it("shows unfollow title when already following", () => {
+    mockIsFollowing.mockReturnValue(true);
+
+    render(<Player />);
+    expect(screen.getByTitle("Unfollow artist")).toBeInTheDocument();
+  });
+
+  it("does not call toggleFollow when loading", () => {
+    mockUseFollowStore.mockReturnValue({
+      toggleFollow: mockToggleFollow,
+      isFollowing: mockIsFollowing,
+      fetchFollowing: mockFetchFollowing,
+      loadingIds: { usr_2: true },
+    });
+
+    render(<Player />);
+    const followButton = screen.getByTitle("Follow artist");
+
+    fireEvent.click(followButton);
+    expect(mockToggleFollow).not.toHaveBeenCalled();
+    expect(followButton).toBeDisabled();
+  });
+
   it("disables follow button when user is the same as artist", () => {
     mockUseAuthStore.mockImplementation((selector: (state: unknown) => unknown) =>
       selector({
@@ -267,6 +339,27 @@ describe("Player", () => {
       (btn) => btn.getAttribute("title") === "You cannot follow yourself"
     );
 
+    expect(followButton).toBeTruthy();
+    expect(followButton).toBeDisabled();
+  });
+
+  it("disables follow button when artist data is missing", () => {
+    mockUsePlayerStore.mockReturnValue({
+      currentTrack: null,
+      isPlayerVisible: true,
+      volume: 75,
+      isProcessing: false,
+      isResolvingPlayback: false,
+      accessState: null,
+      accessReason: null,
+      streamError: null,
+      isQueuePanelOpen: false,
+      toggleQueuePanel: mockToggleQueuePanel,
+      isPlayingAd: true,
+    });
+
+    render(<Player />);
+    const followButton = screen.getByTitle("Artist data unavailable");
     expect(followButton).toBeDisabled();
   });
 
@@ -287,11 +380,40 @@ describe("Player", () => {
       accessState: null,
       accessReason: null,
       streamError: null,
+      isQueuePanelOpen: false,
+      toggleQueuePanel: mockToggleQueuePanel,
+      isPlayingAd: false,
     });
 
     render(<Player />);
     expect(screen.getByText(/loading track/i)).toBeInTheDocument();
     expect(screen.getByText(/connecting to server/i)).toBeInTheDocument();
+  });
+
+  it("shows processing message when track is still processing", () => {
+    mockUsePlayerStore.mockReturnValue({
+      currentTrack: {
+        trackId: "trk_1",
+        title: "Layali",
+        artist: "Ahmed Hassan",
+        artistId: "usr_2",
+        artistHandle: "ahmed",
+        artistAvatarUrl: null,
+      },
+      isPlayerVisible: true,
+      volume: 75,
+      isProcessing: true,
+      isResolvingPlayback: false,
+      accessState: null,
+      accessReason: null,
+      streamError: null,
+      isQueuePanelOpen: false,
+      toggleQueuePanel: mockToggleQueuePanel,
+      isPlayingAd: false,
+    });
+
+    render(<Player />);
+    expect(screen.getByText(/still processing/i)).toBeInTheDocument();
   });
 
   it("shows blocked access message", () => {
@@ -311,9 +433,98 @@ describe("Player", () => {
       accessState: "BLOCKED",
       accessReason: "Unavailable here",
       streamError: null,
+      isQueuePanelOpen: false,
+      toggleQueuePanel: mockToggleQueuePanel,
+      isPlayingAd: false,
     });
 
     render(<Player />);
     expect(screen.getByText("Unavailable here")).toBeInTheDocument();
+  });
+
+  it("shows preview and stream error states", () => {
+    mockUsePlayerStore.mockReturnValue({
+      currentTrack: {
+        trackId: "trk_1",
+        title: "Layali",
+        artist: "Ahmed Hassan",
+        artistId: "usr_2",
+        artistHandle: "ahmed",
+        artistAvatarUrl: null,
+      },
+      isPlayerVisible: true,
+      volume: 75,
+      isProcessing: false,
+      isResolvingPlayback: false,
+      accessState: "PREVIEW",
+      accessReason: null,
+      streamError: "Network error",
+      isQueuePanelOpen: false,
+      toggleQueuePanel: mockToggleQueuePanel,
+      isPlayingAd: false,
+    });
+
+    render(<Player />);
+    expect(screen.getByText("Preview mode")).toBeInTheDocument();
+    expect(screen.getByText("Network error")).toBeInTheDocument();
+  });
+
+  it("shows default blocked message when no access reason provided", () => {
+    mockUsePlayerStore.mockReturnValue({
+      currentTrack: {
+        trackId: "trk_1",
+        title: "Layali",
+        artist: "Ahmed Hassan",
+        artistId: "usr_2",
+        artistHandle: "ahmed",
+        artistAvatarUrl: null,
+      },
+      isPlayerVisible: true,
+      volume: 75,
+      isProcessing: false,
+      isResolvingPlayback: false,
+      accessState: "BLOCKED",
+      accessReason: null,
+      streamError: null,
+      isQueuePanelOpen: false,
+      toggleQueuePanel: mockToggleQueuePanel,
+      isPlayingAd: false,
+    });
+
+    render(<Player />);
+    expect(screen.getByText("This track is unavailable.")).toBeInTheDocument();
+  });
+
+  it("toggles queue panel when queue button clicked", () => {
+    render(<Player />);
+    fireEvent.click(screen.getByTitle("Queue"));
+
+    expect(mockToggleQueuePanel).toHaveBeenCalled();
+  });
+
+  it("highlights queue button when panel is open", () => {
+    mockUsePlayerStore.mockReturnValue({
+      currentTrack: {
+        trackId: "trk_1",
+        title: "Layali",
+        artist: "Ahmed Hassan",
+        artistId: "usr_2",
+        artistHandle: "ahmed",
+        artistAvatarUrl: null,
+      },
+      isPlayerVisible: true,
+      volume: 75,
+      isProcessing: false,
+      isResolvingPlayback: false,
+      accessState: null,
+      accessReason: null,
+      streamError: null,
+      isQueuePanelOpen: true,
+      toggleQueuePanel: mockToggleQueuePanel,
+      isPlayingAd: false,
+    });
+
+    render(<Player />);
+    expect(screen.getByTitle("Queue").className).toContain("text-[#ff5500]");
   });
 });

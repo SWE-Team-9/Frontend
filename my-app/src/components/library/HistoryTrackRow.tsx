@@ -3,7 +3,6 @@
 import Image from "next/image";
 import { FaPlay, FaPause, FaHeart } from "react-icons/fa";
 import { MdQueueMusic } from "react-icons/md";
-import { HiDotsHorizontal } from "react-icons/hi";
 import { BiRepost } from "react-icons/bi";
 import { FiShare } from "react-icons/fi";
 import { TbCopy } from "react-icons/tb";
