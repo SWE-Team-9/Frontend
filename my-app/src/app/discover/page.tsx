@@ -7,7 +7,7 @@ import TopPlaylistsSection from "@/src/components/discover/TopPlaylistsSection";
 
 export default function DiscoverPage() {
   return (
-    <div className="min-h-screen bg-[#121212] px-6 py-8 text-white">
+    <div className="bg-[#121212] px-6 py-8 text-white">
       <h1 className="mb-6 text-2xl font-bold">More of What You Like</h1>
 
       <RecentlyPlayedSection />

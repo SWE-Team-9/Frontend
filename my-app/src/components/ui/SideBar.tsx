@@ -23,69 +23,71 @@ const SideBar: React.FC<SideBarProps> = ({ children, showSidebar = true }) => {
   const isStaff = systemRole === "ADMIN" || systemRole === "MODERATOR";
 
   return (
-    <div className="flex h-screen">
+    <div className="flex">
       {/* Main Content Area */}
-      <main className="h-full flex-1 overflow-y-auto p-2 bg-[#121212]">
+      <main className="min-w-0 flex-1 p-2 bg-[#121212]">
         {children}
       </main>
 
       {/* Sidebar */}
-      <div
-        className={`hidden md:flex flex-col gap-y-2 bg-[#121212] h-full w-96 p-2 
-        ${showSidebar ? "visible" : "invisible"}`}
-      >
-        {isStaff && (
-          <Box className="flex-1">
+      <div className="hidden md:flex w-96 shrink-0 p-2">
+        <div
+          className={`flex w-full flex-col gap-y-2 bg-[#121212] sticky top-20 self-start 
+          ${showSidebar ? "visible" : "invisible"}`}
+        >
+          {isStaff && (
+            <Box>
+              <div className="px-5 py-4">
+                <SideBarItem label="ADMIN DASHBOARD" href="/admin" />
+              </div>
+            </Box>
+          )}
+
+          <Box>
             <div className="px-5 py-4">
-              <SideBarItem label="ADMIN DASHBOARD" href="/admin" />
+              <div className="flex items-center justify-between gap-3 pb-4">
+
+                <SideBarItem
+                  label="ARTISTS TO FOLLOW"
+                  href="/artists"
+                />
+
+                <button
+                  type="button"
+                  onClick={() => fetchSuggestions()}
+                  disabled={suggestionsLoading}
+                  className="shrink-0 text-[12px] font-semibold uppercase ml-auto cursor-pointer text-zinc-400 transition-colors text-sm disabled:opacity-40 hover:text-white"
+                  title="Refresh suggestions"
+                >
+                  Refresh List
+                </button>
+              </div>
+              <SuggestedArtists />
             </div>
           </Box>
-        )}
 
-        <Box className="flex-1">
-          <div className="px-5 py-4">
-            <div className="flex items-center justify-between gap-3 pb-4">
-
-              <SideBarItem
-                label="ARTISTS TO FOLLOW"
-                href="/artists"
-              />
-
-              <button
-                type="button"
-                onClick={() => fetchSuggestions()}
-                disabled={suggestionsLoading}
-                className="shrink-0 text-[12px] font-semibold uppercase ml-auto cursor-pointer text-zinc-400 transition-colors text-sm disabled:opacity-40 hover:text-white"
-                title="Refresh suggestions"
-              >
-                Refresh List
-              </button>
+          <Box>
+            <div className="px-5 py-4">
+              {userId ? (
+                <LikedTracksPreview userId={userId} />
+              ) : (
+                <SideBarItem label="YOUR LIKES" href="/library/likes" />
+              )}
             </div>
-            <SuggestedArtists />
-          </div>
-        </Box>
+          </Box>
+          <Box>
+            <div className="px-5 py-4">
+              <ListeningHistoryPreview />
+            </div>
+          </Box>
 
-        <Box className="flex-1">
-          <div className="px-5 py-4">
-            {userId ? (
-              <LikedTracksPreview userId={userId} />
-            ) : (
-              <SideBarItem label="YOUR LIKES" href="/library/likes" />
-            )}
-          </div>
-        </Box>
-        <Box className="flex-1">
-          <div className="px-5 py-4">
-            <ListeningHistoryPreview />
-          </div>
-        </Box>
+          <Box>
+            <div className="px-5 py-4">
+              <GoMobileBox />
+            </div>
+          </Box>
 
-        <Box>
-          <div className="px-5 py-4">
-            <GoMobileBox />
-          </div>
-        </Box>
-
+        </div>
       </div>
     </div>
   );

@@ -34,7 +34,7 @@ export default function SearchQuickResults({
               key={t.id}
               href={`/tracks/${t.id}`}
               onClick={onClose}
-              className="block py-1 hover:text-orange-500"
+              className="block py-1 hover:text-white"
             >
               {t.title}
             </Link>
