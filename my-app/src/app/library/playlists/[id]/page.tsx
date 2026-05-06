@@ -222,7 +222,7 @@ export default function PlaylistDetailPage({
   const displayTracksCount = playlist.tracksCount ?? tracks.length;
 
   return (
-    <div className="min-h-screen bg-[#121212] text-white">
+    <div className="min-h-screen bg-[#121212] text-white pb-32">
       {/* Header */}
       <div
         className={
