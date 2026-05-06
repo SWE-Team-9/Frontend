@@ -102,7 +102,7 @@ export function AiChatWidget({ context }: AiChatWidgetProps) {
   };
 
   return (
-    <div className="fixed bottom-24 right-6 z-50 flex flex-col items-end gap-3">
+    <div className="fixed top-6 left-6 z-50 flex flex-col items-start gap-3">
       {isOpen && (
         <div className="w-80 sm:w-96 h-130 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 bg-linear-to-r from-purple-600 to-blue-600 text-white">
