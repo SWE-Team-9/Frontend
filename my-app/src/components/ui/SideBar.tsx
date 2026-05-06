@@ -32,7 +32,7 @@ const SideBar: React.FC<SideBarProps> = ({ children, showSidebar = true }) => {
       {/* Sidebar */}
       <div className="hidden md:flex w-96 shrink-0 p-2">
         <div
-          className={`flex w-full flex-col gap-y-2 bg-[#121212] sticky top-20 self-start 
+          className={`flex w-full flex-col gap-y-2 bg-[#121212] sticky top-20 self-start pb-32 
           ${showSidebar ? "visible" : "invisible"}`}
         >
           {isStaff && (

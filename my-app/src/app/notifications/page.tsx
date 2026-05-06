@@ -34,7 +34,7 @@ export default function NotificationsPage() {
   }, [fetchNotifications, setSelectedStatus, setSelectedType]);
 
   return (
-    <div className="mx-auto max-w-3xl overflow-hidden rounded-2xl bg-[#121212]">
+    <div className="mx-auto max-w-3xl overflow-hidden rounded-2xl bg-[#121212] pb-32">
       <div className="flex items-center justify-between gap-4 border-b border-neutral-800 p-5">
         <h1 className="text-3xl font-bold">Notifications</h1>
         <NotificationTypeDropdown />

@@ -59,7 +59,7 @@ export default function TrendingByGenreSection() {
                             key={genre}
                             type="button"
                             onClick={() => router.push(`/genres/${genre}`)}
-                            className="flex h-40 w-64 shrink-0 items-center justify-center rounded-md border border-zinc-800 bg-[#181818] px-6 text-center text-3xl font-bold text-white transition-all duration-200 hover:border-[#ff5500] hover:bg-[#ff5500] hover:text-black"
+                            className="flex h-40 w-64 shrink-0 items-center justify-center rounded-md border border-zinc-800 bg-[#181818] px-6 text-center text-3xl font-bold text-whitex hover:border-[#ff5500] hover:bg-[#ff5500] hover:text-black transition duration-200"
                         >
                             {formatGenreName(genre)}
                         </button>

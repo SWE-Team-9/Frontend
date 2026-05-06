@@ -9,6 +9,7 @@ import { AddTrackModal } from "@/src/components/playlists/AddTrackModal";
 import SharePopup from "@/src/components/share/SharePopup";
 import { EmbedModal } from "@/src/components/playlists/EmbedModal";
 import { usePlayerStore } from "@/src/store/playerStore";
+import { useAuthStore } from "@/src/store/useAuthStore";
 import { buildPlaylistPermalink } from "@/src/lib/permalinks";
 import { playlistsApi } from "@/src/services/playlistsService";
 
@@ -70,6 +71,7 @@ export default function PlaylistDetailPage({
   const { id } = use(params);
   const { playlist, isLoading, addTrack, removeTrack, reorderTracks } =
     usePlaylist(id);
+  const viewer = useAuthStore((s) => s.user);
 
   const [addOpen, setAddOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
@@ -87,8 +89,17 @@ export default function PlaylistDetailPage({
   const liked = likedOverride?.liked ?? playlist?.liked;
   const likesCount = likedOverride?.count ?? playlist?.likesCount;
 
+  const isOwner = useMemo(() => {
+    if (!viewer || !playlist) return false;
+    const ownerId = playlist.owner?.id;
+    if (ownerId && viewer.id) return String(ownerId) === String(viewer.id);
+    const ownerHandle = playlist.owner?.handle ?? playlist.handle ?? null;
+    if (ownerHandle && viewer.handle) return ownerHandle === viewer.handle;
+    return false;
+  }, [viewer, playlist]);
+
   const toggleLike = useCallback(async () => {
-    if (!playlist || isLiking) return;
+    if (!playlist || isLiking || isOwner) return;
     setIsLiking(true);
     try {
       if (liked) {
@@ -109,7 +120,7 @@ export default function PlaylistDetailPage({
     } finally {
       setIsLiking(false);
     }
-  }, [playlist, liked, likesCount, isLiking]);
+  }, [playlist, liked, likesCount, isLiking, isOwner]);
 
   const setPlayerTracks = usePlayerStore((s) => s.setTracks);
 
@@ -130,7 +141,7 @@ export default function PlaylistDetailPage({
       likesCount: t.likesCount,
       repostsCount: t.repostsCount,
     }));
-  }, [playlist?.tracks]);
+  }, [playlist]);
 
   useEffect(() => {
     if (!tracks.length) return;
@@ -277,7 +288,7 @@ export default function PlaylistDetailPage({
 
             {/* Actions */}
             <div className="flex items-center flex-wrap gap-3">
-              {liked !== undefined && (
+              {!isOwner && liked !== undefined && (
                 <button
                   onClick={toggleLike}
                   disabled={isLiking}
