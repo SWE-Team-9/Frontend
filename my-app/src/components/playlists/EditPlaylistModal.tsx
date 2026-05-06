@@ -69,7 +69,7 @@ export function EditPlaylistModal({
 
   const shareLink =
     typeof window !== "undefined" && secretToken
-      ? `${window.location.origin}/playlists/secret/${secretToken}`
+      ? `${window.location.origin}/library/playlists/secret/${secretToken}`
       : null;
 
   const handleCopyLink = () => {
