@@ -9,12 +9,15 @@ import {
 } from "@/src/services/playerService";
 import { usePlayerStore } from "@/src/store/playerStore";
 
-export function QueuePanel() {
+interface QueuePanelProps {
+  onClose: () => void;
+}
+
+export function QueuePanel({ onClose }: QueuePanelProps) {
   const {
     currentQueueIndex,
     queueLength,
     isQueuePanelOpen,
-    toggleQueuePanel,
     queueVersion,
     jumpToTrackInQueue,
     removeTrackFromQueue,
@@ -50,6 +53,8 @@ export function QueuePanel() {
 
     return () => window.clearTimeout(timer);
   }, [isQueuePanelOpen, queueVersion]);
+
+  if (!isQueuePanelOpen) return null;
 
   const handleJump = async (trackId: string) => {
     if (actionLoading) return;
@@ -95,6 +100,7 @@ export function QueuePanel() {
       setActionLoading(true);
       await clearBackendQueue();
       setTracks([]);
+      onClose();
     } finally {
       setActionLoading(false);
     }
@@ -102,9 +108,18 @@ export function QueuePanel() {
 
   return (
     <>
-      <div className="fixed inset-0 z-40" onClick={toggleQueuePanel} />
+      <div
+        className="fixed inset-0 z-40 bg-transparent"
+        onClick={(e) => {
+          e.stopPropagation();
+          onClose();
+        }}
+      />
 
-      <div className="absolute bottom-full right-0 z-50 mb-3 flex max-h-96 w-96 flex-col overflow-hidden rounded-lg border border-zinc-700 bg-zinc-900 shadow-2xl">
+      <div
+        className="absolute bottom-full right-0 z-50 mb-3 flex max-h-96 w-96 flex-col overflow-hidden rounded-lg border border-zinc-700 bg-zinc-900 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex shrink-0 items-center justify-between border-b border-zinc-700 px-4 py-3">
           <div>
             <h3 className="text-sm font-semibold uppercase tracking-wider text-white">
@@ -127,7 +142,10 @@ export function QueuePanel() {
 
             <button
               type="button"
-              onClick={toggleQueuePanel}
+              onClick={(e) => {
+                e.stopPropagation();
+                onClose();
+              }}
               className="rounded p-1 text-zinc-400 hover:bg-zinc-800 hover:text-white"
               aria-label="Close queue"
             >
@@ -156,9 +174,8 @@ export function QueuePanel() {
               return (
                 <div
                   key={`${track.trackId}-${idx}`}
-                  className={`group flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-zinc-800 ${
-                    isActive ? "bg-zinc-800/80" : ""
-                  }`}
+                  className={`group flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-zinc-800 ${isActive ? "bg-zinc-800/80" : ""
+                    }`}
                 >
                   <button
                     type="button"
@@ -182,9 +199,8 @@ export function QueuePanel() {
 
                     <div className="min-w-0 flex-1 overflow-hidden">
                       <p
-                        className={`truncate text-sm font-medium ${
-                          isActive ? "text-[#ff5500]" : "text-white"
-                        }`}
+                        className={`truncate text-sm font-medium ${isActive ? "text-[#ff5500]" : "text-white"
+                          }`}
                       >
                         {track.title}
                       </p>

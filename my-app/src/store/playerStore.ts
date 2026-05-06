@@ -242,6 +242,7 @@ interface PlayerState {
 
   isQueuePanelOpen: boolean;
   toggleQueuePanel: () => void;
+  closeQueuePanel: () => void;
   /** Incremented every time a new queue is loaded on the backend.
    *  QueuePanel subscribes to this to know when to re-fetch. */
   queueVersion: number;
@@ -828,7 +829,11 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     }
   },
 
-  toggleQueuePanel: () => set((s) => ({ isQueuePanelOpen: !s.isQueuePanelOpen })),
+  toggleQueuePanel: () =>
+    set((s) => ({ isQueuePanelOpen: !s.isQueuePanelOpen })),
+
+  closeQueuePanel: () =>
+    set({ isQueuePanelOpen: false }),
 
   toggleShuffle: () => {
     const nextValue = !get().isShuffleOn;
